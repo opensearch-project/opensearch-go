@@ -570,6 +570,10 @@ To check all go files, run the following command:
 make linters
 ```
 
+That runs the pinned `golangci-lint` in a container, which is what CI runs. `make lint.local` runs the same checks against the `golangci-lint` on your `PATH` and applies the autofixable ones in place; it refuses unless your installed version matches the pin, because versions disagree about which findings exist and about which `//nolint` directives are unused, so a fix derived from a different version can break CI.
+
+CI reports findings rather than fixing them, so anything an autofixer could repair fails the build instead of being repaired in a throwaway checkout and lost.
+
 ## Coverage
 
 To get the repository test coverage, run the following command:

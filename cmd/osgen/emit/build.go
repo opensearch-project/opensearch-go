@@ -75,7 +75,7 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 	for _, op := range spec.Operations {
 		pkg, dir := routeOp(op.Group, cfg.OutDir, cfg.PluginsDir)
 		filePkg := pkg
-		if filePkg == "opensearchapi" {
+		if filePkg == opensearchAPIPkg {
 			filePkg = cfg.CorePkg
 		}
 		basename := opFilename(op.Group)
@@ -103,9 +103,11 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 			})
 		}
 
-		// Integration test file.
+		// Integration test file. The constraint comes from pkg, not filePkg:
+		// filePkg has already been remapped to cfg.CorePkg for core operations,
+		// so it no longer distinguishes core from a plugin.
 		if integFrag := buildIntegTestFrag(op, filePkg, importPath, cfg); integFrag != nil {
-			targets = append(targets, NewIntegTestFile(dir, filePkg, basename, integFrag))
+			targets = append(targets, NewIntegTestFile(dir, filePkg, basename, IntegBuildTag(pkg), integFrag))
 		}
 
 		// Track plugin packages.
@@ -1413,10 +1415,14 @@ var coreGroupPrefixes = map[string]bool{
 	"tasks":            true,
 }
 
+// opensearchAPIPkg is the package every core operation routes to, as opposed to
+// the per-plugin packages under PluginsDir.
+const opensearchAPIPkg = "opensearchapi"
+
 func routeOp(group, outDir, pluginsDir string) (string, string) {
 	prefix := groupPrefixIR(group)
 	if coreGroupPrefixes[prefix] {
-		return "opensearchapi", outDir
+		return opensearchAPIPkg, outDir
 	}
 	return prefix, pluginsDir + "/" + prefix
 }

@@ -488,12 +488,28 @@ func NewDispatchTestFile(outDir, pkg string, frag *DispatchTestFragment) Target 
 	}
 }
 
-// NewIntegTestFile builds a Target for <basename>_integ_gen_test.go.
-func NewIntegTestFile(outDir, pkg, basename string, frag *IntegTestFragment) Target {
+// NewIntegTestFile builds a Target for <basename>_integ_gen_test.go. buildTag
+// is the file's whole constraint; callers derive it with IntegBuildTag, because
+// the two integration passes select by tag and a file constrained only by
+// "integration" satisfies both and so runs twice.
+func NewIntegTestFile(outDir, pkg, basename, buildTag string, frag *IntegTestFragment) Target {
 	return &File{
 		FilePath:  outDir + "/" + basename + "_integ_gen_test.go",
 		Package:   pkg + "_test",
-		BuildTag:  "integration",
+		BuildTag:  buildTag,
 		Fragments: []Fragment{frag},
 	}
+}
+
+// IntegBuildTag returns the build constraint for a generated integration test
+// file destined for pkg. CI runs two integration passes, one tagged
+// "integration,core" and one "integration,plugins", so each file has to name
+// the pass that owns it or it compiles into both. The second disjunct on the
+// core side lets a developer run just that package's integration tests, which
+// is the scheme established alongside these targets.
+func IntegBuildTag(pkg string) string {
+	if pkg == opensearchAPIPkg {
+		return "integration && (core || opensearchapi)"
+	}
+	return "integration && plugins"
 }

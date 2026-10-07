@@ -54,6 +54,21 @@ func (f Foo) EncodeJSON(w io.Writer) error {
 	return nil
 }
 
+// failingJSONEncoder writes prefix then returns an error, so encode can leave
+// partial bytes in the destination writer.
+type failingJSONEncoder struct {
+	prefix string
+}
+
+func (f *failingJSONEncoder) EncodeJSON(w io.Writer) error {
+	if f.prefix != "" {
+		if _, err := w.Write([]byte(f.prefix)); err != nil {
+			return err
+		}
+	}
+	return errors.New("encode boom")
+}
+
 func TestJSONReader(t *testing.T) {
 	t.Run("Default", func(t *testing.T) {
 		out, _ := io.ReadAll(NewJSONReader(map[string]string{"foo": "bar"}))
@@ -90,6 +105,37 @@ func TestJSONReader(t *testing.T) {
 		_, err := r.Read(b)
 		if err == nil {
 			t.Fatalf("Expected error, got: %#v", err)
+		}
+	})
+
+	t.Run("encode error leaves reader reusable with error", func(t *testing.T) {
+		// A JSONEncoder that writes partial output then fails. A Read after a
+		// failed encode returns the encode error again and no leftover bytes.
+		partial := &failingJSONEncoder{prefix: `{"partial":`}
+		r := JSONReader{val: partial}
+
+		n, err := r.Read(make([]byte, 64))
+		if n != 0 || err == nil {
+			t.Fatalf("first Read: got n=%d err=%v, want n=0 and encode error", n, err)
+		}
+
+		out, err := io.ReadAll(&r)
+		if err == nil {
+			t.Fatalf("ReadAll after encode failure returned %q with nil error; want encode error again", out)
+		}
+		if len(out) != 0 {
+			t.Fatalf("ReadAll after encode failure returned leftover %q; want empty", out)
+		}
+
+		// Unsupported values take the same path (empty buffer, encode error).
+		r = JSONReader{val: make(chan int)}
+		_, err = r.Read(make([]byte, 64))
+		if err == nil {
+			t.Fatal("expected encode error for unsupported type")
+		}
+		out, err = io.ReadAll(&r)
+		if err == nil {
+			t.Fatalf("second ReadAll after unsupported-type encode failure returned %q with nil error", out)
 		}
 	})
 

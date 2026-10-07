@@ -29,7 +29,15 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
           version: v2.14.0
-          args: --fix --build-tags "${{ matrix.build-tags }}"
+          # No --fix: the runner's tree is thrown away, so a fix applied here
+          # reaches nobody and the finding neither fails the build nor lands in
+          # the repository. Report instead, and let the developer run the fixer.
+          args: --build-tags "${{ matrix.build-tags }}"
+      - name: How to fix
+        if: failure()
+        run: |
+          echo "::error::golangci-lint reported findings. Run 'make lint.local' to apply the autofixable ones, then commit the result."
+          exit 1
 
   discover-submodules:
     name: Discover sub-modules
@@ -74,7 +82,13 @@ jobs:
         with:
           version: v2.14.0
           working-directory: ${{ matrix.module }}
-          args: --fix --build-tags "integration core plugins plugin_security plugin_index_management multinode"
+          # No --fix; see the root lint job above.
+          args: --build-tags "integration core plugins plugin_security plugin_index_management multinode"
+      - name: How to fix
+        if: failure()
+        run: |
+          echo "::error::golangci-lint reported findings in ${{ matrix.module }}. Run 'make lint.local' to apply the autofixable ones, then commit the result."
+          exit 1
 
   prettify:
     name: Prettify
