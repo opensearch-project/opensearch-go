@@ -123,3 +123,83 @@ func TestDeriveDelta_RenameTypeChange(t *testing.T) {
 		})
 	}
 }
+
+// TestDeriveDelta_PointerFieldClassification pins how a surviving field that
+// became a pointer is classified. Only a pointer to the SAME type (after
+// version normalization and type renames) is a pointerWrap; a v4 Body io.Reader
+// facing a v5 typed Body plus a BodyReader io.Reader is a rename to BodyReader;
+// any other type change is manual, because wrapping the value in & would not
+// type-check.
+func TestDeriveDelta_PointerFieldClassification(t *testing.T) {
+	t.Parallel()
+	const (
+		v4root = "github.com/opensearch-project/opensearch-go/v4"
+		v5root = "github.com/opensearch-project/opensearch-go/v5"
+		v4api  = v4root + "/opensearchapi"
+		v5api  = v5root + "/opensearchapi"
+	)
+	renames := []TypeRename{{FromPkgPath: v4api, FromName: "ResponseShards", ToPkgPath: v5api, ToName: "ShardStatistics"}}
+
+	cases := []struct {
+		name     string
+		from, to []Field // fields of a same-name struct Req in each version
+		want     FieldChange
+	}{
+		{
+			name: "same elem T -> *T",
+			from: []Field{{Name: "Params", Type: v4api + ".SearchParams"}},
+			to:   []Field{{Name: "Params", Type: "*" + v5api + ".SearchParams"}},
+			want: FieldChange{Kind: KindPointerWrap, From: "Params", NewType: "*" + v5api + ".SearchParams"},
+		},
+		{
+			name: "same elem in root package",
+			from: []Field{{Name: "Cause", Type: v4root + ".CausedBy"}},
+			to:   []Field{{Name: "Cause", Type: "*" + v5root + ".CausedBy"}},
+			want: FieldChange{Kind: KindPointerWrap, From: "Cause", NewType: "*" + v5root + ".CausedBy"},
+		},
+		{
+			name: "elem follows a type rename",
+			from: []Field{{Name: "Shards", Type: v4api + ".ResponseShards"}},
+			to:   []Field{{Name: "Shards", Type: "*" + v5api + ".ShardStatistics"}},
+			want: FieldChange{Kind: KindPointerWrap, From: "Shards", NewType: "*" + v5api + ".ShardStatistics"},
+		},
+		{
+			name: "Body io.Reader with target BodyReader",
+			from: []Field{{Name: "Body", Type: "io.Reader"}},
+			to: []Field{
+				{Name: "Body", Type: "*" + v5api + ".ReqBody"},
+				{Name: "BodyReader", Type: "io.Reader"},
+			},
+			want: FieldChange{Kind: KindRename, From: "Body", To: "BodyReader", NewType: "io.Reader"},
+		},
+		{
+			name: "Body io.Reader without target BodyReader",
+			from: []Field{{Name: "Body", Type: "io.Reader"}},
+			to:   []Field{{Name: "Body", Type: "*" + v5api + ".ReqBody"}},
+			want: FieldChange{
+				Kind: KindManual, From: "Body", NewType: "*" + v5api + ".ReqBody",
+				Note: "field type changed from io.Reader to *" + v5api + ".ReqBody; migrate this use by hand",
+			},
+		},
+		{
+			name: "int -> *int64",
+			from: []Field{{Name: "Took", Type: "int"}},
+			to:   []Field{{Name: "Took", Type: "*int64"}},
+			want: FieldChange{
+				Kind: KindManual, From: "Took", NewType: "*int64",
+				Note: "field type changed from int to *int64; migrate this use by hand",
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			from := &Snapshot{Structs: []Struct{{PkgPath: v4api, Name: "Req", Fields: tc.from}}}
+			to := &Snapshot{Structs: []Struct{{PkgPath: v5api, Name: "Req", Fields: tc.to}}}
+
+			d := DeriveDelta(from, to, renames, nil)
+
+			require.Equal(t, []FieldChange{tc.want}, d.Structs[v4api+".Req"].Changes)
+		})
+	}
+}

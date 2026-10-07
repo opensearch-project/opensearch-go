@@ -100,15 +100,21 @@ func TestRewriteCorpus(t *testing.T) {
 			// catresponses: CAT arrays become Records in selectors and literals,
 			// without changing unrelated fields named Shards or Indices. Element
 			// types also change, so accesses and literal keys must report MANUAL.
-			name:    "v4_to_v5",
-			src:     4,
-			dst:     5,
-			corpus:  "v4",
-			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "catresponses.go"},
-			// topointer and importprune are marker-free and have no removed-type
-			// ref, so their goldens must be import-clean compiling v5.
+			// reqshapes: Body moves to BodyReader where v5 added a typed Body, and a
+			// Params value that became a pointer gains & (literal) or new(x) (any
+			// other value). retype: a field retyped to a pointer of another type is
+			// reported MANUAL where it is set or read and left in place; a constant
+			// moves into new(x) only when new(x) keeps the field's type.
+			name:   "v4_to_v5",
+			src:    4,
+			dst:    5,
+			corpus: "v4",
+			// removedtype: import bumps, the removed-type ref stays put.
+			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "catresponses.go", "reqshapes.go", "retype.go"},
+			// topointer, importprune and reqshapes are marker-free and have no
+			// removed-type ref, so their goldens must be import-clean compiling v5.
 			// catresponses still needs record-field conversion and is not compile-clean.
-			compileClean: []string{"topointer.go", "importprune.go"},
+			compileClean: []string{"topointer.go", "importprune.go", "reqshapes.go"},
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
 				"opensearchapi.ToPointer(x) -> new(x)",
@@ -121,6 +127,13 @@ func TestRewriteCorpus(t *testing.T) {
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": access .Records - type changed`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatShardsResp": field Records - type changed`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": field Records - type changed`,
+				"SnapshotRestoreReq: field Body -> BodyReader",
+				"SearchReq: field Params wrapped in new(x) (now pointer)",
+				"SearchHit: field Index wrapped in new(x) (now pointer)",
+				"BulkByScrollTaskStatus: field Updated wrapped in new(x) (now pointer)",
+				`opensearchapi.BulkByScrollTaskStatus": field Created is now *int64 - new(x) would not have that type`,
+				`opensearchapi.SearchHit": field Score - field type changed from float32 to *float64`,
+				`opensearchapi.SearchHit": access .Score - field type changed from float32 to *float64`,
 			},
 		},
 	} {

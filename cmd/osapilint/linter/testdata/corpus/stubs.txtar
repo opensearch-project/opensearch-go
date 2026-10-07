@@ -287,10 +287,17 @@ func ToPointer[V any](value V) *V {
 // opensearchapi package. It carries the nested Config, the typed Client,
 // AliasDeleteResp - a v4 response type removed outright in v5 - so a fixture can
 // reference the removed type and exercise the cross-hop removed-type diagnostic,
-// and ToPointer and NewFromClient, v4 helpers removed in v5.
+// and ToPointer and NewFromClient, v4 helpers removed in v5. The CAT responses,
+// SnapshotRestoreReq, SearchReq and SearchHit carry v4's real field types for
+// the fields the fixtures use, so a type change across the hop is visible.
 package opensearchapi
 
-import "github.com/opensearch-project/opensearch-go/v4"
+import (
+	"io"
+	"net/http"
+
+	"github.com/opensearch-project/opensearch-go/v4"
+)
 
 // Config wraps the root client config, matching v4's exact shape.
 type Config struct {
@@ -338,6 +345,45 @@ type CatIndexResp struct {
 	Health  string
 	Index   string
 	Primary *int
+}
+
+// SnapshotRestoreReq: v5 renames Repo to Repository and gives Body a typed
+// *SnapshotRestoreBody, keeping the raw io.Reader as BodyReader.
+type SnapshotRestoreReq struct {
+	Repo     string
+	Snapshot string
+	Body     io.Reader
+	Header   http.Header
+	Params   SnapshotRestoreParams
+}
+
+// SnapshotRestoreParams is v4's restore params (contents irrelevant here).
+type SnapshotRestoreParams struct{}
+
+// SearchReq: v5 makes Params a *SearchParams.
+type SearchReq struct {
+	Indices []string
+	Body    io.Reader
+	Header  http.Header
+	Params  SearchParams
+}
+
+// SearchParams is v4's search params.
+type SearchParams struct {
+	Size *int
+}
+
+// SearchHit: v5 retypes Score from float32 to *float64 and makes Index a
+// *string.
+type SearchHit struct {
+	Index string
+	Score float32
+}
+
+// BulkByScrollTaskStatus: v5 makes the int64 counters *int64.
+type BulkByScrollTaskStatus struct {
+	Created int64
+	Updated int64
 }
 
 // ToPointer matches v4's signature; v5 removes it in favor of new(value).

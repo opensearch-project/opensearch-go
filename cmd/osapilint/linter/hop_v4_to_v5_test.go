@@ -33,11 +33,22 @@ func planV4toV5(t *testing.T) hopPlan {
 func TestHopV4toV5_KnownChanges(t *testing.T) {
 	d := planV4toV5(t).delta
 
-	// DocumentGetReq -> GetReq (type rename) carrying a field rename + pointer-wrap.
+	// DocumentGetReq -> GetReq (type rename) carrying a field rename. Params is
+	// manual, not a pointerWrap: v4 DocumentGetParams has no TypeRename, so
+	// &DocumentGetParams{} would not compile on v5.
 	getReq := d.Structs[v4api+".DocumentGetReq"]
 	require.Equalf(t, v5api+".GetReq", getReq.To, "DocumentGetReq should map to %s.GetReq", v5api)
 	assertChange(t, getReq.Changes, apirev.FieldChange{Kind: "rename", From: "DocumentID", To: "ID", NewType: "string"})
-	assertChangeKind(t, getReq.Changes, "Params", "pointerWrap")
+	assertChangeKind(t, getReq.Changes, "Params", "manual")
+
+	// A raw request body moves to BodyReader where v5 added a typed Body, on
+	// same-name survivors and across a type rename alike.
+	for _, typ := range []string{"SnapshotRestoreReq", "IndicesCountReq", "DocumentDeleteByQueryReq"} {
+		assertChange(t, d.Structs[v4api+"."+typ].Changes,
+			apirev.FieldChange{Kind: "rename", From: "Body", To: "BodyReader", NewType: "io.Reader"})
+	}
+	// Same-type pointer change stays a pointerWrap.
+	assertChangeKind(t, d.Structs[v4api+".SearchReq"].Changes, "Params", "pointerWrap")
 
 	// Field rename proven by a shared JSON tag: SearchResp.Timeout -> TimedOut.
 	assertChangeKind(t, d.Structs[v4api+".SearchResp"].Changes, "Timeout", "rename")
