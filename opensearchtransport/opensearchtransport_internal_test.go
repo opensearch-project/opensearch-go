@@ -1428,10 +1428,10 @@ func TestRequestCompression(t *testing.T) {
 // TestRequestCompressionSkipsWhenContentEncodingSet verifies that compression,
 // enabled by the legacy CompressRequestBody flag or by a GZip Compressor,
 // leaves the wire body gzipped exactly once on every attempt: a body whose
-// caller set any non-empty Content-Encoding value is sent
-// as-is, including through the transport's retry snapshot when GetBody is nil,
-// while an empty value or a Content-Encoding from Config.Header does not
-// suppress compression.
+// caller set any non-empty Content-Encoding value is sent as-is, including
+// through the transport's retry snapshot when GetBody is nil, while an empty
+// value or a Content-Encoding from Config.Header does not suppress
+// compression.
 func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 	t.Parallel()
 
@@ -1591,6 +1591,7 @@ func TestRequestCompressorNone(t *testing.T) {
 		body       []byte
 		header     http.Header
 	}{
+		{name: "plain body", body: []byte(plaintext)},
 		{name: "overrides legacy flag", legacyFlag: true, body: []byte(plaintext)},
 		{
 			name:   "leaves a caller-set Content-Encoding alone",
