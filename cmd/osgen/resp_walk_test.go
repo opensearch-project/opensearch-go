@@ -227,6 +227,53 @@ func TestWalkerStringEnumViaRef(t *testing.T) {
 	require.Equal(t, []string{"OK", "NOT_FOUND"}, registered.EnumValues)
 }
 
+func TestWalkerOpaqueString(t *testing.T) {
+	t.Parallel()
+
+	named := func() *openapi3.Schema {
+		s := openapi3.NewStringSchema()
+		s.Description = "Identifies a point in time."
+		s.Extensions = map[string]any{extTypeName: "PITID"}
+		return s
+	}
+	const key = "#/components/schemas/_common___PitId"
+	tests := []struct {
+		name   string
+		schema *openapi3.SchemaRef
+		want   string
+	}{
+		{name: "an inline string schema", schema: &openapi3.SchemaRef{Value: named()}, want: "PITID"},
+		{name: "a component reached via $ref", schema: &openapi3.SchemaRef{Ref: key, Value: named()}, want: "PITID"},
+		{
+			name: "array items reached via $ref",
+			schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+				Type:  &openapi3.Types{openapi3.TypeArray},
+				Items: &openapi3.SchemaRef{Ref: key, Value: named()},
+			}},
+			want: "[]PITID",
+		},
+		{name: "a string without the marker stays a string", schema: &openapi3.SchemaRef{Value: openapi3.NewStringSchema()}, want: "string"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			require.Equal(t, tt.want, w.walkSchema(tt.schema, "test___Field", "test", false))
+			registered, ok := reg.lookup("_common___PITID")
+			if tt.want == "string" {
+				require.False(t, ok)
+				return
+			}
+			require.True(t, ok, "the opaque type is registered once, shared")
+			require.True(t, registered.IsOpaqueString)
+			require.False(t, registered.IsStringEnum)
+			require.Equal(t, "Identifies a point in time.", registered.Comment)
+		})
+	}
+}
+
 func TestWalkerArrayType(t *testing.T) {
 	t.Parallel()
 

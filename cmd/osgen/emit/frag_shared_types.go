@@ -114,10 +114,11 @@ func NewUnionTypesFile(outDir, pkg string, types []*ir.Type) Target {
 	}
 }
 
-// NewEnumTypesFile builds a Target for enums_gen.go. It emits both int-backed
-// (closed) enums and string-backed (permissive) enums into the same file.
+// NewEnumTypesFile builds a Target for enums_gen.go. It emits int-backed
+// (closed) enums, string-backed (permissive) enums, and opaque string tokens
+// into the same file.
 func NewEnumTypesFile(outDir, pkg string, types []*ir.Type) Target {
-	var enumTypes, stringEnumTypes []*ir.Type
+	var enumTypes, stringEnumTypes, opaqueTypes []*ir.Type
 	for _, t := range types {
 		if t.Scope != ir.ScopeShared {
 			continue
@@ -127,11 +128,13 @@ func NewEnumTypesFile(outDir, pkg string, types []*ir.Type) Target {
 			enumTypes = append(enumTypes, t)
 		case ir.TypeStringEnum:
 			stringEnumTypes = append(stringEnumTypes, t)
+		case ir.TypeOpaqueString:
+			opaqueTypes = append(opaqueTypes, t)
 		case ir.TypeStruct, ir.TypeUnion, ir.TypeAmbiguousWire:
 			// Emitted by other fragments (SharedTypesFragment / UnionFragment).
 		}
 	}
-	if len(enumTypes) == 0 && len(stringEnumTypes) == 0 {
+	if len(enumTypes) == 0 && len(stringEnumTypes) == 0 && len(opaqueTypes) == 0 {
 		return nil
 	}
 	var fragments []Fragment
@@ -140,6 +143,9 @@ func NewEnumTypesFile(outDir, pkg string, types []*ir.Type) Target {
 	}
 	if len(stringEnumTypes) > 0 {
 		fragments = append(fragments, &StringEnumFragment{Types: stringEnumTypes})
+	}
+	if len(opaqueTypes) > 0 {
+		fragments = append(fragments, &OpaqueStringFragment{Types: opaqueTypes})
 	}
 	return &File{
 		FilePath:  outDir + "/enums_gen.go",

@@ -47,13 +47,12 @@ func TestManual_PITSegments(t *testing.T) {
 		Params:  &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 	})
 	require.NoError(t, err)
-	require.NotNil(t, createResp.PITID)
-	pitID := *createResp.PITID
-	require.NotEmpty(t, pitID)
+	pitID := createResp.PITID
+	require.True(t, pitID.IsSet())
 
 	t.Cleanup(func() {
 		_, _ = client.PIT.Delete(context.Background(), &opensearchapi.DeletePITReq{
-			Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}},
+			Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{pitID}},
 		})
 	})
 
@@ -65,7 +64,7 @@ func TestManual_PITSegments(t *testing.T) {
 			name: "cat.pit_segments by PIT ID",
 			exec: func(ctx context.Context) (interface{ Inspect() opensearchapi.Inspect }, error) {
 				return client.Cat.PITSegments(ctx, &opensearchapi.CatPITSegmentsReq{
-					Body: &opensearchapi.CatPITSegmentsBody{PITID: []string{pitID}},
+					Body: &opensearchapi.CatPITSegmentsBody{PITID: []opensearchapi.PITID{pitID}},
 					Params: &opensearchapi.CatPITSegmentsParams{
 						DebugParams: opensearchapi.DebugParams{Format: "json"},
 					},

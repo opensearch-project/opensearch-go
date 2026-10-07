@@ -8,6 +8,7 @@ package emit
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -53,6 +54,7 @@ func (f *DispatchFragment) Body() (string, error) {
 	if len(emittable) >= 2 {
 		perOpType = perOpErrorTypeName(f.Op.Group)
 	}
+	errExpr := requestErrExpr(f.emittableErrorTypes())
 
 	tmpl := template.Must(template.New("dispatch").Funcs(template.FuncMap{
 		"methodConst":      HTTPMethodConst,
@@ -60,6 +62,7 @@ func (f *DispatchFragment) Body() (string, error) {
 		"bodyMethodSwitch": bodyMethodSwitch,
 		"recvTopLevel":     func() string { return recvTopLevel },
 		"recvSubClient":    func() string { return recvSubClient },
+		"requestErr":       func() string { return errExpr },
 		"opMethodComment": func(methodName string, op *ir.Operation) string {
 			return MethodComment(MethodDocData{
 				MethodName:        methodName,
@@ -120,6 +123,34 @@ func (f *DispatchFragment) emittableWrappers() []string {
 	return out
 }
 
+// emittableErrorTypes returns the subset of op.ErrorTypes listed in
+// [errwrap.ErrorTypes], the names with a hand-written Go error. Others are
+// recorded in the IR but skipped here, so the dispatch never references a
+// wrap<Name> that does not exist.
+func (f *DispatchFragment) emittableErrorTypes() []ir.ErrorType {
+	var out []ir.ErrorType
+	for _, et := range f.Op.ErrorTypes {
+		if slices.Contains(errwrap.ErrorTypes(), et.Name) {
+			out = append(out, et)
+		}
+	}
+	return out
+}
+
+// requestErrExpr is the expression a dispatch returns when request() fails:
+// err as is, or err passed through classifyError with the operation's error
+// types, which wraps a matching server error in its typed Go error.
+func requestErrExpr(types []ir.ErrorType) string {
+	if len(types) == 0 {
+		return "err"
+	}
+	args := make([]string, 0, len(types))
+	for _, et := range types {
+		args = append(args, fmt.Sprintf("errorType{status: %d, rootCause: %q, wrap: wrap%s}", et.Status, et.RootCauseType, et.Name))
+	}
+	return "classifyError(err, " + strings.Join(args, ", ") + ")"
+}
+
 // Field names referenced by the wrapper templates. Centralized so the
 // applies check stays in lock-step with the emission template strings.
 // These names match the JSON-tag-driven Go fields that osgen produces
@@ -132,7 +163,13 @@ const (
 	respFieldResponses = "Responses"
 	respFieldStatus    = "Status"
 	respFieldError     = "Error"
+	respFieldPITs      = "PITs"
 )
+
+// pitDeletedSliceType is the Go type of DeletePIT / DeleteAllPITs `pits[]`.
+// The hand-written PartialPITDeleteError holds []PITDeleted, so the
+// PITDeleteItems emission applies only when the response field has it.
+const pitDeletedSliceType = "[]PITDeleted"
 
 // Receiver expressions used at API method call sites. Top-level Client
 // methods read the mask via `c.errorMask()`; sub-clients reach the
@@ -389,6 +426,10 @@ var wrappers = map[string]wrapperEmission{
 		Applies:      applyMultiSearchItems,
 		RenderMethod: renderMultiSearchItemsMethod,
 	},
+	errwrap.WrapperPITDeleteItems: {
+		Applies:      applyPITDeleteItems,
+		RenderMethod: renderPITDeleteItemsMethod,
+	},
 }
 
 // applySearchShards returns true when the response either carries a
@@ -536,6 +577,40 @@ func (r *{{.RespType}}) WriteShardFailures() *ShardFailureError {
 		Operation:    {{.WriteOperation}},
 		FailedShards: r.Shards.Failed,
 		TotalShards:  r.Shards.Total,
+	}
+}
+
+`, ctx)
+}
+
+// applyPITDeleteItems checks for the DeletePIT / DeleteAllPITs wire shape:
+// top-level `pits: []` of PITDeleted.
+func applyPITDeleteItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
+	f, ok := lookupResponseField(resp, respFieldPITs, reg)
+	return ok && f.GoType == pitDeletedSliceType
+}
+
+func renderPITDeleteItemsMethod(ctx wrapperRenderCtx) (string, error) {
+	return execTpl("PITDeleteItemsMethod", `
+// PITDeleteItemFailures detects PITs the server could not delete on a
+// {{.RespType}}: pits[] entries with "successful": false. Returns nil when
+// every PIT was deleted.
+func (r *{{.RespType}}) PITDeleteItemFailures() *PartialPITDeleteError {
+	if r == nil {
+		return nil
+	}
+	var failed []PITDeleted
+	for _, p := range r.PITs {
+		if !p.Successful {
+			failed = append(failed, p)
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return &PartialPITDeleteError{
+		Failed:         failed,
+		SucceededCount: len(r.PITs) - len(failed),
 	}
 }
 
@@ -761,6 +836,10 @@ func writeOperationConst(group string) string {
 // Single-wrapper ops pass nil as the wrap closure (the 2+ branch is
 // unreachable for them); multi-wrapper ops pass a closure that
 // constructs their per-op error type.
+//
+// When request() itself fails, the dispatch returns the error as is, or
+// through classifyError for an operation that declares x-error-types (see
+// [requestErrExpr]).
 const dispatchTemplateText = `{{- $op := .Operation -}}
 {{- $hasPartial := .HasPartialFailures -}}
 {{- range .Routes}}
@@ -805,7 +884,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		method,
 		req, &data,
 	); err != nil {
-		return &data, err
+		return &data, {{requestErr}}
 	}
 {{- else}}
 	if data.response, err = request( {{- ""}}
@@ -814,7 +893,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		{{methodConst (primaryMethod $op)}},
 		req, &data,
 	); err != nil {
-		return &data, err
+		return &data, {{requestErr}}
 	}
 {{- end}}
 {{- if $hasPartial}}

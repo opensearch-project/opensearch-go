@@ -71,8 +71,6 @@ func BenchmarkBulkIndexer(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("Basic", func(b *testing.B) {
-		b.ResetTimer()
-
 		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransp{}}})
 		b.Cleanup(func() { _ = client.Close() })
 		bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
@@ -85,7 +83,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 		var docIDBuf bytes.Buffer
 		docIDBuf.Grow(cap(docID))
 
-		for i := 0; i < b.N; i++ {
+		for i := 0; b.Loop(); i++ {
 			docID = strconv.AppendInt(docID, int64(i), 10)
 			docIDBuf.Write(docID)
 			bi.Add(context.Background(), opensearchutil.BulkIndexerItem{

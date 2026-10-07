@@ -27,6 +27,10 @@ import (
 // CreatePITReq represents the request for the create_pit operation.
 //
 // Creates point in time context.
+// The request must set `keep_alive`. The response's `pit_id` goes in the
+// body of later requests: `pit.id` on a search, `pit_id` on a delete.
+// Delete the PIT when done; until then it counts against
+// `search.max_open_pit_context`.
 //
 // POST /{index}/_search/point_in_time
 //
@@ -78,7 +82,9 @@ type CreatePITParams struct {
 	// closed or both.
 	ExpandWildcards []string
 
-	// Specify the keep alive for point in time.
+	// Specify the keep alive for point in time. Each search against the PIT
+	// restarts it, and a search cannot shorten it. It cannot exceed the
+	// `point_in_time.max_keep_alive` cluster setting (24h by default).
 	KeepAlive time.Duration
 
 	// Specify the node or shard the operation should be performed on.
@@ -127,14 +133,26 @@ func (r CreatePITParams) get() map[string]string {
 // CreatePITResp represents the response for the create_pit operation.
 //
 // Creates point in time context.
+// The request must set `keep_alive`. The response's `pit_id` goes in the
+// body of later requests: `pit.id` on a search, `pit_id` on a delete.
+// Delete the PIT when done; until then it counts against
+// `search.max_open_pit_context`.
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
 type CreatePITResp struct {
-	Shards       *ShardStatistics `json:"_shards,omitempty"`
-	CreationTime *int64           `json:"creation_time,omitempty"`
-	PITID        *string          `json:"pit_id,omitempty"`
+	Shards       ShardStatistics `json:"_shards"`
+	CreationTime int64           `json:"creation_time"`
+
+	// PITID. Identifies a point in time (PIT): an opaque base64 token that
+	// encodes index names and node IDs. The create-PIT response returns it,
+	// and every search against the PIT echoes it. A request takes it only in
+	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
+	// segments), never in a path, query parameter, or header, because the
+	// token can be large. It is not an external ID: don't expose it outside
+	// your service, where its value could be tampered with.
+	PITID PITID `json:"pit_id"`
 
 	response *opensearch.Response
 }
@@ -158,9 +176,6 @@ func (r CreatePITResp) RawBody() io.Reader {
 // shards failed.
 func (r *CreatePITResp) SearchShardFailures() *PartialSearchError {
 	if r == nil {
-		return nil
-	}
-	if r.Shards == nil {
 		return nil
 	}
 	if r.Shards.Failed == 0 {
@@ -187,6 +202,11 @@ func (r *CreatePITResp) PartialFailures(mask errmask.ErrorMask) []error {
 }
 
 // Create creates point in time context.
+//
+// The request must set `keep_alive`. The response's `pit_id` goes in the
+// body of later requests: `pit.id` on a search, `pit_id` on a delete.
+// Delete the PIT when done; until then it counts against
+// `search.max_open_pit_context`.
 //
 // POST /{index}/_search/point_in_time
 //

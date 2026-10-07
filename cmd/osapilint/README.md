@@ -71,6 +71,8 @@ for _, h := range hops {
 
 `Rewrite(args)` (the `rewrite` subcommand) is a thin CLI shell over `MigrateSDK`, so the command and the library apply identical edits.
 
+`LookupStruct(major, pkg, name)` reads the embedded API surface the hops are keyed against. It returns an exported struct's fields (name and type) as a `[]SurfaceField` for that major version, or false if the version has no embedded surface, the surface fails to decode, or the struct isn't in it, so a tool with its own rewrite tables can check them against the same surface.
+
 ## How it works
 
 Each adjacent transition (vN -> vN+1) is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against two committed API surfaces (`surface_vN.json`). A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
@@ -94,6 +96,8 @@ A field that vanishes on the target is governed by an explicit `FieldDisposition
 - **manual** - the field's data relocated (e.g. a response collapsed to a raw `Body`); flagged for a human.
 
 A vanished field with no disposition fails the run with an `osapilint bug` error; the tool does not infer rename-versus-remove. Dispositions are verified against the surfaces by `TestHopFieldDispositionsAgainstSurfaces` and are established from source: response-field renames by a shared JSON wire tag, request-field renames by the v4 code that assembles the field into the spec-named element.
+
+A field that keeps its name but becomes a pointer is classified from the surfaces and needs no table entry. If it now points to the same type, a composite-literal value gets `&` and any other value becomes `new(x)`. The exception is a constant whose own type differs from the field's, such as `Created: 1` on an `int64` field (`new(1)` is an `*int`), which is reported `MANUAL`. A raw `Body io.Reader` moves to `BodyReader` when the target has a typed `Body` and a `BodyReader io.Reader`. If the field now points to a different type (`int` -> `*int64`), the tool reports `MANUAL` wherever it is set or read, since even a read that still compiles can change behavior: printing a `*string` prints the pointer.
 
 ### Source detection
 

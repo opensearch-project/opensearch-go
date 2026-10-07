@@ -59,6 +59,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		IsPlugin:          !coreGroups[groupPrefix(op.Group)],
 		ResponseRef:       op.ResponseRef,
 		ErrorWrappers:     resolveErrorWrappers(op),
+		ErrorTypes:        op.ErrorTypes,
 	}
 
 	// Plugin operations dispatch through their own flat client method; its
@@ -280,6 +281,8 @@ func convertType(gt *goType) *ir.Type {
 	switch {
 	case gt.IsStringEnum:
 		t.Kind = ir.TypeStringEnum
+	case gt.IsOpaqueString:
+		t.Kind = ir.TypeOpaqueString
 	case gt.IsEnum:
 		t.Kind = ir.TypeEnum
 	case gt.IsUnion && gt.IsAmbiguousWire:

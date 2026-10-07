@@ -160,8 +160,8 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // `node_failures`, `bulk_by_scroll_failures`, `task_failures`,
 // `multi_search_items`, `multi_doc_items`, `snapshot_create_shard_failures`,
 // `snapshot_get_shard_failures`, `simulate_doc_failures`,
-// `rank_eval_failures`, `ingestion_shard_failures`, `pit_node_failures`)
-// plus `all` and `none`/`empty`/`unknown` (aliases for zero). Each token
+// `rank_eval_failures`, `ingestion_shard_failures`, `pit_node_failures`,
+// `pit_delete_items`) plus `all` and `none`/`empty`/`unknown` (aliases for zero). Each token
 // may be prefixed with `+` (set/mask) or `-` (clear/unmask); bare tokens
 // are treated as `+`. Tokens are applied left-to-right starting from the
 // programmatic Config.Errors value. Unrecognized tokens are silently
