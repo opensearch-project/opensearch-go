@@ -151,8 +151,8 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		if tp.compressRequestBody {
-			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
+		if tp.compressor != nil {
+			t.Errorf("Unexpected compressor: %v", tp.compressor)
 		}
 	})
 
@@ -182,8 +182,8 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		if !tp.compressRequestBody {
-			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
+		if tp.compressor == nil {
+			t.Errorf("Unexpected compressor: %v", tp.compressor)
 		}
 	})
 }
@@ -1571,6 +1571,142 @@ func TestRequestCompressionReadError(t *testing.T) {
 	require.ErrorIs(t, err, errRead)
 	require.ErrorContains(t, err, "failed to compress request body")
 	require.Nil(t, res)
+}
+
+// TestRequestCompressor verifies how Config.Compressor and the legacy
+// Config.CompressRequestBody combine: a non-nil Compressor wins outright
+// (None disables compression even with CompressRequestBody set), and a
+// caller-set Content-Encoding is still sent as-is under any active compressor.
+func TestRequestCompressor(t *testing.T) {
+	t.Parallel()
+
+	const plaintext = "opensearch"
+
+	var gzipped bytes.Buffer
+	zw := gzip.NewWriter(&gzipped)
+	_, err := zw.Write([]byte(plaintext))
+	require.NoError(t, err)
+	require.NoError(t, zw.Close())
+
+	gzipCompressor := func(level int) func(*testing.T) Compressor {
+		return func(t *testing.T) Compressor {
+			t.Helper()
+			c, err := GZip(level)
+			require.NoError(t, err)
+			return c
+		}
+	}
+	none := func(*testing.T) Compressor { return None() }
+
+	tests := []struct {
+		name          string
+		compressor    func(*testing.T) Compressor
+		legacyFlag    bool
+		body          []byte
+		header        http.Header
+		wantEncodings []string
+		wantGzipped   bool
+	}{
+		{name: "nothing configured", body: []byte(plaintext)},
+		{
+			name:          "legacy flag",
+			legacyFlag:    true,
+			body:          []byte(plaintext),
+			wantEncodings: []string{"gzip"},
+			wantGzipped:   true,
+		},
+		{
+			name:          "GZip default level",
+			compressor:    gzipCompressor(gzip.DefaultCompression),
+			body:          []byte(plaintext),
+			wantEncodings: []string{"gzip"},
+			wantGzipped:   true,
+		},
+		{
+			name:          "GZip best speed",
+			compressor:    gzipCompressor(gzip.BestSpeed),
+			body:          []byte(plaintext),
+			wantEncodings: []string{"gzip"},
+			wantGzipped:   true,
+		},
+		{name: "None", compressor: none, body: []byte(plaintext)},
+		{name: "None overrides legacy flag", compressor: none, legacyFlag: true, body: []byte(plaintext)},
+		{
+			name:          "GZip overrides legacy flag",
+			compressor:    gzipCompressor(gzip.BestSpeed),
+			legacyFlag:    true,
+			body:          []byte(plaintext),
+			wantEncodings: []string{"gzip"},
+			wantGzipped:   true,
+		},
+		{
+			name:          "GZip skips a caller-set Content-Encoding",
+			compressor:    gzipCompressor(gzip.BestSpeed),
+			body:          gzipped.Bytes(),
+			header:        http.Header{headerContentEncoding: {"gzip"}},
+			wantEncodings: []string{"gzip"},
+			wantGzipped:   true,
+		},
+		{
+			name:          "None leaves a caller-set Content-Encoding alone",
+			compressor:    none,
+			body:          gzipped.Bytes(),
+			header:        http.Header{headerContentEncoding: {"gzip"}},
+			wantEncodings: []string{"gzip"},
+			wantGzipped:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				encodings []string
+				wire      []byte
+			)
+
+			cfg := Config{
+				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+				CompressRequestBody: tt.legacyFlag,
+				NodeStatsInterval:   -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						return nil, err
+					}
+					encodings, wire = req.Header.Values(headerContentEncoding), body
+					return &http.Response{Status: "MOCK", Body: http.NoBody}, nil
+				}),
+			}
+			if tt.compressor != nil {
+				cfg.Compressor = tt.compressor(t)
+			}
+
+			tp, err := New(cfg)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(tt.body))
+			require.NoError(t, err)
+			req.Header = tt.header.Clone()
+
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			require.NoError(t, res.Body.Close())
+
+			require.Equal(t, tt.wantEncodings, encodings)
+			if !tt.wantGzipped {
+				require.Equal(t, plaintext, string(wire))
+				return
+			}
+			zr, err := gzip.NewReader(bytes.NewReader(wire))
+			require.NoError(t, err)
+			plain, err := io.ReadAll(zr)
+			require.NoError(t, err)
+			require.Equal(t, plaintext, string(plain))
+		})
+	}
 }
 
 // TestStreamClosesOriginalRequestBodyAfterSnapshot verifies that compress and

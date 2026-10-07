@@ -9,16 +9,20 @@
 package opensearchtransport
 
 import (
+	"bytes"
 	"compress/gzip"
 	"io"
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompress(t *testing.T) {
 	t.Run("initialize & compress", func(t *testing.T) {
-		gzipCompressor := newGzipCompressor()
+		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
+		require.NoError(t, err)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -37,7 +41,8 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("gzip multiple times", func(t *testing.T) {
-		gzipCompressor := newGzipCompressor()
+		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
+		require.NoError(t, err)
 		for range 5 {
 			body := generateRandomString()
 			rc := io.NopCloser(strings.NewReader(body))
@@ -58,7 +63,8 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("ensure gzipped data is smaller and different from original", func(t *testing.T) {
-		gzipCompressor := newGzipCompressor()
+		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
+		require.NoError(t, err)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -78,7 +84,8 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("compressing data twice", func(t *testing.T) {
-		gzipCompressor := newGzipCompressor()
+		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
+		require.NoError(t, err)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -121,4 +128,73 @@ func generateRandomString() string {
 
 	// Convert the byte slice to a string and return it
 	return string(randomBytes)
+}
+
+func gzipRoundTrip(t *testing.T, c Compressor, body string) int {
+	t.Helper()
+
+	buf, err := c.compress(io.NopCloser(strings.NewReader(body)))
+	require.NoError(t, err)
+	defer c.collectBuffer(buf)
+	size := buf.Len()
+
+	zr, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
+	require.NoError(t, err)
+	plain, err := io.ReadAll(zr)
+	require.NoError(t, err)
+	require.Equal(t, body, string(plain))
+
+	return size
+}
+
+func TestGZipLevel(t *testing.T) {
+	t.Parallel()
+
+	body := strings.Repeat("opensearch ", 1000)
+
+	tests := []struct {
+		name    string
+		level   int
+		wantErr bool
+	}{
+		{name: "default", level: gzip.DefaultCompression},
+		{name: "no compression", level: gzip.NoCompression},
+		{name: "best speed", level: gzip.BestSpeed},
+		{name: "best compression", level: gzip.BestCompression},
+		{name: "huffman only", level: gzip.HuffmanOnly},
+		{name: "below range", level: gzip.HuffmanOnly - 1, wantErr: true},
+		{name: "above range", level: gzip.BestCompression + 1, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c, err := GZip(tt.level)
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Nil(t, c)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, "gzip", c.contentEncoding())
+			gzipRoundTrip(t, c, body)
+		})
+	}
+}
+
+// TestGZipLevelReachesWriter pins that the level configures the pooled writers:
+// stored (level 0) output of a repetitive body is larger than best-compression
+// output.
+func TestGZipLevelReachesWriter(t *testing.T) {
+	t.Parallel()
+
+	body := strings.Repeat("opensearch ", 1000)
+
+	stored, err := GZip(gzip.NoCompression)
+	require.NoError(t, err)
+	best, err := GZip(gzip.BestCompression)
+	require.NoError(t, err)
+
+	require.Greater(t, gzipRoundTrip(t, stored, body), gzipRoundTrip(t, best, body))
 }

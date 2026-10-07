@@ -208,13 +208,21 @@ type Config struct {
 	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
 	DNSTimeout time.Duration
 
-	// CompressRequestBody gzip-compresses request bodies and sets
-	// Content-Encoding: gzip. Skipped when the caller already set any non-empty
-	// Content-Encoding value on the request: the caller chose the body's
-	// encoding, and compressing would replace their header with a single gzip,
-	// mislabeling a body that was already gzipped. A Content-Encoding in Header
-	// applies to every request and says nothing about a given body, so it does
-	// not count.
+	// Compressor encodes request bodies and sets the matching Content-Encoding
+	// header; see [GZip] and [None]. nil leaves the choice to CompressRequestBody.
+	//
+	// A compressor is skipped for a request whose caller already set any
+	// non-empty Content-Encoding value: the caller chose the body's encoding,
+	// and compressing would replace their header with a single gzip, mislabeling
+	// a body that was already gzipped. A Content-Encoding in Header applies to
+	// every request and says nothing about a given body, so it does not count.
+	Compressor Compressor
+
+	// CompressRequestBody gzip-compresses request bodies at the default level
+	// when Compressor is nil. A non-nil Compressor, including [None], takes
+	// precedence.
+	//
+	// Deprecated: Use Compressor, for example with [GZip].
 	CompressRequestBody bool
 
 	EnableDebugLogger bool
@@ -545,8 +553,9 @@ type Transport struct {
 
 	healthCheck HealthCheckFunc
 
-	compressRequestBody  bool
-	pooledGzipCompressor *gzipCompressor
+	// compressor is nil when request compression is off, so stream can skip the
+	// Content-Encoding scan; New normalizes [None] to nil.
+	compressor Compressor
 
 	metrics *metrics
 
@@ -1079,7 +1088,7 @@ func New(cfg Config) (*Transport, error) {
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
-		compressRequestBody: cfg.CompressRequestBody,
+		compressor: resolveCompressor(cfg.Compressor, cfg.CompressRequestBody),
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1259,10 +1268,6 @@ func New(cfg Config) (*Transport, error) {
 
 	if client.discoverNodesInterval > 0 {
 		go client.discoveryLoop()
-	}
-
-	if cfg.CompressRequestBody {
-		client.pooledGzipCompressor = newGzipCompressor()
 	}
 
 	// Configure policy settings for all policies in the router
@@ -1505,7 +1510,7 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-// headerContentEncoding is the request header CompressRequestBody sets and
+// headerContentEncoding is the request header a Compressor sets and stream
 // checks.
 const headerContentEncoding = "Content-Encoding"
 
@@ -1527,8 +1532,8 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	// Update request
 	tr.setReqUserAgent(req)
-	// Decide before the global headers merge in; see Config.CompressRequestBody.
-	compressBody := tr.compressRequestBody &&
+	// Decide before the global headers merge in; see Config.Compressor.
+	compress := tr.compressor != nil &&
 		!slices.ContainsFunc(req.Header.Values(headerContentEncoding), func(v string) bool { return v != "" })
 	tr.setReqGlobalHeader(req)
 
@@ -1562,9 +1567,9 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	if req.Body != nil && req.Body != http.NoBody {
 		origBody := req.Body
-		if compressBody {
-			buf, err := tr.pooledGzipCompressor.compress(origBody)
-			defer tr.pooledGzipCompressor.collectBuffer(buf)
+		if compress {
+			buf, err := tr.compressor.compress(origBody)
+			defer tr.compressor.collectBuffer(buf)
 			if err != nil {
 				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
 			}
@@ -1577,7 +1582,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			//nolint:errcheck // error is always nil
 			req.Body, _ = req.GetBody()
 
-			req.Header.Set(headerContentEncoding, "gzip")
+			req.Header.Set(headerContentEncoding, tr.compressor.contentEncoding())
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
 			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {

@@ -6,6 +6,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `opensearchtransport.Compressor` with the `opensearchtransport.None` and `opensearchtransport.GZip(level)` constructors, and a `Compressor` field on `opensearch.Config` and `opensearchtransport.Config`, so request compression and its gzip level are chosen through one typed value instead of a growing list of config knobs. A non-nil `Compressor` takes precedence over `CompressRequestBody`, so `None()` disables compression even when the flag is set. A request that already carries a `Content-Encoding` is still sent as-is ([#1180](https://github.com/opensearch-project/opensearch-go/pull/1180))
+
 ### Changed
 
 - Replace the package-local pointer helpers, anonymous pointer factories, and address-of-a-local temporaries with Go 1.26's native `new(value)` form across tests, samples, and library code, have `cmd/osgen` emit `new(value)` in generated tests, and update the upgrade guides and examples to use `new(value)` in place of `ToPointer` or a local helper ([#873](https://github.com/opensearch-project/opensearch-go/issues/873), [#1170](https://github.com/opensearch-project/opensearch-go/pull/1170))

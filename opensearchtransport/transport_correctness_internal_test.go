@@ -9,6 +9,7 @@
 package opensearchtransport
 
 import (
+	"compress/gzip"
 	"errors"
 	"io"
 	"net/http"
@@ -40,7 +41,8 @@ func TestGzipCompressorBufferPoolReuse(t *testing.T) {
 	t.Run("compress error returns reusable buffer", func(t *testing.T) {
 		t.Parallel()
 
-		gz := newGzipCompressor()
+		gz, err := newGzipCompressor(gzip.DefaultCompression)
+		require.NoError(t, err)
 		rc := io.NopCloser(iotest.ErrReader(errors.New("boom")))
 
 		buf, err := gz.compress(rc)
@@ -59,7 +61,8 @@ func TestGzipCompressorBufferPoolReuse(t *testing.T) {
 	t.Run("collectBuffer tolerates nil", func(t *testing.T) {
 		t.Parallel()
 
-		gz := newGzipCompressor()
+		gz, err := newGzipCompressor(gzip.DefaultCompression)
+		require.NoError(t, err)
 		require.NotPanics(t, func() { gz.collectBuffer(nil) })
 	})
 }
