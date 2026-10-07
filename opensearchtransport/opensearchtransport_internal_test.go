@@ -1584,19 +1584,15 @@ func TestRequestCompressor(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, zw.Close())
 
-	gzipCompressor := func(level int) func(*testing.T) Compressor {
-		return func(t *testing.T) Compressor {
-			t.Helper()
-			c, err := GZip(level)
-			require.NoError(t, err)
-			return c
-		}
-	}
-	none := func(*testing.T) Compressor { return None() }
+	gzipDefault, err := GZip(gzip.DefaultCompression)
+	require.NoError(t, err)
+	gzipBestSpeed, err := GZip(gzip.BestSpeed)
+	require.NoError(t, err)
+	none := None()
 
 	tests := []struct {
 		name          string
-		compressor    func(*testing.T) Compressor
+		compressor    Compressor
 		legacyFlag    bool
 		body          []byte
 		header        http.Header
@@ -1613,14 +1609,14 @@ func TestRequestCompressor(t *testing.T) {
 		},
 		{
 			name:          "GZip default level",
-			compressor:    gzipCompressor(gzip.DefaultCompression),
+			compressor:    gzipDefault,
 			body:          []byte(plaintext),
 			wantEncodings: []string{"gzip"},
 			wantGzipped:   true,
 		},
 		{
 			name:          "GZip best speed",
-			compressor:    gzipCompressor(gzip.BestSpeed),
+			compressor:    gzipBestSpeed,
 			body:          []byte(plaintext),
 			wantEncodings: []string{"gzip"},
 			wantGzipped:   true,
@@ -1629,7 +1625,7 @@ func TestRequestCompressor(t *testing.T) {
 		{name: "None overrides legacy flag", compressor: none, legacyFlag: true, body: []byte(plaintext)},
 		{
 			name:          "GZip overrides legacy flag",
-			compressor:    gzipCompressor(gzip.BestSpeed),
+			compressor:    gzipBestSpeed,
 			legacyFlag:    true,
 			body:          []byte(plaintext),
 			wantEncodings: []string{"gzip"},
@@ -1637,7 +1633,7 @@ func TestRequestCompressor(t *testing.T) {
 		},
 		{
 			name:          "GZip skips a caller-set Content-Encoding",
-			compressor:    gzipCompressor(gzip.BestSpeed),
+			compressor:    gzipBestSpeed,
 			body:          gzipped.Bytes(),
 			header:        http.Header{headerContentEncoding: {"gzip"}},
 			wantEncodings: []string{"gzip"},
@@ -1665,6 +1661,7 @@ func TestRequestCompressor(t *testing.T) {
 			cfg := Config{
 				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
 				CompressRequestBody: tt.legacyFlag,
+				Compressor:          tt.compressor,
 				NodeStatsInterval:   -1,
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					body, err := io.ReadAll(req.Body)
@@ -1674,9 +1671,6 @@ func TestRequestCompressor(t *testing.T) {
 					encodings, wire = req.Header.Values(headerContentEncoding), body
 					return &http.Response{Status: "MOCK", Body: http.NoBody}, nil
 				}),
-			}
-			if tt.compressor != nil {
-				cfg.Compressor = tt.compressor(t)
 			}
 
 			tp, err := New(cfg)

@@ -30,10 +30,8 @@ type noneCompressor struct{}
 
 func (noneCompressor) contentEncoding() string { return "" }
 
-func (noneCompressor) compress(rc io.ReadCloser) (*bytes.Buffer, error) {
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(rc)
-	return &buf, err
+func (noneCompressor) compress(io.ReadCloser) (*bytes.Buffer, error) {
+	return nil, fmt.Errorf("opensearchtransport: noneCompressor does not compress")
 }
 
 func (noneCompressor) collectBuffer(*bytes.Buffer) {}
