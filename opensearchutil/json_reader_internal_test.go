@@ -109,9 +109,8 @@ func TestJSONReader(t *testing.T) {
 	})
 
 	t.Run("encode error leaves reader reusable with error", func(t *testing.T) {
-		// A JSONEncoder that writes partial output then fails. Before the fix,
-		// the first Read returned the error but left r.buf non-nil with the
-		// partial bytes, so a later ReadAll returned that leftover with no error.
+		// A JSONEncoder that writes partial output then fails. A Read after a
+		// failed encode returns the encode error again and no leftover bytes.
 		partial := &failingJSONEncoder{prefix: `{"partial":`}
 		r := JSONReader{val: partial}
 

@@ -55,10 +55,8 @@ type JSONReader struct {
 // Read implements the io.Reader interface.
 func (r *JSONReader) Read(p []byte) (int, error) {
 	if r.buf == nil {
-		// Encode into a local buffer and publish it only after success.
-		// Assigning r.buf before encode used to leave a non-nil buffer on
-		// failure, so a later Read skipped encode and returned leftover
-		// bytes (or EOF) with no error.
+		// Encode into a local buffer and publish it only after success, so a
+		// failed encode leaves r.buf nil and the next Read retries.
 		buf := new(bytes.Buffer)
 		if err := r.encode(buf); err != nil {
 			return 0, err
