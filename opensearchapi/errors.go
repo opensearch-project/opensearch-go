@@ -9,7 +9,10 @@ package opensearchapi
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v5"
 )
 
 // PartialFailureError is implemented by error types that represent partial
@@ -20,7 +23,8 @@ import (
 // Use [IsPartialFailure] to test, [ToleratePartialFailures] to suppress,
 // or [RequireSuccessRate] for threshold-based tolerance. For exact counts,
 // use errors.As with the concrete type ([PartialBulkError],
-// [PartialSearchError], or [ShardFailureError]).
+// [PartialSearchError], [ShardFailureError], [MultiSearchItemError], or
+// [PartialPITDeleteError]).
 type PartialFailureError interface {
 	error
 	IsPartial() bool
@@ -70,6 +74,31 @@ func (e *PartialSearchError) Error() string {
 
 // IsPartial implements [PartialFailureError].
 func (e *PartialSearchError) IsPartial() bool { return true }
+
+// ---------------------------------------------------------------------------
+// PartialPITDeleteError
+// ---------------------------------------------------------------------------
+
+// PartialPITDeleteError indicates that a PIT delete completed with HTTP 200
+// but the server could not delete some of the PITs it named: their pits[]
+// entries report "successful": false. The accompanying response is fully
+// populated. A PIT that was not deleted stays open until its keep_alive runs
+// out.
+type PartialPITDeleteError struct {
+	Failed         []PITDeleted
+	SucceededCount int
+}
+
+//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
+var _ PartialFailureError = (*PartialPITDeleteError)(nil)
+
+func (e *PartialPITDeleteError) Error() string {
+	total := e.SucceededCount + len(e.Failed)
+	return fmt.Sprintf("PIT delete partially failed: %d/%d PITs were not deleted", len(e.Failed), total)
+}
+
+// IsPartial implements [PartialFailureError].
+func (e *PartialPITDeleteError) IsPartial() bool { return true }
 
 // ---------------------------------------------------------------------------
 // MultiSearchItemError
@@ -202,6 +231,62 @@ func collapsePerOpErrors(errs []error, wrap func([]error) error) error {
 		}
 		return errors.Join(errs...)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Declared error types (x-error-types)
+// ---------------------------------------------------------------------------
+
+// errorType is a non-2xx error an operation declares in the spec's
+// x-error-types extension: a response with status whose root_cause includes
+// rootCause. The generated dispatch passes each one to [classifyError].
+type errorType struct {
+	status    int
+	rootCause string
+	wrap      errorWrapFunc
+}
+
+// errorWrapFunc builds the typed error for a matched [errorType].
+type errorWrapFunc func(*opensearch.StructError) error
+
+// classifyError wraps err in the typed error of the first declared error type
+// it matches, or returns err unchanged.
+func classifyError(err error, types ...errorType) error {
+	se, ok := errors.AsType[*opensearch.StructError](err)
+	if !ok {
+		return err
+	}
+	for _, t := range types {
+		if se.Status != t.status {
+			continue
+		}
+		if slices.ContainsFunc(se.Err.RootCause, func(c opensearch.RootCause) bool { return c.Type == t.rootCause }) {
+			return t.wrap(se)
+		}
+	}
+	return err
+}
+
+// SearchContextMissingError is returned by searches and scrolls when the
+// server no longer has the PIT or scroll the request named, because it expired
+// or was deleted. It wraps the server's error. A caller resuming a scan can
+// fall back to search_after without the PIT, keeping the position but not the
+// snapshot.
+type SearchContextMissingError struct {
+	Err *opensearch.StructError
+}
+
+func (e *SearchContextMissingError) Error() string {
+	return "opensearchapi: the PIT or scroll expired or was deleted: " + e.Err.Error()
+}
+
+// Unwrap returns the server's error.
+func (e *SearchContextMissingError) Unwrap() error { return e.Err }
+
+// wrapSearchContextMissing builds the error for the SearchContextMissing
+// error type.
+func wrapSearchContextMissing(se *opensearch.StructError) error {
+	return &SearchContextMissingError{Err: se}
 }
 
 // ---------------------------------------------------------------------------
@@ -362,8 +447,9 @@ func ToleratePartialFailures(err error) error {
 // rate (or vice versa).
 //
 // The success rate is computed from the integer counts on the concrete error
-// type: succeeded/total for [PartialBulkError] and [MultiSearchItemError],
-// (total-failed)/total for [PartialSearchError] and [ShardFailureError].
+// type: succeeded/total for [PartialBulkError], [MultiSearchItemError], and
+// [PartialPITDeleteError], (total-failed)/total for [PartialSearchError] and
+// [ShardFailureError].
 func RequireSuccessRate(err error, threshold float64) error {
 	if err == nil {
 		return nil
@@ -409,6 +495,9 @@ func partialSuccessCounts(err error) (int, int, bool) {
 	}
 	if e, ok := errors.AsType[*MultiSearchItemError](err); ok {
 		return e.SucceededCount, e.SucceededCount + len(e.Items), true
+	}
+	if e, ok := errors.AsType[*PartialPITDeleteError](err); ok {
+		return e.SucceededCount, e.SucceededCount + len(e.Failed), true
 	}
 	return 0, 0, false
 }

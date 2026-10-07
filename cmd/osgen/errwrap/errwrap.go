@@ -14,7 +14,10 @@
 // are kept in lock-step with the order of [Wrappers].
 package errwrap
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Wrapper names. One constant per wrapper schema in the proposal's
 // catalog. These strings are also accepted by errmask.Parse (in
@@ -34,8 +37,23 @@ const (
 	WrapperSimulateDocFailures         = "SimulateDocFailures"
 	WrapperRankEvalFailures            = "RankEvalFailures"
 	WrapperIngestionShardFailures      = "IngestionShardFailures"
-	WrapperPitNodeFailures             = "PitNodeFailures"
+	WrapperPITNodeFailures             = "PITNodeFailures"
+	WrapperPITDeleteItems              = "PITDeleteItems"
 )
+
+// Error-type names: one constant per x-error-types wrapper schema that has a
+// hand-written Go error in opensearchapi (*<Name>Error, built by
+// wrap<Name>). List each in [ErrorTypes] too.
+const (
+	ErrorTypeSearchContextMissing = "SearchContextMissing"
+)
+
+// ErrorTypes returns every error-type name with a hand-written Go error. The
+// dispatch skips any other name, so a wrapper added to the spec before its Go
+// error exists cannot break the build.
+func ErrorTypes() []string {
+	return []string{ErrorTypeSearchContextMissing}
+}
 
 // Identifiers used by the codegen to populate
 // ShardFailureError.Operation in opensearchapi. These match
@@ -73,6 +91,8 @@ const (
 	GroupMTermvectors                = "mtermvectors"
 	GroupRankEval                    = "rank_eval"
 	GroupGetAllPITs                  = "get_all_pits"
+	GroupDeletePIT                   = "delete_pit"
+	GroupDeleteAllPITs               = "delete_all_pits"
 	GroupIndicesRefresh              = "indices.refresh"
 	GroupIndicesFlush                = "indices.flush"
 	GroupIndicesForceMerge           = "indices.forcemerge"
@@ -122,7 +142,8 @@ func Wrappers() []string {
 		WrapperSimulateDocFailures,
 		WrapperRankEvalFailures,
 		WrapperIngestionShardFailures,
-		WrapperPitNodeFailures,
+		WrapperPITNodeFailures,
+		WrapperPITDeleteItems,
 	}
 }
 
@@ -163,7 +184,9 @@ func OperationWrappers() map[string][]string {
 		GroupMGet:            {WrapperMultiDocItems},
 		GroupMTermvectors:    {WrapperMultiDocItems},
 		GroupRankEval:        {WrapperRankEvalFailures},
-		GroupGetAllPITs:      {WrapperPitNodeFailures},
+		GroupGetAllPITs:      {WrapperPITNodeFailures},
+		GroupDeletePIT:       {WrapperPITDeleteItems},
+		GroupDeleteAllPITs:   {WrapperPITDeleteItems},
 
 		// indices
 		GroupIndicesRefresh:          {WrapperBroadcastShards},
@@ -236,4 +259,18 @@ func sortedCanonical(in []string) []string {
 		return idx[out[i]] < idx[out[j]]
 	})
 	return out
+}
+
+// Canonical returns the wrapper constant that name spells, ignoring case, or
+// name unchanged when none matches. The spec names wrapper schemas in its own
+// casing (_common.errors___PitDeleteItems, like _core.pit___PitDetail), while
+// each constant is Go-cased because it is also the errmask identifier
+// (errmask.PITDeleteItems).
+func Canonical(name string) string {
+	for _, w := range Wrappers() {
+		if strings.EqualFold(w, name) {
+			return w
+		}
+	}
+	return name
 }

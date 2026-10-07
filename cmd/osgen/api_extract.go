@@ -77,6 +77,10 @@ type apiOperation struct {
 	// from the x-error-responses extension on the spec operation.
 	ErrorWrappers []string
 
+	// ErrorTypes lists the non-2xx errors this operation declares with the
+	// x-error-types extension, resolved against their wrapper schemas.
+	ErrorTypes []ir.ErrorType
+
 	// ResponseSchemaRef is the resolved schema for the JSON 2xx response
 	// body, used to walk inline schemas that aren't in Components.Schemas.
 	ResponseSchemaRef *openapi3.SchemaRef
@@ -335,6 +339,7 @@ func buildAPIOperation(group string, ops []struct {
 		ExcludedDistros:   extensionStringSlice(op.Extensions, extDistributionsExcluded),
 		HasBody:           op.RequestBody != nil,
 		ErrorWrappers:     errorResponseWrappers(op),
+		ErrorTypes:        errorTypes(op, spec),
 	}
 
 	// Extract request body schema ref.

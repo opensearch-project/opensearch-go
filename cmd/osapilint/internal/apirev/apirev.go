@@ -70,8 +70,8 @@ type Snapshot struct {
 	Structs []Struct `json:"structs"`
 }
 
-// byName finds a struct by unqualified name within a specific package path.
-func (s *Snapshot) lookup(pkgPath, name string) (Struct, bool) {
+// Lookup finds a struct by unqualified name within a specific package path.
+func (s *Snapshot) Lookup(pkgPath, name string) (Struct, bool) {
 	for _, st := range s.Structs {
 		if st.PkgPath == pkgPath && st.Name == name {
 			return st, true

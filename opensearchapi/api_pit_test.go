@@ -53,11 +53,10 @@ func TestManual_PIT(t *testing.T) {
 				Params:  &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 			})
 			require.NoError(t, err)
-			require.NotNil(t, createResp.PITID)
-			require.NotEmpty(t, *createResp.PITID)
+			require.True(t, createResp.PITID.IsSet())
 			testutil.CompareRawJSONwithParsedJSON(t, createResp, createResp.Inspect().Response)
 
-			pitID := *createResp.PITID
+			pitID := createResp.PITID
 
 			getAllResp, err := client.PIT.GetAll(t.Context(), nil)
 			require.NoError(t, err)
@@ -65,21 +64,20 @@ func TestManual_PIT(t *testing.T) {
 
 			found := false
 			for _, pit := range getAllResp.PITs {
-				if pit.PITID != nil && *pit.PITID == pitID {
+				if pit.PITID == pitID {
 					found = true
 					break
 				}
 			}
-			require.True(t, found, "created PIT not found in GetAllPits response")
+			require.True(t, found, "created PIT not found in the PIT.GetAll response")
 			testutil.CompareRawJSONwithParsedJSON(t, getAllResp, getAllResp.Inspect().Response)
 
 			deleteResp, err := client.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{
-				Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}},
+				Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{pitID}},
 			})
 			require.NoError(t, err)
 			require.NotEmpty(t, deleteResp.PITs)
-			require.NotNil(t, deleteResp.PITs[0].Successful)
-			require.True(t, *deleteResp.PITs[0].Successful)
+			require.True(t, deleteResp.PITs[0].Successful)
 			testutil.CompareRawJSONwithParsedJSON(t, deleteResp, deleteResp.Inspect().Response)
 		})
 	}

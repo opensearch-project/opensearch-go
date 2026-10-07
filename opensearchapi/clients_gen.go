@@ -9,6 +9,8 @@
 package opensearchapi
 
 import (
+	"time"
+
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
 	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
@@ -23,24 +25,27 @@ var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sent
 
 // Client represents the opensearchapi Client summarizing all API calls.
 type Client struct {
-	Client         *opensearch.Client
-	errors         *errMaskWidth
-	Cat            CatClient
-	Cluster        ClusterClient
-	Dangling       DanglingClient
-	Doc            DocumentClient
-	Document       DocumentClient
-	Index          IndicesClient
-	Indices        IndicesClient
-	Indexes        IndicesClient
-	Nodes          NodesClient
-	PIT            PointInTimeClient
-	PointInTime    PointInTimeClient
-	Ingest         IngestClient
-	Tasks          TasksClient
-	Scroll         ScrollClient
-	SearchPipeline SearchPipelineClient
-	Snapshot       SnapshotClient
+	Client *opensearch.Client
+	errors *errMaskWidth
+	// searchAfterRetryBackoff overrides the search_after retry backoff for
+	// this client; zero means the default. Only tests set it.
+	searchAfterRetryBackoff time.Duration
+	Cat                     CatClient
+	Cluster                 ClusterClient
+	Dangling                DanglingClient
+	Doc                     DocumentClient
+	Document                DocumentClient
+	Index                   IndicesClient
+	Indices                 IndicesClient
+	Indexes                 IndicesClient
+	Nodes                   NodesClient
+	PIT                     PointInTimeClient
+	PointInTime             PointInTimeClient
+	Ingest                  IngestClient
+	Tasks                   TasksClient
+	Scroll                  ScrollClient
+	SearchPipeline          SearchPipelineClient
+	Snapshot                SnapshotClient
 }
 
 // clientInit initializes a Client with all sub-clients.

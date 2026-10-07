@@ -303,6 +303,40 @@ func TestRequireSuccessRate_MSearchItemError(t *testing.T) {
 	}
 }
 
+// TestRequireSuccessRate_PartialPITDeleteError covers the
+// *PartialPITDeleteError branch of partialSuccessCounts: the rate is
+// SucceededCount over SucceededCount plus the PITs the server kept.
+func TestRequireSuccessRate_PartialPITDeleteError(t *testing.T) {
+	t.Parallel()
+
+	mkErr := func(failed, succeeded int) *PartialPITDeleteError {
+		return &PartialPITDeleteError{Failed: make([]PITDeleted, failed), SucceededCount: succeeded}
+	}
+	tests := []struct {
+		name        string
+		err         error
+		threshold   float64
+		wantContain string // "" means RequireSuccessRate returns nil
+	}{
+		{name: "direct at threshold", err: mkErr(2, 8), threshold: 0.80},
+		{name: "direct below threshold", err: mkErr(3, 7), threshold: 0.80, wantContain: "7/10"},
+		{name: "wrapped below threshold", err: fmt.Errorf("ctx: %w", mkErr(5, 5)), threshold: 0.80, wantContain: "5/10"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := RequireSuccessRate(tt.err, tt.threshold)
+			if tt.wantContain == "" {
+				require.NoError(t, got)
+				return
+			}
+			require.ErrorContains(t, got, tt.wantContain)
+			_, ok := errors.AsType[*PartialPITDeleteError](got)
+			require.True(t, ok, "the PIT delete error must stay recoverable")
+		})
+	}
+}
+
 // TestRequireSuccessRate_MSearchErrorsBothFired guards the F3 regression:
 // when an *MSearchErrors wraps both a PartialSearchError and a
 // MultiSearchItemError, every category must be evaluated against the

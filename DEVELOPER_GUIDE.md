@@ -441,13 +441,13 @@ make gh.checks.failed     # Only failed checks
 
 ## Code Generation
 
-The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`opensearchapi/`, `plugins/`) from the published [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, `x-version-removed`, and `x-error-responses` extensions from the spec to produce version-aware Go source.
+The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`opensearchapi/`, `plugins/`) from the published [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, `x-version-removed`, `x-error-responses`, and `x-error-types` extensions from the spec to produce version-aware Go source.
 
 The `opensearchapi/` package is the code-generated v5 API surface, produced by `cmd/osgen` from the spec. See `opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance.
 
 > **PRs that edit `*_gen.go` will be rejected.** These files are generated. To change them, send a PR against `cmd/osgen` (the generator) or against the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification) (the input).
 
-> **Spec-extension status.** Some `x-*` extensions osgen reads (notably `x-error-responses`) are still in flight upstream. Until they merge, the build pulls from the local `opensearch-openapi.yaml` checkout in this repo rather than the published spec. Once upstream catches up, the local file goes away.
+> **Spec-extension status.** Some `x-*` extensions osgen reads (notably `x-error-responses` and `x-error-types`) are still in flight upstream. Until they merge, the build pulls from the local `opensearch-openapi.yaml` checkout in this repo rather than the published spec. Once upstream catches up, the local file goes away.
 
 ### Partial-failure error generation
 
@@ -461,6 +461,14 @@ The `x-error-responses` extension on a spec operation declares the categories of
 Operations that declare two or more categories also get a per-op error container (e.g. `*MSearchErrors`) implementing `Unwrap() []error`, used when more than one category fires on a single response.
 
 The user-facing partial-failure model and best-practices guidance live in [`opensearchapi/README.md`](opensearchapi/README.md) and [`guides/usage-error_handling.md`](guides/usage-error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
+
+### Declared error-type generation
+
+The `x-error-types` extension on a spec operation lists non-2xx errors that callers should be able to tell apart from other server errors. Each entry has the `x-error-responses` shape, a `$ref` to a `_common.errors___<Name>` wrapper schema, and the wrapper carries the matching rule: `x-error-status` (the HTTP status) and `x-error-root-cause-type` (a type that must appear in `error.root_cause[]`). For example, `_common.errors___SearchContextMissing` matches a 404 whose root cause is `search_context_missing_exception`, and the search and scroll operations reference it.
+
+For each declared error type that has a hand-written Go error, the generated dispatch returns a failed request's error through `classifyError`, which wraps a matching `*opensearch.StructError` in the typed error (`*<Name>Error`, built by `wrap<Name>` in `opensearchapi/errors.go`). The server's error stays reachable with `errors.As`. A name without a hand-written error is recorded but skipped, and osgen logs a warning for a wrapper schema that lacks either extension.
+
+To add an error type: add the wrapper schema and the `x-error-types` entries to `opensearch-openapi.yaml`, add the `*<Name>Error` type and `wrap<Name>` func to `opensearchapi/errors.go`, add the name to `errwrap.ErrorTypes` in `cmd/osgen/errwrap`, then run `make gen`.
 
 To regenerate (downloads the spec automatically if not cached):
 

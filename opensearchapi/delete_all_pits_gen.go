@@ -15,6 +15,7 @@ import (
 	"net/http"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/errmask"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -23,6 +24,9 @@ import (
 // DeleteAllPITsReq represents the request for the delete_all_pits operation.
 //
 // Deletes all active point in time searches.
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // DELETE /_search/point_in_time/_all
 //
@@ -82,6 +86,9 @@ func (r DeleteAllPITsParams) get() map[string]string {
 // DeleteAllPITsResp represents the response for the delete_all_pits operation.
 //
 // Deletes all active point in time searches.
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // Available: >= 2.4.0.
 //
@@ -108,11 +115,58 @@ func (r DeleteAllPITsResp) RawBody() io.Reader {
 
 // PITDeleted is a typed component of the delete_all_pits operation.
 type PITDeleted struct {
-	PITID      *string `json:"pit_id,omitempty"`
-	Successful *bool   `json:"successful,omitempty"`
+	// PITID. Identifies a point in time (PIT): an opaque base64 token that
+	// encodes index names and node IDs. The create-PIT response returns it,
+	// and every search against the PIT echoes it. A request takes it only in
+	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
+	// segments), never in a path, query parameter, or header, because the
+	// token can be large. It is not an external ID: don't expose it outside
+	// your service, where its value could be tampered with.
+	PITID PITID `json:"pit_id"`
+
+	Successful bool `json:"successful"`
+}
+
+// PITDeleteItemFailures detects PITs the server could not delete on a
+// DeleteAllPITsResp: pits[] entries with "successful": false. Returns nil when
+// every PIT was deleted.
+func (r *DeleteAllPITsResp) PITDeleteItemFailures() *PartialPITDeleteError {
+	if r == nil {
+		return nil
+	}
+	var failed []PITDeleted
+	for _, p := range r.PITs {
+		if !p.Successful {
+			failed = append(failed, p)
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return &PartialPITDeleteError{
+		Failed:         failed,
+		SucceededCount: len(r.PITs) - len(failed),
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// DeleteAllPITsResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *DeleteAllPITsResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.PITDeleteItems) {
+		if e := r.PITDeleteItemFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
 }
 
 // DeleteAll deletes all active point in time searches.
+//
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // DELETE /_search/point_in_time/_all
 //
@@ -136,5 +190,5 @@ func (c PointInTimeClient) DeleteAll(ctx context.Context, req *DeleteAllPITsReq)
 	); err != nil {
 		return &data, err
 	}
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }
