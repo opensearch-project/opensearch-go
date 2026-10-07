@@ -56,6 +56,54 @@ func TestIncompatibleTypeChange(t *testing.T) {
 	}
 }
 
+// TestDeriveDelta_RawMessageBoundary drives DeriveDelta through the
+// json.RawMessage boundary that TestIncompatibleTypeChange pins in isolation:
+// the SearchResp.Aggregations case, where v5 replaced a raw message with a typed
+// union map. The field keeps its name, so no disposition covers it, and existing
+// access decodes a []byte that the target type will not satisfy - hence manual,
+// carrying the guidance a human needs. The boundary is symmetric, so the reverse
+// direction classifies the same way.
+func TestDeriveDelta_RawMessageBoundary(t *testing.T) {
+	t.Parallel()
+
+	const (
+		v4api = "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+		v5api = "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+		raw   = "encoding/json.RawMessage"
+	)
+	typedMap := "map[string]" + v5api + ".SearchResultAggregationsValue"
+
+	tests := []struct {
+		name string
+		from string
+		to   string
+	}{
+		{name: "raw message to typed map", from: raw, to: typedMap},
+		{name: "typed map to raw message", from: typedMap, to: raw},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			from := &Snapshot{Structs: []Struct{
+				{PkgPath: v4api, Name: "SearchResp", Fields: []Field{{Name: "Aggregations", Type: tt.from}}},
+			}}
+			to := &Snapshot{Structs: []Struct{
+				{PkgPath: v5api, Name: "SearchResp", Fields: []Field{{Name: "Aggregations", Type: tt.to}}},
+			}}
+
+			d := DeriveDelta(from, to, nil, nil)
+
+			require.Equal(t, []FieldChange{{
+				Kind: KindManual, From: "Aggregations", NewType: tt.to,
+				Note: `field type changed from "` + tt.from + `" to "` + tt.to +
+					`"; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type`,
+			}}, d.Structs[v4api+".SearchResp"].Changes)
+		})
+	}
+}
+
 // TestIsRawBodyCollapse verifies detection of the v5 "dynamic schema captured as
 // raw JSON" response shape (a single Body json.RawMessage field), which drives
 // the by-query "manual" classification.
