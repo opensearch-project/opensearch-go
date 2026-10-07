@@ -54,12 +54,15 @@ func GZip(level int) (Compressor, error) {
 	return c, nil
 }
 
+// encodingGzip is the Content-Encoding value of a gzipped body.
+const encodingGzip = "gzip"
+
 type gzipCompressor struct {
 	gzipWriterPool *sync.Pool
 	bufferPool     *sync.Pool
 }
 
-func (*gzipCompressor) contentEncoding() string { return "gzip" }
+func (*gzipCompressor) contentEncoding() string { return encodingGzip }
 
 // newGzipCompressor returns a new gzipCompressor that uses a sync.Pool to reuse gzip.Writers.
 func newGzipCompressor(level int) (*gzipCompressor, error) {

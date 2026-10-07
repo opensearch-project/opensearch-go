@@ -197,7 +197,7 @@ func TestGZipLevel(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, "gzip", c.contentEncoding())
+			require.Equal(t, encodingGzip, c.contentEncoding())
 			gzipRoundTrip(t, c, body)
 		})
 	}

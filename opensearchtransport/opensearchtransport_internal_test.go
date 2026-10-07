@@ -1466,34 +1466,34 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 		{
 			name:          "pre-encoded body",
 			body:          gzipped,
-			header:        http.Header{headerContentEncoding: {"gzip"}},
-			wantEncodings: []string{"gzip"},
+			header:        http.Header{headerContentEncoding: {encodingGzip}},
+			wantEncodings: []string{encodingGzip},
 		},
 		{
 			name:          "pre-encoded body without GetBody",
 			body:          gzipped,
-			header:        http.Header{headerContentEncoding: {"gzip"}},
+			header:        http.Header{headerContentEncoding: {encodingGzip}},
 			nilGetBody:    true,
-			wantEncodings: []string{"gzip"},
+			wantEncodings: []string{encodingGzip},
 		},
 		{
 			name:          "pre-encoded body behind an empty first value",
 			body:          gzipped,
-			header:        http.Header{headerContentEncoding: {"", "gzip"}},
-			wantEncodings: []string{"", "gzip"},
+			header:        http.Header{headerContentEncoding: {"", encodingGzip}},
+			wantEncodings: []string{"", encodingGzip},
 		},
 		{
 			name:          "empty value is compressed",
 			body:          []byte(plaintext),
 			header:        http.Header{headerContentEncoding: {""}},
-			wantEncodings: []string{"gzip"},
+			wantEncodings: []string{encodingGzip},
 		},
 		{
 			name:          "global header is compressed",
 			body:          []byte(plaintext),
 			header:        http.Header{},
-			globalHeader:  http.Header{headerContentEncoding: {"gzip"}},
-			wantEncodings: []string{"gzip"},
+			globalHeader:  http.Header{headerContentEncoding: {encodingGzip}},
+			wantEncodings: []string{encodingGzip},
 		},
 	}
 
@@ -1596,7 +1596,7 @@ func TestRequestCompressorNone(t *testing.T) {
 		{
 			name:   "leaves a caller-set Content-Encoding alone",
 			body:   gzipBytes(t, plaintext),
-			header: http.Header{headerContentEncoding: {"gzip"}},
+			header: http.Header{headerContentEncoding: {encodingGzip}},
 		},
 	}
 
