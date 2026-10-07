@@ -1568,8 +1568,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		} else if req.GetBody == nil {
 			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer
-				//nolint:errcheck // ignored as this is only for logging
-				buf.ReadFrom(origBody)
+				if _, err := buf.ReadFrom(origBody); err != nil {
+					_ = origBody.Close()
+					return nil, sr, fmt.Errorf("failed to read request body: %w", err)
+				}
 				req.GetBody = func() (io.ReadCloser, error) {
 					// Return a new reader each time
 					reader := bytes.NewReader(buf.Bytes())
