@@ -37,7 +37,7 @@ import (
 //
 //	UPDATE_GOLDEN=1 go test ./cmd/osapilint -run TestRewriteCorpus
 func TestRewriteCorpus(t *testing.T) {
-	for _, tc := range []struct {
+	tests := []struct {
 		name    string
 		src     major
 		dst     major
@@ -127,20 +127,22 @@ func TestRewriteCorpus(t *testing.T) {
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": access .Records - type changed`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatShardsResp": field Records - type changed`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": field Records - type changed`,
-				"SnapshotRestoreReq: field Body -> BodyReader",
-				"SearchReq: field Params wrapped in new(x) (now pointer)",
-				"SearchHit: field Index wrapped in new(x) (now pointer)",
-				"BulkByScrollTaskStatus: field Updated wrapped in new(x) (now pointer)",
+				`SnapshotRestoreReq": field Body -> BodyReader`,
+				`SearchReq": field Params wrapped in new(x) (now pointer)`,
+				`SearchHit": field Index wrapped in new(x) (now pointer)`,
+				`BulkByScrollTaskStatus": field Updated wrapped in new(x) (now pointer)`,
 				`opensearchapi.BulkByScrollTaskStatus": field Created is now *int64 - new(x) would not have that type`,
-				`opensearchapi.SearchHit": field Score - field type changed from float32 to *float64`,
-				`opensearchapi.SearchHit": access .Score - field type changed from float32 to *float64`,
+				`opensearchapi.SearchHit": field Score - field type changed from "float32" to "*float64"`,
+				`opensearchapi.SearchHit": access .Score - field type changed from "float32" to "*float64"`,
 			},
 		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			dir := stageCorpus(t, tc.corpus)
+	}
 
-			plans, err := planChain(tc.src, tc.dst)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := stageCorpus(t, tt.corpus)
+
+			plans, err := planChain(tt.src, tt.dst)
 			require.NoError(t, err)
 			require.Len(t, plans, 1, "corpus test covers a single hop")
 			p := plans[0]
@@ -158,16 +160,16 @@ func TestRewriteCorpus(t *testing.T) {
 			require.NoError(t, err)
 
 			report := reportText(results)
-			for _, want := range tc.edits {
+			for _, want := range tt.edits {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
 			}
 
-			archivePath := filepath.Join("testdata", "corpus", tc.corpus+".txtar")
+			archivePath := filepath.Join("testdata", "corpus", tt.corpus+".txtar")
 			archive, err := txtar.ParseFile(archivePath)
 			require.NoError(t, err, "parse %s", archivePath)
 			updateGolden := os.Getenv("UPDATE_GOLDEN") != ""
 
-			for _, file := range tc.goldens {
+			for _, file := range tt.goldens {
 				got, err := os.ReadFile(filepath.Join(dir, file))
 				require.NoError(t, err)
 
@@ -187,7 +189,7 @@ func TestRewriteCorpus(t *testing.T) {
 				require.NoError(t, os.WriteFile(archivePath, txtar.Format(archive), 0o600))
 			}
 
-			for _, file := range tc.compileClean {
+			for _, file := range tt.compileClean {
 				got, err := os.ReadFile(filepath.Join(dir, file))
 				require.NoError(t, err)
 				require.NotContains(t, string(got), markerPrefix,

@@ -504,7 +504,7 @@ func rewriteFieldChange(
 					sd.From, ch.From, ch.To), "", true
 			}
 			sel.Sel.Name = ch.To
-			edit := fmt.Sprintf("%s: field %s -> %s", sd.From, ch.From, ch.To)
+			edit := fmt.Sprintf("%q: field %s -> %s", sd.From, ch.From, ch.To)
 			if ch.Note != "" {
 				edit += fmt.Sprintf("; MANUAL %q: access .%s - %s", sd.From, ch.To, ch.Note)
 			}
@@ -625,7 +625,7 @@ func rewriteCompositeLit(
 		}
 		switch ch.Kind {
 		case apirev.KindRename:
-			edits = append(edits, fmt.Sprintf("%s: field %s -> %s", label, ch.From, ch.To))
+			edits = append(edits, fmt.Sprintf("%q: field %s -> %s", label, ch.From, ch.To))
 			key.Name = ch.To
 			if ch.Note != "" {
 				edits = append(edits, fmt.Sprintf("MANUAL %q: field %s - %s", label, ch.To, ch.Note))
@@ -636,12 +636,12 @@ func rewriteCompositeLit(
 			switch {
 			case isLit:
 				kv.Value = &ast.UnaryExpr{Op: token.AND, X: kv.Value}
-				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in & (now pointer)", label, ch.From))
+				edits = append(edits, fmt.Sprintf("%q: field %s wrapped in & (now pointer)", label, ch.From))
 			case newKeepsFieldType(kv, info):
 				// new(x) points at a copy of x, matching the value semantics of the
 				// source field, and accepts non-addressable operands.
 				kv.Value = &ast.CallExpr{Fun: ast.NewIdent("new"), Args: []ast.Expr{kv.Value}}
-				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in new(x) (now pointer)", label, ch.From))
+				edits = append(edits, fmt.Sprintf("%q: field %s wrapped in new(x) (now pointer)", label, ch.From))
 			default:
 				edits = append(edits, fmt.Sprintf("MANUAL %q: field %s is now %s - new(x) would not have that type; wrap the value by hand",
 					label, ch.From, ch.NewType))
@@ -650,7 +650,7 @@ func rewriteCompositeLit(
 		case apirev.KindRemove:
 			// Safe only for a literal key: the field is a knob that no longer
 			// exists (e.g. EnableMetrics). Dropping the key is correct.
-			edits = append(edits, fmt.Sprintf("%s: field %s removed", label, ch.From))
+			edits = append(edits, fmt.Sprintf("%q: field %s removed", label, ch.From))
 			// drop it (don't append)
 		case apirev.KindManual:
 			// The field's data relocated (raw Body collapse) or it was retyped; we

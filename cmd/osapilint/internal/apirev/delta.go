@@ -6,7 +6,10 @@
 
 package apirev
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+)
 
 // delta.go derives the field-level migration delta between a v4 struct and its
 // v5 counterpart, per fully-qualified type. This is the type-scoped ground truth
@@ -254,7 +257,7 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renam
 			// *XBody): neither & nor new(x) would type-check.
 			changes = append(changes, FieldChange{
 				Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
-				Note: "field type changed from " + fFrom.Type + " to " + fTo.Type + "; migrate this use by hand",
+				Note: fmt.Sprintf("field type changed from %q to %q; migrate this use by hand", fFrom.Type, fTo.Type),
 			})
 		case still && incompatibleTypeChange(fFrom.Type, fTo.Type):
 			// Field kept its name but its type changed in a way that breaks
@@ -263,8 +266,9 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renam
 			// mechanical rewrite, so it is flagged for a human.
 			changes = append(changes, FieldChange{
 				Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
-				Note: "field type changed from " + fFrom.Type + " to " + fTo.Type +
-					"; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type",
+				Note: fmt.Sprintf(
+					"field type changed from %q to %q; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type",
+					fFrom.Type, fTo.Type),
 			})
 		case still:
 			// unchanged, or a compatible type change the rewriter need not act on
@@ -307,8 +311,8 @@ func dispositionChange(
 			newType = renamed.Type
 		}
 		ch := FieldChange{Kind: KindRename, From: fFrom.Name, To: d.ToField, NewType: newType}
-		if versionAgnostic(fFrom.Type) != versionAgnostic(newType) {
-			ch.Note = "type changed from " + fFrom.Type + " to " + newType
+		if versionAgnosticType(fFrom.Type) != versionAgnosticType(newType) {
+			ch.Note = fmt.Sprintf("type changed from %q to %q", fFrom.Type, newType)
 		}
 		return ch
 	case ActionManual:

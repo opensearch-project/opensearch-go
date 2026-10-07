@@ -97,17 +97,33 @@ func TestHopV4toV5_ErrorHandlingFollowups(t *testing.T) {
 		"expected a followup for the errmask default flip (Config.Errors toggle)")
 }
 
+// TestHopV4toV5_CatResponseFields pins the CAT response-array container renames
+// (v4 CatClient.Shards/Indices decode into these fields; v5 decodes into
+// Records). The rename carries a type-change Note because the element type also
+// changed: the container rename alone does not convert the records.
 func TestHopV4toV5_CatResponseFields(t *testing.T) {
+	t.Parallel()
+
 	d := planV4toV5(t).delta
-	for _, tc := range []struct{ typ, field, oldRecord, record string }{
-		{"CatShardsResp", "Shards", "CatShardResp", "CatShardsRecord"},
-		{"CatIndicesResp", "Indices", "CatIndexResp", "CatIndicesRecord"},
-	} {
-		t.Run(tc.typ, func(t *testing.T) {
-			assertChange(t, d.Structs[v4api+"."+tc.typ].Changes,
+
+	tests := []struct {
+		typ       string
+		field     string
+		oldRecord string
+		record    string
+	}{
+		{typ: "CatShardsResp", field: "Shards", oldRecord: "CatShardResp", record: "CatShardsRecord"},
+		{typ: "CatIndicesResp", field: "Indices", oldRecord: "CatIndexResp", record: "CatIndicesRecord"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.typ, func(t *testing.T) {
+			t.Parallel()
+
+			assertChange(t, d.Structs[v4api+"."+tt.typ].Changes,
 				apirev.FieldChange{
-					Kind: "rename", From: tc.field, To: "Records", NewType: "[]" + v5api + "." + tc.record,
-					Note: "type changed from []" + v4api + "." + tc.oldRecord + " to []" + v5api + "." + tc.record,
+					Kind: "rename", From: tt.field, To: "Records", NewType: "[]" + v5api + "." + tt.record,
+					Note: `type changed from "[]` + v4api + `.` + tt.oldRecord + `" to "[]` + v5api + `.` + tt.record + `"`,
 				})
 		})
 	}

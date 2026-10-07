@@ -96,20 +96,30 @@ func use(c *Client) {
 }
 
 func TestRewriteFieldAccess_Rename(t *testing.T) {
-	for _, tc := range []struct{ name, receiver, ruledType string }{
-		{"value", "Response", "Response"},
-		{"pointer", "*Response", "Response"},
-		{"promoted declaring type", "*Wrapped", "Response"},
-		{"promoted receiver type", "*Wrapped", "Wrapped"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		receiver  string
+		ruledType string
+	}{
+		{name: "value", receiver: "Response", ruledType: "Response"},
+		{name: "pointer", receiver: "*Response", ruledType: "Response"},
+		{name: "promoted declaring type", receiver: "*Wrapped", ruledType: "Response"},
+		{name: "promoted receiver type", receiver: "*Wrapped", ruledType: "Wrapped"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			src := `package pkg
 type Response struct { Shards []int }
 type Wrapped struct { *Response }
-func use(r ` + tc.receiver + `) { _ = r.Shards }
+func use(r ` + tt.receiver + `) { _ = r.Shards }
 `
 			info, sel := typeCheckSelector(t, src, "Shards")
-			qual := "example.com/pkg." + tc.ruledType
+			qual := "example.com/pkg." + tt.ruledType
 			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{
 				qual: {
 					From: qual,
@@ -127,22 +137,48 @@ func use(r ` + tc.receiver + `) { _ = r.Shards }
 }
 
 func TestRewriteFieldAccess_RenameCollision(t *testing.T) {
-	for _, tc := range []struct{ name, declarations, receiver string }{
-		{"direct field", "type Wrapped struct { *Response; Records []int }", "*Wrapped"},
-		{"promoted field", "type Other struct { Records []int }; type Wrapped struct { *Response; Other }", "Wrapped"},
-		{"method", "type Wrapped struct { *Response }; func (*Wrapped) Records() {}", "*Wrapped"},
-		{"addressable pointer method", "type Wrapped struct { *Response }; func (*Wrapped) Records() {}", "Wrapped"},
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		declarations string
+		receiver     string
+	}{
 		{
-			"ambiguous field",
-			"type A struct { Records []int }; type B struct { Records []int }; type Wrapped struct { *Response; A; B }",
-			"*Wrapped",
+			name:         "direct field",
+			declarations: "type Wrapped struct { *Response; Records []int }",
+			receiver:     "*Wrapped",
 		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
+		{
+			name:         "promoted field",
+			declarations: "type Other struct { Records []int }; type Wrapped struct { *Response; Other }",
+			receiver:     "Wrapped",
+		},
+		{
+			name:         "method",
+			declarations: "type Wrapped struct { *Response }; func (*Wrapped) Records() {}",
+			receiver:     "*Wrapped",
+		},
+		{
+			name:         "addressable pointer method",
+			declarations: "type Wrapped struct { *Response }; func (*Wrapped) Records() {}",
+			receiver:     "Wrapped",
+		},
+		{
+			name:         "ambiguous field",
+			declarations: "type A struct { Records []int }; type B struct { Records []int }; type Wrapped struct { *Response; A; B }",
+			receiver:     "*Wrapped",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			info, sel := typeCheckSelector(t, `package pkg
 type Response struct { Shards []int }
-`+tc.declarations+`
-func use(r `+tc.receiver+`) { _ = r.Shards }
+`+tt.declarations+`
+func use(r `+tt.receiver+`) { _ = r.Shards }
 `, "Shards")
 			const qual = "example.com/pkg.Response"
 			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
@@ -163,7 +199,7 @@ type Response struct { Shards []string }
 func use(r Response) { _ = r.Shards; _ = Response{Shards: nil} }
 `, "Shards")
 	const qual = "example.com/pkg.Response"
-	const note = "type changed from []string to []*string"
+	const note = `type changed from "[]string" to "[]*string"`
 	delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
 		From: qual, Changes: []apirev.FieldChange{{Kind: apirev.KindRename, From: "Shards", To: "Records", Note: note}},
 	}}}

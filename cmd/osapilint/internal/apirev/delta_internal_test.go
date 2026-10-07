@@ -99,26 +99,61 @@ func TestDeriveDelta_RemovedTypes(t *testing.T) {
 	require.False(t, d.RemovedTypes[pkg+".InfoResp"], "a same-name survivor is not removed")
 }
 
+// TestDeriveDelta_RenameTypeChange pins the Note a rename carries when the
+// field's type also changed across the hop. A type that differs only by the
+// module major version is the same type, so it carries no Note; anything else
+// does, because a container rename alone does not convert the element type.
 func TestDeriveDelta_RenameTypeChange(t *testing.T) {
+	t.Parallel()
+
 	const fromPkg = "example.com/sdk/v4/api"
 	const toPkg = "example.com/sdk/v5/api"
-	for _, tc := range []struct{ name, fromType, toType, note string }{
-		{"unchanged", "string", "string", ""},
-		{"module version only", "[]" + fromPkg + ".Record", "[]" + toPkg + ".Record", ""},
+
+	tests := []struct {
+		name     string
+		fromType string
+		toType   string
+		note     string
+	}{
+		{name: "unchanged", fromType: "string", toType: "string"},
 		{
-			"record type changed", "[]" + fromPkg + ".OldRecord", "[]" + toPkg + ".Record",
-			"type changed from []" + fromPkg + ".OldRecord to []" + toPkg + ".Record",
+			name:     "module version only",
+			fromType: "[]" + fromPkg + ".Record",
+			toType:   "[]" + toPkg + ".Record",
 		},
-		{"pointer", "string", "*string", "type changed from string to *string"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			from := &Snapshot{Structs: []Struct{{PkgPath: fromPkg, Name: "Response", Fields: []Field{{Name: "Rows", Type: tc.fromType}}}}}
-			to := &Snapshot{Structs: []Struct{{PkgPath: toPkg, Name: "Response", Fields: []Field{{Name: "Records", Type: tc.toType}}}}}
+		{
+			// A root-package type spells its version as "/v4." rather than "/v4/",
+			// so normalizing it needs versionAgnosticType, not versionAgnostic.
+			name:     "root package type, module version only",
+			fromType: "example.com/sdk/v4.Config",
+			toType:   "example.com/sdk/v5.Config",
+		},
+		{
+			name:     "record type changed",
+			fromType: "[]" + fromPkg + ".OldRecord",
+			toType:   "[]" + toPkg + ".Record",
+			note:     `type changed from "[]` + fromPkg + `.OldRecord" to "[]` + toPkg + `.Record"`,
+		},
+		{
+			name:     "pointer",
+			fromType: "string",
+			toType:   "*string",
+			note:     `type changed from "string" to "*string"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			from := &Snapshot{Structs: []Struct{{PkgPath: fromPkg, Name: "Response", Fields: []Field{{Name: "Rows", Type: tt.fromType}}}}}
+			to := &Snapshot{Structs: []Struct{{PkgPath: toPkg, Name: "Response", Fields: []Field{{Name: "Records", Type: tt.toType}}}}}
 			d := DeriveDelta(from, to, nil, []FieldDisposition{{
 				FromPkgPath: fromPkg, FromType: "Response", FromField: "Rows", Action: ActionRename,
 				ToPkgPath: toPkg, ToType: "Response", ToField: "Records",
 			}})
-			require.Equal(t, []FieldChange{{Kind: KindRename, From: "Rows", To: "Records", NewType: tc.toType, Note: tc.note}},
+
+			require.Equal(t, []FieldChange{{Kind: KindRename, From: "Rows", To: "Records", NewType: tt.toType, Note: tt.note}},
 				d.Structs[fromPkg+".Response"].Changes)
 		})
 	}
@@ -178,7 +213,7 @@ func TestDeriveDelta_PointerFieldClassification(t *testing.T) {
 			to:   []Field{{Name: "Body", Type: "*" + v5api + ".ReqBody"}},
 			want: FieldChange{
 				Kind: KindManual, From: "Body", NewType: "*" + v5api + ".ReqBody",
-				Note: "field type changed from io.Reader to *" + v5api + ".ReqBody; migrate this use by hand",
+				Note: `field type changed from "io.Reader" to "*` + v5api + `.ReqBody"; migrate this use by hand`,
 			},
 		},
 		{
@@ -187,7 +222,7 @@ func TestDeriveDelta_PointerFieldClassification(t *testing.T) {
 			to:   []Field{{Name: "Took", Type: "*int64"}},
 			want: FieldChange{
 				Kind: KindManual, From: "Took", NewType: "*int64",
-				Note: "field type changed from int to *int64; migrate this use by hand",
+				Note: `field type changed from "int" to "*int64"; migrate this use by hand`,
 			},
 		},
 	}
