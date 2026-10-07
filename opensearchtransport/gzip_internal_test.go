@@ -154,6 +154,8 @@ func gunzip(t *testing.T, b []byte, msgAndArgs ...any) string {
 	return string(plain)
 }
 
+// gzipRoundTrip compresses body with c, requires it to inflate back to body,
+// and returns the compressed length.
 func gzipRoundTrip(t *testing.T, c Compressor, body string) int {
 	t.Helper()
 
