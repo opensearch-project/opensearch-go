@@ -111,18 +111,15 @@ func TestStreamRequestBodyReadError(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		cfg        Config
-		closesBody bool // rows where the transport is guaranteed to close the failed body
+		name string
+		cfg  Config
 	}{
 		{
-			name:       "buffered for retries",
-			closesBody: true,
+			name: "buffered for retries",
 		},
 		{
-			name:       "buffered for request body logging",
-			cfg:        Config{DisableRetry: true, Logger: &TextLogger{Output: io.Discard, EnableRequestBody: true}},
-			closesBody: true,
+			name: "buffered for request body logging",
+			cfg:  Config{DisableRetry: true, Logger: &TextLogger{Output: io.Discard, EnableRequestBody: true}},
 		},
 		{
 			name: "compressed",
@@ -158,9 +155,7 @@ func TestStreamRequestBodyReadError(t *testing.T) {
 			require.ErrorIs(t, err, sentinel, "the body read error must be in the error chain")
 			require.Nil(t, res)
 			require.Equal(t, int32(0), roundTrips.Load(), "a request with an unreadable body must not be sent")
-			if tt.closesBody {
-				require.True(t, body.closed, "request body closed")
-			}
+			require.True(t, body.closed, "request body closed")
 		})
 	}
 }
