@@ -54,8 +54,10 @@ type Encoder interface {
 // compressor" and never calls NewEncoder.
 type noneCompressor struct{}
 
+// ContentEncoding returns the empty string, since None leaves bodies unencoded.
 func (noneCompressor) ContentEncoding() string { return "" }
 
+// NewEncoder always returns an error, since None has no Encoder.
 func (noneCompressor) NewEncoder(io.Writer) (Encoder, error) {
 	return nil, errors.New("opensearchtransport: None does not encode")
 }
@@ -85,8 +87,10 @@ type gzipCompressor struct {
 	level int
 }
 
+// ContentEncoding returns "gzip".
 func (gzipCompressor) ContentEncoding() string { return encodingGzip }
 
+// NewEncoder returns a gzip writer at the compressor's level that writes to w.
 func (c gzipCompressor) NewEncoder(w io.Writer) (Encoder, error) {
 	zw, err := gzip.NewWriterLevel(w, c.level)
 	if err != nil {

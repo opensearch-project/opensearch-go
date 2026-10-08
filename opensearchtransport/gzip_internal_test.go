@@ -21,7 +21,7 @@ import (
 
 func TestCompress(t *testing.T) {
 	t.Run("initialize & compress", func(t *testing.T) {
-		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
+		gzipCompressor := newGzipRequestCompressor(t)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -39,7 +39,7 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("gzip multiple times", func(t *testing.T) {
-		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
+		gzipCompressor := newGzipRequestCompressor(t)
 		for range 5 {
 			body := generateRandomString()
 			rc := io.NopCloser(strings.NewReader(body))
@@ -59,7 +59,7 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("ensure gzipped data is smaller and different from original", func(t *testing.T) {
-		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
+		gzipCompressor := newGzipRequestCompressor(t)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -78,7 +78,7 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("compressing data twice", func(t *testing.T) {
-		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
+		gzipCompressor := newGzipRequestCompressor(t)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -145,11 +145,12 @@ func gunzip(t *testing.T, b []byte, msgAndArgs ...any) string {
 	return string(plain)
 }
 
-// newGzipRequestCompressor returns the transport's compressor for GZip(level).
-func newGzipRequestCompressor(t *testing.T, level int) *requestCompressor {
+// newGzipRequestCompressor returns the transport's compressor for
+// GZip(gzip.DefaultCompression).
+func newGzipRequestCompressor(t *testing.T) *requestCompressor {
 	t.Helper()
 
-	c, err := GZip(level)
+	c, err := GZip(gzip.DefaultCompression)
 	require.NoError(t, err)
 	rc, err := newRequestCompressor(c)
 	require.NoError(t, err)

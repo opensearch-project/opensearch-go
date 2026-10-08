@@ -91,7 +91,7 @@ type fakeEncoder struct {
 // enter records event and returns the func that ends the call. An Encoder is
 // used by one goroutine at a time, so a call that starts while another is
 // running counts as an overlap.
-func (e *fakeEncoder) enter(event byte) (leave func()) {
+func (e *fakeEncoder) enter(event byte) func() {
 	if e.inflight.Add(1) > 1 {
 		e.c.overlaps.Add(1)
 	}
@@ -236,7 +236,11 @@ func TestNewCompressorValidation(t *testing.T) {
 		{name: "non-ASCII encoding", compressor: &fakeCompressor{encoding: "gzïp"}, wantErrText: "is not a valid HTTP token"},
 		{name: "separator in encoding", compressor: &fakeCompressor{encoding: "gzip,br"}, wantErrText: "is not a valid HTTP token"},
 		{name: "NewEncoder fails", compressor: &fakeCompressor{encoding: "x-custom", newErr: errFakeNew}, wantErr: errFakeNew},
-		{name: "NewEncoder returns a nil Encoder", compressor: &fakeCompressor{encoding: "x-custom", nilEncoder: true}, wantErrText: "nil Encoder"},
+		{
+			name:        "NewEncoder returns a nil Encoder",
+			compressor:  &fakeCompressor{encoding: "x-custom", nilEncoder: true},
+			wantErrText: "nil Encoder",
+		},
 		{name: "probe Close fails", compressor: &fakeCompressor{encoding: "x-custom", closeErr: errFakeClose}, wantErr: errFakeClose},
 		{name: "custom token", compressor: &fakeCompressor{encoding: "x-custom"}, wantEncoding: "x-custom"},
 		{name: "token with every punctuation byte", compressor: &fakeCompressor{encoding: "!#$%&'*+-.^_`|~"}, wantEncoding: "!#$%&'*+-.^_`|~"},
