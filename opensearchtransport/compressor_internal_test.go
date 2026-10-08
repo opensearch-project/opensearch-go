@@ -134,6 +134,19 @@ func (e *fakeEncoder) Reset(w io.Writer) {
 // every Reset: any writes, a Close, then any number of Reset, writes, Close.
 const encoderCallOrder = `^w*c(rw*c)*$`
 
+// healthCheckBody is a root-endpoint response the transport accepts as a
+// healthy node, for the health check requests a test server also receives.
+const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"number":"3.0.0"}}`
+
+// healthCheckResponse answers a request that is not one of the test's own.
+func healthCheckResponse() *http.Response {
+	return &http.Response{
+		Status:     "MOCK",
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(healthCheckBody)),
+	}
+}
+
 // wireRecorder is a RoundTripper that gunzips each request body and records the
 // plaintext.
 type wireRecorder struct {
@@ -144,6 +157,11 @@ type wireRecorder struct {
 }
 
 func (r *wireRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Verify only the test's own requests. Anything else, such as the
+	// transport's health check, is answered and not recorded.
+	if req.Method != http.MethodPost || req.URL.Path != "/abc" {
+		return healthCheckResponse(), nil
+	}
 	if got := req.Header.Get(headerContentEncoding); got != encodingGzip {
 		return nil, fmt.Errorf("Content-Encoding is %q", got)
 	}

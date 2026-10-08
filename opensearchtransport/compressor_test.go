@@ -24,6 +24,10 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
+// healthCheckBody is a root-endpoint response the transport accepts as a
+// healthy node.
+const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"number":"3.0.0"}}`
+
 // zlibCompressor is a Compressor implemented outside the package, over
 // compress/zlib, that sends "deflate" bodies.
 type zlibCompressor struct{}
@@ -46,6 +50,13 @@ func TestCompressor_ExternalImplementation(t *testing.T) {
 		errs   []error
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify only the test's own requests. Anything else, such as the
+		// transport's health check, is answered and not recorded.
+		if r.Method != http.MethodPost || r.URL.Path != "/abc" {
+			_, _ = io.WriteString(w, healthCheckBody)
+			return
+		}
+
 		var (
 			plain []byte
 			err   error
@@ -86,13 +97,22 @@ func TestCompressor_ExternalImplementation(t *testing.T) {
 		strings.Repeat("second|", 64),
 		strings.Repeat("third|", 64),
 	}
-	for _, body := range want {
+	for i, body := range want {
 		req, err := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(body))
 		require.NoError(t, err)
 		res, err := tp.Stream(req)
 		require.NoError(t, err)
 		require.NoError(t, res.Body.Close())
 		require.Equal(t, http.StatusOK, res.StatusCode)
+
+		if i == 0 {
+			// The transport sends its own background requests to the same
+			// server, uncompressed and with no body. Send one now instead of
+			// waiting for the transport to.
+			hc, err := tp.DefaultHealthCheck(t.Context(), nil, u)
+			require.NoError(t, err)
+			require.NoError(t, hc.Body.Close())
+		}
 	}
 
 	received.Lock()

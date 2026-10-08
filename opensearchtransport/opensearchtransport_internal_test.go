@@ -1596,8 +1596,9 @@ func TestCompressedBodyOutlivesStream(t *testing.T) {
 			gz, err := GZip(gzip.BestSpeed)
 			require.NoError(t, err)
 
-			// The round trip runs inside Stream on this goroutine, so held and
-			// calls need no synchronization.
+			// The test's own round trips run inside Stream on this goroutine, so
+			// held and calls need no synchronization. The mock returns before
+			// touching them for any other request.
 			var (
 				held  *http.Request
 				calls int
@@ -1608,6 +1609,11 @@ func TestCompressedBodyOutlivesStream(t *testing.T) {
 				DisableRetry:      true,
 				NodeStatsInterval: -1,
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					// Count only the test's own requests, so the transport's
+					// health check cannot shift which request is held.
+					if req.Method != http.MethodPost || req.URL.Path != "/abc" {
+						return healthCheckResponse(), nil
+					}
 					calls++
 					if calls%2 == 1 {
 						held = req // models a RoundTrip that returns before its body is written
