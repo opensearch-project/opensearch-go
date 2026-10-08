@@ -73,6 +73,10 @@ func None() Compressor { return noneCompressor{} }
 // [gzip.NoCompression], [gzip.BestSpeed], [gzip.BestCompression],
 // [gzip.HuffmanOnly]) or a value between them. It returns an error for a level
 // outside that range.
+//
+// [gzip.DefaultCompression], which the standard library runs as level 6, is
+// the usual choice. It is the level the deprecated Config.CompressRequestBody
+// uses.
 func GZip(level int) (Compressor, error) {
 	// Validate once so NewEncoder can ignore the error.
 	if _, err := gzip.NewWriterLevel(io.Discard, level); err != nil {

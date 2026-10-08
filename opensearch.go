@@ -163,14 +163,18 @@ type Config struct {
 
 	// Compressor encodes request bodies; see [opensearchtransport.GZip] and
 	// [opensearchtransport.None], or implement [opensearchtransport.Compressor]
-	// to use another codec. See [opensearchtransport.Config.Compressor] for when
-	// a body is skipped. It takes precedence over CompressRequestBody.
+	// to use another codec. [opensearchtransport.GZip] with
+	// gzip.DefaultCompression, which the standard library runs as level 6, is
+	// the usual choice and is what CompressRequestBody uses. See
+	// [opensearchtransport.Config.Compressor] for when a body is skipped. It
+	// takes precedence over CompressRequestBody.
 	Compressor opensearchtransport.Compressor
 
-	// CompressRequestBody gzip-compresses request bodies (default false) when
-	// Compressor is nil.
+	// CompressRequestBody gzip-compresses request bodies (default false) at
+	// gzip.DefaultCompression when Compressor is nil.
 	//
-	// Deprecated: Use Compressor, for example with [opensearchtransport.GZip].
+	// Deprecated: Use Compressor. [opensearchtransport.GZip] with
+	// gzip.DefaultCompression gives the same output.
 	CompressRequestBody bool
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon

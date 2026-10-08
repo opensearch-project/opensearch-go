@@ -210,7 +210,9 @@ type Config struct {
 
 	// Compressor encodes request bodies and sets the matching Content-Encoding
 	// header; see [GZip] and [None], or implement [Compressor] to use another
-	// codec. nil leaves the choice to CompressRequestBody. New returns an error
+	// codec. [GZip] with gzip.DefaultCompression, which the standard library
+	// runs as level 6, is the usual choice and is what CompressRequestBody
+	// uses. nil leaves the choice to CompressRequestBody. New returns an error
 	// for a Compressor that is not usable; see [Compressor].
 	//
 	// A compressor is skipped for a request whose caller already set any
@@ -221,11 +223,12 @@ type Config struct {
 	// it does not count.
 	Compressor Compressor
 
-	// CompressRequestBody gzip-compresses request bodies at the default level
-	// when Compressor is nil. A non-nil Compressor, including [None], takes
-	// precedence.
+	// CompressRequestBody gzip-compresses request bodies at
+	// gzip.DefaultCompression when Compressor is nil. A non-nil Compressor,
+	// including [None], takes precedence.
 	//
-	// Deprecated: Use Compressor, for example with [GZip].
+	// Deprecated: Use Compressor. [GZip] with gzip.DefaultCompression gives the
+	// same output.
 	CompressRequestBody bool
 
 	EnableDebugLogger bool
