@@ -25,7 +25,8 @@ import (
 // must return the same value on every call and NewEncoder must be safe for
 // concurrent use. New returns an error for a Compressor whose ContentEncoding
 // is not a valid HTTP token (RFC 9110, section 5.6.2) or whose
-// NewEncoder(io.Discard) or Close fails.
+// NewEncoder(io.Discard) or Close fails. NewEncoder must return a non-nil
+// Encoder whenever its error is nil.
 type Compressor interface {
 	// ContentEncoding returns the Content-Encoding value for bodies the
 	// Compressor encodes, such as "gzip".
@@ -113,10 +114,9 @@ type requestCompressor struct {
 	pool sync.Pool
 }
 
-// newRequestCompressor validates c and returns the compressor the transport
-// applies. It rejects a ContentEncoding that is not an HTTP token, and a
-// Compressor whose NewEncoder or Close fails, so a broken Compressor fails when
-// the transport is built rather than on its first request.
+// newRequestCompressor validates c against the [Compressor] contract and
+// returns the compressor the transport applies, so a broken Compressor fails
+// when the transport is built rather than on its first request.
 func newRequestCompressor(c Compressor) (*requestCompressor, error) {
 	encoding := c.ContentEncoding()
 	if !validToken(encoding) {
@@ -160,34 +160,34 @@ func validToken(s string) bool {
 // compress encodes body into a buffer the caller owns: the buffer is never
 // pooled, because the request body and GetBody readers keep reading it after
 // stream returns.
-func (rc *requestCompressor) compress(body io.Reader) (*bytes.Buffer, error) {
+func (rqc *requestCompressor) compress(body io.Reader) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 
-	enc, err := rc.encoder(buf)
+	enc, err := rqc.encoder(buf)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compress request body: %w", err)
+		return nil, err
 	}
 
 	if _, err := io.Copy(enc, body); err != nil {
 		_ = enc.Close() // the Encoder is discarded; Close releases what it holds
-		return nil, fmt.Errorf("failed to compress request body: %w", err)
+		return nil, err
 	}
 	if err := enc.Close(); err != nil {
-		return nil, fmt.Errorf("failed to compress request body (during close): %w", err)
+		return nil, fmt.Errorf("closing encoder: %w", err)
 	}
 
 	// Only an Encoder that closed cleanly goes back to the pool.
-	rc.pool.Put(enc)
+	rqc.pool.Put(enc)
 	return buf, nil
 }
 
 // encoder returns a pooled Encoder reset to write to dst, or a new one.
-func (rc *requestCompressor) encoder(dst io.Writer) (Encoder, error) {
-	if enc, ok := rc.pool.Get().(Encoder); ok {
+func (rqc *requestCompressor) encoder(dst io.Writer) (Encoder, error) {
+	if enc, ok := rqc.pool.Get().(Encoder); ok {
 		enc.Reset(dst)
 		return enc, nil
 	}
-	return rc.c.NewEncoder(dst)
+	return rqc.c.NewEncoder(dst)
 }
 
 // resolveCompressor returns the compressor stream applies, or nil when request

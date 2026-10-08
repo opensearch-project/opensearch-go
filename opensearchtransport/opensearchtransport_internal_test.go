@@ -1556,7 +1556,7 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 // unread, sends a same-length body through the transport, then reads the held
 // readers. A compressed buffer recycled for the second request overwrites the
 // held bytes. Reuse is deterministic apart from sync.Pool occasionally dropping
-// a Put, so the rounds make a false pass on the old behavior vanishingly
+// a Put, so the rounds make a false pass against a pooled buffer vanishingly
 // unlikely, while a request that owns its buffer can never fail.
 func TestCompressedBodyOutlivesStream(t *testing.T) {
 	t.Parallel()
@@ -1672,7 +1672,7 @@ func TestRequestCompressionReadError(t *testing.T) {
 
 	res, err := tp.Stream(req) //nolint:bodyclose // res is nil on error
 	require.ErrorIs(t, err, errRead)
-	require.ErrorContains(t, err, "failed to compress request body")
+	require.EqualError(t, err, "failed to compress request body: body read failed")
 	require.Nil(t, res)
 }
 

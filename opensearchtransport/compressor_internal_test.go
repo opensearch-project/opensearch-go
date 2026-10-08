@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -288,24 +289,33 @@ func TestNewCompressorValidation(t *testing.T) {
 
 // TestCompressorEncoderLifecycle pins the call order the Encoder godoc
 // promises: an Encoder is closed before it is reset for the next body, and every
-// body reaches the wire intact. Whether the pool hands an Encoder back is up to
-// sync.Pool, so the order is checked on whatever reuse happens.
+// body reaches the wire intact. sync.Pool may drop a Put, so the rounds make a
+// stream that never gets a reset Encoder vanishingly unlikely, and the call
+// order is checked on every Encoder created.
 func TestCompressorEncoderLifecycle(t *testing.T) {
 	t.Parallel()
+
+	const rounds = 32
 
 	c := &fakeCompressor{encoding: encodingGzip}
 	rec := &wireRecorder{}
 	tp := newCompressorTransport(t, c, rec)
 
-	want := []string{"first body", "second body", "third body"}
-	for _, body := range want {
+	want := make([]string, 0, rounds)
+	for i := range rounds {
+		body := fmt.Sprintf("body %d", i)
+		want = append(want, body)
 		require.NoError(t, streamBody(tp, body))
 	}
 
 	require.Equal(t, want, rec.bodies())
+	var resets int
 	for i, e := range c.encoders() {
-		require.Regexp(t, encoderCallOrder, e.events(), "encoder %d", i)
+		events := e.events()
+		require.Regexp(t, encoderCallOrder, events, "encoder %d", i)
+		resets += strings.Count(events, "r")
 	}
+	require.Positive(t, resets, "no Encoder was reset, so the pool never reused one")
 }
 
 // TestCompressorEncoderDiscardedOnError verifies that an Encoder whose Write or
@@ -363,13 +373,7 @@ func TestCompressorConcurrentStreams(t *testing.T) {
 	rec := &wireRecorder{}
 	tp := newCompressorTransport(t, c, rec)
 
-	var (
-		wg   sync.WaitGroup
-		errs struct {
-			sync.Mutex
-			list []error
-		}
-	)
+	var g errgroup.Group
 	want := make([]string, 0, workers*perWorker)
 	body := func(worker, i int) string {
 		return strings.Repeat(fmt.Sprintf("worker-%d-request-%d|", worker, i), 64)
@@ -378,19 +382,17 @@ func TestCompressorConcurrentStreams(t *testing.T) {
 		for i := range perWorker {
 			want = append(want, body(w, i))
 		}
-		wg.Go(func() {
+		g.Go(func() error {
 			for i := range perWorker {
 				if err := streamBody(tp, body(w, i)); err != nil {
-					errs.Lock()
-					errs.list = append(errs.list, err)
-					errs.Unlock()
+					return err
 				}
 			}
+			return nil
 		})
 	}
-	wg.Wait()
 
-	require.Empty(t, errs.list)
+	require.NoError(t, g.Wait())
 	require.Equal(t, int64(0), c.overlaps.Load())
 	require.ElementsMatch(t, want, rec.bodies())
 	for i, e := range c.encoders() {
