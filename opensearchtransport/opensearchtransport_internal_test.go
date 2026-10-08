@@ -151,9 +151,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		if tp.compressRequestBody {
-			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
-		}
+		require.Empty(t, tp.compressor.encoding)
 	})
 
 	t.Run("Custom", func(t *testing.T) {
@@ -182,9 +180,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		if !tp.compressRequestBody {
-			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
-		}
+		require.NotNil(t, tp.compressor)
 	})
 }
 
@@ -1425,6 +1421,330 @@ func TestRequestCompression(t *testing.T) {
 			if res.Status != "MOCK" {
 				t.Errorf("Unexpected response: %+v", res)
 			}
+		})
+	}
+}
+
+// TestRequestCompressionSkipsWhenContentEncodingSet verifies that compression,
+// enabled by the legacy CompressRequestBody flag or by a GZip Compressor,
+// leaves the wire body gzipped exactly once on every attempt: a body whose
+// caller set any non-empty Content-Encoding value is sent as-is, including
+// through the transport's retry snapshot when GetBody is nil, while an empty
+// value or a Content-Encoding from Config.Header does not suppress
+// compression.
+func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
+	t.Parallel()
+
+	const (
+		plaintext  = "opensearch"
+		maxRetries = 3
+	)
+
+	gzipped := gzipBytes(t, plaintext)
+
+	gzipBestSpeed, err := GZip(gzip.BestSpeed)
+	require.NoError(t, err)
+
+	// Both ways of enabling compression must honor a caller-set Content-Encoding.
+	configs := []struct {
+		name       string
+		legacyFlag bool
+		compressor Compressor
+	}{
+		{name: "legacy flag", legacyFlag: true},
+		{name: "GZip", compressor: gzipBestSpeed},
+	}
+
+	tests := []struct {
+		name          string
+		body          []byte
+		header        http.Header
+		globalHeader  http.Header
+		nilGetBody    bool // force the transport's own retry snapshot
+		wantEncodings []string
+	}{
+		{
+			name:          "pre-encoded body",
+			body:          gzipped,
+			header:        http.Header{headerContentEncoding: {encodingGzip}},
+			wantEncodings: []string{encodingGzip},
+		},
+		{
+			name:          "pre-encoded body without GetBody",
+			body:          gzipped,
+			header:        http.Header{headerContentEncoding: {encodingGzip}},
+			nilGetBody:    true,
+			wantEncodings: []string{encodingGzip},
+		},
+		{
+			name:          "pre-encoded body behind an empty first value",
+			body:          gzipped,
+			header:        http.Header{headerContentEncoding: {"", encodingGzip}},
+			wantEncodings: []string{"", encodingGzip},
+		},
+		{
+			name:          "empty value is compressed",
+			body:          []byte(plaintext),
+			header:        http.Header{headerContentEncoding: {""}},
+			wantEncodings: []string{encodingGzip},
+		},
+		{
+			name:          "global header is compressed",
+			body:          []byte(plaintext),
+			header:        http.Header{},
+			globalHeader:  http.Header{headerContentEncoding: {encodingGzip}},
+			wantEncodings: []string{encodingGzip},
+		},
+	}
+
+	for _, cfg := range configs {
+		for _, tt := range tests {
+			t.Run(cfg.name+"/"+tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				type attempt struct {
+					encodings []string
+					body      []byte
+				}
+				var attempts []attempt
+
+				tp, err := New(Config{
+					URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+					MaxRetries:          maxRetries,
+					CompressRequestBody: cfg.legacyFlag,
+					Compressor:          cfg.compressor,
+					Header:              tt.globalHeader,
+					NodeStatsInterval:   -1,
+					Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+						body, err := io.ReadAll(req.Body)
+						if err != nil {
+							return nil, err
+						}
+						attempts = append(attempts, attempt{encodings: req.Header.Values(headerContentEncoding), body: body})
+						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+					}),
+				})
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = tp.Close() })
+
+				req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(tt.body))
+				require.NoError(t, err)
+				req.Header = tt.header.Clone()
+				if tt.nilGetBody {
+					req.GetBody = nil
+				}
+
+				res, err := tp.Stream(req)
+				require.NoError(t, err)
+				require.NotNil(t, res)
+				require.NoError(t, res.Body.Close())
+
+				require.Len(t, attempts, maxRetries+1)
+				for i, a := range attempts {
+					require.Equal(t, tt.wantEncodings, a.encodings, "attempt %d", i)
+					require.Equal(t, plaintext, gunzip(t, a.body, "attempt %d", i), "attempt %d", i)
+				}
+			})
+		}
+	}
+}
+
+// TestCompressedBodyOutlivesStream verifies that a compressed request body
+// stays intact after Stream returns, for a reader that has not consumed it yet:
+// net/http can still be writing Body after RoundTrip returns, and a caller can
+// call GetBody on the request it kept. Each round holds one request's readers
+// unread, sends a same-length body through the transport, then reads the held
+// readers. A compressed buffer recycled for the second request overwrites the
+// held bytes. Reuse is deterministic apart from sync.Pool occasionally dropping
+// a Put, so the rounds make a false pass against a pooled buffer vanishingly
+// unlikely, while a request that owns its buffer can never fail.
+func TestCompressedBodyOutlivesStream(t *testing.T) {
+	t.Parallel()
+
+	const rounds = 32
+
+	tests := []struct {
+		name string
+		read func(t *testing.T, held *http.Request) []byte
+	}{
+		{
+			name: "Body",
+			read: func(t *testing.T, held *http.Request) []byte {
+				t.Helper()
+				b, err := io.ReadAll(held.Body)
+				require.NoError(t, err)
+				return b
+			},
+		},
+		{
+			name: "GetBody",
+			read: func(t *testing.T, held *http.Request) []byte {
+				t.Helper()
+				rc, err := held.GetBody()
+				require.NoError(t, err)
+				b, err := io.ReadAll(rc)
+				require.NoError(t, err)
+				return b
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gz, err := GZip(gzip.BestSpeed)
+			require.NoError(t, err)
+
+			// The test's own round trips run inside Stream on this goroutine, so
+			// held and calls need no synchronization. The mock returns before
+			// touching them for any other request.
+			var (
+				held  *http.Request
+				calls int
+			)
+			tp, err := New(Config{
+				URLs:              []*url.URL{{Scheme: "https", Host: "foo.com"}},
+				Compressor:        gz,
+				DisableRetry:      true,
+				NodeStatsInterval: -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					// Count only the test's own requests, so the transport's
+					// health check cannot shift which request is held.
+					if req.Method != http.MethodPost || req.URL.Path != "/abc" {
+						return healthCheckResponse(), nil
+					}
+					calls++
+					if calls%2 == 1 {
+						held = req // models a RoundTrip that returns before its body is written
+					} else if _, err := io.Copy(io.Discard, req.Body); err != nil {
+						return nil, err
+					}
+					return &http.Response{Status: "MOCK", Body: http.NoBody}, nil
+				}),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			stream := func(body string) {
+				t.Helper()
+				req, err := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(body))
+				require.NoError(t, err)
+				res, err := tp.Stream(req)
+				require.NoError(t, err)
+				require.NoError(t, res.Body.Close())
+			}
+
+			for i := range rounds {
+				first := strings.Repeat(fmt.Sprintf("held-%02d|", i), 4)
+				second := strings.Repeat(fmt.Sprintf("next-%02d|", i), 4)
+
+				stream(first)
+				stream(second)
+
+				require.Equal(t, first, gunzip(t, tt.read(t, held), "round %d", i))
+			}
+		})
+	}
+}
+
+// TestRequestCompressionReadError verifies that a body read failure during
+// compression aborts the request before any round trip and keeps the read
+// error in the chain.
+func TestRequestCompressionReadError(t *testing.T) {
+	t.Parallel()
+
+	errRead := errors.New("body read failed")
+
+	tp, err := New(Config{
+		URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+		CompressRequestBody: true,
+		NodeStatsInterval:   -1,
+		Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+			return nil, errors.New("unexpected round trip")
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	req, err := http.NewRequest(http.MethodPost, "/abc", &errReadCloser{err: errRead})
+	require.NoError(t, err)
+
+	res, err := tp.Stream(req) //nolint:bodyclose // res is nil on error
+	require.ErrorIs(t, err, errRead)
+	require.EqualError(t, err, "failed to compress request body: body read failed")
+	require.Nil(t, res)
+}
+
+// TestRequestCompressorNone verifies that a None or nil Compressor sends the
+// caller's body and Content-Encoding unmodified. None does so even with the
+// legacy Config.CompressRequestBody set.
+func TestRequestCompressorNone(t *testing.T) {
+	t.Parallel()
+
+	const plaintext = "opensearch"
+
+	tests := []struct {
+		name       string
+		compressor Compressor
+		legacyFlag bool
+		body       []byte
+		header     http.Header
+	}{
+		{name: "plain body", compressor: None(), body: []byte(plaintext)},
+		{name: "overrides legacy flag", compressor: None(), legacyFlag: true, body: []byte(plaintext)},
+		{
+			name:       "leaves a caller-set Content-Encoding alone",
+			compressor: None(),
+			body:       gzipBytes(t, plaintext),
+			header:     http.Header{headerContentEncoding: {encodingGzip}},
+		},
+		{name: "nil Compressor, plain body", body: []byte(plaintext)},
+		{
+			name:   "nil Compressor leaves a caller-set Content-Encoding alone",
+			body:   gzipBytes(t, plaintext),
+			header: http.Header{headerContentEncoding: {encodingGzip}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				encodings []string
+				wire      []byte
+			)
+
+			cfg := Config{
+				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+				CompressRequestBody: tt.legacyFlag,
+				Compressor:          tt.compressor,
+				NodeStatsInterval:   -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						return nil, err
+					}
+					encodings, wire = req.Header.Values(headerContentEncoding), body
+					return &http.Response{Status: "MOCK", Body: http.NoBody}, nil
+				}),
+			}
+
+			tp, err := New(cfg)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(tt.body))
+			require.NoError(t, err)
+			req.Header = tt.header.Clone()
+
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			require.NoError(t, res.Body.Close())
+
+			require.Equal(t, tt.header.Values(headerContentEncoding), encodings)
+			require.Equal(t, tt.body, wire)
 		})
 	}
 }

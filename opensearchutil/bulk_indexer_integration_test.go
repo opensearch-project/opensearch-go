@@ -29,6 +29,7 @@
 package opensearchutil_test
 
 import (
+	"compress/gzip"
 	"context"
 	"math"
 	"net/http"
@@ -37,6 +38,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -49,10 +52,14 @@ func TestBulkIndexerIntegration(t *testing.T) {
 	testRecordCount := uint64(10000)
 	ctx := t.Context()
 
+	gzipCompressor, err := opensearchtransport.GZip(gzip.DefaultCompression)
+	require.NoError(t, err)
+
 	testCases := []struct {
-		name                       string
-		compressRequestBodyEnabled bool
-		tests                      []struct {
+		name string
+		// compressor is nil when request body compression is off.
+		compressor opensearchtransport.Compressor
+		tests      []struct {
 			name       string
 			action     string
 			body       string
@@ -64,8 +71,8 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		}
 	}{
 		{
-			name:                       "With body compression",
-			compressRequestBodyEnabled: true,
+			name:       "With body compression",
+			compressor: gzipCompressor,
 			tests: []struct {
 				name       string
 				action     string
@@ -109,8 +116,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			},
 		},
 		{
-			name:                       "Without body compression",
-			compressRequestBodyEnabled: false,
+			name: "Without body compression",
 			tests: []struct {
 				name       string
 				action     string
@@ -162,7 +168,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 		var client *opensearchapi.Client
 		if config != nil {
-			config.Client.CompressRequestBody = c.compressRequestBodyEnabled
+			config.Client.Compressor = c.compressor
 			// Only enable verbose logging if OPENSEARCH_GO_DEBUG=true
 			if testutil.IsDebugEnabled(t) {
 				config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
@@ -172,8 +178,8 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			client, _ = opensearchapi.NewClient(
 				opensearchapi.Config{
 					Client: opensearch.Config{
-						CompressRequestBody: c.compressRequestBodyEnabled,
-						Context:             t.Context(),
+						Compressor: c.compressor,
+						Context:    t.Context(),
 					},
 				},
 			)

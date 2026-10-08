@@ -208,6 +208,27 @@ type Config struct {
 	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
 	DNSTimeout time.Duration
 
+	// Compressor encodes request bodies and sets the matching Content-Encoding
+	// header; see [GZip] and [None], or implement [Compressor] to use another
+	// codec. [GZip] with gzip.DefaultCompression, which the standard library
+	// runs as level 6, is the usual choice and is what CompressRequestBody
+	// uses. nil leaves the choice to CompressRequestBody. New returns an error
+	// for a Compressor that is not usable; see [Compressor].
+	//
+	// A compressor is skipped for a request whose caller already set any
+	// non-empty Content-Encoding value: the caller chose the body's encoding,
+	// and compressing would replace their header with the compressor's own
+	// encoding, mislabeling a body that was already encoded. A Content-Encoding
+	// in Header applies to every request and says nothing about a given body, so
+	// it does not count.
+	Compressor Compressor
+
+	// CompressRequestBody gzip-compresses request bodies at
+	// gzip.DefaultCompression when Compressor is nil. A non-nil Compressor,
+	// including [None], takes precedence.
+	//
+	// Deprecated: Use Compressor. [GZip] with gzip.DefaultCompression gives the
+	// same output.
 	CompressRequestBody bool
 
 	EnableDebugLogger bool
@@ -538,8 +559,9 @@ type Transport struct {
 
 	healthCheck HealthCheckFunc
 
-	compressRequestBody  bool
-	pooledGzipCompressor *gzipCompressor
+	// compressor is never nil: New builds it, resolving a nil Config.Compressor
+	// to [None]; see requestCompressor.encoding.
+	compressor *requestCompressor
 
 	metrics *metrics
 
@@ -650,6 +672,13 @@ func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) 
 
 // New creates new transport client.
 func New(cfg Config) (*Transport, error) {
+	// Validate the compressor first, before any clone or goroutine exists, so a
+	// broken one fails here rather than on its first request.
+	compressor, err := newRequestCompressor(resolveCompressor(cfg.Compressor, cfg.CompressRequestBody))
+	if err != nil {
+		return nil, err
+	}
+
 	// customTransport records that the caller supplied their own Transport. When
 	// false, we built one from http.DefaultTransport and may safely install the
 	// DNS-cache dialer on it later (after the root context exists). This package
@@ -1072,7 +1101,7 @@ func New(cfg Config) (*Transport, error) {
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
-		compressRequestBody: cfg.CompressRequestBody,
+		compressor: compressor,
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1253,10 +1282,6 @@ func New(cfg Config) (*Transport, error) {
 
 	if client.discoverNodesInterval > 0 {
 		go client.discoveryLoop()
-	}
-
-	if cfg.CompressRequestBody {
-		client.pooledGzipCompressor = newGzipCompressor()
 	}
 
 	// Configure policy settings for all policies in the router
@@ -1499,6 +1524,10 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
+// headerContentEncoding is the request header a Compressor sets and stream
+// checks.
+const headerContentEncoding = "Content-Encoding"
+
 // stream is the shared transport core behind Stream and Request. It performs
 // routing, signing, header injection, request-body compression, retry, metrics,
 // and seed URL fallback, and returns the raw response alongside the timing of
@@ -1517,6 +1546,9 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	// Update request
 	tr.setReqUserAgent(req)
+	// Decide before the global headers merge in; see Config.Compressor.
+	compress := tr.compressor.encoding != "" &&
+		!slices.ContainsFunc(req.Header.Values(headerContentEncoding), func(v string) bool { return v != "" })
 	tr.setReqGlobalHeader(req)
 
 	// Capture request identity while req.URL is still the pristine caller input
@@ -1549,10 +1581,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	if req.Body != nil && req.Body != http.NoBody {
 		origBody := req.Body
-		if tr.compressRequestBody {
-			buf, err := tr.pooledGzipCompressor.compress(origBody)
-			defer tr.pooledGzipCompressor.collectBuffer(buf)
+		if compress {
+			buf, err := tr.compressor.compress(origBody)
 			if err != nil {
+				_ = origBody.Close()
 				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
 			}
 
@@ -1564,7 +1596,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			//nolint:errcheck // error is always nil
 			req.Body, _ = req.GetBody()
 
-			req.Header.Set("Content-Encoding", "gzip")
+			req.Header.Set(headerContentEncoding, tr.compressor.encoding)
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
 			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {

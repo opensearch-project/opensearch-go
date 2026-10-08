@@ -726,6 +726,59 @@ func TestClientGetConfig(t *testing.T) {
 	})
 }
 
+// TestClientCompressor verifies NewClient threads Config.Compressor and
+// Config.CompressRequestBody through to the transport.
+func TestClientCompressor(t *testing.T) {
+	t.Parallel()
+
+	gz, err := opensearchtransport.GZip(1)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name         string
+		compressor   opensearchtransport.Compressor
+		legacyFlag   bool
+		wantEncoding string
+	}{
+		{name: "unset"},
+		{name: "legacy flag", legacyFlag: true, wantEncoding: "gzip"},
+		{name: "GZip", compressor: gz, wantEncoding: "gzip"},
+		{name: "None overrides legacy flag", compressor: opensearchtransport.None(), legacyFlag: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var gotEncoding string
+			c, err := NewClient(Config{
+				Addresses:           []string{"http://localhost:9200"},
+				Compressor:          tt.compressor,
+				CompressRequestBody: tt.legacyFlag,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					// Background discovery shares the transport; only the
+					// request under test is recorded.
+					if req.URL.Path != "/abc" {
+						return defaultRoundTripFunc(req)
+					}
+					gotEncoding = req.Header.Get("Content-Encoding")
+					return &http.Response{Body: http.NoBody}, nil
+				}),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/abc", strings.NewReader("opensearch"))
+			require.NoError(t, err)
+			res, err := c.Stream(req)
+			require.NoError(t, err)
+			require.NoError(t, res.Body.Close())
+
+			require.Equal(t, tt.wantEncoding, gotEncoding)
+		})
+	}
+}
+
 func TestClientClose(t *testing.T) {
 	t.Run("release hook takes precedence", func(t *testing.T) {
 		count := 0
@@ -836,6 +889,7 @@ func TestConfigKey(t *testing.T) {
 			{"health modifier", Config{HealthCheckRequestModifier: func(*http.Request) {}}},
 			{"operation classifier", Config{OperationClassifier: opensearchtransport.NewOperationClassifier()}},
 			{"debug logger", Config{DebugLogger: noopDebugLogger{}}},
+			{"compressor", Config{Compressor: opensearchtransport.None()}},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -864,7 +918,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 50
+	const knownFieldCount = 51
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")

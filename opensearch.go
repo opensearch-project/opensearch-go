@@ -161,7 +161,21 @@ type Config struct {
 	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
 	DNSTimeout time.Duration
 
-	CompressRequestBody bool // Default: false.
+	// Compressor encodes request bodies; see [opensearchtransport.GZip] and
+	// [opensearchtransport.None], or implement [opensearchtransport.Compressor]
+	// to use another codec. [opensearchtransport.GZip] with
+	// gzip.DefaultCompression, which the standard library runs as level 6, is
+	// the usual choice and is what CompressRequestBody uses. See
+	// [opensearchtransport.Config.Compressor] for when a body is skipped. It
+	// takes precedence over CompressRequestBody.
+	Compressor opensearchtransport.Compressor
+
+	// CompressRequestBody gzip-compresses request bodies (default false) at
+	// gzip.DefaultCompression when Compressor is nil.
+	//
+	// Deprecated: Use Compressor. [opensearchtransport.GZip] with
+	// gzip.DefaultCompression gives the same output.
+	CompressRequestBody bool
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
 	// as NewClient returns. nil (the default) means "auto": if Router is
@@ -495,7 +509,8 @@ func NewClient(cfg Config) (*Client, error) {
 		DNSKeepAlive:    cfg.DNSKeepAlive,
 		DNSTimeout:      cfg.DNSTimeout,
 
-		CompressRequestBody: cfg.CompressRequestBody,
+		Compressor:          cfg.Compressor,
+		CompressRequestBody: cfg.CompressRequestBody, //nolint:staticcheck // SA1019: passes the deprecated field to the transport.
 
 		EnableDebugLogger: cfg.EnableDebugLogger,
 
@@ -619,7 +634,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		cfg.OperationClassifier != nil || cfg.DebugLogger != nil ||
 		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
 		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
-		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
+		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil || cfg.Compressor != nil {
 		return 0, false
 	}
 
