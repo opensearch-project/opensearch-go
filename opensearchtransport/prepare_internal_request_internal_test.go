@@ -181,6 +181,7 @@ func newInternalReqTransport(
 		signer:             sigIface,
 		header:             header,
 		userAgent:          "opensearch-go-test",
+		compressor:         &requestCompressor{},
 		healthCheckTimeout: time.Second,
 		ctx:                t.Context(),
 	}

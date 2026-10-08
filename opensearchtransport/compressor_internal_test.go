@@ -277,10 +277,6 @@ func TestNewCompressorValidation(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = tp.Close() })
 
-			if tt.wantEncoding == "" {
-				require.Nil(t, tp.compressor)
-				return
-			}
 			require.NotNil(t, tp.compressor)
 			require.Equal(t, tt.wantEncoding, tp.compressor.encoding)
 		})

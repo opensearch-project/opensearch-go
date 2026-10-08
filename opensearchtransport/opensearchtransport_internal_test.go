@@ -151,7 +151,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		require.Nil(t, tp.compressor)
+		require.Empty(t, tp.compressor.encoding)
 	})
 
 	t.Run("Custom", func(t *testing.T) {
@@ -1676,9 +1676,9 @@ func TestRequestCompressionReadError(t *testing.T) {
 	require.Nil(t, res)
 }
 
-// TestRequestCompressorNone verifies that a None Compressor sends the caller's
-// body and Content-Encoding unmodified, even with the legacy
-// Config.CompressRequestBody set.
+// TestRequestCompressorNone verifies that a None or nil Compressor sends the
+// caller's body and Content-Encoding unmodified. None does so even with the
+// legacy Config.CompressRequestBody set.
 func TestRequestCompressorNone(t *testing.T) {
 	t.Parallel()
 
@@ -1686,14 +1686,22 @@ func TestRequestCompressorNone(t *testing.T) {
 
 	tests := []struct {
 		name       string
+		compressor Compressor
 		legacyFlag bool
 		body       []byte
 		header     http.Header
 	}{
-		{name: "plain body", body: []byte(plaintext)},
-		{name: "overrides legacy flag", legacyFlag: true, body: []byte(plaintext)},
+		{name: "plain body", compressor: None(), body: []byte(plaintext)},
+		{name: "overrides legacy flag", compressor: None(), legacyFlag: true, body: []byte(plaintext)},
 		{
-			name:   "leaves a caller-set Content-Encoding alone",
+			name:       "leaves a caller-set Content-Encoding alone",
+			compressor: None(),
+			body:       gzipBytes(t, plaintext),
+			header:     http.Header{headerContentEncoding: {encodingGzip}},
+		},
+		{name: "nil Compressor, plain body", body: []byte(plaintext)},
+		{
+			name:   "nil Compressor leaves a caller-set Content-Encoding alone",
 			body:   gzipBytes(t, plaintext),
 			header: http.Header{headerContentEncoding: {encodingGzip}},
 		},
@@ -1711,7 +1719,7 @@ func TestRequestCompressorNone(t *testing.T) {
 			cfg := Config{
 				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
 				CompressRequestBody: tt.legacyFlag,
-				Compressor:          None(),
+				Compressor:          tt.compressor,
 				NodeStatsInterval:   -1,
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					body, err := io.ReadAll(req.Body)

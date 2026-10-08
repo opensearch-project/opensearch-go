@@ -559,8 +559,8 @@ type Transport struct {
 
 	healthCheck HealthCheckFunc
 
-	// compressor is nil when request compression is off, so stream can skip the
-	// Content-Encoding scan; New normalizes [None] to nil.
+	// compressor is never nil: New builds it, resolving a nil Config.Compressor
+	// to [None]; see requestCompressor.encoding.
 	compressor *requestCompressor
 
 	metrics *metrics
@@ -674,12 +674,9 @@ func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) 
 func New(cfg Config) (*Transport, error) {
 	// Validate the compressor first, before any clone or goroutine exists, so a
 	// broken one fails here rather than on its first request.
-	var compressor *requestCompressor
-	if c := resolveCompressor(cfg.Compressor, cfg.CompressRequestBody); c != nil {
-		var err error
-		if compressor, err = newRequestCompressor(c); err != nil {
-			return nil, err
-		}
+	compressor, err := newRequestCompressor(resolveCompressor(cfg.Compressor, cfg.CompressRequestBody))
+	if err != nil {
+		return nil, err
 	}
 
 	// customTransport records that the caller supplied their own Transport. When
@@ -1550,7 +1547,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// Update request
 	tr.setReqUserAgent(req)
 	// Decide before the global headers merge in; see Config.Compressor.
-	compress := tr.compressor != nil &&
+	compress := tr.compressor.encoding != "" &&
 		!slices.ContainsFunc(req.Header.Values(headerContentEncoding), func(v string) bool { return v != "" })
 	tr.setReqGlobalHeader(req)
 

@@ -51,8 +51,8 @@ type Encoder interface {
 	Reset(w io.Writer)
 }
 
-// noneCompressor leaves bodies unmodified. The transport treats it as "no
-// compressor" and never calls NewEncoder.
+// noneCompressor leaves bodies unmodified. The transport sends bodies as they
+// are for it and never calls NewEncoder.
 type noneCompressor struct{}
 
 // ContentEncoding returns the empty string, since None leaves bodies unencoded.
@@ -109,7 +109,8 @@ func (c gzipCompressor) NewEncoder(w io.Writer) (Encoder, error) {
 // its closed Encoders. It is safe for concurrent use.
 type requestCompressor struct {
 	// encoding is the Content-Encoding value sent with compressed bodies, as
-	// newRequestCompressor validated it.
+	// newRequestCompressor validated it, or empty for [None]: stream checks it
+	// to skip compression, so compress is never called on an empty encoding.
 	encoding string
 	c        Compressor
 
@@ -120,8 +121,13 @@ type requestCompressor struct {
 
 // newRequestCompressor validates c against the [Compressor] contract and
 // returns the compressor the transport applies, so a broken Compressor fails
-// when the transport is built rather than on its first request.
+// when the transport is built rather than on its first request. [None] skips
+// validation; see requestCompressor.encoding.
 func newRequestCompressor(c Compressor) (*requestCompressor, error) {
+	if _, ok := c.(noneCompressor); ok {
+		return &requestCompressor{}, nil
+	}
+
 	encoding := c.ContentEncoding()
 	if !validToken(encoding) {
 		return nil, fmt.Errorf("opensearchtransport: Compressor content encoding %q is not a valid HTTP token", encoding)
@@ -194,14 +200,15 @@ func (rqc *requestCompressor) encoder(dst io.Writer) (Encoder, error) {
 	return rqc.c.NewEncoder(dst)
 }
 
-// resolveCompressor returns the compressor stream applies, or nil when request
-// compression is off. A non-nil c wins over the legacy flag.
+// resolveCompressor returns the Compressor the transport applies. A nil c
+// resolves to GZip at the default level when legacyGzip is set and to [None]
+// otherwise; a non-nil c wins over the legacy flag.
 func resolveCompressor(c Compressor, legacyGzip bool) Compressor {
-	if c == nil && legacyGzip {
+	if c != nil {
+		return c
+	}
+	if legacyGzip {
 		return gzipCompressor{level: gzip.DefaultCompression}
 	}
-	if _, ok := c.(noneCompressor); ok {
-		return nil
-	}
-	return c
+	return None()
 }
