@@ -91,11 +91,11 @@ Each adjacent transition (vN -> vN+1) is a `hop`: hand-authored tables of type r
 
 A field that vanishes on the target is governed by an explicit `FieldDisposition`, matched by (source pkg + type + field):
 
-- **rename** - rewrite to the target field. The target type is stated explicitly, so a field may move across a type rename (e.g. `DocumentGetReq#DocumentID` -> `GetReq#ID`).
+- **rename** - rewrite to the target field. The target type is stated explicitly, so a field may move across a type rename (e.g. `DocumentGetReq#DocumentID` -> `GetReq#ID`). If the field's type also changes (beyond the module major version), the rewrite reports `MANUAL` guidance for converting values and accesses. A selector whose target name already exists or is ambiguous on the receiver stays unchanged and is reported for manual review.
 - **remove** - drop the composite-literal key.
 - **manual** - the field's data relocated (e.g. a response collapsed to a raw `Body`); flagged for a human.
 
-A vanished field with no disposition fails the run with an `osapilint bug` error; the tool does not infer rename-versus-remove. Dispositions are verified against the surfaces by `TestHopFieldDispositionsAgainstSurfaces` and are established from source: response-field renames by a shared JSON wire tag, request-field renames by the v4 code that assembles the field into the spec-named element.
+A vanished field with no disposition fails the run with an `osapilint bug` error; the tool does not infer rename-versus-remove. Dispositions are verified against the surfaces by `TestHopFieldDispositionsAgainstSurfaces` and are established from source: response-field renames by a shared JSON wire tag or the decoder's response-array destination (CAT responses), request-field renames by the v4 code that assembles the field into the spec-named element. The CAT container renames do not complete the record migration: v5 record fields are pointers, and index records use `Pri` instead of `Primary`; review and convert element-field usages by hand.
 
 A field that keeps its name but becomes a pointer is classified from the surfaces and needs no table entry. If it now points to the same type, a composite-literal value gets `&` and any other value becomes `new(x)`. The exception is a constant whose own type differs from the field's, such as `Created: 1` on an `int64` field (`new(1)` is an `*int`), which is reported `MANUAL`. A raw `Body io.Reader` moves to `BodyReader` when the target has a typed `Body` and a `BodyReader io.Reader`. If the field now points to a different type (`int` -> `*int64`), the tool reports `MANUAL` wherever it is set or read, since even a read that still compiles can change behavior: printing a `*string` prints the pointer.
 
@@ -129,12 +129,12 @@ Consumers use one of two idioms, handled differently:
 - **Idiom 1 (function API):** `opensearchapi.<X>Request{...}.Do(ctx, client)`. The v3 method returns an already-decoded typed `*Resp`, so the raw response handling (`osResp.Body`, `.StatusCode`, `.IsError()`, manual `json.Unmarshal`) that follows the call must be reworked -- a per-op semantic rewrite, not a rename. This is **not automated**: `osapilint` rewrites the import path and **reports** the rest as `MANUAL` worklist items rather than emitting a rewrite it cannot prove.
 - **Idiom 2 (root client):** `client.Ping(client.Ping.WithContext(ctx))` plus `resp.IsError()`. The root `opensearch.Client` lost all its API method fields (only `Transport` survives); the functional options collapse into a `Req` struct and the raw-response error check moves to the returned `error`. For the two seed ops (`Ping`, `Indices.Exists`) this is now rewritten best-effort (see [Idiom-2 best-effort rewrite](#idiom-2-best-effort-rewrite) below); every other root-client op stays `MANUAL`.
 
-The two linter additions this hop required (both report-only -- they never emit a rewrite):
+The two linter additions this hop required (report-only for the v2 removed-type and root-client manual dispositions):
 
 1. **Removed-type diagnostic.** `DeriveDelta` previously skipped a source type with no target counterpart silently; those types are now recorded in `Delta.RemovedTypes`, and the linter flags any reference to one (idiom 1's `opensearchapi.*Request` family) as a `MANUAL` worklist line. Without this the consumer would get a bare `undefined: BulkRequest` compile error instead of an actionable list.
-2. **Promoted-field access resolution.** `flagFieldAccess` followed embedding to the type that literally declares a field. `gensurface` flattens promoted fields onto the embedding struct, so idiom 2's root-client methods (declared on the embedded, and removed, `opensearchapi.API`) are ruled on `opensearch.Client` in the surface. The linter now also checks the receiver type, so `client.Ping` on the root client is flagged against the `Client` disposition.
+2. **Promoted-field access resolution.** `rewriteFieldAccess` follows embedding to the type that literally declares a field. `gensurface` flattens promoted fields onto the embedding struct, so idiom 2's root-client methods (declared on the embedded, and removed, `opensearchapi.API`) are ruled on `opensearch.Client` in the surface. The linter also checks the receiver type, so `client.Ping` on the root client is flagged against the `Client` disposition. For rename dispositions on other hops, it rewrites selectors after checking for target-name collisions.
 
-The root-client method removals themselves are authored as `ActionManual` `FieldDispositions` (idiom 2). These two additions are report-only; the seed-op rewrite that builds on them is described next.
+The root-client method removals themselves are authored as `ActionManual` `FieldDispositions` (idiom 2), so those field-access diagnostics remain report-only; the seed-op rewrite that builds on them is described next.
 
 ### Idiom-2 best-effort rewrite
 

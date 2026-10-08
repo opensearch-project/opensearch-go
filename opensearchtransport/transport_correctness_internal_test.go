@@ -10,8 +10,10 @@ package opensearchtransport
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -100,4 +102,65 @@ func TestStreamReturnsBodyUnbuffered(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.False(t, body.closed, "Stream must not close the body before the caller does")
 	res.Body.Close()
+}
+
+// TestStreamRequestBodyReadError verifies that a request body that fails to
+// read is reported to the caller and never sent, instead of being dropped and
+// replaced by an empty body.
+func TestStreamRequestBodyReadError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		cfg        Config
+		closesBody bool // rows where the transport is guaranteed to close the failed body
+	}{
+		{
+			name:       "buffered for retries",
+			closesBody: true,
+		},
+		{
+			name:       "buffered for request body logging",
+			cfg:        Config{DisableRetry: true, Logger: &TextLogger{Output: io.Discard, EnableRequestBody: true}},
+			closesBody: true,
+		},
+		{
+			name: "compressed",
+			cfg:  Config{CompressRequestBody: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sentinel := errors.New("encode failure")
+			body := &errReadCloser{err: sentinel}
+
+			var roundTrips atomic.Int32
+			u, _ := url.Parse("http://localhost:9200")
+			cfg := tt.cfg
+			cfg.URLs = []*url.URL{u}
+			cfg.NodeStatsInterval = -1 // Disable stats poller to avoid background requests through mock transport
+			cfg.Transport = mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+				roundTrips.Add(1)
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+			})
+
+			tp, err := New(cfg)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/_search", body)
+			require.NoError(t, err)
+
+			res, err := tp.Stream(req) //nolint:bodyclose // res is nil on error
+			require.ErrorIs(t, err, sentinel, "the body read error must be in the error chain")
+			require.Nil(t, res)
+			require.Equal(t, int32(0), roundTrips.Load(), "a request with an unreadable body must not be sent")
+			if tt.closesBody {
+				require.True(t, body.closed, "request body closed")
+			}
+		})
+	}
 }

@@ -287,9 +287,9 @@ func ToPointer[V any](value V) *V {
 // opensearchapi package. It carries the nested Config, the typed Client,
 // AliasDeleteResp - a v4 response type removed outright in v5 - so a fixture can
 // reference the removed type and exercise the cross-hop removed-type diagnostic,
-// and ToPointer and NewFromClient, v4 helpers removed in v5. SnapshotRestoreReq,
-// SearchReq and SearchHit carry v4's real field types for the fields the
-// request-shape fixtures set, so a type change across the hop is visible.
+// and ToPointer and NewFromClient, v4 helpers removed in v5. The CAT responses,
+// SnapshotRestoreReq, SearchReq and SearchHit carry v4's real field types for
+// the fields the fixtures use, so a type change across the hop is visible.
 package opensearchapi
 
 import (
@@ -325,6 +325,26 @@ func NewFromClient(client *opensearch.Client) *Client {
 // v4 -> v5 hop.
 type AliasDeleteResp struct {
 	Acknowledged bool
+}
+
+// CatShardsResp carries the v4 CAT shards response array.
+type CatShardsResp struct {
+	Shards []CatShardResp
+}
+
+type CatShardResp struct {
+	Prirep string
+}
+
+// CatIndicesResp carries the v4 CAT indices response array.
+type CatIndicesResp struct {
+	Indices []CatIndexResp
+}
+
+type CatIndexResp struct {
+	Health  string
+	Index   string
+	Primary *int
 }
 
 // SnapshotRestoreReq: v5 renames Repo to Repository and gives Body a typed

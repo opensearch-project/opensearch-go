@@ -176,6 +176,13 @@ linters:
       - third_party$
       - builtin$
       - examples$
+issues:
+  # Report every finding. At the defaults (3 and 50) golangci-lint truncates
+  # repeated findings and says so in a log line that is easy to read past, so
+  # the reported count is not the real count: fixing the three G404 sites it
+  # listed revealed a fourth it had withheld all along.
+  max-same-issues: 0
+  max-issues-per-linter: 0
 formatters:
   enable:
     - gci

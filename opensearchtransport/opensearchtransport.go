@@ -1189,6 +1189,7 @@ func New(cfg Config) (*Transport, error) {
 
 	// Shuffle connections for load distribution unless disabled
 	if !client.skipConnectionShuffle && len(conns) > 1 {
+		//nolint:gosec // G404: load distribution, not security
 		rand.Shuffle(len(conns), func(i, j int) {
 			conns[i], conns[j] = conns[j], conns[i]
 		})
@@ -1599,8 +1600,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		} else if req.GetBody == nil {
 			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer
-				//nolint:errcheck // ignored as this is only for logging
-				buf.ReadFrom(origBody)
+				if _, err := buf.ReadFrom(origBody); err != nil {
+					_ = origBody.Close()
+					return nil, sr, fmt.Errorf("failed to read request body: %w", err)
+				}
 				req.GetBody = func() (io.ReadCloser, error) {
 					// Return a new reader each time
 					reader := bytes.NewReader(buf.Bytes())
@@ -3084,6 +3087,7 @@ func (tr *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnect
 
 		// Shuffle connections for load distribution unless disabled
 		if !tr.skipConnectionShuffle && len(filteredReady) > 1 {
+			//nolint:gosec // G404: load distribution, not security
 			rand.Shuffle(len(filteredReady), func(i, j int) {
 				filteredReady[i], filteredReady[j] = filteredReady[j], filteredReady[i]
 			})

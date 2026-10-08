@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
 
-// flagfieldaccess_test.go pins the promoted-field resolution in flagFieldAccess.
+// flagfieldaccess_test.go pins the promoted-field resolution in rewriteFieldAccess.
 //
 // gensurface flattens promoted fields onto the embedding struct, so a field
 // declared on an embedded (and often removed) type is ruled on the OUTER type in
@@ -90,7 +90,134 @@ func use(c *Client) {
 		},
 	}}
 
-	manual, unclassified := flagFieldAccess(sel, info, delta)
+	manual, unclassified := rewriteFieldAccess(sel, info, delta)
 	require.Empty(t, unclassified)
 	require.Contains(t, manual, "access .Ping", "promoted field access must be flagged against the receiver type")
+}
+
+func TestRewriteFieldAccess_Rename(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		receiver  string
+		ruledType string
+	}{
+		{name: "value", receiver: "Response", ruledType: "Response"},
+		{name: "pointer", receiver: "*Response", ruledType: "Response"},
+		{name: "promoted declaring type", receiver: "*Wrapped", ruledType: "Response"},
+		{name: "promoted receiver type", receiver: "*Wrapped", ruledType: "Wrapped"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			src := `package pkg
+type Response struct { Shards []int }
+type Wrapped struct { *Response }
+func use(r ` + tt.receiver + `) { _ = r.Shards }
+`
+			info, sel := typeCheckSelector(t, src, "Shards")
+			qual := "example.com/pkg." + tt.ruledType
+			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{
+				qual: {
+					From: qual,
+					Changes: []apirev.FieldChange{
+						{Kind: apirev.KindRename, From: "Shards", To: "Records"},
+					},
+				},
+			}}
+			edit, unclassified := rewriteFieldAccess(sel, info, delta)
+			require.Empty(t, unclassified)
+			require.Equal(t, "Records", sel.Sel.Name)
+			require.Contains(t, edit, "field Shards -> Records")
+		})
+	}
+}
+
+func TestRewriteFieldAccess_RenameCollision(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		declarations string
+		receiver     string
+	}{
+		{
+			name:         "direct field",
+			declarations: "type Wrapped struct { *Response; Records []int }",
+			receiver:     "*Wrapped",
+		},
+		{
+			name:         "promoted field",
+			declarations: "type Other struct { Records []int }; type Wrapped struct { *Response; Other }",
+			receiver:     "Wrapped",
+		},
+		{
+			name:         "method",
+			declarations: "type Wrapped struct { *Response }; func (*Wrapped) Records() {}",
+			receiver:     "*Wrapped",
+		},
+		{
+			name:         "addressable pointer method",
+			declarations: "type Wrapped struct { *Response }; func (*Wrapped) Records() {}",
+			receiver:     "Wrapped",
+		},
+		{
+			name:         "ambiguous field",
+			declarations: "type A struct { Records []int }; type B struct { Records []int }; type Wrapped struct { *Response; A; B }",
+			receiver:     "*Wrapped",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			info, sel := typeCheckSelector(t, `package pkg
+type Response struct { Shards []int }
+`+tt.declarations+`
+func use(r `+tt.receiver+`) { _ = r.Shards }
+`, "Shards")
+			const qual = "example.com/pkg.Response"
+			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
+				From: qual, Changes: []apirev.FieldChange{{Kind: apirev.KindRename, From: "Shards", To: "Records"}},
+			}}}
+			edit, unclassified := rewriteFieldAccess(sel, info, delta)
+			require.Empty(t, unclassified)
+			require.Equal(t, "Shards", sel.Sel.Name, "a colliding selector must not be rewritten")
+			require.Contains(t, edit, "MANUAL")
+			require.Contains(t, edit, "Records")
+		})
+	}
+}
+
+func TestRewriteRename_TypeChangeWarning(t *testing.T) {
+	info, sel := typeCheckSelector(t, `package pkg
+type Response struct { Shards []string }
+func use(r Response) { _ = r.Shards; _ = Response{Shards: nil} }
+`, "Shards")
+	const qual = "example.com/pkg.Response"
+	const note = `type changed from "[]string" to "[]*string"`
+	delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
+		From: qual, Changes: []apirev.FieldChange{{Kind: apirev.KindRename, From: "Shards", To: "Records", Note: note}},
+	}}}
+	edit, unclassified := rewriteFieldAccess(sel, info, delta)
+	require.Empty(t, unclassified)
+	require.Equal(t, "Records", sel.Sel.Name)
+	require.Contains(t, edit, "MANUAL")
+	require.Contains(t, edit, note)
+
+	var lit *ast.CompositeLit
+	for expr := range info.Types {
+		if candidate, ok := expr.(*ast.CompositeLit); ok {
+			lit = candidate
+		}
+	}
+	require.NotNil(t, lit)
+	edits, unknown := rewriteCompositeLit(lit, info, delta, nil)
+	require.Empty(t, unknown)
+	require.Equal(t, "Records", lit.Elts[0].(*ast.KeyValueExpr).Key.(*ast.Ident).Name)
+	require.Contains(t, edits, `MANUAL "`+qual+`": field Records - `+note)
 }

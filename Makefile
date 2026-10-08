@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 # Tool versions
-GOLANGCI_LINT_VERSION := v2.12.2
+GOLANGCI_LINT_VERSION := v2.14.0
 
 # Build tags for linting.
 #
@@ -341,7 +341,7 @@ lint:  ## Run lint on the package
 lint.headers:  ## Check license headers on all Go files (same check as CI)
 	@.github/check-license-headers.sh
 
-lint.local:  ## Run lint locally (not in Docker) across all build-tag combinations
+lint.local: lint.local.version  ## Run lint locally (not in Docker) across all build-tag combinations
 	@printf "\033[2m-> Running golangci-lint locally across all build-tag sets...\033[0m\n"
 	@for tags in $(GOLANGCI_LINT_TAG_SETS); do \
 		printf "\033[2m   --build-tags %s\033[0m\n" "$$tags"; \
@@ -351,6 +351,24 @@ lint.local:  ## Run lint locally (not in Docker) across all build-tag combinatio
 		printf "\033[2m-> Running golangci-lint in %s (separate Go module)...\033[0m\n" "$$mod"; \
 		(cd "$$mod" && golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...) || exit $$?; \
 	done
+
+# lint.local runs whatever golangci-lint is on PATH, where `linters` runs
+# $(GOLANGCI_LINT_VERSION) in a container. Different versions disagree in both
+# directions -- a linter can start firing, stop firing, or change what it
+# considers an unused nolint directive -- so a fix derived from an unpinned
+# local run can break CI and vice versa. Refuse rather than report findings CI
+# will not reproduce.
+lint.local.version:
+	@command -v golangci-lint >/dev/null 2>&1 || { \
+		printf 'golangci-lint is not on PATH.\n  install %s, or run `make linters`, which uses the pinned container\n' '$(GOLANGCI_LINT_VERSION)' >&2; \
+		exit 1; \
+	}
+	@have="v$$(golangci-lint version --short 2>/dev/null)"; \
+	want='$(GOLANGCI_LINT_VERSION)'; \
+	if [ "$$have" != "$$want" ]; then \
+		printf 'golangci-lint %s is on PATH but CI pins %s.\n  install %s, or run `make linters`, which uses the pinned container\n' "$$have" "$$want" "$$want" >&2; \
+		exit 1; \
+	fi
 
 package := "prettier"
 PRETTIER_ARGS := --prose-wrap never --print-width 300 "**/*.md"

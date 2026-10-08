@@ -217,12 +217,38 @@ func TestNewIntegTestFile_BuildTag(t *testing.T) {
 		},
 	}
 
-	target := emit.NewIntegTestFile("/tmp/test", ir.DefaultCorePkgName, "api_cluster-health", frag)
+	target := emit.NewIntegTestFile("/tmp/test", ir.DefaultCorePkgName, "api_cluster-health", emit.IntegBuildTag("opensearchapi"), frag)
 	src, err := target.Render()
 	require.NoError(t, err)
 
 	output := string(src)
-	require.Contains(t, output, "//go:build integration")
+	require.Contains(t, output, "//go:build integration && (core || opensearchapi)")
 	require.Contains(t, output, "package "+ir.DefaultCorePkgName+"_test")
 	require.Contains(t, output, "func TestClusterHealth(t *testing.T)")
+}
+
+// TestIntegBuildTag pins which integration pass owns a generated test file. CI
+// runs two passes, tagged integration,core and integration,plugins, so a file
+// constrained only by "integration" satisfies both and runs twice, which is
+// what every generated integration test did before the constraint was derived
+// from the destination package.
+func TestIntegBuildTag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		pkg  string
+		want string
+	}{
+		{name: "core operations name the core pass", pkg: "opensearchapi", want: "integration && (core || opensearchapi)"},
+		{name: "a plugin names the plugins pass", pkg: "security", want: "integration && plugins"},
+		{name: "any other plugin does too", pkg: "ml", want: "integration && plugins"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.IntegBuildTag(tt.pkg))
+		})
+	}
 }

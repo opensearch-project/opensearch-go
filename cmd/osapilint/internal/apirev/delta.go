@@ -6,7 +6,10 @@
 
 package apirev
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+)
 
 // delta.go derives the field-level migration delta between a v4 struct and its
 // v5 counterpart, per fully-qualified type. This is the type-scoped ground truth
@@ -38,7 +41,7 @@ func versionAgnostic(pkgPath string) string {
 // FieldChange is one field-level change within a single struct.
 //
 // Kinds:
-//   - "rename":      field key/name changed 1:1 (safe to rewrite).
+//   - "rename":      field key/name changed 1:1; a Note warns if its type also changed.
 //   - "pointerWrap": field's value type became a pointer to the same type (wrap
 //     a literal in &, any other value in new(x)).
 //   - "remove":      field ceased to exist as a settable knob; dropping a
@@ -62,7 +65,7 @@ type FieldChange struct {
 	From    string `json:"from"`
 	To      string `json:"to,omitempty"`
 	NewType string `json:"newType,omitempty"`
-	Note    string `json:"note,omitempty"` // guidance for "manual"
+	Note    string `json:"note,omitempty"` // manual guidance, including type-changing renames
 }
 
 // FieldChange kinds. See the FieldChange doc comment for the meaning of each.
@@ -254,7 +257,7 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renam
 			// *XBody): neither & nor new(x) would type-check.
 			changes = append(changes, FieldChange{
 				Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
-				Note: "field type changed from " + fFrom.Type + " to " + fTo.Type + "; migrate this use by hand",
+				Note: fmt.Sprintf("field type changed from %q to %q; migrate this use by hand", fFrom.Type, fTo.Type),
 			})
 		case still && incompatibleTypeChange(fFrom.Type, fTo.Type):
 			// Field kept its name but its type changed in a way that breaks
@@ -263,8 +266,9 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renam
 			// mechanical rewrite, so it is flagged for a human.
 			changes = append(changes, FieldChange{
 				Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
-				Note: "field type changed from " + fFrom.Type + " to " + fTo.Type +
-					"; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type",
+				Note: fmt.Sprintf(
+					"field type changed from %q to %q; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type",
+					fFrom.Type, fTo.Type),
 			})
 		case still:
 			// unchanged, or a compatible type change the rewriter need not act on
@@ -306,7 +310,11 @@ func dispositionChange(
 		if renamed, has := toByName[d.ToField]; has {
 			newType = renamed.Type
 		}
-		return FieldChange{Kind: KindRename, From: fFrom.Name, To: d.ToField, NewType: newType}
+		ch := FieldChange{Kind: KindRename, From: fFrom.Name, To: d.ToField, NewType: newType}
+		if versionAgnosticType(fFrom.Type) != versionAgnosticType(newType) {
+			ch.Note = fmt.Sprintf("type changed from %q to %q", fFrom.Type, newType)
+		}
+		return ch
 	case ActionManual:
 		return FieldChange{Kind: KindManual, From: fFrom.Name, Note: d.Note}
 	default: // ActionRemove
