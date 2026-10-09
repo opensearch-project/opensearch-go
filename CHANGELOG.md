@@ -8,6 +8,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Discover nested modules with `git ls-files` instead of `find`, so `make test-unit`, `make lint.local`, `make check-modules-standalone` and `make print-submodules` skip a stray `go.mod` under a git-ignored directory such as `tmp/`, and still see a new module before it is staged
+
 ### Deprecated
 
 ### Removed
