@@ -2,6 +2,15 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [4.8.1]
+
+### Dependencies
+
+- Set the `go` directive to 1.26.0 and add a `toolchain go1.26.9` line in the root module and `cmd/osgen`, so builds in this repository use a Go release with the standard-library CVE fixes from 1.26.9. The `go` line is the language version only, so building against v4 now needs Go 1.26.0 or newer instead of 1.26.8; a `toolchain` line does not apply to dependents, so consumers get the fixes by updating their own Go ([#1192](https://github.com/opensearch-project/opensearch-go/pull/1192))
+- Bump `github.com/aws/aws-sdk-go-v2` from 1.47.0 to 1.47.1, `github.com/aws/aws-sdk-go-v2/config` from 1.33.5 to 1.33.6, `github.com/aws/aws-sdk-go-v2/credentials` from 1.20.5 to 1.20.6, and their indirect AWS SDK modules to the same release ([#1192](https://github.com/opensearch-project/opensearch-go/pull/1192))
+- Bump `github.com/aws/smithy-go` from 1.28.1 to 1.28.2, which adds bounds checks on CBOR string and blob lengths, and `github.com/tidwall/pretty` from 1.2.1 to 1.2.2, which fixes escaped strings in `UglyInPlace` ([#1192](https://github.com/opensearch-project/opensearch-go/pull/1192))
+- Bump `github.com/go-openapi/jsonpointer` from 1.0.1 to 1.0.2 in `cmd/osgen` ([#1192](https://github.com/opensearch-project/opensearch-go/pull/1192))
+
 ## [4.8.0]
 
 ### Changed
@@ -718,6 +727,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
+[4.8.1]: https://github.com/opensearch-project/opensearch-go/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.3...v4.8.0
 [4.7.3]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.1...v4.7.2
