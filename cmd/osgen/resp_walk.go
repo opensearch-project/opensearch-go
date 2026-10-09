@@ -356,7 +356,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 		if subSchema == nil {
 			continue
 		}
-		for _, f := range w.walkProperties(subSchema, schemaKey, group, name, isRespBody) {
+		for _, f := range w.allOfMemberFields(subSchema, schemaKey, group, name, isRespBody) {
 			if redundant[f.JSONName] {
 				continue
 			}
@@ -892,7 +892,7 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 		if sub.Value == nil {
 			continue
 		}
-		for _, f := range w.walkProperties(sub.Value, key, group, parentTypeName, isRespBody) {
+		for _, f := range w.allOfMemberFields(sub.Value, key, group, parentTypeName, isRespBody) {
 			if redundant[f.JSONName] {
 				continue
 			}
@@ -903,6 +903,68 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 		}
 	}
 	return fields
+}
+
+// allOfMemberFields returns the fields an inline allOf member contributes to the
+// merged struct: its own properties, then the properties of every branch when the
+// member is a oneOf/anyOf.
+//
+// A union member carries no properties of its own; its fields live in the
+// branches. The spec models AggregationContainer this way, as allOf [$ref
+// Aggregation, {oneOf: [AdjacencyMatrixAggregation, ...]}], so walking only the
+// member's properties emitted a struct holding just the embedded base and lost
+// every aggregation. Only one branch is present on the wire, so a field required
+// within its branch is still optional on the merged struct.
+func (w *walker) allOfMemberFields(member *openapi3.Schema, key, group, parentTypeName string, isRespBody bool) []goField {
+	fields := w.walkProperties(member, key, group, parentTypeName, isRespBody)
+	for _, branches := range []openapi3.SchemaRefs{member.OneOf, member.AnyOf} {
+		for _, branch := range branches {
+			for _, f := range w.branchFields(branch, key, group, parentTypeName, isRespBody, make(set[string])) {
+				fields = append(fields, optionalField(f))
+			}
+		}
+	}
+	return fields
+}
+
+// branchFields returns the properties a union branch declares, following its
+// allOf chain the way declaresProperty does. Properties reached through a $ref
+// are walked under that schema's own key, so inline types nested in them resolve
+// to the same registered types as when the referenced schema is walked directly.
+//
+// visited carries the $ref keys on the current path, so a self-referencing allOf
+// chain terminates.
+func (w *walker) branchFields(ref *openapi3.SchemaRef, key, group, parentTypeName string, isRespBody bool, visited set[string]) []goField {
+	if ref == nil || ref.Value == nil {
+		return nil
+	}
+	if ref.Ref != "" {
+		refKey := refToSchemaKey(ref.Ref)
+		if visited.has(refKey) {
+			return nil
+		}
+		visited.add(refKey)
+		defer delete(visited, refKey)
+		if refKey != "" {
+			key = refKey
+		}
+	}
+	fields := w.walkProperties(ref.Value, key, group, parentTypeName, isRespBody)
+	for _, sub := range ref.Value.AllOf {
+		fields = append(fields, w.branchFields(sub, key, group, parentTypeName, isRespBody, visited)...)
+	}
+	return fields
+}
+
+// optionalField returns f as an optional field: omitted when empty, and behind a
+// pointer unless its zero value already means absent (collections, RawMessage).
+func optionalField(f goField) goField {
+	f.OmitEmpty = true
+	if !f.IsPointer && f.GoType != goTypeRawMessage && !isCollectionType(f.GoType) {
+		f.IsPointer = true
+		f.GoType = "*" + f.GoType
+	}
+	return f
 }
 
 // resolvePropertylessSchema returns a Go type expression for schemas that

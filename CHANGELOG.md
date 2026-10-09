@@ -14,6 +14,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- `cmd/osgen`: emit the aggregation fields on `CommonAggregationsAggregationContainer`, which held only the embedded `CommonAggregationsAggregation`. When an `allOf` member is a `oneOf` or `anyOf`, the generator now merges the properties of every branch, following each branch's `allOf` chain, as optional fields. It used to merge only the member's own properties, and a union member has none ([#1190](https://github.com/opensearch-project/opensearch-go/issues/1190))
+
 ### Security
 
 ### Dependencies
