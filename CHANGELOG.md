@@ -6,6 +6,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Dependencies
+
+## [5.0.1]
+
+### Added
+
 - Add `PointInTimeClient.Open`, which returns a `PIT` handle that is safe for concurrent use and can be passed between callers. `Open` defaults `keep_alive` to 300 seconds when the request leaves it unset, and the server restarts it on every search, so an active PIT does not expire. `Close(ctx)` deletes the PIT within the limits of the caller's context, with no timeout of the client's own, is safe to call more than once, and a failed delete, including one the server reports as `"successful": false`, can be retried ([#1183](https://github.com/opensearch-project/opensearch-go/pull/1183))
 - Add `Client.SearchAfter` and `Client.SearchAfterPages`, iterators that page any sorted search with `search_after`, so callers don't write the loop or a cursor filter. With `Body.PIT` set they page that PIT, so a scan can resume in a later request from a kept PIT ID and the last hit's sort values; without it they page the live indices. They never yield an incomplete page, because `search_after` would otherwise skip its missing documents for good: a failed shard stops the scan with `PartialSearchError` even when the client's error mask hides partial failures, and a page that timed out or terminated early stops it with the new `ErrSearchPageIncomplete`. A page rejected by a full search queue, or that timed out, is retried twice first, after 3 and then 6 seconds, and the stop error names the page and how many hits came before it ([#1183](https://github.com/opensearch-project/opensearch-go/pull/1183))
 - Add `SearchCursor`, which carries a scan's PIT ID and last sort values between requests: `SearchResp.Cursor` reads it from a page, and `SearchCursor.Apply` returns the next request with the ID in `Body.PIT` and the position in `Body.SearchAfter` ([#1183](https://github.com/opensearch-project/opensearch-go/pull/1183))
@@ -563,7 +579,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.6.0...v5.0.0
 [4.x]: https://github.com/opensearch-project/opensearch-go/blob/v4/CHANGELOG.md
 [3.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...v3.1.0
