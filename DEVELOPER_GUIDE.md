@@ -88,12 +88,13 @@ Alongside the root client module, this repository uses nested modules, each with
 | `osotel`        | OpenTelemetry metrics sink      | `go.opentelemetry.io/otel`, `otel/metric`, `otel/sdk/metric`                                                |
 | `log-zerolog`   | zerolog debug-logger adapter    | `github.com/rs/zerolog`                                                                                     |
 | `log-slog`      | `log/slog` debug-logger adapter | nothing: `log/slog` is stdlib, so the module exists to version and test the adapter alongside `log-zerolog` |
+| `compress`      | Request-body compressors        | `github.com/klauspost/compress`                                                                             |
 | `cmd/osgen`     | API code generator              | `github.com/getkin/kin-openapi`                                                                             |
 | `cmd/osapilint` | API migration linter            | `golang.org/x/tools`                                                                                        |
 
 Each module resolves its own dependencies, the same way a consumer does. From the repository root, `go build ./...` and `go test ./...` cover the root module alone; `make test-unit` and `make lint.local` run each nested module in turn. Both discover the nested modules by asking git for every tracked or not-yet-added `go.mod` (git-ignored directories such as `tmp/` are skipped), so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
 
-Some require the root module: `osprom` and `osotel` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
+Some require the root module: `osprom`, `osotel` and `compress` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
 
 ```sh
 go work init . $(make -s print-submodules)
