@@ -135,11 +135,11 @@ test: test-unit
 
 test-integ:  ## Run integration tests
 	@printf "\033[2m-> Running integration tests...\033[0m\n"
-	$(eval testintegtags += "integration,core,plugins")
+	$(eval testintegtags += integration,core,plugins)
 	$(eval testintegdir ?= integration)
 	$(eval OPENSEARCH_NODE_COUNT ?= 3)
 ifdef multinode
-	$(eval testintegtags += "multinode")
+	$(eval testintegtags := $(testintegtags),multinode)
 endif
 ifdef race
 	$(eval testintegargs += "-race")
@@ -152,6 +152,19 @@ endif
 	@echo "go test -v" $(testintegargs); \
 	OPENSEARCH_NODE_COUNT=$(OPENSEARCH_NODE_COUNT) go test -v $(testintegargs) 2>&1 | tee test-integ.log; \
 	exit $${PIPESTATUS[0]};
+# Nested modules with integration-tagged tests run in their own module, since
+# `./...` from the root stops at a go.mod boundary. Coverage is not collected:
+# CI merges only the root module's profile.
+	@for mod in $(SUBMODULES); do \
+		grep -rqE '^//go:build (.*[^!A-Za-z0-9_.])?integration([^!A-Za-z0-9_.]|$$)' --include='*_test.go' "$$mod" || continue; \
+		logsuffix=$$(echo "$$mod" | tr '/' '-'); \
+		printf "\033[2m-> Running %s integration tests (separate module)...\033[0m\n" "$$mod"; \
+		set -- -v $(if $(race),-race) -tags=$(testintegtags) -timeout=$(TEST_TIMEOUT) -parallel=$(TEST_PARALLEL) ./...; \
+		echo "(cd $$mod && OPENSEARCH_NODE_COUNT=$(OPENSEARCH_NODE_COUNT) go test $$*)"; \
+		(cd "$$mod" && OPENSEARCH_NODE_COUNT=$(OPENSEARCH_NODE_COUNT) go test "$$@") 2>&1 | tee "$(PWD)/test-integ-$$logsuffix.log"; \
+		rc=$${PIPESTATUS[0]}; \
+		if [ "$$rc" -ne 0 ]; then exit "$$rc"; fi; \
+	done
 ifdef coverage
 	@go tool covdata textfmt -i=$(PWD)/tmp/$(testintegdir) -o $(PWD)/tmp/$(testintegdir).cov
 endif
