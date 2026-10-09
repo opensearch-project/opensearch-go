@@ -24098,6 +24098,1540 @@ func (u WLMQueryGroupRespResourceLimits) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// Buckets path can be expressed in different ways, and an aggregation may accept some or all of these
+// forms depending on its type. Refer to each aggregation's documentation to know what buckets
+// path forms they accept.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsBucketsPath struct {
+	typ   CommonAggregationsBucketsPathType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsBucketsPathType names which branch of CommonAggregationsBucketsPath is set.
+type CommonAggregationsBucketsPathType int
+
+const (
+	CommonAggregationsBucketsPathUnknownType CommonAggregationsBucketsPathType = iota
+	CommonAggregationsBucketsPathStringType
+	CommonAggregationsBucketsPathArrayType
+	CommonAggregationsBucketsPathMapType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsBucketsPathType) String() string {
+	switch t {
+	case CommonAggregationsBucketsPathStringType:
+		return "String"
+	case CommonAggregationsBucketsPathArrayType:
+		return "Array"
+	case CommonAggregationsBucketsPathMapType:
+		return "Map"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsBucketsPathUnknownType if the value has not been decoded.
+func (u *CommonAggregationsBucketsPath) Type() CommonAggregationsBucketsPathType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsBucketsPath) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsBucketsPathFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsBucketsPath) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsBucketsPathUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsBucketsPath) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonAggregationsBucketsPath", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsBucketsPathFromString returns a CommonAggregationsBucketsPath populated with v
+// on the String branch.
+func NewCommonAggregationsBucketsPathFromString(v string) CommonAggregationsBucketsPath {
+	return CommonAggregationsBucketsPath{
+		typ:   CommonAggregationsBucketsPathStringType,
+		value: &v,
+	}
+}
+
+// Array returns the []string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsBucketsPath) Array() ([]string, error) {
+	if v, ok := u.value.(*[]string); ok {
+		return *v, nil
+	}
+	var zero []string
+	return zero, &UnionBranchError{Union: "CommonAggregationsBucketsPath", Want: "Array", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsBucketsPathFromArray returns a CommonAggregationsBucketsPath populated with v
+// on the Array branch.
+func NewCommonAggregationsBucketsPathFromArray(v []string) CommonAggregationsBucketsPath {
+	return CommonAggregationsBucketsPath{
+		typ:   CommonAggregationsBucketsPathArrayType,
+		value: &v,
+	}
+}
+
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsBucketsPath) Map() (map[string]json.RawMessage, error) {
+	if v, ok := u.value.(*map[string]json.RawMessage); ok {
+		return *v, nil
+	}
+	var zero map[string]json.RawMessage
+	return zero, &UnionBranchError{Union: "CommonAggregationsBucketsPath", Want: "Map", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsBucketsPathFromMap returns a CommonAggregationsBucketsPath populated with v
+// on the Map branch.
+func NewCommonAggregationsBucketsPathFromMap(v map[string]json.RawMessage) CommonAggregationsBucketsPath {
+	return CommonAggregationsBucketsPath{
+		typ:   CommonAggregationsBucketsPathMapType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsBucketsPath) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsBucketsPathUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsPathStringType
+		u.value = &v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsPathArrayType
+		u.value = &v
+	case data[0] == '{':
+		var v map[string]json.RawMessage
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsPathMapType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsBucketsPath: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsBucketsPath) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// A date range limit, represented either as a DateMath expression or a number expressed
+// according to the target field's precision.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsFieldDateMath struct {
+	typ   CommonAggregationsFieldDateMathType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsFieldDateMathType names which branch of CommonAggregationsFieldDateMath is set.
+type CommonAggregationsFieldDateMathType int
+
+const (
+	CommonAggregationsFieldDateMathUnknownType CommonAggregationsFieldDateMathType = iota
+	CommonAggregationsFieldDateMathStringType
+	CommonAggregationsFieldDateMathFloat64Type
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsFieldDateMathType) String() string {
+	switch t {
+	case CommonAggregationsFieldDateMathStringType:
+		return "String"
+	case CommonAggregationsFieldDateMathFloat64Type:
+		return "Float64"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsFieldDateMathUnknownType if the value has not been decoded.
+func (u *CommonAggregationsFieldDateMath) Type() CommonAggregationsFieldDateMathType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsFieldDateMath) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsFieldDateMathFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsFieldDateMath) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsFieldDateMathUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsFieldDateMath) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonAggregationsFieldDateMath", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsFieldDateMathFromString returns a CommonAggregationsFieldDateMath populated with v
+// on the String branch.
+func NewCommonAggregationsFieldDateMathFromString(v string) CommonAggregationsFieldDateMath {
+	return CommonAggregationsFieldDateMath{
+		typ:   CommonAggregationsFieldDateMathStringType,
+		value: &v,
+	}
+}
+
+// Float64 returns the float64 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero float64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsFieldDateMath) Float64() (float64, error) {
+	if v, ok := u.value.(*float64); ok {
+		return *v, nil
+	}
+	var zero float64
+	return zero, &UnionBranchError{Union: "CommonAggregationsFieldDateMath", Want: "Float64", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsFieldDateMathFromFloat64 returns a CommonAggregationsFieldDateMath populated with v
+// on the Float64 branch.
+func NewCommonAggregationsFieldDateMathFromFloat64(v float64) CommonAggregationsFieldDateMath {
+	return CommonAggregationsFieldDateMath{
+		typ:   CommonAggregationsFieldDateMathFloat64Type,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsFieldDateMath) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsFieldDateMathUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsFieldDateMathStringType
+		u.value = &v
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v float64
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsFieldDateMathFloat64Type
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsFieldDateMath: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsFieldDateMath) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// Aggregation buckets. By default they are returned as an array, but if the aggregation has keys configured for
+// the different buckets, the result is a dictionary.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsBuckets struct {
+	typ   CommonAggregationsBucketsType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsBucketsType names which branch of CommonAggregationsBuckets is set.
+type CommonAggregationsBucketsType int
+
+const (
+	CommonAggregationsBucketsUnknownType CommonAggregationsBucketsType = iota
+	CommonAggregationsBucketsMapType
+	CommonAggregationsBucketsArrayType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsBucketsType) String() string {
+	switch t {
+	case CommonAggregationsBucketsMapType:
+		return "Map"
+	case CommonAggregationsBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsBuckets) Type() CommonAggregationsBucketsType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsBuckets) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsBucketsUnknownType
+}
+
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsBuckets) Map() (map[string]json.RawMessage, error) {
+	if v, ok := u.value.(*map[string]json.RawMessage); ok {
+		return *v, nil
+	}
+	var zero map[string]json.RawMessage
+	return zero, &UnionBranchError{Union: "CommonAggregationsBuckets", Want: "Map", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsBucketsFromMap returns a CommonAggregationsBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsBuckets {
+	return CommonAggregationsBuckets{
+		typ:   CommonAggregationsBucketsMapType,
+		value: &v,
+	}
+}
+
+// Array returns the []json.RawMessage branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsBuckets) Array() ([]json.RawMessage, error) {
+	if v, ok := u.value.(*[]json.RawMessage); ok {
+		return *v, nil
+	}
+	var zero []json.RawMessage
+	return zero, &UnionBranchError{Union: "CommonAggregationsBuckets", Want: "Array", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsBucketsFromArray returns a CommonAggregationsBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsBucketsFromArray(v []json.RawMessage) CommonAggregationsBuckets {
+	return CommonAggregationsBuckets{
+		typ:   CommonAggregationsBucketsArrayType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsBuckets) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsBucketsUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '{':
+		var v map[string]json.RawMessage
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsMapType
+		u.value = &v
+	case data[0] == '[':
+		var v []json.RawMessage
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsBuckets: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsBuckets) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// Start of the range (inclusive).
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsAggregationRangeFrom struct {
+	typ   CommonAggregationsAggregationRangeFromType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsAggregationRangeFromType names which branch of CommonAggregationsAggregationRangeFrom is set.
+type CommonAggregationsAggregationRangeFromType int
+
+const (
+	CommonAggregationsAggregationRangeFromUnknownType CommonAggregationsAggregationRangeFromType = iota
+	CommonAggregationsAggregationRangeFromFloat64Type
+	CommonAggregationsAggregationRangeFromStringType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsAggregationRangeFromType) String() string {
+	switch t {
+	case CommonAggregationsAggregationRangeFromFloat64Type:
+		return "Float64"
+	case CommonAggregationsAggregationRangeFromStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsAggregationRangeFromUnknownType if the value has not been decoded.
+func (u *CommonAggregationsAggregationRangeFrom) Type() CommonAggregationsAggregationRangeFromType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsAggregationRangeFrom) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsAggregationRangeFromFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsAggregationRangeFrom) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsAggregationRangeFromUnknownType
+}
+
+// Float64 returns the float64 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero float64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsAggregationRangeFrom) Float64() (float64, error) {
+	if v, ok := u.value.(*float64); ok {
+		return *v, nil
+	}
+	var zero float64
+	return zero, &UnionBranchError{Union: "CommonAggregationsAggregationRangeFrom", Want: "Float64", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsAggregationRangeFromFromFloat64 returns a CommonAggregationsAggregationRangeFrom populated with v
+// on the Float64 branch.
+func NewCommonAggregationsAggregationRangeFromFromFloat64(v float64) CommonAggregationsAggregationRangeFrom {
+	return CommonAggregationsAggregationRangeFrom{
+		typ:   CommonAggregationsAggregationRangeFromFloat64Type,
+		value: &v,
+	}
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsAggregationRangeFrom) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonAggregationsAggregationRangeFrom", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsAggregationRangeFromFromString returns a CommonAggregationsAggregationRangeFrom populated with v
+// on the String branch.
+func NewCommonAggregationsAggregationRangeFromFromString(v string) CommonAggregationsAggregationRangeFrom {
+	return CommonAggregationsAggregationRangeFrom{
+		typ:   CommonAggregationsAggregationRangeFromStringType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsAggregationRangeFrom) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsAggregationRangeFromUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v float64
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeFromFloat64Type
+		u.value = &v
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeFromStringType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsAggregationRangeFrom: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsAggregationRangeFrom) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// End of the range (exclusive).
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsAggregationRangeTo struct {
+	typ   CommonAggregationsAggregationRangeToType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsAggregationRangeToType names which branch of CommonAggregationsAggregationRangeTo is set.
+type CommonAggregationsAggregationRangeToType int
+
+const (
+	CommonAggregationsAggregationRangeToUnknownType CommonAggregationsAggregationRangeToType = iota
+	CommonAggregationsAggregationRangeToFloat64Type
+	CommonAggregationsAggregationRangeToStringType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsAggregationRangeToType) String() string {
+	switch t {
+	case CommonAggregationsAggregationRangeToFloat64Type:
+		return "Float64"
+	case CommonAggregationsAggregationRangeToStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsAggregationRangeToUnknownType if the value has not been decoded.
+func (u *CommonAggregationsAggregationRangeTo) Type() CommonAggregationsAggregationRangeToType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsAggregationRangeTo) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsAggregationRangeToFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsAggregationRangeTo) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsAggregationRangeToUnknownType
+}
+
+// Float64 returns the float64 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero float64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsAggregationRangeTo) Float64() (float64, error) {
+	if v, ok := u.value.(*float64); ok {
+		return *v, nil
+	}
+	var zero float64
+	return zero, &UnionBranchError{Union: "CommonAggregationsAggregationRangeTo", Want: "Float64", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsAggregationRangeToFromFloat64 returns a CommonAggregationsAggregationRangeTo populated with v
+// on the Float64 branch.
+func NewCommonAggregationsAggregationRangeToFromFloat64(v float64) CommonAggregationsAggregationRangeTo {
+	return CommonAggregationsAggregationRangeTo{
+		typ:   CommonAggregationsAggregationRangeToFloat64Type,
+		value: &v,
+	}
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsAggregationRangeTo) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonAggregationsAggregationRangeTo", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsAggregationRangeToFromString returns a CommonAggregationsAggregationRangeTo populated with v
+// on the String branch.
+func NewCommonAggregationsAggregationRangeToFromString(v string) CommonAggregationsAggregationRangeTo {
+	return CommonAggregationsAggregationRangeTo{
+		typ:   CommonAggregationsAggregationRangeToStringType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsAggregationRangeTo) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsAggregationRangeToUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v float64
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeToFloat64Type
+		u.value = &v
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeToStringType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsAggregationRangeTo: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsAggregationRangeTo) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// The level of geohash precision, which can be expressed as a geohash length between 1 and 12 or as a distance measure, such as "1km" or "10m".
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type GeoHashPrecision struct {
+	typ   GeoHashPrecisionType
+	raw   json.RawMessage
+	value any
+}
+
+// GeoHashPrecisionType names which branch of GeoHashPrecision is set.
+type GeoHashPrecisionType int
+
+const (
+	GeoHashPrecisionUnknownType GeoHashPrecisionType = iota
+	GeoHashPrecisionIntType
+	GeoHashPrecisionStringType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t GeoHashPrecisionType) String() string {
+	switch t {
+	case GeoHashPrecisionIntType:
+		return "Int"
+	case GeoHashPrecisionStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns GeoHashPrecisionUnknownType if the value has not been decoded.
+func (u *GeoHashPrecision) Type() GeoHashPrecisionType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *GeoHashPrecision) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewGeoHashPrecisionFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *GeoHashPrecision) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = GeoHashPrecisionUnknownType
+}
+
+// Int returns the int branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *GeoHashPrecision) Int() (int, error) {
+	if v, ok := u.value.(*int); ok {
+		return *v, nil
+	}
+	var zero int
+	return zero, &UnionBranchError{Union: "GeoHashPrecision", Want: "Int", Got: u.typ.String()}
+}
+
+// NewGeoHashPrecisionFromInt returns a GeoHashPrecision populated with v
+// on the Int branch.
+func NewGeoHashPrecisionFromInt(v int) GeoHashPrecision {
+	return GeoHashPrecision{
+		typ:   GeoHashPrecisionIntType,
+		value: &v,
+	}
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *GeoHashPrecision) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "GeoHashPrecision", Want: "String", Got: u.typ.String()}
+}
+
+// NewGeoHashPrecisionFromString returns a GeoHashPrecision populated with v
+// on the String branch.
+func NewGeoHashPrecisionFromString(v string) GeoHashPrecision {
+	return GeoHashPrecision{
+		typ:   GeoHashPrecisionStringType,
+		value: &v,
+	}
+}
+
+func (u *GeoHashPrecision) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = GeoHashPrecisionUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v int
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = GeoHashPrecisionIntType
+		u.value = &v
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = GeoHashPrecisionStringType
+		u.value = &v
+	default:
+		return fmt.Errorf("GeoHashPrecision: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u GeoHashPrecision) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonAggregationsMovingAverageAggregation is a oneOf union whose branch the payload names itself.
+//
+// The OpenAPI spec declares a discriminator on CommonAggregationsMovingAverageAggregation: the model
+// property carries the branch name, so UnmarshalJSON reads that one property and
+// decodes exactly that branch -- it never guesses, and a model naming
+// no known branch is an error rather than a silent mis-decode.
+//
+// Use Type() to learn which branch was decoded, then call the corresponding
+// accessor.
+type CommonAggregationsMovingAverageAggregation struct {
+	typ   CommonAggregationsMovingAverageAggregationType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsMovingAverageAggregationType names which branch of CommonAggregationsMovingAverageAggregation is set.
+type CommonAggregationsMovingAverageAggregationType int
+
+const (
+	CommonAggregationsMovingAverageAggregationUnknownType CommonAggregationsMovingAverageAggregationType = iota
+	CommonAggregationsMovingAverageAggregationLinearMovingAverageAggregationType
+	CommonAggregationsMovingAverageAggregationSimpleMovingAverageAggregationType
+	CommonAggregationsMovingAverageAggregationEwmaMovingAverageAggregationType
+	CommonAggregationsMovingAverageAggregationHoltMovingAverageAggregationType
+	CommonAggregationsMovingAverageAggregationHoltWintersMovingAverageAggregationType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMovingAverageAggregationType) String() string {
+	switch t {
+	case CommonAggregationsMovingAverageAggregationLinearMovingAverageAggregationType:
+		return "LinearMovingAverageAggregation"
+	case CommonAggregationsMovingAverageAggregationSimpleMovingAverageAggregationType:
+		return "SimpleMovingAverageAggregation"
+	case CommonAggregationsMovingAverageAggregationEwmaMovingAverageAggregationType:
+		return "EwmaMovingAverageAggregation"
+	case CommonAggregationsMovingAverageAggregationHoltMovingAverageAggregationType:
+		return "HoltMovingAverageAggregation"
+	case CommonAggregationsMovingAverageAggregationHoltWintersMovingAverageAggregationType:
+		return "HoltWintersMovingAverageAggregation"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsMovingAverageAggregationUnknownType if the value has not been decoded.
+func (u *CommonAggregationsMovingAverageAggregation) Type() CommonAggregationsMovingAverageAggregationType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsMovingAverageAggregation) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMovingAverageAggregationFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMovingAverageAggregation) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMovingAverageAggregationUnknownType
+}
+
+// LinearMovingAverageAggregation returns the CommonAggregationsLinearMovingAverageAggregation branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAggregationsLinearMovingAverageAggregation in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMovingAverageAggregation) LinearMovingAverageAggregation() (CommonAggregationsLinearMovingAverageAggregation, error) {
+	if v, ok := u.value.(*CommonAggregationsLinearMovingAverageAggregation); ok {
+		return *v, nil
+	}
+	var zero CommonAggregationsLinearMovingAverageAggregation
+	return zero, &UnionBranchError{Union: "CommonAggregationsMovingAverageAggregation", Want: "LinearMovingAverageAggregation", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsMovingAverageAggregationFromLinearMovingAverageAggregation returns a CommonAggregationsMovingAverageAggregation populated with v
+// on the LinearMovingAverageAggregation branch.
+//
+// It sets v.Model to "linear" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewCommonAggregationsMovingAverageAggregationFromLinearMovingAverageAggregation(v CommonAggregationsLinearMovingAverageAggregation) CommonAggregationsMovingAverageAggregation {
+	v.Model = "linear"
+	return CommonAggregationsMovingAverageAggregation{
+		typ:   CommonAggregationsMovingAverageAggregationLinearMovingAverageAggregationType,
+		value: &v,
+	}
+}
+
+// SimpleMovingAverageAggregation returns the CommonAggregationsSimpleMovingAverageAggregation branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAggregationsSimpleMovingAverageAggregation in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMovingAverageAggregation) SimpleMovingAverageAggregation() (CommonAggregationsSimpleMovingAverageAggregation, error) {
+	if v, ok := u.value.(*CommonAggregationsSimpleMovingAverageAggregation); ok {
+		return *v, nil
+	}
+	var zero CommonAggregationsSimpleMovingAverageAggregation
+	return zero, &UnionBranchError{Union: "CommonAggregationsMovingAverageAggregation", Want: "SimpleMovingAverageAggregation", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsMovingAverageAggregationFromSimpleMovingAverageAggregation returns a CommonAggregationsMovingAverageAggregation populated with v
+// on the SimpleMovingAverageAggregation branch.
+//
+// It sets v.Model to "simple" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewCommonAggregationsMovingAverageAggregationFromSimpleMovingAverageAggregation(v CommonAggregationsSimpleMovingAverageAggregation) CommonAggregationsMovingAverageAggregation {
+	v.Model = "simple"
+	return CommonAggregationsMovingAverageAggregation{
+		typ:   CommonAggregationsMovingAverageAggregationSimpleMovingAverageAggregationType,
+		value: &v,
+	}
+}
+
+// EwmaMovingAverageAggregation returns the CommonAggregationsEwmaMovingAverageAggregation branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAggregationsEwmaMovingAverageAggregation in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMovingAverageAggregation) EwmaMovingAverageAggregation() (CommonAggregationsEwmaMovingAverageAggregation, error) {
+	if v, ok := u.value.(*CommonAggregationsEwmaMovingAverageAggregation); ok {
+		return *v, nil
+	}
+	var zero CommonAggregationsEwmaMovingAverageAggregation
+	return zero, &UnionBranchError{Union: "CommonAggregationsMovingAverageAggregation", Want: "EwmaMovingAverageAggregation", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsMovingAverageAggregationFromEwmaMovingAverageAggregation returns a CommonAggregationsMovingAverageAggregation populated with v
+// on the EwmaMovingAverageAggregation branch.
+//
+// It sets v.Model to "ewma" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewCommonAggregationsMovingAverageAggregationFromEwmaMovingAverageAggregation(v CommonAggregationsEwmaMovingAverageAggregation) CommonAggregationsMovingAverageAggregation {
+	v.Model = "ewma"
+	return CommonAggregationsMovingAverageAggregation{
+		typ:   CommonAggregationsMovingAverageAggregationEwmaMovingAverageAggregationType,
+		value: &v,
+	}
+}
+
+// HoltMovingAverageAggregation returns the CommonAggregationsHoltMovingAverageAggregation branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAggregationsHoltMovingAverageAggregation in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMovingAverageAggregation) HoltMovingAverageAggregation() (CommonAggregationsHoltMovingAverageAggregation, error) {
+	if v, ok := u.value.(*CommonAggregationsHoltMovingAverageAggregation); ok {
+		return *v, nil
+	}
+	var zero CommonAggregationsHoltMovingAverageAggregation
+	return zero, &UnionBranchError{Union: "CommonAggregationsMovingAverageAggregation", Want: "HoltMovingAverageAggregation", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsMovingAverageAggregationFromHoltMovingAverageAggregation returns a CommonAggregationsMovingAverageAggregation populated with v
+// on the HoltMovingAverageAggregation branch.
+//
+// It sets v.Model to "holt" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewCommonAggregationsMovingAverageAggregationFromHoltMovingAverageAggregation(v CommonAggregationsHoltMovingAverageAggregation) CommonAggregationsMovingAverageAggregation {
+	v.Model = "holt"
+	return CommonAggregationsMovingAverageAggregation{
+		typ:   CommonAggregationsMovingAverageAggregationHoltMovingAverageAggregationType,
+		value: &v,
+	}
+}
+
+// HoltWintersMovingAverageAggregation returns the CommonAggregationsHoltWintersMovingAverageAggregation branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAggregationsHoltWintersMovingAverageAggregation in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMovingAverageAggregation) HoltWintersMovingAverageAggregation() (CommonAggregationsHoltWintersMovingAverageAggregation, error) {
+	if v, ok := u.value.(*CommonAggregationsHoltWintersMovingAverageAggregation); ok {
+		return *v, nil
+	}
+	var zero CommonAggregationsHoltWintersMovingAverageAggregation
+	return zero, &UnionBranchError{Union: "CommonAggregationsMovingAverageAggregation", Want: "HoltWintersMovingAverageAggregation", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsMovingAverageAggregationFromHoltWintersMovingAverageAggregation returns a CommonAggregationsMovingAverageAggregation populated with v
+// on the HoltWintersMovingAverageAggregation branch.
+//
+// It sets v.Model to "holt_winters" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewCommonAggregationsMovingAverageAggregationFromHoltWintersMovingAverageAggregation(v CommonAggregationsHoltWintersMovingAverageAggregation) CommonAggregationsMovingAverageAggregation {
+	v.Model = "holt_winters"
+	return CommonAggregationsMovingAverageAggregation{
+		typ:   CommonAggregationsMovingAverageAggregationHoltWintersMovingAverageAggregationType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsMovingAverageAggregation) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsMovingAverageAggregationUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	discriminator, present, err := build.JSONDiscriminator(data, "model")
+	if err != nil {
+		return fmt.Errorf("CommonAggregationsMovingAverageAggregation: reading model discriminator: %w", err)
+	}
+	if !present {
+		return fmt.Errorf("CommonAggregationsMovingAverageAggregation: payload has no model discriminator: %s", data[:min(len(data), 64)])
+	}
+	switch discriminator {
+	case "linear":
+		var v CommonAggregationsLinearMovingAverageAggregation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMovingAverageAggregationLinearMovingAverageAggregationType
+		u.value = &v
+	case "simple":
+		var v CommonAggregationsSimpleMovingAverageAggregation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMovingAverageAggregationSimpleMovingAverageAggregationType
+		u.value = &v
+	case "ewma":
+		var v CommonAggregationsEwmaMovingAverageAggregation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMovingAverageAggregationEwmaMovingAverageAggregationType
+		u.value = &v
+	case "holt":
+		var v CommonAggregationsHoltMovingAverageAggregation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMovingAverageAggregationHoltMovingAverageAggregationType
+		u.value = &v
+	case "holt_winters":
+		var v CommonAggregationsHoltWintersMovingAverageAggregation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMovingAverageAggregationHoltWintersMovingAverageAggregationType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsMovingAverageAggregation: unknown model discriminator %q", discriminator)
+	}
+	return nil
+}
+
+func (u CommonAggregationsMovingAverageAggregation) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonAggregationsTermsExclude is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsTermsExclude struct {
+	typ   CommonAggregationsTermsExcludeType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsTermsExcludeType names which branch of CommonAggregationsTermsExclude is set.
+type CommonAggregationsTermsExcludeType int
+
+const (
+	CommonAggregationsTermsExcludeUnknownType CommonAggregationsTermsExcludeType = iota
+	CommonAggregationsTermsExcludeStringType
+	CommonAggregationsTermsExcludeArrayType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsTermsExcludeType) String() string {
+	switch t {
+	case CommonAggregationsTermsExcludeStringType:
+		return "String"
+	case CommonAggregationsTermsExcludeArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsTermsExcludeUnknownType if the value has not been decoded.
+func (u *CommonAggregationsTermsExclude) Type() CommonAggregationsTermsExcludeType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsTermsExclude) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsTermsExcludeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsTermsExclude) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsTermsExcludeUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsExclude) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonAggregationsTermsExclude", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsTermsExcludeFromString returns a CommonAggregationsTermsExclude populated with v
+// on the String branch.
+func NewCommonAggregationsTermsExcludeFromString(v string) CommonAggregationsTermsExclude {
+	return CommonAggregationsTermsExclude{
+		typ:   CommonAggregationsTermsExcludeStringType,
+		value: &v,
+	}
+}
+
+// Array returns the []string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsExclude) Array() ([]string, error) {
+	if v, ok := u.value.(*[]string); ok {
+		return *v, nil
+	}
+	var zero []string
+	return zero, &UnionBranchError{Union: "CommonAggregationsTermsExclude", Want: "Array", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsTermsExcludeFromArray returns a CommonAggregationsTermsExclude populated with v
+// on the Array branch.
+func NewCommonAggregationsTermsExcludeFromArray(v []string) CommonAggregationsTermsExclude {
+	return CommonAggregationsTermsExclude{
+		typ:   CommonAggregationsTermsExcludeArrayType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsTermsExclude) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsTermsExcludeUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsExcludeStringType
+		u.value = &v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsExcludeArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsTermsExclude: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsTermsExclude) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonAggregationsTermsInclude is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsTermsInclude struct {
+	typ   CommonAggregationsTermsIncludeType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsTermsIncludeType names which branch of CommonAggregationsTermsInclude is set.
+type CommonAggregationsTermsIncludeType int
+
+const (
+	CommonAggregationsTermsIncludeUnknownType CommonAggregationsTermsIncludeType = iota
+	CommonAggregationsTermsIncludeStringType
+	CommonAggregationsTermsIncludeArrayType
+	CommonAggregationsTermsIncludePartitionType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsTermsIncludeType) String() string {
+	switch t {
+	case CommonAggregationsTermsIncludeStringType:
+		return "String"
+	case CommonAggregationsTermsIncludeArrayType:
+		return "Array"
+	case CommonAggregationsTermsIncludePartitionType:
+		return "Partition"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsTermsIncludeUnknownType if the value has not been decoded.
+func (u *CommonAggregationsTermsInclude) Type() CommonAggregationsTermsIncludeType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsTermsInclude) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsTermsIncludeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsTermsInclude) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsTermsIncludeUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsInclude) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonAggregationsTermsInclude", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsTermsIncludeFromString returns a CommonAggregationsTermsInclude populated with v
+// on the String branch.
+func NewCommonAggregationsTermsIncludeFromString(v string) CommonAggregationsTermsInclude {
+	return CommonAggregationsTermsInclude{
+		typ:   CommonAggregationsTermsIncludeStringType,
+		value: &v,
+	}
+}
+
+// Array returns the []string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsInclude) Array() ([]string, error) {
+	if v, ok := u.value.(*[]string); ok {
+		return *v, nil
+	}
+	var zero []string
+	return zero, &UnionBranchError{Union: "CommonAggregationsTermsInclude", Want: "Array", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsTermsIncludeFromArray returns a CommonAggregationsTermsInclude populated with v
+// on the Array branch.
+func NewCommonAggregationsTermsIncludeFromArray(v []string) CommonAggregationsTermsInclude {
+	return CommonAggregationsTermsInclude{
+		typ:   CommonAggregationsTermsIncludeArrayType,
+		value: &v,
+	}
+}
+
+// Partition returns the CommonAggregationsTermsPartition branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAggregationsTermsPartition in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsInclude) Partition() (CommonAggregationsTermsPartition, error) {
+	if v, ok := u.value.(*CommonAggregationsTermsPartition); ok {
+		return *v, nil
+	}
+	var zero CommonAggregationsTermsPartition
+	return zero, &UnionBranchError{Union: "CommonAggregationsTermsInclude", Want: "Partition", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsTermsIncludeFromPartition returns a CommonAggregationsTermsInclude populated with v
+// on the Partition branch.
+func NewCommonAggregationsTermsIncludeFromPartition(v CommonAggregationsTermsPartition) CommonAggregationsTermsInclude {
+	return CommonAggregationsTermsInclude{
+		typ:   CommonAggregationsTermsIncludePartitionType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsTermsInclude) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsTermsIncludeUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsIncludeStringType
+		u.value = &v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsIncludeArrayType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonAggregationsTermsPartition
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsIncludePartitionType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsTermsInclude: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsTermsInclude) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonAggregationsAggregateOrder is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonAggregationsAggregateOrder struct {
+	typ   CommonAggregationsAggregateOrderType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonAggregationsAggregateOrderType names which branch of CommonAggregationsAggregateOrder is set.
+type CommonAggregationsAggregateOrderType int
+
+const (
+	CommonAggregationsAggregateOrderUnknownType CommonAggregationsAggregateOrderType = iota
+	CommonAggregationsAggregateOrderMapType
+	CommonAggregationsAggregateOrderArrayType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsAggregateOrderType) String() string {
+	switch t {
+	case CommonAggregationsAggregateOrderMapType:
+		return "Map"
+	case CommonAggregationsAggregateOrderArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonAggregationsAggregateOrderUnknownType if the value has not been decoded.
+func (u *CommonAggregationsAggregateOrder) Type() CommonAggregationsAggregateOrderType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonAggregationsAggregateOrder) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsAggregateOrderFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsAggregateOrder) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsAggregateOrderUnknownType
+}
+
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsAggregateOrder) Map() (map[string]json.RawMessage, error) {
+	if v, ok := u.value.(*map[string]json.RawMessage); ok {
+		return *v, nil
+	}
+	var zero map[string]json.RawMessage
+	return zero, &UnionBranchError{Union: "CommonAggregationsAggregateOrder", Want: "Map", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsAggregateOrderFromMap returns a CommonAggregationsAggregateOrder populated with v
+// on the Map branch.
+func NewCommonAggregationsAggregateOrderFromMap(v map[string]json.RawMessage) CommonAggregationsAggregateOrder {
+	return CommonAggregationsAggregateOrder{
+		typ:   CommonAggregationsAggregateOrderMapType,
+		value: &v,
+	}
+}
+
+// Array returns the []map[string]string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []map[string]string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsAggregateOrder) Array() ([]map[string]string, error) {
+	if v, ok := u.value.(*[]map[string]string); ok {
+		return *v, nil
+	}
+	var zero []map[string]string
+	return zero, &UnionBranchError{Union: "CommonAggregationsAggregateOrder", Want: "Array", Got: u.typ.String()}
+}
+
+// NewCommonAggregationsAggregateOrderFromArray returns a CommonAggregationsAggregateOrder populated with v
+// on the Array branch.
+func NewCommonAggregationsAggregateOrderFromArray(v []map[string]string) CommonAggregationsAggregateOrder {
+	return CommonAggregationsAggregateOrder{
+		typ:   CommonAggregationsAggregateOrderArrayType,
+		value: &v,
+	}
+}
+
+func (u *CommonAggregationsAggregateOrder) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonAggregationsAggregateOrderUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '{':
+		var v map[string]json.RawMessage
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregateOrderMapType
+		u.value = &v
+	case data[0] == '[':
+		var v []map[string]string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregateOrderArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonAggregationsAggregateOrder: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonAggregationsAggregateOrder) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // ScrollIDs is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
