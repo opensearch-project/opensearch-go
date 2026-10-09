@@ -18,6 +18,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+## [5.0.2]
+
+### Dependencies
+
+- Set the go directive to 1.26.0 and add a `toolchain go1.26.9` line in the root and all nested modules, so builds in this repository use a Go release with the standard library CVE fixes from 1.26.9. The go line is the language version only, so consumers now need Go 1.26.0 or later instead of 1.26.8; a `toolchain` line does not apply to dependents, so consumers get the fixes by updating their own Go ([#1194](https://github.com/opensearch-project/opensearch-go/pull/1194))
+
 ## [5.0.1]
 
 ### Added
@@ -579,7 +585,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.2...HEAD
+[5.0.2]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.6.0...v5.0.0
 [4.x]: https://github.com/opensearch-project/opensearch-go/blob/v4/CHANGELOG.md
