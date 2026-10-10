@@ -13343,8 +13343,1204 @@ type CommonAggregationsAggregation struct {
 	Meta map[string]json.RawMessage `json:"meta,omitempty"`
 }
 
+type CommonAggregationsAdjacencyMatrixAggregationFields struct {
+	// Filters used to create buckets. At least one filter is required.
+	Filters map[string]CommonQueryDSLQueryContainer `json:"filters,omitempty"`
+}
+
+type CommonAggregationsAutoDateHistogramAggregationFields struct {
+	// Buckets is the target number of buckets.
+	Buckets *int `json:"buckets,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Format is the date format used to format `key_as_string` in the
+	// response. If no `format` is specified, the first date format specified
+	// in the field mapping is used.
+	Format *string `json:"format,omitempty"`
+
+	MinimumInterval *string `json:"minimum_interval,omitempty"`
+
+	// Missing is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
+	Missing *string `json:"missing,omitempty"`
+
+	// Offset. Time zone specified as a ISO 8601 UTC offset.
+	Offset *string `json:"offset,omitempty"`
+
+	Params map[string]json.RawMessage `json:"params,omitempty"`
+	Script *Script                    `json:"script,omitempty"`
+
+	// TimeZone is the time zone identifier.
+	TimeZone *string `json:"time_zone,omitempty"`
+}
+
+type CommonAggregationsMetricAggregationBase struct {
+	// Missing is a field value.
+	Missing *FieldValue `json:"missing,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	Script *Script `json:"script,omitempty"`
+}
+
+type CommonAggregationsFormatMetricAggregationBase struct {
+	CommonAggregationsMetricAggregationBase
+	Format *string `json:"format,omitempty"`
+}
+
+type CommonAggregationsBucketPathAggregation struct {
+	// BucketsPath. Buckets path can be expressed in different ways, and an
+	// aggregation may accept some or all of these forms depending on its type.
+	// Refer to each aggregation's documentation to know what buckets path
+	// forms they accept.
+	BucketsPath *CommonAggregationsBucketsPath `json:"buckets_path,omitempty"`
+}
+
+type CommonAggregationsPipelineAggregationBase struct {
+	CommonAggregationsBucketPathAggregation
+
+	// Format. `DecimalFormat` pattern for the output value. If specified, the
+	// formatted value is returned in the aggregation's `value_as_string`
+	// property.
+	Format *string `json:"format,omitempty"`
+
+	GapPolicy *string `json:"gap_policy,omitempty"`
+}
+
+type CommonAggregationsBoxplotAggregation struct {
+	CommonAggregationsMetricAggregationBase
+
+	// Compression. Limits the maximum number of nodes used by the underlying
+	// TDigest algorithm to `20 * compression`, enabling control of memory
+	// usage and approximation error.
+	Compression *float64 `json:"compression,omitempty"`
+}
+
+type CommonAggregationsBucketScriptAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+	Script *Script `json:"script,omitempty"`
+}
+
+type CommonAggregationsBucketSelectorAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+	Script *Script `json:"script,omitempty"`
+}
+
+type CommonAggregationsBucketSortAggregation struct {
+	// From. Buckets in positions prior to `from` will be truncated.
+	From *int `json:"from,omitempty"`
+
+	GapPolicy *string `json:"gap_policy,omitempty"`
+
+	// Size is the number of buckets to return. Defaults to all buckets of the
+	// parent aggregation.
+	Size *int `json:"size,omitempty"`
+
+	Sort *Sort `json:"sort,omitempty"`
+}
+
+type CommonAggregationsCardinalityAggregation struct {
+	CommonAggregationsMetricAggregationBase
+	ExecutionHint *string `json:"execution_hint,omitempty"`
+
+	// PrecisionThreshold is a unique count below which counts are expected to
+	// be close to accurate. This allows to trade memory for accuracy.
+	PrecisionThreshold *int `json:"precision_threshold,omitempty"`
+}
+
+type CommonAggregationsChildrenAggregationFields struct {
+	// Type is the name of a relation in a join field.
+	Type *string `json:"type,omitempty"`
+}
+
+type CommonAggregationsCompositeValuesSource struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	MissingBucket *bool   `json:"missing_bucket,omitempty"`
+	MissingOrder  *string `json:"missing_order,omitempty"`
+
+	// Order is the direction of the sort order.
+	Order *string `json:"order,omitempty"`
+
+	Script *Script `json:"script,omitempty"`
+
+	// ValueType is the data type for a field. The server's `lenientParse`
+	// accepts multiple representations for the same underlying type (for
+	// example, byte/short/integer/long all map to long).
+	ValueType *string `json:"value_type,omitempty"`
+}
+
+type CommonAggregationsCompositeDateHistogramAggregationSource struct {
+	CommonAggregationsCompositeValuesSource
+
+	// CalendarInterval is a date histogram interval, similar to `Duration`,
+	// with support for additional units: `w` (week), `M` (month), `q`
+	// (quarter), and `y` (year).
+	CalendarInterval *string `json:"calendar_interval,omitempty"`
+
+	// FixedInterval is a date histogram interval, similar to `Duration`, with
+	// support for additional units: `w` (week), `M` (month), `q` (quarter),
+	// and `y` (year).
+	FixedInterval *string `json:"fixed_interval,omitempty"`
+
+	Format *string `json:"format,omitempty"`
+
+	// Offset is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	Offset *string `json:"offset,omitempty"`
+
+	// TimeZone is the time zone identifier.
+	TimeZone *string `json:"time_zone,omitempty"`
+}
+
+type CommonAggregationsCompositeGeoTileGridAggregationSource struct {
+	CommonAggregationsCompositeValuesSource
+
+	// Bounds is a geo-bounding box. It can be represented in the following
+	// ways: - As 4 top/bottom/left/right coordinates. - As 2
+	// top_left/bottom_right points. - As 2 top_right/bottom_left points. - As
+	// a Well Known Text (WKT) bounding box.
+	Bounds *GeoBounds `json:"bounds,omitempty"`
+
+	Precision *int `json:"precision,omitempty"`
+}
+
+type CommonAggregationsCompositeHistogramAggregationSource struct {
+	CommonAggregationsCompositeValuesSource
+	Interval float64 `json:"interval"`
+}
+
+type CommonAggregationsCompositeAggregationSource struct {
+	DateHistogram *CommonAggregationsCompositeDateHistogramAggregationSource `json:"date_histogram,omitempty"`
+	GeotileGrid   *CommonAggregationsCompositeGeoTileGridAggregationSource   `json:"geotile_grid,omitempty"`
+	Histogram     *CommonAggregationsCompositeHistogramAggregationSource     `json:"histogram,omitempty"`
+	Terms         *CommonAggregationsCompositeValuesSource                   `json:"terms,omitempty"`
+}
+
+type CommonAggregationsCompositeAggregationFields struct {
+	After map[string]FieldValue `json:"after,omitempty"`
+
+	// Size is the number of composite buckets that should be returned.
+	Size *int `json:"size,omitempty"`
+
+	// Sources is the value sources used to build composite buckets. Keys are
+	// returned in the order of the `sources` definition.
+	Sources []map[string]CommonAggregationsCompositeAggregationSource `json:"sources,omitempty"`
+}
+
+type CommonAggregationsExtendedBounds struct {
+	Max json.RawMessage `json:"max"`
+	Min json.RawMessage `json:"min"`
+}
+
+type CommonAggregationsHistogramOrder struct {
+	// Count is the direction of the sort order.
+	Count *string `json:"_count,omitempty"`
+
+	// Key is the direction of the sort order.
+	Key *string `json:"_key,omitempty"`
+}
+
+type CommonAggregationsDateHistogramAggregationFields struct {
+	CalendarInterval *string                           `json:"calendar_interval,omitempty"`
+	ExtendedBounds   *CommonAggregationsExtendedBounds `json:"extended_bounds,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// FixedInterval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	FixedInterval *string `json:"fixed_interval,omitempty"`
+
+	// Format is the date format used to format `key_as_string` in the
+	// response. If no `format` is specified, the first date format specified
+	// in the field mapping is used.
+	Format *string `json:"format,omitempty"`
+
+	HardBounds *CommonAggregationsExtendedBounds `json:"hard_bounds,omitempty"`
+
+	// Interval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	Interval *string `json:"interval,omitempty"`
+
+	// Keyed. Set to `true` to associate a unique string key with each bucket
+	// and return the ranges as a hash rather than an array.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// MinDocCount. Only returns buckets that have `min_doc_count` number of
+	// documents. By default, all buckets between the first bucket that matches
+	// documents and the last one are returned.
+	MinDocCount *int `json:"min_doc_count,omitempty"`
+
+	// Missing is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
+	Missing *string `json:"missing,omitempty"`
+
+	// Offset is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	Offset *string `json:"offset,omitempty"`
+
+	Order  *CommonAggregationsHistogramOrder `json:"order,omitempty"`
+	Params map[string]json.RawMessage        `json:"params,omitempty"`
+	Script *Script                           `json:"script,omitempty"`
+
+	// TimeZone is the time zone identifier.
+	TimeZone *string `json:"time_zone,omitempty"`
+}
+
+type CommonAggregationsDateRangeExpression struct {
+	// From is a date range limit, represented either as a DateMath expression
+	// or a number expressed according to the target field's precision.
+	From *CommonAggregationsFieldDateMath `json:"from,omitempty"`
+
+	// Key. Custom key to return the range with.
+	Key *string `json:"key,omitempty"`
+
+	// To is a date range limit, represented either as a DateMath expression or
+	// a number expressed according to the target field's precision.
+	To *CommonAggregationsFieldDateMath `json:"to,omitempty"`
+}
+
+type CommonAggregationsDateRangeAggregationFields struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Format is the date format used to format `from` and `to` in the
+	// response.
+	Format *string `json:"format,omitempty"`
+
+	// Keyed. Set to `true` to associate a unique string key with each bucket
+	// and returns the ranges as a hash rather than an array.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// Missing is a field value.
+	Missing *FieldValue `json:"missing,omitempty"`
+
+	// Ranges. Array of date ranges.
+	Ranges []CommonAggregationsDateRangeExpression `json:"ranges,omitempty"`
+
+	// TimeZone is the time zone identifier.
+	TimeZone *string `json:"time_zone,omitempty"`
+}
+
+type CommonAggregationsDiversifiedSamplerAggregationFields struct {
+	ExecutionHint *string `json:"execution_hint,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// MaxDocsPerValue. Limits how many documents are permitted per choice of
+	// de-duplicating value.
+	MaxDocsPerValue *int `json:"max_docs_per_value,omitempty"`
+
+	Script *Script `json:"script,omitempty"`
+
+	// ShardSize. Limits how many top-scoring documents are collected in the
+	// sample processed on each shard.
+	ShardSize *int `json:"shard_size,omitempty"`
+}
+
+type CommonAggregationsExtendedStatsAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+
+	// Sigma is the number of standard deviations above/below the mean to
+	// display.
+	Sigma *float64 `json:"sigma,omitempty"`
+}
+
+type CommonAggregationsExtendedStatsBucketAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+
+	// Sigma is the number of standard deviations above/below the mean to
+	// display.
+	Sigma *float64 `json:"sigma,omitempty"`
+}
+
+type CommonAggregationsBucketsQueryContainer struct {
+	CommonAggregationsBuckets
+}
+
+type CommonAggregationsFiltersAggregationFields struct {
+	Filters *CommonAggregationsBucketsQueryContainer `json:"filters,omitempty"`
+
+	// Keyed. By default, the named filters aggregation returns the buckets as
+	// an object. Set to `false` to return the buckets as an array of objects.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// OtherBucket. Set to `true` to add a bucket to the response which will
+	// contain all documents that do not match any of the given filters.
+	OtherBucket *bool `json:"other_bucket,omitempty"`
+
+	// OtherBucketKey is the key with which the other bucket is returned.
+	OtherBucketKey *string `json:"other_bucket_key,omitempty"`
+}
+
+type CommonAggregationsGeoBoundsAggregation struct {
+	CommonAggregationsMetricAggregationBase
+
+	// WrapLongitude. Specifies whether the bounding box should be allowed to
+	// overlap the international date line.
+	WrapLongitude *bool `json:"wrap_longitude,omitempty"`
+}
+
+type CommonAggregationsGeoCentroidAggregation struct {
+	CommonAggregationsMetricAggregationBase
+	Count *int64 `json:"count,omitempty"`
+
+	// Location is a latitude/longitude as a two-dimensional point. It can be
+	// represented in the following ways: - As a `{lat, long}` object. - As a
+	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
+	// <lon>` or WKT point format.
+	Location *GeoLocation `json:"location,omitempty"`
+}
+
+type CommonAggregationsAggregationRange struct {
+	// From. Start of the range (inclusive).
+	From *CommonAggregationsAggregationRangeFrom `json:"from,omitempty"`
+
+	// Key. Custom key to return the range with.
+	Key *string `json:"key,omitempty"`
+
+	// To. End of the range (exclusive).
+	To *CommonAggregationsAggregationRangeTo `json:"to,omitempty"`
+}
+
+type CommonAggregationsGeoDistanceAggregationFields struct {
+	DistanceType *GeoDistanceType `json:"distance_type,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Origin is a latitude/longitude as a two-dimensional point. It can be
+	// represented in the following ways: - As a `{lat, long}` object. - As a
+	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
+	// <lon>` or WKT point format.
+	Origin *GeoLocation `json:"origin,omitempty"`
+
+	// Ranges is an array of ranges used to bucket documents.
+	Ranges []CommonAggregationsAggregationRange `json:"ranges,omitempty"`
+
+	Unit *DistanceUnit `json:"unit,omitempty"`
+}
+
+type CommonAggregationsGeoHashGridAggregationFields struct {
+	// Bounds is a geo-bounding box. It can be represented in the following
+	// ways: - As 4 top/bottom/left/right coordinates. - As 2
+	// top_left/bottom_right points. - As 2 top_right/bottom_left points. - As
+	// a Well Known Text (WKT) bounding box.
+	Bounds *GeoBounds `json:"bounds,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Precision is the level of geohash precision, which can be expressed as a
+	// geohash length between 1 and 12 or as a distance measure, such as "1km"
+	// or "10m".
+	Precision *GeoHashPrecision `json:"precision,omitempty"`
+
+	// ShardSize. Allows for more accurate counting of the top cells returned
+	// in the final result the aggregation. Defaults to returning `max(10,(size
+	// x number-of-shards))` buckets from each shard.
+	ShardSize *int `json:"shard_size,omitempty"`
+
+	// Size is the maximum number of geohash buckets to return.
+	Size *int `json:"size,omitempty"`
+}
+
+type CommonAggregationsGeoTileGridAggregationFields struct {
+	// Bounds is a geo-bounding box. It can be represented in the following
+	// ways: - As 4 top/bottom/left/right coordinates. - As 2
+	// top_left/bottom_right points. - As 2 top_right/bottom_left points. - As
+	// a Well Known Text (WKT) bounding box.
+	Bounds *GeoBounds `json:"bounds,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Precision is the precision level for geo tile calculations.
+	Precision *float64 `json:"precision,omitempty"`
+
+	// ShardSize. Allows for more accurate counting of the top cells returned
+	// in the final result the aggregation. Defaults to returning `max(10,(size
+	// x number-of-shards))` buckets from each shard.
+	ShardSize *int `json:"shard_size,omitempty"`
+
+	// Size is the maximum number of buckets to return.
+	Size *int `json:"size,omitempty"`
+}
+
+type CommonAggregationsGlobalAggregationFields struct {
+}
+
+type CommonAggregationsHistogramAggregationFields struct {
+	ExtendedBounds *CommonAggregationsExtendedBounds `json:"extended_bounds,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	Format     *string                           `json:"format,omitempty"`
+	HardBounds *CommonAggregationsExtendedBounds `json:"hard_bounds,omitempty"`
+
+	// Interval is the interval for the buckets. Must be a positive decimal.
+	Interval *float64 `json:"interval,omitempty"`
+
+	// Keyed. If `true`, returns buckets as a hash instead of an array, keyed
+	// by the bucket keys.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// MinDocCount. Only returns buckets that have `min_doc_count` number of
+	// documents. By default, the response will fill gaps in the histogram with
+	// empty buckets.
+	MinDocCount *int `json:"min_doc_count,omitempty"`
+
+	// Missing is the value to apply to documents that do not have a value. By
+	// default, documents without a value are ignored.
+	Missing *float64 `json:"missing,omitempty"`
+
+	// Offset. By default, the bucket keys start with 0 and then continue in
+	// even spaced steps of `interval`. The bucket boundaries can be shifted by
+	// using the `offset` option.
+	Offset *float64 `json:"offset,omitempty"`
+
+	Order  *CommonAggregationsHistogramOrder `json:"order,omitempty"`
+	Script *Script                           `json:"script,omitempty"`
+}
+
+type CommonAggregationsIPRangeAggregationRange struct {
+	// From. Start of the range.
+	From *string `json:"from,omitempty"`
+
+	// Mask. IP range defined as a CIDR mask.
+	Mask *string `json:"mask,omitempty"`
+
+	// To. End of the range.
+	To *string `json:"to,omitempty"`
+}
+
+type CommonAggregationsIPRangeAggregationFields struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Ranges. Array of IP ranges.
+	Ranges []CommonAggregationsIPRangeAggregationRange `json:"ranges,omitempty"`
+}
+
+type CommonAggregationsMatrixAggregation struct {
+	// Fields is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
+	Fields *string `json:"fields,omitempty"`
+
+	// Missing is the value to apply to documents that do not have a value. By
+	// default, documents without a value are ignored.
+	Missing map[string]float64 `json:"missing,omitempty"`
+}
+
+type CommonAggregationsMatrixStatsAggregation struct {
+	CommonAggregationsMatrixAggregation
+	Mode *SortMode `json:"mode,omitempty"`
+}
+
+type CommonAggregationsMaxAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+
+	// ValueType is the data type for a field. The server's `lenientParse`
+	// accepts multiple representations for the same underlying type (for
+	// example, byte/short/integer/long all map to long).
+	ValueType *string `json:"value_type,omitempty"`
+}
+
+type CommonAggregationsMedianAbsoluteDeviationAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+
+	// Compression. Limits the maximum number of nodes used by the underlying
+	// TDigest algorithm to `20 * compression`, enabling control of memory
+	// usage and approximation error.
+	Compression *float64 `json:"compression,omitempty"`
+}
+
+type CommonAggregationsMinAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+
+	// ValueType is the data type for a field. The server's `lenientParse`
+	// accepts multiple representations for the same underlying type (for
+	// example, byte/short/integer/long all map to long).
+	ValueType *string `json:"value_type,omitempty"`
+}
+
+type CommonAggregationsMissingAggregationFields struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Missing is a field value.
+	Missing *FieldValue `json:"missing,omitempty"`
+}
+
+type CommonAggregationsMovingAverageAggregationBase struct {
+	CommonAggregationsPipelineAggregationBase
+	Minimize *bool `json:"minimize,omitempty"`
+	Predict  *int  `json:"predict,omitempty"`
+	Window   *int  `json:"window,omitempty"`
+}
+
+type CommonAggregationsLinearMovingAverageAggregation struct {
+	CommonAggregationsMovingAverageAggregationBase
+	Model string `json:"model"`
+
+	// Settings is an empty object with no properties.
+	Settings struct{} `json:"settings"`
+}
+
+type CommonAggregationsSimpleMovingAverageAggregation struct {
+	CommonAggregationsMovingAverageAggregationBase
+	Model string `json:"model"`
+
+	// Settings is an empty object with no properties.
+	Settings struct{} `json:"settings"`
+}
+
+type CommonAggregationsEwmaModelSettings struct {
+	Alpha *float32 `json:"alpha,omitempty"`
+}
+
+type CommonAggregationsEwmaMovingAverageAggregation struct {
+	CommonAggregationsMovingAverageAggregationBase
+	Model    string                              `json:"model"`
+	Settings CommonAggregationsEwmaModelSettings `json:"settings"`
+}
+
+type CommonAggregationsHoltLinearModelSettings struct {
+	Alpha *float32 `json:"alpha,omitempty"`
+	Beta  *float32 `json:"beta,omitempty"`
+}
+
+type CommonAggregationsHoltMovingAverageAggregation struct {
+	CommonAggregationsMovingAverageAggregationBase
+	Model    string                                    `json:"model"`
+	Settings CommonAggregationsHoltLinearModelSettings `json:"settings"`
+}
+
+type CommonAggregationsHoltWintersModelSettings struct {
+	Alpha  *float32                           `json:"alpha,omitempty"`
+	Beta   *float32                           `json:"beta,omitempty"`
+	Gamma  *float32                           `json:"gamma,omitempty"`
+	Pad    *bool                              `json:"pad,omitempty"`
+	Period *int                               `json:"period,omitempty"`
+	Type   *CommonAggregationsHoltWintersType `json:"type,omitempty"`
+}
+
+type CommonAggregationsHoltWintersMovingAverageAggregation struct {
+	CommonAggregationsMovingAverageAggregationBase
+	Model    string                                     `json:"model"`
+	Settings CommonAggregationsHoltWintersModelSettings `json:"settings"`
+}
+
+type CommonAggregationsMovingPercentilesAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// Shift. By default, the window consists of the last n values excluding
+	// the current bucket. Increasing `shift` by 1, moves the starting window
+	// position by 1 to the right.
+	Shift *int `json:"shift,omitempty"`
+
+	// Window is the size of window to "slide" across the histogram.
+	Window *int `json:"window,omitempty"`
+}
+
+type CommonAggregationsMovingFunctionAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+
+	// Script is the script that should be executed on each window of data.
+	Script *string `json:"script,omitempty"`
+
+	// Shift. By default, the window consists of the last n values excluding
+	// the current bucket. Increasing `shift` by 1, moves the starting window
+	// position by 1 to the right.
+	Shift *int `json:"shift,omitempty"`
+
+	// Window is the size of window to "slide" across the histogram.
+	Window *int `json:"window,omitempty"`
+}
+
+type CommonAggregationsMultiTermLookup struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field string `json:"field"`
+
+	// Missing is a field value.
+	Missing *FieldValue `json:"missing,omitempty"`
+}
+
+type CommonAggregationsMultiTermsAggregationFields struct {
+	CollectMode *string `json:"collect_mode,omitempty"`
+
+	// MinDocCount is the minimum number of documents in a bucket for it to be
+	// returned.
+	MinDocCount *int `json:"min_doc_count,omitempty"`
+
+	Order *CommonAggregationsHistogramOrder `json:"order,omitempty"`
+
+	// ShardMinDocCount is the minimum number of documents in a bucket on each
+	// shard for it to be returned.
+	ShardMinDocCount *int `json:"shard_min_doc_count,omitempty"`
+
+	// ShardSize is the number of candidate terms produced by each shard. By
+	// default, `shard_size` will be automatically estimated based on the
+	// number of shards and the `size` parameter.
+	ShardSize *int `json:"shard_size,omitempty"`
+
+	// ShowTermDocCountError. Calculates the doc count error on per term basis.
+	ShowTermDocCountError *bool `json:"show_term_doc_count_error,omitempty"`
+
+	// Size is the number of term buckets should be returned out of the overall
+	// terms list.
+	Size *int `json:"size,omitempty"`
+
+	// Terms is the field from which to generate sets of terms.
+	Terms []CommonAggregationsMultiTermLookup `json:"terms"`
+}
+
+type CommonAggregationsNestedAggregationFields struct {
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Path *string `json:"path,omitempty"`
+}
+
+type CommonAggregationsNormalizeAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+	Method *string `json:"method,omitempty"`
+}
+
+type CommonAggregationsParentAggregationFields struct {
+	// Type is the name of a relation in a join field.
+	Type *string `json:"type,omitempty"`
+}
+
+type CommonAggregationsHDRMethod struct {
+	// NumberOfSignificantValueDigits. Specifies the resolution of values for
+	// the histogram in number of significant digits.
+	NumberOfSignificantValueDigits *int `json:"number_of_significant_value_digits,omitempty"`
+}
+
+type CommonAggregationsTDigest struct {
+	// Compression. Limits the maximum number of nodes used by the underlying
+	// TDigest algorithm to `20 * compression`, enabling control of memory
+	// usage and approximation error.
+	Compression *int `json:"compression,omitempty"`
+}
+
+type CommonAggregationsPercentileRanksAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+	HDR *CommonAggregationsHDRMethod `json:"hdr,omitempty"`
+
+	// Keyed. By default, the aggregation associates a unique string key with
+	// each bucket and returns the ranges as a hash rather than an array. Set
+	// to `false` to disable this behavior.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	TDigest *CommonAggregationsTDigest `json:"tdigest,omitempty"`
+
+	// Values is an array of values for which to calculate the percentile
+	// ranks.
+	Values []float64 `json:"values,omitempty"`
+}
+
+type CommonAggregationsPercentilesAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+	HDR *CommonAggregationsHDRMethod `json:"hdr,omitempty"`
+
+	// Keyed. By default, the aggregation associates a unique string key with
+	// each bucket and returns the ranges as a hash rather than an array. Set
+	// to `false` to disable this behavior.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// Percents is the percentiles to calculate.
+	Percents []float64 `json:"percents,omitempty"`
+
+	TDigest *CommonAggregationsTDigest `json:"tdigest,omitempty"`
+}
+
+type CommonAggregationsPercentilesBucketAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+
+	// Percents is the list of percentiles to calculate.
+	Percents []float64 `json:"percents,omitempty"`
+}
+
+type CommonAggregationsRangeAggregationFields struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	Format *string `json:"format,omitempty"`
+
+	// Keyed. Set to `true` to associate a unique string key with each bucket
+	// and return the ranges as a hash rather than an array.
+	Keyed *bool `json:"keyed,omitempty"`
+
+	// Missing is the value to apply to documents that do not have a value. By
+	// default, documents without a value are ignored.
+	Missing *int `json:"missing,omitempty"`
+
+	// Ranges is an array of ranges used to bucket documents.
+	Ranges []CommonAggregationsAggregationRange `json:"ranges,omitempty"`
+
+	Script *Script `json:"script,omitempty"`
+}
+
+type CommonAggregationsTermsPartition struct {
+	// NumPartitions is the number of partitions.
+	NumPartitions int `json:"num_partitions"`
+
+	// Partition is the partition number for this request.
+	Partition int `json:"partition"`
+}
+
+type CommonAggregationsRareTermsAggregationFields struct {
+	Exclude *CommonAggregationsTermsExclude `json:"exclude,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	Include *CommonAggregationsTermsInclude `json:"include,omitempty"`
+
+	// MaxDocCount is the maximum number of documents a term should appear in.
+	MaxDocCount *int64 `json:"max_doc_count,omitempty"`
+
+	// Missing is a field value.
+	Missing *FieldValue `json:"missing,omitempty"`
+
+	// Precision is the precision of the internal CuckooFilters. Smaller
+	// precision leads to better approximation, but higher memory usage.
+	Precision *float64 `json:"precision,omitempty"`
+
+	ValueType *string `json:"value_type,omitempty"`
+}
+
+type CommonAggregationsRateAggregation struct {
+	CommonAggregationsFormatMetricAggregationBase
+	Mode *string `json:"mode,omitempty"`
+	Unit *string `json:"unit,omitempty"`
+}
+
+type CommonAggregationsReverseNestedAggregationFields struct {
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Path *string `json:"path,omitempty"`
+}
+
+type CommonAggregationsSamplerAggregationFields struct {
+	// ShardSize. Limits how many top-scoring documents are collected in the
+	// sample processed on each shard.
+	ShardSize *int `json:"shard_size,omitempty"`
+}
+
+type CommonAggregationsScriptedMetricAggregation struct {
+	CommonAggregationsMetricAggregationBase
+	CombineScript *Script `json:"combine_script,omitempty"`
+	InitScript    *Script `json:"init_script,omitempty"`
+	MapScript     *Script `json:"map_script,omitempty"`
+
+	// Params is a global object with script parameters for `init`, `map` and
+	// `combine` scripts. It is shared between the scripts.
+	Params map[string]json.RawMessage `json:"params,omitempty"`
+
+	ReduceScript *Script `json:"reduce_script,omitempty"`
+}
+
+type CommonAggregationsSerialDifferencingAggregation struct {
+	CommonAggregationsPipelineAggregationBase
+
+	// Lag is the historical bucket to subtract from the current value. Must be
+	// a positive, non-zero integer.
+	Lag *int `json:"lag,omitempty"`
+}
+
+type CommonAggregationsChiSquareHeuristic struct {
+	// BackgroundIsSuperset. Set to `false` if you defined a custom background
+	// filter that represents a different set of documents that you want to
+	// compare to.
+	BackgroundIsSuperset bool `json:"background_is_superset"`
+
+	// IncludeNegatives. Set to `false` to filter out the terms that appear
+	// less often in the subset than in documents outside the subset.
+	IncludeNegatives bool `json:"include_negatives"`
+}
+
+type CommonAggregationsGoogleNormalizedDistanceHeuristic struct {
+	// BackgroundIsSuperset. Set to `false` if you defined a custom background
+	// filter that represents a different set of documents that you want to
+	// compare to.
+	BackgroundIsSuperset *bool `json:"background_is_superset,omitempty"`
+}
+
+type CommonAggregationsMutualInformationHeuristic struct {
+	// BackgroundIsSuperset. Set to `false` if you defined a custom background
+	// filter that represents a different set of documents that you want to
+	// compare to.
+	BackgroundIsSuperset *bool `json:"background_is_superset,omitempty"`
+
+	// IncludeNegatives. Set to `false` to filter out the terms that appear
+	// less often in the subset than in documents outside the subset.
+	IncludeNegatives *bool `json:"include_negatives,omitempty"`
+}
+
+type CommonAggregationsPercentageScoreHeuristic struct {
+}
+
+type CommonAggregationsScriptedHeuristic struct {
+	Script Script `json:"script"`
+}
+
+type CommonAggregationsSignificantTermsAggregationFields struct {
+	BackgroundFilter *CommonQueryDSLQueryContainer         `json:"background_filter,omitempty"`
+	ChiSquare        *CommonAggregationsChiSquareHeuristic `json:"chi_square,omitempty"`
+	Exclude          *CommonAggregationsTermsExclude       `json:"exclude,omitempty"`
+	ExecutionHint    *string                               `json:"execution_hint,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	Gnd     *CommonAggregationsGoogleNormalizedDistanceHeuristic `json:"gnd,omitempty"`
+	Include *CommonAggregationsTermsInclude                      `json:"include,omitempty"`
+
+	// Jlh is an empty object with no properties.
+	Jlh *struct{} `json:"jlh,omitempty"`
+
+	// MinDocCount. Only return terms that are found in more than
+	// `min_doc_count` hits.
+	MinDocCount *int64 `json:"min_doc_count,omitempty"`
+
+	MutualInformation *CommonAggregationsMutualInformationHeuristic `json:"mutual_information,omitempty"`
+	Percentage        *CommonAggregationsPercentageScoreHeuristic   `json:"percentage,omitempty"`
+	ScriptHeuristic   *CommonAggregationsScriptedHeuristic          `json:"script_heuristic,omitempty"`
+
+	// ShardMinDocCount. Regulates the certainty a shard has if the term should
+	// actually be added to the candidate list or not with respect to the
+	// `min_doc_count`. Terms will only be considered if their local shard
+	// frequency within the set is higher than the `shard_min_doc_count`.
+	ShardMinDocCount *int64 `json:"shard_min_doc_count,omitempty"`
+
+	// ShardSize. Can be used to control the volumes of candidate terms
+	// produced by each shard. By default, `shard_size` will be automatically
+	// estimated based on the number of shards and the `size` parameter.
+	ShardSize *int `json:"shard_size,omitempty"`
+
+	// Size is the number of buckets returned out of the overall terms list.
+	Size *int `json:"size,omitempty"`
+}
+
+type CommonAggregationsSignificantTextAggregationFields struct {
+	BackgroundFilter *CommonQueryDSLQueryContainer         `json:"background_filter,omitempty"`
+	ChiSquare        *CommonAggregationsChiSquareHeuristic `json:"chi_square,omitempty"`
+	Exclude          *CommonAggregationsTermsExclude       `json:"exclude,omitempty"`
+	ExecutionHint    *string                               `json:"execution_hint,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// FilterDuplicateText. Whether to out duplicate text to deal with noisy
+	// data.
+	FilterDuplicateText *bool `json:"filter_duplicate_text,omitempty"`
+
+	Gnd     *CommonAggregationsGoogleNormalizedDistanceHeuristic `json:"gnd,omitempty"`
+	Include *CommonAggregationsTermsInclude                      `json:"include,omitempty"`
+
+	// Jlh is an empty object with no properties.
+	Jlh *struct{} `json:"jlh,omitempty"`
+
+	// MinDocCount. Only return values that are found in more than
+	// `min_doc_count` hits.
+	MinDocCount *int64 `json:"min_doc_count,omitempty"`
+
+	MutualInformation *CommonAggregationsMutualInformationHeuristic `json:"mutual_information,omitempty"`
+	Percentage        *CommonAggregationsPercentageScoreHeuristic   `json:"percentage,omitempty"`
+	ScriptHeuristic   *CommonAggregationsScriptedHeuristic          `json:"script_heuristic,omitempty"`
+
+	// ShardMinDocCount. Regulates the certainty a shard has if the values
+	// should actually be added to the candidate list or not with respect to
+	// the `min_doc_count`. Values will only be considered if their local shard
+	// frequency within the set is higher than the `shard_min_doc_count`.
+	ShardMinDocCount *int64 `json:"shard_min_doc_count,omitempty"`
+
+	// ShardSize is the number of candidate terms produced by each shard. By
+	// default, `shard_size` will be automatically estimated based on the
+	// number of shards and the `size` parameter.
+	ShardSize *int `json:"shard_size,omitempty"`
+
+	// Size is the number of buckets returned out of the overall terms list.
+	Size *int `json:"size,omitempty"`
+
+	// SourceFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
+	SourceFields *string `json:"source_fields,omitempty"`
+}
+
+type CommonAggregationsTermsAggregationFields struct {
+	CollectMode   *string                         `json:"collect_mode,omitempty"`
+	Exclude       *CommonAggregationsTermsExclude `json:"exclude,omitempty"`
+	ExecutionHint *string                         `json:"execution_hint,omitempty"`
+	Format        *string                         `json:"format,omitempty"`
+	Include       *CommonAggregationsTermsInclude `json:"include,omitempty"`
+
+	// MinDocCount. Only return values that are found in more than
+	// `min_doc_count` hits.
+	MinDocCount *int64 `json:"min_doc_count,omitempty"`
+
+	// Missing is a field value.
+	Missing *FieldValue `json:"missing,omitempty"`
+
+	Order *CommonAggregationsAggregateOrder `json:"order,omitempty"`
+
+	// ShardMinDocCount is the minimum number of documents in a bucket on each
+	// shard for it to be returned.
+	ShardMinDocCount *int64 `json:"shard_min_doc_count,omitempty"`
+
+	// ShardSize is the number of candidate terms produced by each shard. By
+	// default, `shard_size` will be automatically estimated based on the
+	// number of shards and the `size` parameter.
+	ShardSize *int `json:"shard_size,omitempty"`
+
+	// ShowTermDocCountError. Set to `true` to return the
+	// `doc_count_error_upper_bound`, which is an upper bound to the error on
+	// the `doc_count` returned by each shard.
+	ShowTermDocCountError *bool `json:"show_term_doc_count_error,omitempty"`
+
+	// Size is the number of buckets returned out of the overall terms list.
+	Size *int `json:"size,omitempty"`
+
+	// ValueType. Coerced unmapped fields into the specified type.
+	ValueType *string `json:"value_type,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	Script *Script `json:"script,omitempty"`
+}
+
+type CommonAggregationsTopHitsAggregation struct {
+	CommonAggregationsMetricAggregationBase
+
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
+	Source *SearchSourceConfig `json:"_source,omitempty"`
+
+	// DocvalueFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
+	DocvalueFields *string `json:"docvalue_fields,omitempty"`
+
+	// Explain. If `true`, returns detailed information about score computation
+	// as part of a hit.
+	Explain *bool `json:"explain,omitempty"`
+
+	// From. Starting document offset.
+	From *int `json:"from,omitempty"`
+
+	Highlight *SearchHighlight `json:"highlight,omitempty"`
+
+	// ScriptFields. Returns the result of one or more script evaluations for
+	// each hit.
+	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
+
+	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
+	// the last modification of each hit.
+	SeqNoPrimaryTerm *bool `json:"seq_no_primary_term,omitempty"`
+
+	// Size is the maximum number of top matching hits to return per bucket.
+	Size *int `json:"size,omitempty"`
+
+	Sort *Sort `json:"sort,omitempty"`
+
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
+	StoredFields *string `json:"stored_fields,omitempty"`
+
+	// TrackScores. If `true`, calculates and returns document scores, even if
+	// the scores are not used for sorting.
+	TrackScores *bool `json:"track_scores,omitempty"`
+
+	// Version. If `true`, returns document version as part of a hit.
+	Version *bool `json:"version,omitempty"`
+}
+
+type CommonAggregationsTestPopulation struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field string `json:"field"`
+
+	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
+	Script *Script                       `json:"script,omitempty"`
+}
+
+type CommonAggregationsTTestAggregation struct {
+	A    *CommonAggregationsTestPopulation `json:"a,omitempty"`
+	B    *CommonAggregationsTestPopulation `json:"b,omitempty"`
+	Type *string                           `json:"type,omitempty"`
+}
+
+type CommonAggregationsValueCountAggregation struct {
+	CommonAggregationsMetricAggregationBase
+	Format *string `json:"format,omitempty"`
+}
+
+type CommonAggregationsWeightedAverageValue struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// Missing is a value or weight to use if the field is missing.
+	Missing *float64 `json:"missing,omitempty"`
+
+	Script *Script `json:"script,omitempty"`
+}
+
+type CommonAggregationsWeightedAverageAggregation struct {
+	// Format is a numeric response formatter.
+	Format *string `json:"format,omitempty"`
+
+	Value *CommonAggregationsWeightedAverageValue `json:"value,omitempty"`
+
+	// ValueType is the data type for a field. The server's `lenientParse`
+	// accepts multiple representations for the same underlying type (for
+	// example, byte/short/integer/long all map to long).
+	ValueType *string `json:"value_type,omitempty"`
+
+	Weight *CommonAggregationsWeightedAverageValue `json:"weight,omitempty"`
+}
+
+type CommonAggregationsVariableWidthHistogramAggregation struct {
+	// Buckets is the target number of buckets.
+	Buckets *int `json:"buckets,omitempty"`
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field *string `json:"field,omitempty"`
+
+	// InitialBuffer. Specifies the number of individual documents that will be
+	// stored in memory on a shard before the initial bucketing algorithm is
+	// run. Defaults to `min(10 * shard_size, 50000)`.
+	InitialBuffer *int `json:"initial_buffer,omitempty"`
+
+	// ShardSize is the number of buckets that the coordinating node will
+	// request from each shard. Defaults to `buckets * 50`.
+	ShardSize *int `json:"shard_size,omitempty"`
+}
+
 type CommonAggregationsAggregationContainer struct {
 	CommonAggregationsAggregation
+
+	// Aggregations. Sub-aggregations for this bucket aggregation
+	Aggregations map[string]CommonAggregationsAggregationContainer `json:"aggregations,omitempty"`
+
+	// Aggs. Sub-aggregations for this bucket aggregation (alias for
+	// 'aggregations')
+	Aggs map[string]CommonAggregationsAggregationContainer `json:"aggs,omitempty"`
+
+	AdjacencyMatrix         *CommonAggregationsAdjacencyMatrixAggregationFields    `json:"adjacency_matrix,omitempty"`
+	AutoDateHistogram       *CommonAggregationsAutoDateHistogramAggregationFields  `json:"auto_date_histogram,omitempty"`
+	Avg                     *CommonAggregationsFormatMetricAggregationBase         `json:"avg,omitempty"`
+	AvgBucket               *CommonAggregationsPipelineAggregationBase             `json:"avg_bucket,omitempty"`
+	Boxplot                 *CommonAggregationsBoxplotAggregation                  `json:"boxplot,omitempty"`
+	BucketScript            *CommonAggregationsBucketScriptAggregation             `json:"bucket_script,omitempty"`
+	BucketSelector          *CommonAggregationsBucketSelectorAggregation           `json:"bucket_selector,omitempty"`
+	BucketSort              *CommonAggregationsBucketSortAggregation               `json:"bucket_sort,omitempty"`
+	Cardinality             *CommonAggregationsCardinalityAggregation              `json:"cardinality,omitempty"`
+	Children                *CommonAggregationsChildrenAggregationFields           `json:"children,omitempty"`
+	Composite               *CommonAggregationsCompositeAggregationFields          `json:"composite,omitempty"`
+	CumulativeCardinality   *CommonAggregationsPipelineAggregationBase             `json:"cumulative_cardinality,omitempty"`
+	CumulativeSum           *CommonAggregationsPipelineAggregationBase             `json:"cumulative_sum,omitempty"`
+	DateHistogram           *CommonAggregationsDateHistogramAggregationFields      `json:"date_histogram,omitempty"`
+	DateRange               *CommonAggregationsDateRangeAggregationFields          `json:"date_range,omitempty"`
+	Derivative              *CommonAggregationsPipelineAggregationBase             `json:"derivative,omitempty"`
+	DiversifiedSampler      *CommonAggregationsDiversifiedSamplerAggregationFields `json:"diversified_sampler,omitempty"`
+	ExtendedStats           *CommonAggregationsExtendedStatsAggregation            `json:"extended_stats,omitempty"`
+	ExtendedStatsBucket     *CommonAggregationsExtendedStatsBucketAggregation      `json:"extended_stats_bucket,omitempty"`
+	Filter                  *CommonQueryDSLQueryContainer                          `json:"filter,omitempty"`
+	Filters                 *CommonAggregationsFiltersAggregationFields            `json:"filters,omitempty"`
+	GeoBounds               *CommonAggregationsGeoBoundsAggregation                `json:"geo_bounds,omitempty"`
+	GeoCentroid             *CommonAggregationsGeoCentroidAggregation              `json:"geo_centroid,omitempty"`
+	GeoDistance             *CommonAggregationsGeoDistanceAggregationFields        `json:"geo_distance,omitempty"`
+	GeohashGrid             *CommonAggregationsGeoHashGridAggregationFields        `json:"geohash_grid,omitempty"`
+	GeotileGrid             *CommonAggregationsGeoTileGridAggregationFields        `json:"geotile_grid,omitempty"`
+	Global                  *CommonAggregationsGlobalAggregationFields             `json:"global,omitempty"`
+	Histogram               *CommonAggregationsHistogramAggregationFields          `json:"histogram,omitempty"`
+	IPRange                 *CommonAggregationsIPRangeAggregationFields            `json:"ip_range,omitempty"`
+	MatrixStats             *CommonAggregationsMatrixStatsAggregation              `json:"matrix_stats,omitempty"`
+	Max                     *CommonAggregationsMaxAggregation                      `json:"max,omitempty"`
+	MaxBucket               *CommonAggregationsPipelineAggregationBase             `json:"max_bucket,omitempty"`
+	MedianAbsoluteDeviation *CommonAggregationsMedianAbsoluteDeviationAggregation  `json:"median_absolute_deviation,omitempty"`
+	Min                     *CommonAggregationsMinAggregation                      `json:"min,omitempty"`
+	MinBucket               *CommonAggregationsPipelineAggregationBase             `json:"min_bucket,omitempty"`
+	Missing                 *CommonAggregationsMissingAggregationFields            `json:"missing,omitempty"`
+	MovingAvg               *CommonAggregationsMovingAverageAggregation            `json:"moving_avg,omitempty"`
+	MovingPercentiles       *CommonAggregationsMovingPercentilesAggregation        `json:"moving_percentiles,omitempty"`
+	MovingFn                *CommonAggregationsMovingFunctionAggregation           `json:"moving_fn,omitempty"`
+	MultiTerms              *CommonAggregationsMultiTermsAggregationFields         `json:"multi_terms,omitempty"`
+	Nested                  *CommonAggregationsNestedAggregationFields             `json:"nested,omitempty"`
+	Normalize               *CommonAggregationsNormalizeAggregation                `json:"normalize,omitempty"`
+	Parent                  *CommonAggregationsParentAggregationFields             `json:"parent,omitempty"`
+	PercentileRanks         *CommonAggregationsPercentileRanksAggregation          `json:"percentile_ranks,omitempty"`
+	Percentiles             *CommonAggregationsPercentilesAggregation              `json:"percentiles,omitempty"`
+	PercentilesBucket       *CommonAggregationsPercentilesBucketAggregation        `json:"percentiles_bucket,omitempty"`
+	Range                   *CommonAggregationsRangeAggregationFields              `json:"range,omitempty"`
+	RareTerms               *CommonAggregationsRareTermsAggregationFields          `json:"rare_terms,omitempty"`
+	Rate                    *CommonAggregationsRateAggregation                     `json:"rate,omitempty"`
+	ReverseNested           *CommonAggregationsReverseNestedAggregationFields      `json:"reverse_nested,omitempty"`
+	Sampler                 *CommonAggregationsSamplerAggregationFields            `json:"sampler,omitempty"`
+	ScriptedMetric          *CommonAggregationsScriptedMetricAggregation           `json:"scripted_metric,omitempty"`
+	SerialDiff              *CommonAggregationsSerialDifferencingAggregation       `json:"serial_diff,omitempty"`
+	SignificantTerms        *CommonAggregationsSignificantTermsAggregationFields   `json:"significant_terms,omitempty"`
+	SignificantText         *CommonAggregationsSignificantTextAggregationFields    `json:"significant_text,omitempty"`
+	Stats                   *CommonAggregationsFormatMetricAggregationBase         `json:"stats,omitempty"`
+	StatsBucket             *CommonAggregationsPipelineAggregationBase             `json:"stats_bucket,omitempty"`
+	Sum                     *CommonAggregationsFormatMetricAggregationBase         `json:"sum,omitempty"`
+	SumBucket               *CommonAggregationsPipelineAggregationBase             `json:"sum_bucket,omitempty"`
+	Terms                   *CommonAggregationsTermsAggregationFields              `json:"terms,omitempty"`
+	TopHits                 *CommonAggregationsTopHitsAggregation                  `json:"top_hits,omitempty"`
+	TTest                   *CommonAggregationsTTestAggregation                    `json:"t_test,omitempty"`
+	ValueCount              *CommonAggregationsValueCountAggregation               `json:"value_count,omitempty"`
+	WeightedAvg             *CommonAggregationsWeightedAverageAggregation          `json:"weighted_avg,omitempty"`
+	VariableWidthHistogram  *CommonAggregationsVariableWidthHistogramAggregation   `json:"variable_width_histogram,omitempty"`
 }
 
 // The search definition using the Query DSL.

@@ -691,6 +691,14 @@ const (
 	SnapshotShardsStatsStageStarted SnapshotShardsStatsStage = "STARTED"
 )
 
+type CommonAggregationsHoltWintersType string
+
+const (
+	CommonAggregationsHoltWintersTypeAdd CommonAggregationsHoltWintersType = "add"
+
+	CommonAggregationsHoltWintersTypeMult CommonAggregationsHoltWintersType = "mult"
+)
+
 type Conflicts string
 
 const (

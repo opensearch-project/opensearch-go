@@ -455,6 +455,128 @@ func TestWalkerAllOf(t *testing.T) {
 	require.Equal(t, "*bool", fieldMap["shards_acknowledged"].GoType)
 }
 
+// TestWalkerAllOfOneOfMember pins the fields an allOf gets from an inline member
+// that is a oneOf of object branches, the shape of AggregationContainer:
+//
+//	allOf:
+//	  - $ref: Aggregation
+//	  - oneOf:
+//	      - $ref: AdjacencyMatrixAggregation  # allOf [$ref BucketAggregationBase, {adjacency_matrix}]
+//	      - {properties: {avg}, required: [avg]}
+//
+// The oneOf member has no properties of its own, so merging only its Properties
+// dropped every branch and emitted a struct holding just the embedded base. Each
+// branch's properties, followed through its allOf chain, become optional fields:
+// exactly one branch is present on the wire, so none can be required.
+func TestWalkerAllOfOneOfMember(t *testing.T) {
+	t.Parallel()
+
+	const (
+		aggKey     = "_common.aggregations___Aggregation"
+		bucketKey  = "_common.aggregations___BucketAggregationBase"
+		adjKey     = "_common.aggregations___AdjacencyMatrixAggregation"
+		contKey    = "_common.aggregations___AggregationContainer"
+		schemasRef = "#/components/schemas/"
+	)
+
+	newSpec := func() (*openapi3.T, *openapi3.Schema) {
+		agg := openapi3.NewObjectSchema()
+		agg.Properties = openapi3.Schemas{"meta": {Value: openapi3.NewStringSchema()}}
+
+		bucket := openapi3.NewObjectSchema()
+		bucket.Properties = openapi3.Schemas{"aggs": {Value: openapi3.NewStringSchema()}}
+
+		adjFields := openapi3.NewObjectSchema()
+		adjFields.Properties = openapi3.Schemas{"adjacency_matrix": {Value: openapi3.NewIntegerSchema()}}
+		adjFields.Required = []string{"adjacency_matrix"}
+		adj := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+			{Ref: schemasRef + bucketKey, Value: bucket},
+			{Value: adjFields},
+		}}
+
+		avg := openapi3.NewObjectSchema()
+		avg.Properties = openapi3.Schemas{"avg": {Value: openapi3.NewIntegerSchema()}}
+		avg.Required = []string{"avg"}
+
+		union := openapi3.NewObjectSchema()
+		union.OneOf = openapi3.SchemaRefs{
+			{Ref: schemasRef + adjKey, Value: adj},
+			{Value: avg},
+		}
+
+		spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+			aggKey:    {Value: agg},
+			bucketKey: {Value: bucket},
+			adjKey:    {Value: adj},
+		}}}
+		return spec, union
+	}
+
+	assertFields := func(t *testing.T, fields []goField) {
+		t.Helper()
+		byJSON := make(map[string]goField)
+		var embeds []string
+		for _, f := range fields {
+			if f.IsEmbed {
+				embeds = append(embeds, f.GoType)
+				continue
+			}
+			byJSON[f.JSONName] = f
+		}
+		require.Equal(t, []string{"CommonAggregationsAggregation"}, embeds)
+		for _, name := range []string{"adjacency_matrix", "aggs", "avg"} {
+			f, ok := byJSON[name]
+			require.True(t, ok, "branch property %q missing from the merged struct", name)
+			require.True(t, f.OmitEmpty, "%q comes from one oneOf branch and must be optional", name)
+		}
+		require.Equal(t, "*int", byJSON["adjacency_matrix"].GoType)
+		require.Equal(t, "*string", byJSON["aggs"].GoType)
+		require.Equal(t, "*int", byJSON["avg"].GoType)
+	}
+
+	t.Run("named schema", func(t *testing.T) {
+		t.Parallel()
+		spec, union := newSpec()
+		container := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+			{Ref: schemasRef + aggKey, Value: spec.Components.Schemas[aggKey].Value},
+			{Value: union},
+		}}
+		spec.Components.Schemas[contKey] = &openapi3.SchemaRef{Value: container}
+
+		reg := newTypeRegistry(opensearchAPIPkgName)
+		w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
+		got := w.walkSchema(&openapi3.SchemaRef{Ref: schemasRef + contKey, Value: container}, contKey, "search", false)
+		require.Equal(t, "CommonAggregationsAggregationContainer", got)
+
+		registered, ok := reg.lookup(contKey)
+		require.True(t, ok)
+		assertFields(t, registered.Fields)
+	})
+
+	t.Run("inline schema", func(t *testing.T) {
+		t.Parallel()
+		spec, union := newSpec()
+		// An inline property member keeps this a struct merge rather than a
+		// narrowed union (see narrowedUnionMember), so it reaches resolveAllOf.
+		extra := openapi3.NewObjectSchema()
+		extra.Properties = openapi3.Schemas{"name": {Value: openapi3.NewStringSchema()}}
+		inline := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+			{Ref: schemasRef + aggKey, Value: spec.Components.Schemas[aggKey].Value},
+			{Value: extra},
+			{Value: union},
+		}}
+
+		reg := newTypeRegistry(opensearchAPIPkgName)
+		w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
+		got := w.walkSchema(&openapi3.SchemaRef{Value: inline}, "search___Body.aggs", "search", false)
+		require.Equal(t, "SearchBodyAggs", got)
+
+		registered, ok := reg.lookupByName(got)
+		require.True(t, ok)
+		assertFields(t, registered.Fields)
+	})
+}
+
 func TestWalkerOneOfUnion(t *testing.T) {
 	t.Parallel()
 
