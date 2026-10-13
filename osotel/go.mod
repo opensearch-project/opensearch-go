@@ -1,6 +1,8 @@
 module github.com/opensearch-project/opensearch-go/osotel/v5
 
-go 1.26.8
+go 1.26.0
+
+toolchain go1.26.9
 
 require (
 	github.com/opensearch-project/opensearch-go/v5 v5.0.0
