@@ -24400,36 +24400,35 @@ func (u CommonAggregationsFieldDateMath) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// Aggregation buckets. By default they are returned as an array, but if the aggregation has keys configured for
-// the different buckets, the result is a dictionary.
+// CommonAggregationsBucketsQueryContainer is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
 // selects one.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsBuckets struct {
-	typ   CommonAggregationsBucketsType
+type CommonAggregationsBucketsQueryContainer struct {
+	typ   CommonAggregationsBucketsQueryContainerType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsBucketsType names which branch of CommonAggregationsBuckets is set.
-type CommonAggregationsBucketsType int
+// CommonAggregationsBucketsQueryContainerType names which branch of CommonAggregationsBucketsQueryContainer is set.
+type CommonAggregationsBucketsQueryContainerType int
 
 const (
-	CommonAggregationsBucketsUnknownType CommonAggregationsBucketsType = iota
-	CommonAggregationsBucketsMapType
-	CommonAggregationsBucketsArrayType
+	CommonAggregationsBucketsQueryContainerUnknownType CommonAggregationsBucketsQueryContainerType = iota
+	CommonAggregationsBucketsQueryContainerMapType
+	CommonAggregationsBucketsQueryContainerArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsBucketsType) String() string {
+func (t CommonAggregationsBucketsQueryContainerType) String() string {
 	switch t {
-	case CommonAggregationsBucketsMapType:
+	case CommonAggregationsBucketsQueryContainerMapType:
 		return "Map"
-	case CommonAggregationsBucketsArrayType:
+	case CommonAggregationsBucketsQueryContainerArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -24437,70 +24436,72 @@ func (t CommonAggregationsBucketsType) String() string {
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsBuckets) Type() CommonAggregationsBucketsType { return u.typ }
+// Returns CommonAggregationsBucketsQueryContainerUnknownType if the value has not been decoded.
+func (u *CommonAggregationsBucketsQueryContainer) Type() CommonAggregationsBucketsQueryContainerType {
+	return u.typ
+}
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsBuckets) RawJSON() json.RawMessage { return u.raw }
+func (u *CommonAggregationsBucketsQueryContainer) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsBucketsQueryContainerFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsBucketsQueryContainer) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsBucketsUnknownType
+	u.typ = CommonAggregationsBucketsQueryContainerUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsBucketsQueryContainer) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsBucketsQueryContainer", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsBucketsFromMap returns a CommonAggregationsBuckets populated with v
+// NewCommonAggregationsBucketsQueryContainerFromMap returns a CommonAggregationsBucketsQueryContainer populated with v
 // on the Map branch.
-func NewCommonAggregationsBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsBuckets {
-	return CommonAggregationsBuckets{
-		typ:   CommonAggregationsBucketsMapType,
+func NewCommonAggregationsBucketsQueryContainerFromMap(v map[string]json.RawMessage) CommonAggregationsBucketsQueryContainer {
+	return CommonAggregationsBucketsQueryContainer{
+		typ:   CommonAggregationsBucketsQueryContainerMapType,
 		value: &v,
 	}
 }
 
-// Array returns the []json.RawMessage branch value. It returns a
+// Array returns the []CommonQueryDSLQueryContainer branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []json.RawMessage in that case,
+// that is set; the returned value is the zero []CommonQueryDSLQueryContainer in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsBuckets) Array() ([]json.RawMessage, error) {
-	if v, ok := u.value.(*[]json.RawMessage); ok {
+func (u *CommonAggregationsBucketsQueryContainer) Array() ([]CommonQueryDSLQueryContainer, error) {
+	if v, ok := u.value.(*[]CommonQueryDSLQueryContainer); ok {
 		return *v, nil
 	}
-	var zero []json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsBuckets", Want: "Array", Got: u.typ.String()}
+	var zero []CommonQueryDSLQueryContainer
+	return zero, &UnionBranchError{Union: "CommonAggregationsBucketsQueryContainer", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsBucketsFromArray returns a CommonAggregationsBuckets populated with v
+// NewCommonAggregationsBucketsQueryContainerFromArray returns a CommonAggregationsBucketsQueryContainer populated with v
 // on the Array branch.
-func NewCommonAggregationsBucketsFromArray(v []json.RawMessage) CommonAggregationsBuckets {
-	return CommonAggregationsBuckets{
-		typ:   CommonAggregationsBucketsArrayType,
+func NewCommonAggregationsBucketsQueryContainerFromArray(v []CommonQueryDSLQueryContainer) CommonAggregationsBucketsQueryContainer {
+	return CommonAggregationsBucketsQueryContainer{
+		typ:   CommonAggregationsBucketsQueryContainerArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsBucketsQueryContainer) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsBucketsUnknownType
+	u.typ = CommonAggregationsBucketsQueryContainerUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -24510,22 +24511,22 @@ func (u *CommonAggregationsBuckets) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsBucketsMapType
+		u.typ = CommonAggregationsBucketsQueryContainerMapType
 		u.value = &v
 	case data[0] == '[':
-		var v []json.RawMessage
+		var v []CommonQueryDSLQueryContainer
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsBucketsArrayType
+		u.typ = CommonAggregationsBucketsQueryContainerArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsBucketsQueryContainer: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsBucketsQueryContainer) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

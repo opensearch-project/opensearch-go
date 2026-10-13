@@ -13678,10 +13678,6 @@ type CommonAggregationsExtendedStatsBucketAggregation struct {
 	Sigma *float64 `json:"sigma,omitempty"`
 }
 
-type CommonAggregationsBucketsQueryContainer struct {
-	CommonAggregationsBuckets
-}
-
 type CommonAggregationsFiltersAggregationFields struct {
 	Filters *CommonAggregationsBucketsQueryContainer `json:"filters,omitempty"`
 
