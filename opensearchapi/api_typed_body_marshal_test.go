@@ -376,3 +376,79 @@ func TestRangeQueryOmitsUnsetBounds(t *testing.T) {
 		})
 	}
 }
+
+// A search body's aggregations are typed: each container carries the clause
+// fields of every aggregation the spec defines, and only the clause the caller
+// set reaches the wire. Guards #1190.
+func TestSearchBodyMarshalsAggregations(t *testing.T) {
+	t.Parallel()
+
+	field := func(s string) *string { return &s }
+	size := 5
+
+	tests := []struct {
+		name string
+		aggs map[string]opensearchapi.CommonAggregationsAggregationContainer
+		want string
+	}{
+		{
+			name: "bucket clause: terms",
+			aggs: map[string]opensearchapi.CommonAggregationsAggregationContainer{
+				"genres": {Terms: &opensearchapi.CommonAggregationsTermsAggregationFields{Field: field("genre"), Size: &size}},
+			},
+			want: `{"aggs":{"genres":{"terms":{"field":"genre","size":5}}}}`,
+		},
+		{
+			name: "metric clause: avg",
+			aggs: map[string]opensearchapi.CommonAggregationsAggregationContainer{
+				"avg_price": {Avg: &opensearchapi.CommonAggregationsFormatMetricAggregationBase{
+					CommonAggregationsMetricAggregationBase: opensearchapi.CommonAggregationsMetricAggregationBase{Field: field("price")},
+				}},
+			},
+			want: `{"aggs":{"avg_price":{"avg":{"field":"price"}}}}`,
+		},
+		{
+			name: "clause with sub-aggregations and meta",
+			aggs: map[string]opensearchapi.CommonAggregationsAggregationContainer{
+				"genres": {
+					CommonAggregationsAggregation: opensearchapi.CommonAggregationsAggregation{
+						Meta: map[string]json.RawMessage{"owner": json.RawMessage(`"search"`)},
+					},
+					Terms: &opensearchapi.CommonAggregationsTermsAggregationFields{Field: field("genre")},
+					Aggs: map[string]opensearchapi.CommonAggregationsAggregationContainer{
+						"avg_price": {Avg: &opensearchapi.CommonAggregationsFormatMetricAggregationBase{
+							CommonAggregationsMetricAggregationBase: opensearchapi.CommonAggregationsMetricAggregationBase{Field: field("price")},
+						}},
+					},
+				},
+			},
+			want: `{"aggs":{"genres":{"meta":{"owner":"search"},"terms":{"field":"genre"},"aggs":{"avg_price":{"avg":{"field":"price"}}}}}}`,
+		},
+		{
+			// filters takes BucketsQueryContainer, a union whose array branch holds
+			// typed query clauses rather than the erased bucket type.
+			name: "filters clause, array form",
+			aggs: map[string]opensearchapi.CommonAggregationsAggregationContainer{
+				"split": {Filters: &opensearchapi.CommonAggregationsFiltersAggregationFields{
+					Filters: func() *opensearchapi.CommonAggregationsBucketsQueryContainer {
+						u := opensearchapi.NewCommonAggregationsBucketsQueryContainerFromArray([]opensearchapi.CommonQueryDSLQueryContainer{
+							{MatchAll: &opensearchapi.CommonQueryDSLQueryBase{}},
+						})
+						return &u
+					}(),
+				}},
+			},
+			want: `{"aggs":{"split":{"filters":{"filters":[{"match_all":{}}]}}}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := json.Marshal(opensearchapi.SearchBody{Aggs: tt.aggs})
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
+		})
+	}
+}

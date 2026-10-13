@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -710,6 +711,127 @@ func TestWalkerAllOfMergeTypeConflict(t *testing.T) {
 		func() {
 			w.walkSchema(&openapi3.SchemaRef{Ref: schemasRef + contKey, Value: container}, contKey, "search", false)
 		})
+}
+
+// TestWalkerAllOfOneOfMemberRecursiveBranch pins that merging a oneOf branch
+// whose allOf chain refers back to itself terminates and still collects every
+// property along the chain:
+//
+//	allOf:
+//	  - $ref: Aggregation
+//	  - oneOf:
+//	      - $ref: A          # allOf [$ref B, {a}]
+//	                         # B: allOf [$ref A, {b}]
+//
+// Both the narrowed-union check and the field merge walk the branch, so a
+// missing cycle guard on either overflows the stack.
+func TestWalkerAllOfOneOfMemberRecursiveBranch(t *testing.T) {
+	t.Parallel()
+
+	const (
+		aggKey     = "_common.aggregations___Aggregation"
+		aKey       = "_common.aggregations___A"
+		bKey       = "_common.aggregations___B"
+		contKey    = "_common.aggregations___AggregationContainer"
+		schemasRef = "#/components/schemas/"
+	)
+
+	agg := openapi3.NewObjectSchema()
+	agg.Properties = openapi3.Schemas{"meta": {Value: openapi3.NewStringSchema()}}
+
+	aProps := openapi3.NewObjectSchema()
+	aProps.Properties = openapi3.Schemas{"a": {Value: openapi3.NewIntegerSchema()}}
+	bProps := openapi3.NewObjectSchema()
+	bProps.Properties = openapi3.Schemas{"b": {Value: openapi3.NewStringSchema()}}
+
+	a := &openapi3.Schema{}
+	b := &openapi3.Schema{}
+	a.AllOf = openapi3.SchemaRefs{{Ref: schemasRef + bKey, Value: b}, {Value: aProps}}
+	b.AllOf = openapi3.SchemaRefs{{Ref: schemasRef + aKey, Value: a}, {Value: bProps}}
+
+	container := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+		{Ref: schemasRef + aggKey, Value: agg},
+		{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{{Ref: schemasRef + aKey, Value: a}}}},
+	}}
+	spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		aggKey:  {Value: agg},
+		aKey:    {Value: a},
+		bKey:    {Value: b},
+		contKey: {Value: container},
+	}}}
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
+	got := w.walkSchema(&openapi3.SchemaRef{Ref: schemasRef + contKey, Value: container}, contKey, "search", false)
+	require.Equal(t, "CommonAggregationsAggregationContainer", got)
+
+	registered, ok := reg.lookupByName(got)
+	require.True(t, ok)
+	types := make(map[string]string)
+	for _, f := range registered.Fields {
+		if !f.IsEmbed {
+			types[f.JSONName] = f.GoType
+		}
+	}
+	require.Equal(t, map[string]string{"a": "*int", "b": "*string"}, types)
+}
+
+// TestWalkerAllOfOneOfMemberRefBranchTypes pins that an inline type nested in a
+// $ref branch resolves to the type the referenced schema gets when walked
+// directly, so merging the branch into the container emits no second copy of it
+// under the container's name.
+func TestWalkerAllOfOneOfMemberRefBranchTypes(t *testing.T) {
+	t.Parallel()
+
+	const (
+		aggKey     = "_common.aggregations___Aggregation"
+		rangeKey   = "_common.aggregations___RangeAggregation"
+		contKey    = "_common.aggregations___AggregationContainer"
+		schemasRef = "#/components/schemas/"
+	)
+
+	agg := openapi3.NewObjectSchema()
+	agg.Properties = openapi3.Schemas{"meta": {Value: openapi3.NewStringSchema()}}
+
+	bounds := openapi3.NewObjectSchema()
+	bounds.Properties = openapi3.Schemas{
+		"from": {Value: openapi3.NewIntegerSchema()},
+		"to":   {Value: openapi3.NewIntegerSchema()},
+	}
+	rangeAgg := openapi3.NewObjectSchema()
+	rangeAgg.Properties = openapi3.Schemas{"bounds": {Value: bounds}}
+
+	container := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+		{Ref: schemasRef + aggKey, Value: agg},
+		{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{{Ref: schemasRef + rangeKey, Value: rangeAgg}}}},
+	}}
+	spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		aggKey:   {Value: agg},
+		rangeKey: {Value: rangeAgg},
+		contKey:  {Value: container},
+	}}}
+
+	fieldType := func(w *walker, typeName, jsonName string) string {
+		t.Helper()
+		registered, ok := w.registry.lookupByName(typeName)
+		require.True(t, ok, "%q not registered", typeName)
+		for _, f := range registered.Fields {
+			if f.JSONName == jsonName {
+				return strings.TrimPrefix(f.GoType, "*")
+			}
+		}
+		require.Failf(t, "field missing", "%q has no %q field", typeName, jsonName)
+		return ""
+	}
+
+	w := &walker{registry: newTypeRegistry(opensearchAPIPkgName), spec: spec, inFlight: make(map[string]struct{})}
+	direct := w.walkSchema(&openapi3.SchemaRef{Ref: schemasRef + rangeKey, Value: rangeAgg}, rangeKey, "search", false)
+	merged := w.walkSchema(&openapi3.SchemaRef{Ref: schemasRef + contKey, Value: container}, contKey, "search", false)
+
+	want := fieldType(w, direct, "bounds")
+	require.Equal(t, want, fieldType(w, merged, "bounds"))
+	_, dup := w.registry.lookupByName("CommonAggregationsAggregationContainerBounds")
+	require.False(t, dup, "the nested type must not be re-emitted under the container's name")
 }
 
 // TestAppendMergedField pins how allOf merging handles a JSON name it has already
