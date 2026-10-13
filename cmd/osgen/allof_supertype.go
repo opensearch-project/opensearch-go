@@ -146,6 +146,10 @@ func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visi
 	})
 }
 
+// allOfVisitor is called by walkAllOfChain on each schema in a chain, with the
+// key the schema's inline types are named under. Returning true stops the walk.
+type allOfVisitor func(key string, s *openapi3.Schema) bool
+
 // walkAllOfChain calls visit on each schema in the allOf chain rooted at ref, a
 // schema before its members, and reports whether a visit returned true, which
 // stops the walk. The key passed to visit is the one a schema's inline types are
@@ -156,7 +160,7 @@ func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visi
 // visited carries the $ref keys already on the current path. Without it a
 // mutually recursive allOf pair overflows the stack, since this walk has no
 // namesConcreteSchema-style stopping rule to halt the descent.
-func (w *walker) walkAllOfChain(ref *openapi3.SchemaRef, key string, visited set[string], visit func(key string, s *openapi3.Schema) bool) bool {
+func (w *walker) walkAllOfChain(ref *openapi3.SchemaRef, key string, visited set[string], visit allOfVisitor) bool {
 	if ref == nil {
 		return false
 	}

@@ -462,13 +462,14 @@ func TestWalkerAllOf(t *testing.T) {
 //	  - $ref: Aggregation
 //	  - oneOf:
 //	      - $ref: AdjacencyMatrixAggregation  # allOf [$ref BucketAggregationBase, {adjacency_matrix}]
-//	      - {properties: {avg}, required: [avg]}
+//	      - {properties: {avg, aggs}, required: [avg]}
 //	      - {oneOf: [{properties: {max}}]}    # a union nested in a branch
 //
 // The oneOf member has no properties of its own, so its fields come from the
 // branches. Each branch's properties, followed through its allOf chain and any
 // nested union, become optional fields: exactly one branch is present on the
-// wire, so none can be required.
+// wire, so none can be required. A name two branches declare is merged once. An
+// anyOf member merges the same way.
 func TestWalkerAllOfOneOfMember(t *testing.T) {
 	t.Parallel()
 
@@ -496,7 +497,10 @@ func TestWalkerAllOfOneOfMember(t *testing.T) {
 		}}
 
 		avg := openapi3.NewObjectSchema()
-		avg.Properties = openapi3.Schemas{"avg": {Value: openapi3.NewIntegerSchema()}}
+		avg.Properties = openapi3.Schemas{
+			"avg":  {Value: openapi3.NewIntegerSchema()},
+			"aggs": {Value: openapi3.NewStringSchema()}, // also declared by BucketAggregationBase
+		}
 		avg.Required = []string{"avg"}
 
 		maxBranch := openapi3.NewObjectSchema()
@@ -537,6 +541,19 @@ func TestWalkerAllOfOneOfMember(t *testing.T) {
 			want: "CommonAggregationsAggregationContainer",
 		},
 		{
+			name: "anyOf member",
+			build: func(spec *openapi3.T, union *openapi3.Schema) (*openapi3.SchemaRef, string) {
+				union.AnyOf, union.OneOf = union.OneOf, nil
+				container := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+					{Ref: schemasRef + aggKey, Value: spec.Components.Schemas[aggKey].Value},
+					{Value: union},
+				}}
+				spec.Components.Schemas[contKey] = &openapi3.SchemaRef{Value: container}
+				return &openapi3.SchemaRef{Ref: schemasRef + contKey, Value: container}, contKey
+			},
+			want: "CommonAggregationsAggregationContainer",
+		},
+		{
 			// An inline property member keeps this a struct merge rather than a
 			// narrowed union (see narrowedUnionMember), so it reaches resolveAllOf.
 			name: "inline schema",
@@ -567,6 +584,7 @@ func TestWalkerAllOfOneOfMember(t *testing.T) {
 			registered, ok := reg.lookupByName(got)
 			require.True(t, ok)
 			byJSON := make(map[string]goField)
+			declared := make(map[string]int)
 			var embeds []string
 			for _, f := range registered.Fields {
 				if f.IsEmbed {
@@ -574,8 +592,10 @@ func TestWalkerAllOfOneOfMember(t *testing.T) {
 					continue
 				}
 				byJSON[f.JSONName] = f
+				declared[f.JSONName]++
 			}
 			require.Equal(t, []string{"CommonAggregationsAggregation"}, embeds)
+			require.Equal(t, 1, declared["aggs"], "two branches declare aggs; the struct holds it once")
 			for name, goType := range map[string]string{
 				"adjacency_matrix": "*int",
 				"aggs":             "*string",
@@ -647,7 +667,7 @@ func TestWalkerAllOfNarrowedUnionNamed(t *testing.T) {
 	registered, ok := reg.lookupByName(got)
 	require.True(t, ok)
 	require.True(t, registered.IsUnion, "a struct merge would keep only the erased Buckets base")
-	var branchTypes []string
+	branchTypes := make([]string, 0, len(registered.Branches))
 	for _, b := range registered.Branches {
 		branchTypes = append(branchTypes, b.GoType)
 	}
@@ -690,6 +710,55 @@ func TestWalkerAllOfMergeTypeConflict(t *testing.T) {
 		func() {
 			w.walkSchema(&openapi3.SchemaRef{Ref: schemasRef + contKey, Value: container}, contKey, "search", false)
 		})
+}
+
+// TestAppendMergedField pins how allOf merging handles a JSON name it has already
+// seen: the first declaration is kept, a later one of the same type (pointer
+// aside) is dropped, and a later one of a different type panics.
+func TestAppendMergedField(t *testing.T) {
+	t.Parallel()
+
+	first := goField{JSONName: "aggs", GoType: "*string"}
+	tests := []struct {
+		name      string
+		next      goField
+		want      []goField
+		wantPanic string
+	}{
+		{
+			name: "new name appended",
+			next: goField{JSONName: "avg", GoType: "*int"},
+			want: []goField{first, {JSONName: "avg", GoType: "*int"}},
+		},
+		{
+			name: "same name and type dropped",
+			next: goField{JSONName: "aggs", GoType: "*string"},
+			want: []goField{first},
+		},
+		{
+			name: "same name, pointer aside, dropped",
+			next: goField{JSONName: "aggs", GoType: "string"},
+			want: []goField{first},
+		},
+		{
+			name:      "same name, different type panics",
+			next:      goField{JSONName: "aggs", GoType: "*int"},
+			wantPanic: `appendMergedField: k: allOf members declare "aggs" as both "*string" and "*int"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			seen := make(map[string]string)
+			fields := appendMergedField(nil, seen, first, "k")
+			if tt.wantPanic != "" {
+				require.PanicsWithValue(t, tt.wantPanic, func() { appendMergedField(fields, seen, tt.next, "k") })
+				return
+			}
+			require.Equal(t, tt.want, appendMergedField(fields, seen, tt.next, "k"))
+		})
+	}
 }
 
 func TestWalkerOneOfUnion(t *testing.T) {
