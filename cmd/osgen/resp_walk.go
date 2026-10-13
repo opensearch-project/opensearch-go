@@ -177,6 +177,16 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 		return got
 	}
 
+	// A narrowed union whose branches declare no properties (Buckets narrowed to
+	// keyed or listed QueryContainers) is the narrowing union itself: a struct merge
+	// takes no field from it and keeps only the erased base. Branches that declare
+	// properties (AggregationContainer) are a genuine composition and merge below.
+	if schema != nil {
+		if narrowed, ok := narrowedUnionMember(schema); ok && !w.branchesDeclareProperties(narrowed, make(set[string])) {
+			return w.resolveInlineSchema(narrowed, key, group, isRespBody)
+		}
+	}
+
 	name := schemaTypeName(key, isRespBody)
 	shared := isSharedSchema(key)
 
@@ -336,7 +346,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 	w.inFlight.add(schemaKey)
 	defer delete(w.inFlight, schemaKey)
 
-	seen := make(map[string]bool)
+	seen := make(map[string]string)
 	redundant := w.redundantOverrideTags(schema)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
@@ -360,10 +370,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 			if redundant[f.JSONName] {
 				continue
 			}
-			if !seen[f.JSONName] {
-				seen[f.JSONName] = true
-				t.Fields = append(t.Fields, f)
-			}
+			t.Fields = appendMergedField(t.Fields, seen, f, schemaKey)
 		}
 	}
 
@@ -880,7 +887,7 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 	}
 
 	var fields []goField
-	seen := make(map[string]bool)
+	seen := make(map[string]string)
 	redundant := w.redundantOverrideTags(schema)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
@@ -896,11 +903,25 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 			if redundant[f.JSONName] {
 				continue
 			}
-			if !seen[f.JSONName] {
-				seen[f.JSONName] = true
-				fields = append(fields, f)
-			}
+			fields = appendMergedField(fields, seen, f, key)
 		}
+	}
+	return fields
+}
+
+// appendMergedField appends f to fields unless an earlier allOf member, or an
+// earlier union branch, already declared its JSON name. seen maps each JSON name
+// to the Go type it was first declared with. Two declarations must agree on the
+// type, pointer aside: the struct holds one field per name, and keeping the first
+// would silently drop the other's shape.
+func appendMergedField(fields []goField, seen map[string]string, f goField, key string) []goField {
+	prev, ok := seen[f.JSONName]
+	if !ok {
+		seen[f.JSONName] = f.GoType
+		return append(fields, f)
+	}
+	if strings.TrimPrefix(prev, "*") != strings.TrimPrefix(f.GoType, "*") {
+		panic(fmt.Sprintf("appendMergedField: %s: allOf members declare %q as both %q and %q", key, f.JSONName, prev, f.GoType))
 	}
 	return fields
 }
@@ -911,49 +932,55 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 //
 // A union member carries no properties of its own; its fields live in the
 // branches. The spec models AggregationContainer this way, as allOf [$ref
-// Aggregation, {oneOf: [AdjacencyMatrixAggregation, ...]}], so walking only the
-// member's properties emitted a struct holding just the embedded base and lost
-// every aggregation. Only one branch is present on the wire, so a field required
-// within its branch is still optional on the merged struct.
+// Aggregation, {oneOf: [AdjacencyMatrixAggregation, ...]}]. Only one branch is
+// present on the wire, so a field required within its branch is still optional
+// on the merged struct.
 func (w *walker) allOfMemberFields(member *openapi3.Schema, key, group, parentTypeName string, isRespBody bool) []goField {
 	fields := w.walkProperties(member, key, group, parentTypeName, isRespBody)
-	for _, branches := range []openapi3.SchemaRefs{member.OneOf, member.AnyOf} {
-		for _, branch := range branches {
-			for _, f := range w.branchFields(branch, key, group, parentTypeName, isRespBody, make(set[string])) {
-				fields = append(fields, optionalField(f))
-			}
+	for _, branch := range unionBranches(member) {
+		for _, f := range w.branchFields(branch, key, group, parentTypeName, isRespBody, make(set[string])) {
+			fields = append(fields, optionalField(f))
 		}
 	}
 	return fields
 }
 
-// branchFields returns the properties a union branch declares, following its
-// allOf chain the way declaresProperty does. Properties reached through a $ref
-// are walked under that schema's own key, so inline types nested in them resolve
-// to the same registered types as when the referenced schema is walked directly.
-//
-// visited carries the $ref keys on the current path, so a self-referencing allOf
-// chain terminates.
+// branchFields returns the properties a union branch declares: those along its
+// allOf chain (see walkAllOfChain), and those of every branch of a union nested
+// anywhere in that chain. Properties reached through a $ref are walked under that
+// schema's own key, so inline types nested in them resolve to the same registered
+// types as when the referenced schema is walked directly. visited is
+// walkAllOfChain's.
 func (w *walker) branchFields(ref *openapi3.SchemaRef, key, group, parentTypeName string, isRespBody bool, visited set[string]) []goField {
-	if ref == nil || ref.Value == nil {
-		return nil
-	}
-	if ref.Ref != "" {
-		refKey := refToSchemaKey(ref.Ref)
-		if visited.has(refKey) {
-			return nil
+	var fields []goField
+	w.walkAllOfChain(ref, key, visited, func(key string, s *openapi3.Schema) bool {
+		fields = append(fields, w.walkProperties(s, key, group, parentTypeName, isRespBody)...)
+		for _, branch := range unionBranches(s) {
+			fields = append(fields, w.branchFields(branch, key, group, parentTypeName, isRespBody, visited)...)
 		}
-		visited.add(refKey)
-		defer delete(visited, refKey)
-		if refKey != "" {
-			key = refKey
-		}
-	}
-	fields := w.walkProperties(ref.Value, key, group, parentTypeName, isRespBody)
-	for _, sub := range ref.Value.AllOf {
-		fields = append(fields, w.branchFields(sub, key, group, parentTypeName, isRespBody, visited)...)
-	}
+		return false
+	})
 	return fields
+}
+
+// branchesDeclareProperties reports whether any branch of union s declares a
+// property along the walk branchFields takes, which is whether merging s into a
+// struct contributes a field.
+func (w *walker) branchesDeclareProperties(s *openapi3.Schema, visited set[string]) bool {
+	for _, branch := range unionBranches(s) {
+		declares := w.walkAllOfChain(branch, "", visited, func(_ string, b *openapi3.Schema) bool {
+			return len(b.Properties) > 0 || w.branchesDeclareProperties(b, visited)
+		})
+		if declares {
+			return true
+		}
+	}
+	return false
+}
+
+// unionBranches returns the oneOf and anyOf branches of s.
+func unionBranches(s *openapi3.Schema) openapi3.SchemaRefs {
+	return slices.Concat(s.OneOf, s.AnyOf)
 }
 
 // optionalField returns f as an optional field: omitted when empty, and behind a

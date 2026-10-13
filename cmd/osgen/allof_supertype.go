@@ -137,19 +137,33 @@ func namesConcreteSchema(s *openapi3.Schema) bool {
 
 // declaresProperty reports whether the allOf chain rooted at ref declares
 // jsonName. Only $ref members and inline properties are followed, mirroring how
-// resolveAllOf and collectFields build the embedded field set.
+// resolveAllOf and collectFields build the embedded field set. visited is
+// walkAllOfChain's.
+func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visited set[string]) bool {
+	return w.walkAllOfChain(ref, "", visited, func(_ string, s *openapi3.Schema) bool {
+		_, ok := s.Properties[jsonName]
+		return ok
+	})
+}
+
+// walkAllOfChain calls visit on each schema in the allOf chain rooted at ref, a
+// schema before its members, and reports whether a visit returned true, which
+// stops the walk. The key passed to visit is the one a schema's inline types are
+// named under: a $ref schema's own key, otherwise the key of the schema it is
+// inlined in, starting from key. Only $ref and allOf edges are followed; a caller
+// merging union branches descends them itself.
 //
 // visited carries the $ref keys already on the current path. Without it a
 // mutually recursive allOf pair overflows the stack, since this walk has no
 // namesConcreteSchema-style stopping rule to halt the descent.
-func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visited set[string]) bool {
+func (w *walker) walkAllOfChain(ref *openapi3.SchemaRef, key string, visited set[string], visit func(key string, s *openapi3.Schema) bool) bool {
 	if ref == nil {
 		return false
 	}
 
 	s := ref.Value
 	if ref.Ref != "" {
-		key := refToSchemaKey(ref.Ref)
+		key = refToSchemaKey(ref.Ref)
 		target, ok := w.spec.Components.Schemas[key]
 		if !ok {
 			return false
@@ -165,11 +179,11 @@ func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visi
 		return false
 	}
 
-	if _, ok := s.Properties[jsonName]; ok {
+	if visit(key, s) {
 		return true
 	}
 	for _, sub := range s.AllOf {
-		if w.declaresProperty(sub, jsonName, visited) {
+		if w.walkAllOfChain(sub, key, visited, visit) {
 			return true
 		}
 	}

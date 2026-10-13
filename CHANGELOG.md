@@ -14,7 +14,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- `cmd/osgen`: emit the aggregation fields on `CommonAggregationsAggregationContainer`, which held only the embedded `CommonAggregationsAggregation`. When an `allOf` member is a `oneOf` or `anyOf`, the generator now merges the properties of every branch, following each branch's `allOf` chain, as optional fields. It used to merge only the member's own properties, and a union member has none ([#1190](https://github.com/opensearch-project/opensearch-go/issues/1190))
+- `cmd/osgen`: emit the aggregation fields on `CommonAggregationsAggregationContainer`, which held only the embedded `CommonAggregationsAggregation`. When an `allOf` member is a `oneOf` or `anyOf`, the generator now merges the properties of every branch, following each branch's `allOf` chain and any union nested in it, as optional fields. It used to merge only the member's own properties, and a union member has none. A named `allOf` that narrows a union whose branches declare no properties, such as `CommonAggregationsBucketsQueryContainer` in the `filters` aggregation, is now generated as that union, so its array branch holds `CommonQueryDSLQueryContainer` values. Generation fails when two merged branches declare one JSON name with different types ([#1190](https://github.com/opensearch-project/opensearch-go/issues/1190), [#1197](https://github.com/opensearch-project/opensearch-go/pull/1197))
 
 ### Security
 
