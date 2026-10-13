@@ -73,7 +73,7 @@ if err := client.DiscoverNodes(ctx); err != nil {
 }
 ```
 
-To take full control of when discovery runs, leave `DiscoverNodesInterval` at `0` (the default) and `DiscoverNodesOnStart` at `nil` or a pointer to `false`. This disables all automatic discovery -- the client will only discover nodes when the caller explicitly calls `client.DiscoverNodes(ctx)`.
+To take full control of when discovery runs, set `DiscoverNodesInterval` to a negative value and `DiscoverNodesOnStart` to a pointer to `false`. Leaving `DiscoverNodesInterval` at `0` does not turn the loop off when a router is in use: `0` selects the 30s default. With both set, the client discovers nodes only when the caller calls `client.DiscoverNodes(ctx)`.
 
 ## Node Roles
 

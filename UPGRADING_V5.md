@@ -73,13 +73,13 @@ For full usage and rationale see [`guides/config-envvars.md` Default router inje
 
 The previous "fire-and-forget" behavior masked discovery failures: a caller that handed control back after a failing discovery saw `err == nil` and continued against a stale node list. The new behavior surfaces the failure synchronously so callers can react (retry, alert, fall back to seed nodes).
 
-Client construction itself never blocks on discovery: when `Config.DiscoverNodesOnStart` is `new(true)`, `opensearch.NewClient` launches a detached goroutine that calls `DiscoverNodes()`, then returns. Callers who want fully manual control set `DiscoverNodesOnStart: new(false)` and `DiscoverNodesInterval: 0` -- no on-start goroutine, no polling loop -- and call `client.DiscoverNodes(ctx)` themselves before issuing requests:
+Client construction itself never blocks on discovery: when `Config.DiscoverNodesOnStart` is `new(true)`, `opensearch.NewClient` launches a detached goroutine that calls `DiscoverNodes()`, then returns. Callers who want fully manual control set `DiscoverNodesOnStart: new(false)` and a negative `DiscoverNodesInterval` -- no on-start goroutine, no polling loop -- and call `client.DiscoverNodes(ctx)` themselves before issuing requests:
 
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://localhost:9200"},
     DiscoverNodesOnStart:  new(false), // skip auto-discovery
-    DiscoverNodesInterval: 0,          // disable polling loop
+    DiscoverNodesInterval: -1,         // disable polling loop
 })
 if err != nil {
     log.Fatal(err)
@@ -712,3 +712,19 @@ if !p.Successful { ... }
 `opensearchapi.SearchCursor`, which holds a PIT ID and a sort position, encodes to and from JSON, so you can store it without handling the ID yourself.
 
 An empty `PITID` (the zero value) fails to encode, so a request that would send one, such as a delete or a search with `PIT.ID` unset, returns an `empty PITID` error without reaching the server. Decoding is unchanged: a response that omits `pit_id` decodes, and `IsSet` reports false.
+
+## `DiscoverNodesInterval` defaults to 30s with a router
+
+When a router is in use, which includes the default router v5 injects, `DiscoverNodesInterval: 0` now selects a 30s interval instead of turning periodic discovery off. Without that loop the client never learned about nodes added after startup, and a node flagged as having stale shard placement after a failed request stayed out of shard-aware routing until the process restarted, because only the loop refreshes `/_cat/shards`.
+
+Without a router (`OPENSEARCH_GO_ROUTER=false` and no `Config.Router`), `0` still means no periodic discovery.
+
+To keep discovery off with a router, use a negative value:
+
+```go
+// Before
+DiscoverNodesInterval: 0, // no periodic discovery
+
+// After
+DiscoverNodesInterval: -1, // no periodic discovery
+```
