@@ -6,23 +6,21 @@
 
 package opensearchapi
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
 
 // UnmarshalJSON decodes a [SnapshotShardFailure], accepting shard_id as either
-// a JSON number or a JSON string and storing both as the decimal string form.
+// a JSON integer or a JSON string and storing both as the decimal string form.
 //
-// The server writes shard_id as an integer: SnapshotShardFailure.toXContent
-// passes ShardId.id(), an int, to builder.field, and the server's own parser
-// reads it back with declareInt. The spec types it as a string, so the
-// generated ShardID field is a *string, and encoding/json refuses to decode a
-// JSON number into one. Snapshot responses therefore failed to decode in full
-// as soon as any snapshot carried a shard failure, which surfaced to callers
-// as "failed to json unmarshal body" on an HTTP 200.
-//
-// Decoding leniently keeps ShardID a *string, so the fix ships without the
-// breaking change a retype to *int32 would force. This method is a stopgap:
-// delete it once the fix for opensearch-api-specification#1263 reaches the
-// generator and ShardID is regenerated as an integer.
+// The server writes shard_id as an integer, but the spec types it as a string,
+// so the generated ShardID is a *string that encoding/json cannot decode a
+// number into. Decoding leniently keeps ShardID a *string and avoids the
+// breaking change a retype would force. This method is a stopgap: delete it
+// once the fix for opensearch-api-specification#1263 reaches the generator and
+// ShardID is regenerated as an integer.
 //
 // MarshalJSON is deliberately left alone. SnapshotShardFailure only ever
 // arrives in a response, so the asymmetry is never observable on the wire.
@@ -30,8 +28,7 @@ func (s *SnapshotShardFailure) UnmarshalJSON(data []byte) error {
 	// alias is a defined type, so it carries none of SnapshotShardFailure's
 	// methods and decoding it does not recurse back into this one. Embedding
 	// it decodes every other field by the normal rules, including fields the
-	// generator has yet to emit, instead of a hand-written field list that
-	// would silently drop them. The outer ShardID is the shallower of the two,
+	// generator has yet to emit. The outer ShardID is the shallower of the two,
 	// so encoding/json routes shard_id to it and never to the embedded field.
 	type alias SnapshotShardFailure
 	tmp := struct {
@@ -62,15 +59,18 @@ func (s *SnapshotShardFailure) UnmarshalJSON(data []byte) error {
 
 		return nil
 	default:
-		// json.Number accepts any JSON number and keeps its literal text, so
-		// an integer round-trips exactly. Anything else, an object, an array,
-		// or a bool, fails here rather than being coerced.
+		// json.Number rejects an object, an array, or a bool. ParseInt then
+		// rejects a fraction or an exponent, so only an integer is stored.
 		var shardID json.Number
 		if err := json.Unmarshal(raw, &shardID); err != nil {
 			return err
 		}
 
 		str := shardID.String()
+		if _, err := strconv.ParseInt(str, 10, 32); err != nil {
+			return fmt.Errorf("shard_id %q is not an integer: %w", str, err)
+		}
+
 		s.ShardID = &str
 
 		return nil
