@@ -20,7 +20,12 @@ ScriptBase/params # map
 # --- _common.aggregations ---
 CommonAggregationsAggregateBase/meta # map
 CommonAggregationsAggregation/meta # map
+CommonAggregationsAutoDateHistogramAggregationFields/params # map
+CommonAggregationsDateHistogramAggregationFields/params # map
+CommonAggregationsExtendedBounds/max # bare
+CommonAggregationsExtendedBounds/min # bare
 CommonAggregationsScriptedMetricAggregate/value # bare
+CommonAggregationsScriptedMetricAggregation/params # map
 
 # --- _common.mapping ---
 CommonMappingConstantKeywordProperty/value # bare
