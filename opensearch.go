@@ -123,7 +123,7 @@ type Config struct {
 	RetryOnStatus        []int // List of status codes for retry. Default: 502, 503, 504.
 	DisableRetry         bool  // Default: false.
 	EnableRetryOnTimeout bool  // Default: false.
-	MaxRetries           int   // Default: 3.
+	MaxRetries           int   // Default: 6.
 
 	// RequestTimeout sets a per-attempt timeout for each HTTP round-trip.
 	// When set, a context deadline is applied to each individual request attempt
@@ -185,8 +185,11 @@ type Config struct {
 	// as-is and suppresses the env-var inheritance. When Router is set
 	// programmatically the env var is ignored entirely; the caller is
 	// responsible for triggering discovery if desired.
-	DiscoverNodesOnStart  *bool
-	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
+	DiscoverNodesOnStart *bool
+	// DiscoverNodesInterval sets how often nodes are rediscovered.
+	// 0 = 30s when a Router is in use (including the default one), disabled
+	// otherwise; <0 = disabled; >0 = explicit interval.
+	DiscoverNodesInterval time.Duration
 
 	// VerifyDeadAfter is the duration a dead connection can be blindly
 	// resurrected for use as a zombie connection when no other healthy
@@ -201,9 +204,9 @@ type Config struct {
 	VerifyDeadAfter time.Duration
 
 	// Health check configuration
-	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 3s.
-	HealthCheckMaxRetries int           // Max retries for health checks. Default: 3. Set to -1 to disable health checks.
-	HealthCheckJitter     float64       // Jitter factor for health check timing (0.0-1.0). Default: 0.2.
+	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 5s.
+	HealthCheckMaxRetries int           // Max retries for health checks. Default: 6. Set to -1 to disable retries (one attempt).
+	HealthCheckJitter     float64       // Jitter factor for health check timing (0.0-1.0). Default: 0.1.
 
 	// Resurrection timeout configuration for dead connection recovery.
 	// These control how quickly the client retries dead nodes and how aggressively

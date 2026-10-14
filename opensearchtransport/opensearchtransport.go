@@ -65,6 +65,12 @@ const (
 	defaultHealthCheckTimeout    = 5 * time.Second
 	defaultRetryJitter           = 0.1
 	defaultMaxRetryClusterHealth = 4 * time.Hour
+
+	// defaultDiscoverNodesInterval keeps the discovery loop running by default.
+	// The loop is also the only thing that refreshes /_cat/shards, so without
+	// it a node flagged by a failed request stays out of shard-aware routing.
+	// 30s matches the node stats polling ceiling (defaultNodeStatsIntervalMax).
+	defaultDiscoverNodesInterval = 30 * time.Second
 )
 
 var (
@@ -241,6 +247,11 @@ type Config struct {
 	// and Debug returns an event backed by it for every client in the process.
 	DebugLogger debuglog.Logger
 
+	// DiscoverNodesInterval sets how often the client rediscovers nodes and
+	// refreshes shard placement (/_nodes and /_cat/shards).
+	// 0 = use default (30s when a Router is in use, disabled otherwise),
+	// >0 = explicit interval, <0 = disabled.
+	// Default: 30s with a Router
 	DiscoverNodesInterval time.Duration
 
 	// DiscoveryHealthCheckRetries sets the number of health check retries during node discovery.
@@ -1049,6 +1060,23 @@ func New(cfg Config) (*Transport, error) {
 		}
 	}
 
+	// DiscoverNodesInterval: 0 = default, <0 = disabled, >0 = explicit. The
+	// default is 30s with a router and disabled without one: nothing reads
+	// shard placement without a router, and periodic discovery would swap
+	// the seed URLs for node addresses that a client behind a load balancer
+	// may not reach. A resolved interval of 0 means the loop does not run.
+	var discoverNodesInterval time.Duration
+	switch {
+	case cfg.DiscoverNodesInterval < 0:
+		discoverNodesInterval = 0 // disabled
+	case cfg.DiscoverNodesInterval > 0:
+		discoverNodesInterval = cfg.DiscoverNodesInterval
+	case router != nil:
+		discoverNodesInterval = defaultDiscoverNodesInterval
+	default:
+		discoverNodesInterval = 0 // disabled: no router
+	}
+
 	client := Transport{
 		urls:     cfg.URLs,
 		username: cfg.Username,
@@ -1064,7 +1092,7 @@ func New(cfg Config) (*Transport, error) {
 		maxRetries:            cfg.MaxRetries,
 		retryBackoff:          cfg.RetryBackoff,
 		requestTimeout:        requestTimeout,
-		discoverNodesInterval: cfg.DiscoverNodesInterval,
+		discoverNodesInterval: discoverNodesInterval,
 		verifyDeadAfter:       verifyDeadAfter,
 
 		discoveryHealthCheckRetries: cfg.DiscoveryHealthCheckRetries,
@@ -1076,7 +1104,7 @@ func New(cfg Config) (*Transport, error) {
 		resurrectTimeoutMax:          resurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
 		minimumResurrectTimeout:      minimumResurrectTimeout,
-		rttRingSize:                  rttRingSizeFor(cfg.DiscoverNodesInterval, resurrectTimeoutInitial),
+		rttRingSize:                  rttRingSizeFor(discoverNodesInterval, resurrectTimeoutInitial),
 		jitterScale:                  jitterScale,
 		serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
 		clientsPerServer:             clientsPerServer,

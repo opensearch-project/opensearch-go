@@ -58,7 +58,7 @@ would do, because HTTP/2 multiplexes.
 Two consequences follow from using Request.Close. The connection is retired one request later than a
 socket close would retire it, because net/http sets the flag after the stream is assigned, so the request
 carrying it still rides the stale connection. With EnableRetryOnTimeout that lands inside the retry loop but
-spends a retry slot, so recovering within one call needs MaxRetries of at least 2 (the default is 3). And the
+spends a retry slot, so recovering within one call needs MaxRetries of at least 2 (the default is 6). And the
 mark is per node rather than per connection, so a node with several pooled connections may retire a healthy
 one, at the cost of a handshake.
 
