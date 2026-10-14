@@ -7,6 +7,7 @@
 package linter
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -110,6 +111,31 @@ func TestHopFieldDispositionsAgainstSurfaces(t *testing.T) {
 			require.Falsef(t, hasField(toSnap, d.ToPkgPath, d.ToType, d.FromField),
 				"hop v%d->v%d: field %s still exists on %s in v%d under its source name; not a rename",
 				h.From, h.To, d.FromField, d.ToType, h.To)
+		}
+	}
+}
+
+// TestHopClientFieldsClassified is the Client drift guard: for EVERY registered
+// hop, no field of a struct named Client is unclassified. A removed sub-client
+// field on the API client (client.IndexTemplate, ...) is read as a bare selector
+// whenever the call is not regrouped, and an unclassified field aborts the run
+// instead of landing on the MANUAL worklist.
+func TestHopClientFieldsClassified(t *testing.T) {
+	t.Parallel()
+
+	for from, h := range hops {
+		plans, err := planChain(from, h.To)
+		require.NoError(t, err)
+		require.Len(t, plans, 1)
+
+		for qualified, sd := range plans[0].delta.Structs {
+			if !strings.HasSuffix(qualified, ".Client") {
+				continue
+			}
+			for _, ch := range sd.Changes {
+				require.NotEqualf(t, apirev.KindUnclassified, ch.Kind,
+					"hop v%d->v%d: %q#%q is unclassified - add a FieldDisposition", h.From, h.To, qualified, ch.From)
+			}
 		}
 	}
 }

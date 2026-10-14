@@ -3,34 +3,6 @@
   "structs": [
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "ActionSuffixPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Suffix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Suffix"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "AliasPath",
-      "fields": [
-        {
-          "name": "Alias",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Alias"
-        },
-        {
-          "name": "Indices",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Indices"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
       "name": "CausedBy",
       "fields": [
         {
@@ -62,43 +34,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "ClusterStatePath",
-      "fields": [
-        {
-          "name": "Indices",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Indices"
-        },
-        {
-          "name": "Metrics",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Metrics"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "ClusterStatsPath",
-      "fields": [
-        {
-          "name": "NodeFilter",
-          "type": "github.com/opensearch-project/opensearch-go/v4.NodeFilter"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
       "name": "Config",
       "fields": [
         {
           "name": "ActiveListCap",
           "type": "int"
-        },
-        {
-          "name": "AddressResolver",
-          "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.AddressResolverFunc"
-        },
-        {
-          "name": "AddressResolverRunner",
-          "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.AddressResolverRunnerFunc"
         },
         {
           "name": "Addresses",
@@ -121,10 +61,6 @@
           "type": "context.Context"
         },
         {
-          "name": "DisableResponseBuffering",
-          "type": "bool"
-        },
-        {
           "name": "DisableRetry",
           "type": "bool"
         },
@@ -134,7 +70,7 @@
         },
         {
           "name": "DiscoverNodesOnStart",
-          "type": "bool"
+          "type": "*bool"
         },
         {
           "name": "EnableDebugLogger",
@@ -179,10 +115,6 @@
         {
           "name": "Logger",
           "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.Logger"
-        },
-        {
-          "name": "MaxAddressResolvers",
-          "type": "int"
         },
         {
           "name": "MaxRetries",
@@ -263,38 +195,10 @@
         {
           "name": "Username",
           "type": "string"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "DecommissionPath",
-      "fields": [
-        {
-          "name": "Attr",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Attr"
         },
         {
-          "name": "Value",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Value"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "DocumentPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "DocumentID",
-          "type": "github.com/opensearch-project/opensearch-go/v4.DocumentID"
-        },
-        {
-          "name": "Index",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
+          "name": "VerifyDeadAfter",
+          "type": "time.Duration"
         }
       ]
     },
@@ -347,76 +251,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "IndexActionPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Index",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "IndexPath",
-      "fields": [
-        {
-          "name": "Index",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "IndexTargetPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Index",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
-        },
-        {
-          "name": "Target",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "IndicesActionPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Indices",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Indices"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "IndicesBlockPath",
-      "fields": [
-        {
-          "name": "Block",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Block"
-        },
-        {
-          "name": "Indices",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Indices"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
       "name": "MessageError",
       "fields": [
         {
@@ -433,125 +267,8 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "NodesPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "IndexMetric",
-          "type": "github.com/opensearch-project/opensearch-go/v4.IndexMetric"
-        },
-        {
-          "name": "Metric",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Metric"
-        },
-        {
-          "name": "NodeID",
-          "type": "github.com/opensearch-project/opensearch-go/v4.NodeID"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "PluginIndexPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Indices",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Indices"
-        },
-        {
-          "name": "Plugin",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Plugin"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "PluginPolicyPath",
-      "fields": [
-        {
-          "name": "Plugin",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Plugin"
-        },
-        {
-          "name": "Policy",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Policy"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "PluginResourcePath",
-      "fields": [
-        {
-          "name": "Name",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Name"
-        },
-        {
-          "name": "Plugin",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Plugin"
-        },
-        {
-          "name": "Resource",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Resource"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "PrefixActionPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Prefix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Prefix"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "PrefixActionSuffixPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Prefix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Prefix"
-        },
-        {
-          "name": "Suffix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Suffix"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "PrefixSuffixActionPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Prefix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Prefix"
-        },
-        {
-          "name": "Suffix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Suffix"
-        }
-      ]
+      "name": "NoBody",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
@@ -571,38 +288,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "ResourceActionPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Name",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Name"
-        },
-        {
-          "name": "Prefix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Prefix"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "ResourcePath",
-      "fields": [
-        {
-          "name": "Name",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Name"
-        },
-        {
-          "name": "Prefix",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Prefix"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
       "name": "Response",
       "fields": [
         {
@@ -616,20 +301,6 @@
         {
           "name": "StatusCode",
           "type": "int"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "RolloverPath",
-      "fields": [
-        {
-          "name": "Alias",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Alias"
-        },
-        {
-          "name": "Index",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
         }
       ]
     },
@@ -656,56 +327,6 @@
           "name": "Type",
           "type": "string",
           "jsonTag": "type"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "SnapshotActionPath",
-      "fields": [
-        {
-          "name": "Action",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Action"
-        },
-        {
-          "name": "Repo",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Repo"
-        },
-        {
-          "name": "Snapshot",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Snapshot"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "SnapshotClonePath",
-      "fields": [
-        {
-          "name": "Repo",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Repo"
-        },
-        {
-          "name": "Snapshot",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Snapshot"
-        },
-        {
-          "name": "TargetSnapshot",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Snapshot"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "SnapshotPath",
-      "fields": [
-        {
-          "name": "Repo",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Repo"
-        },
-        {
-          "name": "Snapshot",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Snapshot"
         }
       ]
     },
@@ -738,20 +359,6 @@
           "name": "Status",
           "type": "int",
           "jsonTag": "status"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4",
-      "name": "TermvectorsPath",
-      "fields": [
-        {
-          "name": "DocumentID",
-          "type": "github.com/opensearch-project/opensearch-go/v4.DocumentID"
-        },
-        {
-          "name": "Index",
-          "type": "github.com/opensearch-project/opensearch-go/v4.Index"
         }
       ]
     },
@@ -5554,7 +5161,7 @@
         },
         {
           "name": "Templates",
-          "type": "[]string"
+          "type": "string"
         }
       ]
     },
@@ -8019,6 +7626,10 @@
         {
           "name": "Client",
           "type": "github.com/opensearch-project/opensearch-go/v4.Config"
+        },
+        {
+          "name": "Errors",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/errmask.ErrorMask"
         }
       ]
     },
@@ -8850,7 +8461,7 @@
         },
         {
           "name": "Failures",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/opensearchapi.BulkByScrollFailure",
           "jsonTag": "failures"
         },
         {
@@ -10135,7 +9746,7 @@
         },
         {
           "name": "IndexTemplates",
-          "type": "[]string"
+          "type": "string"
         },
         {
           "name": "Params",
@@ -11778,7 +11389,7 @@
         },
         {
           "name": "ExpandWildcards",
-          "type": "string"
+          "type": "any"
         },
         {
           "name": "FilterPath",
@@ -11807,7 +11418,7 @@
           "type": "net/http.Header"
         },
         {
-          "name": "Indices",
+          "name": "Index",
           "type": "[]string"
         },
         {
@@ -11822,7 +11433,7 @@
       "fields": [
         {
           "name": "Shards",
-          "type": "github.com/opensearch-project/opensearch-go/v4/opensearchapi.ResponseShards",
+          "type": "encoding/json.RawMessage",
           "jsonTag": "_shards"
         }
       ]
@@ -13882,6 +13493,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "MSearchErrors",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
       "name": "MSearchParams",
       "fields": [
         {
@@ -13982,6 +13598,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "MSearchTemplateErrors",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
       "name": "MSearchTemplateParams",
       "fields": [
         {
@@ -14062,7 +13683,7 @@
       "fields": [
         {
           "name": "Responses",
-          "type": "[]struct{Took int \"json:\\\"took\\\"\"; Timeout bool \"json:\\\"timed_out\\\"\"; Shards github.com/opensearch-project/opensearch-go/v4/opensearchapi.ResponseShards \"json:\\\"_shards\\\"\"; Hits struct{Total struct{Value int \"json:\\\"value\\\"\"; Relation string \"json:\\\"relation\\\"\"} \"json:\\\"total\\\"\"; MaxScore *float32 \"json:\\\"max_score\\\"\"; Hits []github.com/opensearch-project/opensearch-go/v4/opensearchapi.SearchHit \"json:\\\"hits\\\"\"} \"json:\\\"hits\\\"\"; Status int \"json:\\\"status\\\"\"}",
+          "type": "[]struct{Took int \"json:\\\"took\\\"\"; Timeout bool \"json:\\\"timed_out\\\"\"; Shards github.com/opensearch-project/opensearch-go/v4/opensearchapi.ResponseShards \"json:\\\"_shards\\\"\"; Hits struct{Total struct{Value int \"json:\\\"value\\\"\"; Relation string \"json:\\\"relation\\\"\"} \"json:\\\"total\\\"\"; MaxScore *float32 \"json:\\\"max_score\\\"\"; Hits []github.com/opensearch-project/opensearch-go/v4/opensearchapi.SearchHit \"json:\\\"hits\\\"\"} \"json:\\\"hits\\\"\"; Status int \"json:\\\"status\\\"\"; Error *github.com/opensearch-project/opensearch-go/v4/opensearchapi.DocumentError \"json:\\\"error,omitempty\\\"\"}",
           "jsonTag": "responses"
         },
         {
@@ -14373,6 +13994,38 @@
           "name": "Acknowledged",
           "type": "bool",
           "jsonTag": "acknowledged"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "MultiSearchItemError",
+      "fields": [
+        {
+          "name": "Items",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/opensearchapi.MultiSearchItemFailure"
+        },
+        {
+          "name": "SucceededCount",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "MultiSearchItemFailure",
+      "fields": [
+        {
+          "name": "Error",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/opensearchapi.DocumentError"
+        },
+        {
+          "name": "Index",
+          "type": "int"
+        },
+        {
+          "name": "Status",
+          "type": "int"
         }
       ]
     },
@@ -16211,6 +15864,38 @@
           "name": "NodesUsage",
           "type": "struct{Total int \"json:\\\"total\\\"\"; Successful int \"json:\\\"successful\\\"\"; Failed int \"json:\\\"failed\\\"\"; Failures []github.com/opensearch-project/opensearch-go/v4/opensearchapi.FailuresCause \"json:\\\"failures\\\"\"}",
           "jsonTag": "_nodes"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "PartialBulkError",
+      "fields": [
+        {
+          "name": "FailedItems",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/opensearchapi.BulkRespItem"
+        },
+        {
+          "name": "SucceededCount",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "PartialSearchError",
+      "fields": [
+        {
+          "name": "FailedShards",
+          "type": "int"
+        },
+        {
+          "name": "Failures",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/opensearchapi.ResponseShardsFailure"
+        },
+        {
+          "name": "TotalShards",
+          "type": "int"
         }
       ]
     },
@@ -18211,6 +17896,24 @@
           "name": "Acknowledged",
           "type": "bool",
           "jsonTag": "acknowledged"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+      "name": "ShardFailureError",
+      "fields": [
+        {
+          "name": "FailedShards",
+          "type": "int"
+        },
+        {
+          "name": "Operation",
+          "type": "string"
+        },
+        {
+          "name": "TotalShards",
+          "type": "int"
         }
       ]
     },
@@ -20375,7 +20078,7 @@
         },
         {
           "name": "Failures",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/opensearchapi.BulkByScrollFailure",
           "jsonTag": "failures"
         },
         {
@@ -20426,7 +20129,7 @@
         {
           "name": "Type",
           "type": "string",
-          "jsonTag": "_type"
+          "jsonTag": "_type,omitempty"
         },
         {
           "name": "Updated",
@@ -20654,36 +20357,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
-      "name": "AddressRewriteEvent",
-      "fields": [
-        {
-          "name": "ID",
-          "type": "string"
-        },
-        {
-          "name": "Name",
-          "type": "string"
-        },
-        {
-          "name": "OriginalURL",
-          "type": "string"
-        },
-        {
-          "name": "RewrittenURL",
-          "type": "string"
-        },
-        {
-          "name": "Roles",
-          "type": "[]string"
-        },
-        {
-          "name": "Timestamp",
-          "type": "time.Time"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
       "name": "BaseConnectionObserver",
       "fields": null
     },
@@ -20826,14 +20499,6 @@
           "type": "int"
         },
         {
-          "name": "AddressResolver",
-          "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.AddressResolverFunc"
-        },
-        {
-          "name": "AddressResolverRunner",
-          "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.AddressResolverRunnerFunc"
-        },
-        {
           "name": "CACert",
           "type": "[]byte"
         },
@@ -20848,10 +20513,6 @@
         {
           "name": "Context",
           "type": "context.Context"
-        },
-        {
-          "name": "DisableResponseBuffering",
-          "type": "bool"
         },
         {
           "name": "DisableRetry",
@@ -20916,10 +20577,6 @@
         {
           "name": "Logger",
           "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.Logger"
-        },
-        {
-          "name": "MaxAddressResolvers",
-          "type": "int"
         },
         {
           "name": "MaxRetries",
@@ -21024,6 +20681,10 @@
         {
           "name": "Username",
           "type": "string"
+        },
+        {
+          "name": "VerifyDeadAfter",
+          "type": "time.Duration"
         }
       ]
     },
@@ -21047,10 +20708,6 @@
         {
           "name": "Name",
           "type": "string"
-        },
-        {
-          "name": "Rewritten",
-          "type": "bool"
         },
         {
           "name": "Roles",
@@ -21347,21 +21004,6 @@
       "name": "Metrics",
       "fields": [
         {
-          "name": "AddressResolverCalls",
-          "type": "int",
-          "jsonTag": "address_resolver_calls"
-        },
-        {
-          "name": "AddressResolverErrors",
-          "type": "int",
-          "jsonTag": "address_resolver_errors"
-        },
-        {
-          "name": "AddressResolverRewrites",
-          "type": "int",
-          "jsonTag": "address_resolver_rewrites"
-        },
-        {
           "name": "ClusterHealthChecks",
           "type": "int",
           "jsonTag": "cluster_health_checks"
@@ -21483,36 +21125,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
-      "name": "NodeInfo",
-      "fields": [
-        {
-          "name": "Attributes",
-          "type": "map[string]any"
-        },
-        {
-          "name": "ID",
-          "type": "string"
-        },
-        {
-          "name": "Name",
-          "type": "string"
-        },
-        {
-          "name": "PublishAddress",
-          "type": "string"
-        },
-        {
-          "name": "Roles",
-          "type": "[]string"
-        },
-        {
-          "name": "URL",
-          "type": "*net/url.URL"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
       "name": "NodeStats",
       "fields": [
         {
@@ -21578,6 +21190,11 @@
           "jsonTag": "version"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
+      "name": "OperationClassifier",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
@@ -21652,20 +21269,6 @@
           "name": "WarmupSkips",
           "type": "int64",
           "jsonTag": "warmup_skips"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport",
-      "name": "ResolvedAddress",
-      "fields": [
-        {
-          "name": "Node",
-          "type": "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.NodeInfo"
-        },
-        {
-          "name": "URL",
-          "type": "*net/url.URL"
         }
       ]
     },
@@ -21858,10 +21461,6 @@
       "name": "ShardCostConfigError",
       "fields": [
         {
-          "name": "Detail",
-          "type": "string"
-        },
-        {
           "name": "Err",
           "type": "error"
         },
@@ -21870,7 +21469,7 @@
           "type": "string"
         },
         {
-          "name": "Reason",
+          "name": "Message",
           "type": "string"
         }
       ]

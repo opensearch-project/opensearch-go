@@ -117,12 +117,12 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// Captured before RewriteImports bumps the paths, so each unnamed import still
 	// resolves in pkg.Imports; the post-walk prune scans these for surviving uses.
 	sourceImports := sourceImportsOf(file, pkg, rules.importPrefixes)
-	var apiName, apiImportPath string
-	if isV2Hop {
-		apiName = idiom2ImportNames(file)
+	apiName := idiom2ImportNames(file)
+	var apiImportPath string
+	if len(rules.importPrefixes) > 0 {
 		apiImportPath = rules.importPrefixes[0][1] + "/opensearchapi"
 	}
-	var needImports []string // v3 import paths to inject after the walk
+	var needImports []string // target import paths to inject after the walk
 
 	astutil.Apply(file, func(c *astutil.Cursor) bool {
 		if isV2Hop {
@@ -138,7 +138,9 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 		}
 		switch n := c.Node().(type) {
 		case *ast.CallExpr:
-			res.edits = append(res.edits, rewriteCall(c, n, info, rules)...)
+			edits, imports := rewriteCall(c, n, info, rules, apiName, apiImportPath)
+			res.edits = append(res.edits, edits...)
+			needImports = append(needImports, imports...)
 		case *ast.CompositeLit:
 			edits, unclassified := rewriteCompositeLit(n, info, rules.delta, rules.renameByFrom)
 			res.edits = append(res.edits, edits...)
@@ -170,19 +172,22 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// above still saw the source paths.
 	res.edits = append(res.edits, RewriteImports(file, rules.importPrefixes)...)
 
-	// Inject imports the idiom-2 pass introduced (v3 opensearchapi for the reshaped
-	// Config/Req, fmt+net/http for the raw-response Status rewrite). Done after the
-	// walk and RewriteImports, like the import bump, so type resolution saw the
-	// original source.
+	// Inject imports the rewrites introduced: from the idiom-2 pass
+	// (opensearchapi for the reshaped Config/Req, fmt+net/http for the
+	// raw-response Status rewrite) and from regroupMethod's empty request. Done
+	// after the walk and RewriteImports, like the import bump, so type
+	// resolution saw the original source.
 	//
-	// Guard on the resolved import PATH, not astutil's own dedup: astutil matches
-	// on (name, path), so AddImport injecting an unnamed spec for a path the file
-	// already imports under an alias (osapi ".../opensearchapi", which RewriteImports
-	// just bumped to v3 in place) would NOT dedupe - it would add a second, unnamed,
-	// unused import and the output would fail with "imported and not used". The
+	// Guard on the resolved import PATH, not astutil's own dedup: astutil
+	// matches on (name, path), so AddImport injecting an unnamed spec for a
+	// path the file already imports under an alias (osapi
+	// ".../opensearchapi", which RewriteImports just bumped to the target major
+	// in place) would NOT dedupe - it would add a second, unnamed, unused
+	// import and the output would fail with "imported and not used". The
 	// synthetic nodes reference the file's existing alias (apiName, resolved by
-	// idiom2ImportNames from that same spec), so a path already imported under any
-	// name needs no injection at all; only a genuinely new path is added.
+	// idiom2ImportNames from that same spec, on any hop), so a path already
+	// imported under any name needs no injection at all; only a genuinely new
+	// path is added.
 	for _, p := range dedupe(needImports) {
 		if FileImportsPath(file, p) {
 			continue
@@ -387,10 +392,10 @@ func usesPkgIdent(node ast.Node, name string) bool {
 	return found
 }
 
-// idiom2ImportNames resolves the file's local import alias for the v3
-// opensearchapi package, falling back to the package's default name when
-// unaliased. Both v2 and v3 spellings of the opensearchapi path are accepted,
-// since the walk runs on v2-typed source before the import bump.
+// idiom2ImportNames resolves the file's local name for its opensearchapi
+// import on any hop, falling back to the package's default name when
+// unaliased. The walk runs on source-typed code before the import bump, so
+// every spelling isOpenSearchAPIPath accepts counts.
 func idiom2ImportNames(file *ast.File) string {
 	apiName := "opensearchapi"
 	for _, imp := range file.Imports {
@@ -758,11 +763,14 @@ func renameEmbeddedKey(key *ast.Ident, info *types.Info, renameByFrom map[string
 
 // rewriteCall handles call-site rules: removed opensearchapi helpers and client
 // method regrouping onto target sub-clients. It uses the cursor so it can
-// replace the whole call node (e.g. ToPointer(x) -> new(x)).
-func rewriteCall(c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules rewriteRules) []string {
+// replace the whole call node (e.g. ToPointer(x) -> new(x)). It also returns the
+// target import paths the rewrite needs (see regroupMethod).
+func rewriteCall(
+	c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules rewriteRules, apiName, apiImportPath string,
+) ([]string, []string) {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	// (a) Removed package-level helpers: opensearchapi.<Helper>(...), or the
@@ -777,19 +785,16 @@ func rewriteCall(c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules 
 				// &x does not.
 				if len(call.Args) == 1 {
 					c.Replace(&ast.CallExpr{Fun: ast.NewIdent("new"), Args: call.Args})
-					return []string{fmt.Sprintf("%s.%s(x) -> new(x)", pkgName, sel.Sel.Name)}
+					return []string{fmt.Sprintf("%s.%s(x) -> new(x)", pkgName, sel.Sel.Name)}, nil
 				}
 			case apirev.KindManual:
-				return []string{fmt.Sprintf("MANUAL %s.%s removed - replace by hand (no mechanical target equivalent)", pkgName, sel.Sel.Name)}
+				return []string{fmt.Sprintf("MANUAL %s.%s removed - replace by hand (no mechanical target equivalent)", pkgName, sel.Sel.Name)}, nil
 			}
 		}
 	}
 
 	// (b) client method regrouping.
-	if e := regroupMethod(call, sel, info, rules.regroups); e != "" {
-		return []string{e}
-	}
-	return nil
+	return regroupMethod(call, sel, info, rules, apiName, apiImportPath)
 }
 
 // isHelperPkgPath reports whether path is a package whose removed helpers
@@ -807,20 +812,31 @@ func isOpenSearchAPIPath(path string) bool {
 // the target (e.g. client.Indices.Count -> client.Count, client.Index ->
 // client.Doc.Index). It matches the trailing selector chain against a
 // methodRegroup.FromPath, rebuilds it as ToPath rooted at the same receiver, and
-// wraps the sole request arg in & when the target method takes a pointer.
-func regroupMethod(call *ast.CallExpr, sel *ast.SelectorExpr, info *types.Info, regroups []methodRegroup) string {
+// adjusts the sole request arg to the target signature (see argShape). It
+// returns the edit lines and the target import paths the rewrite needs.
+func regroupMethod(
+	call *ast.CallExpr, sel *ast.SelectorExpr, info *types.Info, rules rewriteRules, apiName, apiImportPath string,
+) ([]string, []string) {
 	chain, root := selectorChain(sel, info)
 	if root == nil {
-		return ""
+		return nil, nil
 	}
 
-	for _, rg := range regroups {
+	for _, rg := range rules.regroups {
 		if !slices.Equal(chain, rg.FromPath) {
 			continue
 		}
+		// The source request type, read from the method signature before call.Fun
+		// is replaced: it names the target type an empty request must take.
+		toReq := regroupRequestType(info.TypeOf(sel), rules.renameByFrom)
 		call.Fun = buildSelector(root, rg.ToPath)
-		if rg.PtrArg && len(call.Args) >= 1 {
-			last := len(call.Args) - 1
+
+		from, to := strings.Join(rg.FromPath, "."), strings.Join(rg.ToPath, ".")
+		edits := []string{fmt.Sprintf("call client.%s(...) -> client.%s(...)", from, to)}
+		var imports []string
+		switch last := len(call.Args) - 1; {
+		case last < 0:
+		case rg.Arg == argAddr:
 			// Only wrap if the argument is not ALREADY a pointer. This covers two
 			// cases without double-wrapping: an argument that was
 			// opensearchapi.ToPointer(x) (already rewritten, or typed *Req), and a
@@ -830,11 +846,54 @@ func regroupMethod(call *ast.CallExpr, sel *ast.SelectorExpr, info *types.Info, 
 			if _, isPtr := info.TypeOf(call.Args[last]).(*types.Pointer); !isPtr {
 				call.Args[last] = &ast.UnaryExpr{Op: token.AND, X: call.Args[last]}
 			}
+		case rg.Arg == argValue:
+			arg := call.Args[last]
+			if tv, ok := info.Types[arg]; ok && tv.IsNil() && toReq != "" {
+				// nil meant "empty request"; the target method takes the value.
+				call.Args[last] = &ast.CompositeLit{Type: &ast.SelectorExpr{X: ast.NewIdent(apiName), Sel: ast.NewIdent(toReq)}}
+				imports = append(imports, apiImportPath)
+			} else if u, ok := arg.(*ast.UnaryExpr); ok && u.Op == token.AND {
+				call.Args[last] = u.X
+			} else {
+				// A pointer variable or call may be nil, which the target has no value for.
+				call.Args[last] = regroupMarker(from, to, types.ExprString(arg))
+				edits = append(edits, fmt.Sprintf("MANUAL client.%s(...) -> client.%s(...): argument %q is a pointer "+
+					"but v5 takes %s by value; dereference it by hand (nil meant an empty request)",
+					from, to, types.ExprString(arg), toReq))
+			}
 		}
-		return fmt.Sprintf("call client.%s(...) -> client.%s(...)",
-			strings.Join(rg.FromPath, "."), strings.Join(rg.ToPath, "."))
+		return edits, imports
 	}
-	return ""
+	return nil, nil
+}
+
+// regroupRequestType returns the target name of the request type a regrouped
+// source method takes as its last parameter, following the hop's type renames.
+// sig is the source method's signature.
+func regroupRequestType(sig types.Type, renameByFrom map[string]apirev.TypeRename) string {
+	s, ok := sig.(*types.Signature)
+	if !ok || s.Params().Len() == 0 {
+		return ""
+	}
+	t := s.Params().At(s.Params().Len() - 1).Type()
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	named, ok := t.(*types.Named)
+	if !ok {
+		return ""
+	}
+	if r, ok := renameByFrom[named.Obj().Pkg().Path()+"."+named.Obj().Name()]; ok {
+		return r.ToName
+	}
+	return named.Obj().Name()
+}
+
+// regroupMarker builds the compile-breaking sentinel for a *Req argument that
+// the target wants by value, in the argument position so the build stops at the call.
+func regroupMarker(from, to, arg string) ast.Expr {
+	return &ast.Ident{Name: markerPrefix + " /* OSAPILINT v4->v5 MANUAL: " + arg + " may be nil -- migrate by hand: " +
+		"client." + from + " took a *Req, client." + to + " takes the Req by value; pass *" + arg + " once it is non-nil */"}
 }
 
 // selectorChain returns the method/sub-client name chain that hangs off the

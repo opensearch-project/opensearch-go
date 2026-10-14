@@ -289,10 +289,13 @@ func ToPointer[V any](value V) *V {
 // reference the removed type and exercise the cross-hop removed-type diagnostic,
 // and ToPointer and NewFromClient, v4 helpers removed in v5. The CAT responses,
 // SnapshotRestoreReq, SearchReq and SearchHit carry v4's real field types for
-// the fields the fixtures use, so a type change across the hop is visible.
+// the fields the fixtures use, so a type change across the hop is visible. The
+// IndexTemplate, Template and Script sub-clients mirror v4's argument shapes:
+// IndexTemplate.Get takes a nil-checked *Req, the others take a Req by value.
 package opensearchapi
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -304,9 +307,13 @@ type Config struct {
 	Client opensearch.Config
 }
 
-// Client is the v4 typed API client.
+// Client is the v4 typed API client. IndexTemplate, Template and Script are the
+// sub-clients v5 folds into Indices and the top level.
 type Client struct {
-	Client *opensearch.Client
+	Client        *opensearch.Client
+	IndexTemplate indexTemplateClient
+	Template      templateClient
+	Script        scriptClient
 }
 
 // NewClient builds a typed client from Config.
@@ -389,4 +396,85 @@ type BulkByScrollTaskStatus struct {
 // ToPointer matches v4's signature; v5 removes it in favor of new(value).
 func ToPointer[V any](value V) *V {
 	return &value
+}
+
+type indexTemplateClient struct{}
+
+// Create takes its request by value.
+func (indexTemplateClient) Create(ctx context.Context, req IndexTemplateCreateReq) (*IndexTemplateCreateResp, error) {
+	return &IndexTemplateCreateResp{}, nil
+}
+
+// Get takes a *Req and treats nil as an empty request.
+func (indexTemplateClient) Get(ctx context.Context, req *IndexTemplateGetReq) (*IndexTemplateGetResp, error) {
+	return &IndexTemplateGetResp{}, nil
+}
+
+type templateClient struct{}
+
+// Exists takes its request by value; v5 takes a pointer.
+func (templateClient) Exists(ctx context.Context, req TemplateExistsReq) (*http.Response, error) {
+	return &http.Response{}, nil
+}
+
+type scriptClient struct{}
+
+// Get takes its request by value.
+func (scriptClient) Get(ctx context.Context, req ScriptGetReq) (*ScriptGetResp, error) {
+	return &ScriptGetResp{}, nil
+}
+
+// IndexTemplateCreateReq: v5 renames IndexTemplate to Name.
+type IndexTemplateCreateReq struct {
+	IndexTemplate string
+	Body          io.Reader
+	Header        http.Header
+	Params        IndexTemplateCreateParams
+}
+
+// IndexTemplateCreateParams is v4's create params (contents irrelevant here).
+type IndexTemplateCreateParams struct{}
+
+// IndexTemplateCreateResp is v4's create response.
+type IndexTemplateCreateResp struct {
+	Acknowledged bool
+}
+
+// IndexTemplateGetReq: v5 renames IndexTemplates to Name.
+type IndexTemplateGetReq struct {
+	IndexTemplates string
+	Header         http.Header
+	Params         IndexTemplateGetParams
+}
+
+// IndexTemplateGetParams is v4's get params (contents irrelevant here).
+type IndexTemplateGetParams struct{}
+
+// IndexTemplateGetResp is v4's get response.
+type IndexTemplateGetResp struct {
+	Acknowledged bool
+}
+
+// TemplateExistsReq is v4's exists request.
+type TemplateExistsReq struct {
+	Header http.Header
+	Params TemplateExistsParams
+}
+
+// TemplateExistsParams is v4's exists params (contents irrelevant here).
+type TemplateExistsParams struct{}
+
+// ScriptGetReq: v5 renames ScriptID to ID.
+type ScriptGetReq struct {
+	ScriptID string
+	Header   http.Header
+	Params   ScriptGetParams
+}
+
+// ScriptGetParams is v4's get params (contents irrelevant here).
+type ScriptGetParams struct{}
+
+// ScriptGetResp is v4's get response.
+type ScriptGetResp struct {
+	Found bool
 }

@@ -99,6 +99,8 @@ A vanished field with no disposition fails the run with an `osapilint bug` error
 
 A field that keeps its name but becomes a pointer is classified from the surfaces and needs no table entry. If it now points to the same type, a composite-literal value gets `&` and any other value becomes `new(x)`. The exception is a constant whose own type differs from the field's, such as `Created: 1` on an `int64` field (`new(1)` is an `*int`), which is reported `MANUAL`. A raw `Body io.Reader` moves to `BodyReader` when the target has a typed `Body` and a `BodyReader io.Reader`. If the field now points to a different type (`int` -> `*int64`), the tool reports `MANUAL` wherever it is set or read, since even a read that still compiles can change behavior: printing a `*string` prints the pointer.
 
+A regrouped call can also change how the request is passed. When v5 takes a `*Req` where v4 took a `Req`, the argument gains `&`. When v5 takes a `Req` where v4 took a `*Req` (as on `client.IndexTemplate.Get`), `nil` becomes an empty request, `&Req{...}` and `&x` lose the `&`, and any other pointer expression is replaced with an `_OSAPILINT_RESOLVE` marker and reported `MANUAL`, because the pointer may be nil and v5 has no value for it. The empty request needs the v5 `opensearchapi` import, which the tool adds when the file has none.
+
 ### Source detection
 
 The major version is read from import paths (`.../opensearch-go/v4/...`), not `go.mod`: a partially migrated module may `require` both majors, and `go.mod` may name the target while call sites are still source-shaped. A module importing multiple majors migrates from the lowest; the rest are reported.

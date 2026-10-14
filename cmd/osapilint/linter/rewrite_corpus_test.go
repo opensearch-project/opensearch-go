@@ -104,17 +104,25 @@ func TestRewriteCorpus(t *testing.T) {
 			// Params value that became a pointer gains & (literal) or new(x) (any
 			// other value). retype: a field retyped to a pointer of another type is
 			// reported MANUAL where it is set or read and left in place; a constant
-			// moves into new(x) only when new(x) keeps the field's type.
+			// moves into new(x) only when new(x) keeps the field's type. templates:
+			// sub-client regroups per argument shape (a *Req that v5 takes by value
+			// loses its & or becomes an empty Req for nil, a Req that v5 takes by
+			// pointer gains &). templateimport: the empty Req adds the v5 import to a
+			// file that had none. templatemarker: a *Req variable gets a marker, and
+			// a bare sub-client read is reported MANUAL.
 			name:   "v4_to_v5",
 			src:    4,
 			dst:    5,
 			corpus: "v4",
 			// removedtype: import bumps, the removed-type ref stays put.
-			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "catresponses.go", "reqshapes.go", "retype.go"},
+			goldens: []string{
+				"removedtype.go", "topointer.go", "importprune.go", "catresponses.go", "reqshapes.go", "retype.go",
+				"templates.go", "templateimport.go", "templatemarker.go",
+			},
 			// topointer, importprune and reqshapes are marker-free and have no
 			// removed-type ref, so their goldens must be import-clean compiling v5.
 			// catresponses still needs record-field conversion and is not compile-clean.
-			compileClean: []string{"topointer.go", "importprune.go", "reqshapes.go"},
+			compileClean: []string{"topointer.go", "importprune.go", "reqshapes.go", "templates.go", "templateimport.go"},
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
 				"opensearchapi.ToPointer(x) -> new(x)",
@@ -134,6 +142,13 @@ func TestRewriteCorpus(t *testing.T) {
 				`opensearchapi.BulkByScrollTaskStatus": field Created is now *int64 - new(x) would not have that type`,
 				`opensearchapi.SearchHit": field Score - field type changed from "float32" to "*float64"`,
 				`opensearchapi.SearchHit": access .Score - field type changed from "float32" to "*float64"`,
+				"call client.IndexTemplate.Create(...) -> client.Indices.PutIndexTemplate(...)",
+				"call client.IndexTemplate.Get(...) -> client.Indices.GetIndexTemplate(...)",
+				"call client.Template.Exists(...) -> client.Indices.ExistsTemplate(...)",
+				"call client.Script.Get(...) -> client.GetScript(...)",
+				`MANUAL client.IndexTemplate.Get(...) -> client.Indices.GetIndexTemplate(...): argument "req" is a pointer ` +
+					`but v5 takes IndicesGetIndexTemplateReq by value`,
+				`opensearchapi.Client": access .IndexTemplate - removed in v5; call client.Indices.{PutIndexTemplate`,
 			},
 		},
 	}

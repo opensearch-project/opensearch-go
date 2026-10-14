@@ -323,3 +323,157 @@ func counts(n int64) opensearchapi.BulkByScrollTaskStatus {
 func score(h opensearchapi.SearchHit) float32 {
 	return h.Score
 }
+-- templates.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+
+	osapi "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// templates exercises the sub-client regroups, one per argument shape, through
+// an aliased import. Create takes a Req in both versions. Get took a *Req in v4
+// and takes a Req in v5: nil becomes an empty Req, &Req{...} and &x lose the &.
+// Template.Exists took a Req and takes a *Req. Script.Get regroups to the top
+// level. The Name and ID renames and the Params wrap apply inside the literals.
+func templates(ctx context.Context, c *osapi.Client) {
+	_, _ = c.IndexTemplate.Create(ctx, osapi.IndexTemplateCreateReq{IndexTemplate: "t", Params: osapi.IndexTemplateCreateParams{}})
+	_, _ = c.IndexTemplate.Get(ctx, nil)
+	_, _ = c.IndexTemplate.Get(ctx, &osapi.IndexTemplateGetReq{IndexTemplates: "t"})
+	req := osapi.IndexTemplateGetReq{}
+	_, _ = c.IndexTemplate.Get(ctx, &req)
+	_, _ = c.Template.Exists(ctx, osapi.TemplateExistsReq{})
+	_, _ = c.Script.Get(ctx, osapi.ScriptGetReq{ScriptID: "s"})
+}
+-- templateimport.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+// noImport passes nil to a *Req parameter in a file with no imports at all: the
+// empty Req it becomes needs the v5 import added.
+func noImport(h holder) {
+	_, _ = h.c.IndexTemplate.Get(h.ctx, nil)
+}
+-- templateclient.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// holder keeps the API client and context for files that import neither.
+type holder struct {
+	ctx context.Context
+	c   *opensearchapi.Client
+}
+-- templatemarker.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// templateMarker passes a *Req variable to a method that takes a Req in v5: the
+// variable may be nil, so the dereference is left to a human and a compile-time
+// marker plants the spot. The bare sub-client read has no mechanical target and
+// is reported MANUAL.
+func templateMarker(ctx context.Context, c *opensearchapi.Client, req *opensearchapi.IndexTemplateGetReq) {
+	_, _ = c.IndexTemplate.Get(ctx, req)
+	_ = c.IndexTemplate
+}
+-- templates.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+
+	osapi "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+)
+
+// templates exercises the sub-client regroups, one per argument shape, through
+// an aliased import. Create takes a Req in both versions. Get took a *Req in v4
+// and takes a Req in v5: nil becomes an empty Req, &Req{...} and &x lose the &.
+// Template.Exists took a Req and takes a *Req. Script.Get regroups to the top
+// level. The Name and ID renames and the Params wrap apply inside the literals.
+func templates(ctx context.Context, c *osapi.Client) {
+	_, _ = c.Indices.PutIndexTemplate(ctx, osapi.IndicesPutIndexTemplateReq{Name: "t", Params: &osapi.IndicesPutIndexTemplateParams{}})
+	_, _ = c.Indices.GetIndexTemplate(ctx, osapi.IndicesGetIndexTemplateReq{})
+	_, _ = c.Indices.GetIndexTemplate(ctx, osapi.IndicesGetIndexTemplateReq{Name: "t"})
+	req := osapi.IndicesGetIndexTemplateReq{}
+	_, _ = c.Indices.GetIndexTemplate(ctx, req)
+	_, _ = c.Indices.ExistsTemplate(ctx, &osapi.IndicesExistsTemplateReq{})
+	_, _ = c.GetScript(ctx, osapi.GetScriptReq{ID: "s"})
+}
+-- templatemarker.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+)
+
+// templateMarker passes a *Req variable to a method that takes a Req in v5: the
+// variable may be nil, so the dereference is left to a human and a compile-time
+// marker plants the spot. The bare sub-client read has no mechanical target and
+// is reported MANUAL.
+func templateMarker(ctx context.Context, c *opensearchapi.Client, req *opensearchapi.IndicesGetIndexTemplateReq) {
+	_, _ = c.Indices.GetIndexTemplate(ctx, _OSAPILINT_RESOLVE /* OSAPILINT v4->v5 MANUAL: req may be nil -- migrate by hand: client.IndexTemplate.Get took a *Req, client.Indices.GetIndexTemplate takes the Req by value; pass *req once it is non-nil */)
+	_ = c.IndexTemplate
+}
+-- templateimport.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// noImport passes nil to a *Req parameter in a file with no imports at all: the
+// empty Req it becomes needs the v5 import added.
+func noImport(h holder) {
+	_, _ = h.c.Indices.GetIndexTemplate(h.ctx, opensearchapi.IndicesGetIndexTemplateReq{})
+}
