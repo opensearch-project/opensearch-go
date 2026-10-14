@@ -86,7 +86,8 @@ func extractStruct(pkgPath, name string, st *types.Struct) Struct {
 }
 
 // flattenFields collects exported fields of st, promoting the exported fields of
-// embedded struct types (transitively). seen guards against cyclic embeddings.
+// embedded struct types (transitively), including types embedded through a type
+// alias. seen guards against cyclic embeddings.
 func flattenFields(st *types.Struct, seen map[string]bool) []Field {
 	var out []Field
 	for i := 0; i < st.NumFields(); i++ {
@@ -97,7 +98,7 @@ func flattenFields(st *types.Struct, seen map[string]bool) []Field {
 			if p, ok := et.(*types.Pointer); ok {
 				et = p.Elem()
 			}
-			named, ok := et.(*types.Named)
+			named, ok := types.Unalias(et).(*types.Named)
 			if !ok {
 				continue
 			}

@@ -7,7 +7,6 @@
 package linter
 
 import (
-	"cmp"
 	"slices"
 	"strings"
 
@@ -134,7 +133,10 @@ var hopV4toV5 = hop{
 		"errmask default flipped: Config.Errors == nil now reports every partial-failure category (v4 masked all).",
 		"opensearchapi.NewClient now injects a default Router when Config.Client.Router is nil - verify OPENSEARCH_GO_ROUTER expectations.",
 		"EnableMetrics removed: Metrics() no longer errors when disabled - drop any code that branched on that error.",
-		"Timeout/Pretty/Human/ErrorTrace moved into embedded TimeoutParams/DebugParams - restructure those assignments by hand.",
+		"Pretty/Human/ErrorTrace/FilterPath, cat H/V, Timeout, ClusterManagerTimeout and MasterTimeout " +
+			"moved into the embedded DebugParams/TimeoutParams - " +
+			"a selector (p.Pretty = x) still compiles, but below Go 1.27 a composite-literal key must move into " +
+			"DebugParams: opensearchapi.DebugParams{...} or TimeoutParams: opensearchapi.TimeoutParams{...}.",
 		"DocumentError -> ErrorRespBase: v5 nests the cause in ErrorRespBase.Error (an ErrorCause) with Status on the envelope; " +
 			"read Reason/Type/CausedBy/RootCause from .Error (Reason is now *string - nil-check) and rework per-error access by hand " +
 			"- see opensearchapi/UPGRADING_V4_TO_V5.md.",
@@ -275,7 +277,6 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 	}
 
 	out := make([]apirev.FieldDisposition, 0, len(renames)+len(manuals)+len(removals)+len(pluginClientManuals))
-	out = append(out, sharedParamDispositionsV4toV5()...)
 	for _, m := range pluginClientManuals {
 		out = append(out, apirev.FieldDisposition{
 			FromPkgPath: m.pkg, FromType: typeClient, FromField: m.field,
@@ -355,88 +356,6 @@ var pluginClientManuals = []struct{ pkg, field, note string }{
 		"removed in v5; call client.Tenant.{GetTenants,GetTenant,CreateTenant,PatchTenants,PatchTenant,DeleteTenant} instead",
 	},
 	{v4ism, "Policies", "removed in v5; call client.Policy.{GetPolicies,GetPolicy,PutPolicy,DeletePolicy} instead"},
-}
-
-// debugParamFields are the fields every v4 Params type in sharedParamGroups
-// carries and v5 moved into the embedded DebugParams.
-//
-//nolint:gochecknoglobals // immutable data table
-var debugParamFields = []string{"ErrorTrace", "FilterPath", "Human", "Pretty"}
-
-// sharedParamGroups lists the v4 Params types by the shared-param fields v5
-// moved into the embedded TimeoutParams/DebugParams. Each type name is a v4
-// type in the group's package; the fields vanish from its renamed v5 counterpart.
-// extra holds the timeout fields a group carries on top of debugParamFields.
-//
-//nolint:gochecknoglobals,goconst // immutable data table; OpenSearch param names repeat across rows
-var sharedParamGroups = []struct {
-	pkg   string // package of types; "" means v4api
-	extra []string
-	types []string
-}{
-	{
-		types: []string{
-			"DocumentGetParams", "IndicesCountParams", "ScrollGetParams", "DataStreamCreateParams",
-			"ScriptContextParams", "ScriptLanguageParams", "ScriptPainlessExecuteParams",
-		},
-	},
-	{
-		extra: []string{"Timeout"},
-		types: []string{"DocumentDeleteByQueryParams"},
-	},
-	{
-		extra: []string{"ClusterManagerTimeout"},
-		types: []string{"DataStreamGetParams", "DataStreamStatsParams"},
-	},
-	{
-		extra: []string{"ClusterManagerTimeout", "Timeout"},
-		types: []string{"DataStreamDeleteParams"},
-	},
-	{
-		extra: []string{"ClusterManagerTimeout", "MasterTimeout"},
-		types: []string{
-			"ComponentTemplateExistsParams", "ComponentTemplateGetParams", "IndexTemplateCreateParams",
-			"IndexTemplateExistsParams", "IndexTemplateGetParams", "IndexTemplateSimulateIndexParams",
-			"IndexTemplateSimulateParams", "ScriptGetParams", "TemplateCreateParams", "TemplateExistsParams",
-			"TemplateGetParams",
-		},
-	},
-	{
-		extra: []string{"ClusterManagerTimeout", "MasterTimeout", "Timeout"},
-		types: []string{
-			"ComponentTemplateCreateParams", "ComponentTemplateDeleteParams", "IndexTemplateDeleteParams",
-			"ScriptDeleteParams", "ScriptPutParams", "TemplateDeleteParams",
-		},
-	},
-	{pkg: v4ism, types: []string{"RefreshSearchAnalyzersParams"}},
-}
-
-// sharedParamDispositionsV4toV5 rules every shared param that moved into the
-// embedded TimeoutParams/DebugParams as MANUAL. The drift guard verifies each
-// field existed on the v4 type. The v5 params surface cannot confirm the move
-// (the committed surface omits fields promoted through the embedded type
-// aliases), so these rows are not renames.
-func sharedParamDispositionsV4toV5() []apirev.FieldDisposition {
-	var out []apirev.FieldDisposition
-	for _, g := range sharedParamGroups {
-		pkg := cmp.Or(g.pkg, v4api)
-		for _, typ := range g.types {
-			for _, f := range slices.Concat(debugParamFields, g.extra) {
-				embedded := "DebugParams"
-				switch f {
-				case "Timeout", "ClusterManagerTimeout", "MasterTimeout":
-					embedded = "TimeoutParams"
-				}
-				out = append(out, apirev.FieldDisposition{
-					FromPkgPath: pkg, FromType: typ, FromField: f,
-					Action: apirev.ActionManual,
-					Note: "moved into the embedded opensearchapi." + embedded + " in v5; a selector (p." + f +
-						" = x) still compiles, a composite-literal key must move into " + embedded + ": opensearchapi." + embedded + "{...}",
-				})
-			}
-		}
-	}
-	return out
 }
 
 // opFamilies pairs each v4 template, script and data stream op family with its

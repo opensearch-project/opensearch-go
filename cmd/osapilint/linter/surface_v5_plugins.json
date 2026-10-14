@@ -6,8 +6,60 @@
       "name": "AddPolicyParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
           "name": "Indices",
           "type": "[]string"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -63,8 +115,60 @@
       "name": "ChangePolicyParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
           "name": "Indices",
           "type": "[]string"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -132,7 +236,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "DeletePolicyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -206,7 +363,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "ExistsPolicyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -229,7 +439,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "ExplainPolicyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -267,7 +530,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "GetPoliciesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -302,7 +618,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "GetPolicyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -363,6 +732,34 @@
       "name": "PutPoliciesParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
           "name": "IfPrimaryTerm",
           "type": "*float64"
         },
@@ -371,8 +768,32 @@
           "type": "*int"
         },
         {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
           "name": "PolicyID",
           "type": "string"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -430,12 +851,64 @@
       "name": "PutPolicyParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
           "name": "IfPrimaryTerm",
           "type": "*float64"
         },
         {
           "name": "IfSeqNo",
           "type": "*int"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -495,7 +968,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "RefreshSearchAnalyzersParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -536,8 +1062,60 @@
       "name": "RemovePolicyParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
           "name": "Indices",
           "type": "[]string"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -585,8 +1163,60 @@
       "name": "RetryIndexParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
           "name": "Indices",
           "type": "[]string"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -659,6 +1289,58 @@
         {
           "name": "AuthType",
           "type": "string"
+        },
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         },
         {
           "name": "Verbose",
@@ -759,7 +1441,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "AuthtokenParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -799,7 +1534,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ChangePasswordParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -904,7 +1692,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ConfigUpgradeCheckParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -944,7 +1785,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ConfigUpgradePerformParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -992,7 +1886,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateActionGroupParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1039,7 +1986,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateAllowlistParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1082,7 +2082,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateRoleMappingParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1129,7 +2182,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateRoleParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1176,7 +2282,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateTenantParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1223,7 +2382,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateUpdateTenancyConfigParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1276,7 +2488,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateUserLegacyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1323,7 +2588,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CreateUserParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1375,7 +2693,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteActionGroupParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1414,7 +2785,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteDistinguishedNameParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1453,7 +2877,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteRoleMappingParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1492,7 +2969,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteRoleParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1531,7 +3061,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteTenantParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1570,7 +3153,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteUserLegacyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1609,7 +3245,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DeleteUserParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1653,7 +3342,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "FlushCacheParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1688,7 +3430,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GenerateOboTokenParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1736,7 +3531,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GenerateUserTokenLegacyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1764,7 +3612,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GenerateUserTokenParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1803,7 +3704,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetAccountDetailsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1873,7 +3827,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetActionGroupParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1907,7 +3914,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetActionGroupsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -1941,6 +4001,58 @@
         {
           "name": "CertType",
           "type": "string"
+        },
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -1982,7 +4094,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetAllowlistParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2017,7 +4182,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetAuditConfigurationParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2052,7 +4270,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetCertificatesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2087,7 +4358,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetConfigurationParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2117,7 +4441,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetDashboardsInfoParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2199,8 +4576,60 @@
       "name": "GetDistinguishedNameParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
           "name": "ShowAll",
           "type": "*bool"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -2238,8 +4667,60 @@
       "name": "GetDistinguishedNamesParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
           "name": "ShowAll",
           "type": "*bool"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -2275,6 +4756,58 @@
         {
           "name": "CertType",
           "type": "string"
+        },
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -2320,7 +4853,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetPermissionsInfoParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2365,7 +4951,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetRoleMappingParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2399,7 +5038,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetRoleMappingsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2429,7 +5121,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetRoleParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2463,7 +5208,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetRolesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2495,8 +5293,60 @@
       "name": "GetSslinfoParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
           "name": "ShowDN",
           "type": "string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -2598,7 +5448,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetTenancyConfigParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2643,7 +5546,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetTenantParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2677,7 +5633,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetTenantsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2707,7 +5716,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetUserLegacyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2741,7 +5803,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetUserParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2775,7 +5890,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetUsersLegacyParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2805,7 +5973,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "GetUsersParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2837,8 +6058,60 @@
       "name": "HealthParams",
       "fields": [
         {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
           "name": "Mode",
           "type": "string"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -2885,7 +6158,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "MigrateParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2920,7 +6246,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchActionGroupParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -2963,7 +6342,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchActionGroupsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3002,7 +6434,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchAllowlistParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3041,7 +6526,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchAuditConfigurationParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3080,7 +6618,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchConfigurationParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3119,7 +6710,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchDistinguishedNameParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3162,7 +6806,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchDistinguishedNamesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3201,7 +6898,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchRoleMappingParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3244,7 +6994,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchRoleMappingsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3283,7 +7086,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchRoleParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3326,7 +7182,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchRolesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3365,7 +7274,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchTenantParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3408,7 +7370,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchTenantsParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3447,7 +7462,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchUserParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3490,7 +7558,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PatchUsersParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3529,7 +7650,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "PostDashboardsInfoParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3609,7 +7783,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ReloadHTTPCertificatesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3644,7 +7871,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ReloadTransportCertificatesParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3699,7 +7979,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "TenantInfoParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3729,7 +8062,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "UpdateAuditConfigurationParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3772,7 +8158,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "UpdateConfigurationParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3815,7 +8254,60 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "UpdateDistinguishedNameParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
@@ -3876,6 +8368,58 @@
         {
           "name": "AcceptInvalid",
           "type": "*bool"
+        },
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
         }
       ]
     },
@@ -3912,12 +8456,118 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "WhoAmIParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "WhoAmIProtectedParams",
-      "fields": null
+      "fields": [
+        {
+          "name": "ClusterManagerTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Format",
+          "type": "string"
+        },
+        {
+          "name": "H",
+          "type": "[]string"
+        },
+        {
+          "name": "Help",
+          "type": "bool"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "MasterTimeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        },
+        {
+          "name": "S",
+          "type": "[]string"
+        },
+        {
+          "name": "Source",
+          "type": "string"
+        },
+        {
+          "name": "Timeout",
+          "type": "time.Duration"
+        },
+        {
+          "name": "V",
+          "type": "bool"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",

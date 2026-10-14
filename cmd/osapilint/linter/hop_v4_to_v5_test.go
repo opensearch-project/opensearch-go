@@ -7,6 +7,7 @@
 package linter
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -188,11 +189,12 @@ func TestHopV4toV5_SnapshotInfoRenames(t *testing.T) {
 // TestHopV4toV5_ParamsRenames pins the Params types renamed alongside their Req
 // types, the Query -> Q field renames proven by the v4 `params["q"]` assembly,
 // and the shared params v5 moved into the embedded TimeoutParams/DebugParams,
-// which are reported manual.
+// which are promoted fields on v5 and so carry no change.
 func TestHopV4toV5_ParamsRenames(t *testing.T) {
 	t.Parallel()
 
-	d := planV4toV5(t).delta
+	p := planV4toV5(t)
+	d := p.delta
 
 	renames := []struct{ from, to string }{
 		{"DocumentGetParams", "GetParams"},
@@ -201,7 +203,10 @@ func TestHopV4toV5_ParamsRenames(t *testing.T) {
 		{"ScrollGetParams", "ScrollParams"},
 	}
 	for _, r := range renames {
-		require.Equalf(t, v5api+"."+r.to, d.Structs[v4api+"."+r.from].To, "%q should map to %q", r.from, r.to)
+		require.Containsf(t, p.renames,
+			apirev.TypeRename{FromPkgPath: v4api, FromName: r.from, ToPkgPath: v5api, ToName: r.to},
+			"%q should map to %q", r.from, r.to)
+		require.Falsef(t, d.RemovedTypes[v4api+"."+r.from], "%q should be renamed, not removed", r.from)
 	}
 
 	assertChange(t, d.Structs[v4api+".DocumentDeleteByQueryParams"].Changes,
@@ -209,19 +214,27 @@ func TestHopV4toV5_ParamsRenames(t *testing.T) {
 	assertChange(t, d.Structs[v4api+".IndicesCountParams"].Changes,
 		apirev.FieldChange{Kind: apirev.KindRename, From: "Query", To: "Q", NewType: "string"})
 
-	manual := []struct{ typ, field string }{
-		{"DocumentGetParams", "Pretty"},
-		{"ScrollGetParams", "ErrorTrace"},
-		{"DocumentDeleteByQueryParams", "Timeout"},
+	promoted := []struct{ typ, v5typ, field string }{
+		{"DocumentGetParams", "GetParams", "Pretty"},
+		{"ScrollGetParams", "ScrollParams", "ErrorTrace"},
+		{"DocumentDeleteByQueryParams", "DeleteByQueryParams", "Timeout"},
+		{"SearchParams", "SearchParams", "Pretty"},
 	}
-	for _, m := range manual {
-		assertChangeKind(t, d.Structs[v4api+"."+m.typ].Changes, m.field, apirev.KindManual)
+	for _, m := range promoted {
+		fields, ok := LookupStruct(5, v5api, m.v5typ)
+		require.Truef(t, ok, "%q not in the v5 surface", m.v5typ)
+		require.Truef(t, slices.ContainsFunc(fields, func(f SurfaceField) bool { return f.Name == m.field }),
+			"%q should be promoted onto v5 %q", m.field, m.v5typ)
+		for _, c := range d.Structs[v4api+"."+m.typ].Changes {
+			require.NotEqualf(t, m.field, c.From, "%q is a promoted field on v5 and should carry no change, got %+v",
+				m.typ+"."+m.field, c)
+		}
 	}
 }
 
 // TestHopV4toV5_OpFamilyTypes pins the template, script and data stream op
 // families: the types are renamed (not reported removed), the identifier fields
-// become Name/ID, and the shared params and the params v5 dropped are manual.
+// become Name/ID, and the params v5 dropped are manual.
 func TestHopV4toV5_OpFamilyTypes(t *testing.T) {
 	t.Parallel()
 
@@ -259,9 +272,6 @@ func TestHopV4toV5_OpFamilyTypes(t *testing.T) {
 		{"DataStreamDeleteReq", "DataStream", apirev.KindManual},
 		{"IndexTemplateSimulateIndexParams", "Cause", apirev.KindManual},
 		{"IndexTemplateSimulateIndexParams", "Create", apirev.KindManual},
-		{"DataStreamDeleteParams", "ClusterManagerTimeout", apirev.KindManual},
-		{"TemplateDeleteParams", "MasterTimeout", apirev.KindManual},
-		{"ScriptPainlessExecuteParams", "Pretty", apirev.KindManual},
 	}
 	for _, tt := range tests {
 		t.Run(tt.typ+"#"+tt.field, func(t *testing.T) {
@@ -309,8 +319,8 @@ func TestHopV4toV5_PluginRemovedTypes(t *testing.T) {
 	}
 }
 
-// TestHopV4toV5_PluginManualFields pins the plugin Client sub-client fields and
-// the shared RefreshSearchAnalyzers params as manual.
+// TestHopV4toV5_PluginManualFields pins the plugin Client sub-client fields as
+// manual.
 func TestHopV4toV5_PluginManualFields(t *testing.T) {
 	t.Parallel()
 
@@ -326,7 +336,6 @@ func TestHopV4toV5_PluginManualFields(t *testing.T) {
 			"SecurityConfig", "SSL", "Tenants",
 		}},
 		{v4ism, typeClient, []string{"Policies"}},
-		{v4ism, "RefreshSearchAnalyzersParams", debugParamFields},
 	}
 	for _, tt := range tests {
 		for _, field := range tt.fields {
