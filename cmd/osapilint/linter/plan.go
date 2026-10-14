@@ -82,7 +82,8 @@ func planChain(src, dst major) ([]hopPlan, error) {
 	return plans, nil
 }
 
-// decodeSurface decodes the embedded exported-struct surface for a version.
+// decodeSurface decodes the embedded exported-struct surface for a version,
+// including its plugin companion when the version has one.
 func decodeSurface(m major) (*apirev.Snapshot, error) {
 	data, ok := surfaces[m]
 	if !ok {
@@ -91,6 +92,13 @@ func decodeSurface(m major) (*apirev.Snapshot, error) {
 	var s apirev.Snapshot
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("decode surface v%d: %w", m, err)
+	}
+	if pdata, ok := pluginSurfaces[m]; ok {
+		var ps apirev.Snapshot
+		if err := json.Unmarshal(pdata, &ps); err != nil {
+			return nil, fmt.Errorf("decode plugin surface v%d: %w", m, err)
+		}
+		s.Structs = append(s.Structs, ps.Structs...)
 	}
 	return &s, nil
 }

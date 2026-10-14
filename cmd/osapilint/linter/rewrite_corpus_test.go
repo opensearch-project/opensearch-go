@@ -109,7 +109,8 @@ func TestRewriteCorpus(t *testing.T) {
 			// loses its & or becomes an empty Req for nil, a Req that v5 takes by
 			// pointer gains &). templateimport: the empty Req adds the v5 import to a
 			// file that had none. templatemarker: a *Req variable gets a marker, and
-			// a bare sub-client read is reported MANUAL.
+			// a bare sub-client read is reported MANUAL. plugins: the removed plugin
+			// Config types and the regrouped plugin Client fields are reported MANUAL.
 			name:   "v4_to_v5",
 			src:    4,
 			dst:    5,
@@ -149,6 +150,10 @@ func TestRewriteCorpus(t *testing.T) {
 				`MANUAL client.IndexTemplate.Get(...) -> client.Indices.GetIndexTemplate(...): argument "req" is a pointer ` +
 					`but v5 takes IndicesGetIndexTemplateReq by value`,
 				`opensearchapi.Client": access .IndexTemplate - removed in v5; call client.Indices.{PutIndexTemplate`,
+				`MANUAL "` + v4security + `.Config" removed`,
+				`plugins/security.Client": access .Roles`,
+				`MANUAL "` + v4ism + `.Config" removed`,
+				`plugins/ism.Client": access .Policies`,
 			},
 		},
 	}

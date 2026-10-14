@@ -39,6 +39,15 @@ var surfaces = map[major][]byte{
 	5: surfaceV5JSON,
 }
 
+// pluginSurfaces holds the embedded plugin-package struct surface for the majors
+// that have one. decodeSurface appends it to the version's surface.
+//
+//nolint:gochecknoglobals // const-ish surface registry, immutable after init
+var pluginSurfaces = map[major][]byte{
+	4: surfaceV4PluginsJSON,
+	5: surfaceV5PluginsJSON,
+}
+
 // methodRegroup rewrites a source client call path to its target sub-client
 // path. Match is on the resolved method selector; the linter confirms the
 // receiver is an opensearchapi client type before rewriting. A same-path entry

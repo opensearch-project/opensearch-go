@@ -275,6 +275,49 @@ Index-template and data-stream operations are reached through `client.Indices` (
 
 Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/README.md) as independent packages that share the same `opensearch.Client` transport.
 
+### Security and ISM plugin clients
+
+The v4 `plugins/security` and `plugins/ism` clients took a plugin `Config` and returned an error. In v5 they wrap an existing `*opensearch.Client` and return only the plugin client:
+
+```go
+// v4
+sec, err := security.NewClient(security.Config{Client: opensearch.Config{Addresses: addrs}})
+
+// v5
+base, err := opensearch.NewClient(opensearch.Config{Addresses: addrs})
+sec := security.NewClient(base)
+```
+
+The sub-clients are regrouped, and the request and response types are renamed after the v5 method (for example `RolesGetReq` becomes `GetRolesReq` or `GetRoleReq`). Every v5 method returns a pointer response (`*GetRolesResp`); v4 returned the response by value. The v5 methods take their `Req` by value or by pointer according to their own signatures, and the "Request" column lists where that differs from v4. Every v5 sub-client method named below is also available directly on the root plugin client.
+
+`security`:
+
+| v4 / earlier | v5 | Request (v4 to v5) |
+| --- | --- | --- |
+| `client.Account.Get`, `client.Account.Put` | `client.GetAccountDetails`, `client.ChangePassword` | `Put`: value to `*ChangePasswordReq` |
+| `client.ActionGroups.{Get,Put,Patch,Delete}` | `client.ActionGroup.{GetActionGroups,CreateActionGroup,PatchActionGroups,DeleteActionGroup}` | `Get` by name: `*Req` to `GetActionGroupReq` value; `Patch` without a name: value to `*PatchActionGroupsReq` |
+| `client.Audit.{Get,Put,Patch}` | `client.AuditConfiguration.{GetAuditConfiguration,UpdateAuditConfiguration,PatchAuditConfiguration}` | `Put`, `Patch`: value to pointer |
+| `client.InternalUsers.{Get,Put,Patch,Delete}` | `client.User.{GetUsers,CreateUser,PatchUsers,DeleteUser}` | `Get` by name: `*Req` to `GetUserReq` value; `Patch` without a name: value to `*PatchUsersReq` |
+| `client.NodesDN.{Get,Put,Patch,Delete}` | `client.DistinguishedName.{GetDistinguishedNames,UpdateDistinguishedName,PatchDistinguishedNames,DeleteDistinguishedName}` | `Get` by name: `*Req` to `GetDistinguishedNameReq` value; `Patch` without a name: value to `*PatchDistinguishedNamesReq` |
+| `client.Roles.{Get,Put,Patch,Delete}` | `client.Role.{GetRoles,CreateRole,PatchRoles,DeleteRole}` | `Get` by name: `*Req` to `GetRoleReq` value; `Patch` without a name: value to `*PatchRolesReq` |
+| `client.RolesMapping.{Get,Put,Patch,Delete}` | `client.RoleMapping.{GetRoleMappings,CreateRoleMapping,PatchRoleMappings,DeleteRoleMapping}` | `Get` by name: `*Req` to `GetRoleMappingReq` value; `Patch` without a name: value to `*PatchRoleMappingsReq` |
+| `client.SecurityConfig.{Get,Put,Patch}` | `client.Configuration.{GetConfiguration,UpdateConfiguration,PatchConfiguration}` | `Put`, `Patch`: value to pointer |
+| `client.SSL.Get`, `client.SSL.HTTPReload`, `client.SSL.TransportReload` | `client.Certificate.GetCertificates`, `client.ReloadHTTPCertificates`, `client.ReloadTransportCertificates` | unchanged (pointer) |
+| `client.Tenants.{Get,Put,Patch,Delete}` | `client.Tenant.{GetTenants,CreateTenant,PatchTenants,DeleteTenant}` | `Get` by name: `*Req` to `GetTenantReq` value; `Patch` without a name: value to `*PatchTenantsReq` |
+| `client.FlushCache`, `client.Health` | same names | unchanged (pointer); the response is now `*FlushCacheResp` / `*HealthResp` |
+
+A v4 `Get` or `Patch` call with a name maps to the singular v5 method (`GetRole`, `PatchRole`, `GetUser`, `PatchUser`, and so on); with an empty name it maps to the plural one shown above.
+
+`ism`:
+
+| v4 / earlier                                                                     | v5                                                                                                            | Request (v4 to v5)                                                                       |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `client.Add`, `client.Change`, `client.Explain`, `client.Remove`, `client.Retry` | `client.AddPolicy`, `client.ChangePolicy`, `client.ExplainPolicy`, `client.RemovePolicy`, `client.RetryIndex` | `Explain` unchanged (pointer); the other four: value to pointer                          |
+| `client.Policies.{Get,Put,Delete}`                                               | `client.Policy.{GetPolicies,PutPolicy,DeletePolicy}`                                                          | `Get` by name: `*Req` to `GetPolicyReq` value; `Put`, `Delete` unchanged (value)         |
+| `client.RefreshSearchAnalyzers(ctx, req)`                                        | `client.RefreshSearchAnalyzers(ctx, &req)`                                                                    | value to `*RefreshSearchAnalyzersReq`; the response is now `*RefreshSearchAnalyzersResp` |
+
+`osapilint` reports the removed plugin `Config` types and the regrouped `Client` fields as `MANUAL` items and leaves the plugin calls in place.
+
 ## Quick checklist
 
 - Update import paths from `/v4` to `/v5`.

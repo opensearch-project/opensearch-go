@@ -7,6 +7,7 @@
 package linter
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 
@@ -41,6 +42,9 @@ const (
 
 	v4root      = "github.com/opensearch-project/opensearch-go/v4"
 	v4transport = "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+
+	v4security = "github.com/opensearch-project/opensearch-go/v4/plugins/security"
+	v4ism      = "github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 )
 
 // hopV4toV5 is the complete v4 -> v5 transition, registered in hops (see
@@ -134,6 +138,8 @@ var hopV4toV5 = hop{
 		"DocumentError -> ErrorRespBase: v5 nests the cause in ErrorRespBase.Error (an ErrorCause) with Status on the envelope; " +
 			"read Reason/Type/CausedBy/RootCause from .Error (Reason is now *string - nil-check) and rework per-error access by hand " +
 			"- see opensearchapi/UPGRADING_V4_TO_V5.md.",
+		"plugins/security and plugins/ism NewClient(Config) became NewClient(*opensearch.Client) and returns only *Client; " +
+			"the sub-clients are regrouped - see opensearchapi/UPGRADING_V4_TO_V5.md (Plugins).",
 	},
 }
 
@@ -268,8 +274,14 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		toName[r.FromName] = r.ToName
 	}
 
-	out := make([]apirev.FieldDisposition, 0, len(renames)+len(manuals)+len(removals))
+	out := make([]apirev.FieldDisposition, 0, len(renames)+len(manuals)+len(removals)+len(pluginClientManuals))
 	out = append(out, sharedParamDispositionsV4toV5()...)
+	for _, m := range pluginClientManuals {
+		out = append(out, apirev.FieldDisposition{
+			FromPkgPath: m.pkg, FromType: typeClient, FromField: m.field,
+			Action: apirev.ActionManual, Note: m.note,
+		})
+	}
 	for _, m := range manuals {
 		out = append(out, apirev.FieldDisposition{
 			FromPkgPath: v4api, FromType: m.typ, FromField: m.field,
@@ -299,6 +311,52 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 	return out
 }
 
+// pluginClientManuals rules the v4 plugin Client sub-client fields as MANUAL: v5
+// regroups the sub-clients under new names, so a bare reference has no
+// mechanical target and plugin calls are not regrouped.
+//
+//nolint:gochecknoglobals // immutable data table
+var pluginClientManuals = []struct{ pkg, field, note string }{
+	{v4security, "Account", "removed in v5; call client.GetAccountDetails or client.ChangePassword instead"},
+	{
+		v4security, "ActionGroups",
+		"removed in v5; call client.ActionGroup.{GetActionGroups,GetActionGroup,CreateActionGroup," +
+			"PatchActionGroups,PatchActionGroup,DeleteActionGroup} instead",
+	},
+	{
+		v4security, "Audit",
+		"removed in v5; call client.AuditConfiguration.{GetAuditConfiguration,UpdateAuditConfiguration,PatchAuditConfiguration} instead",
+	},
+	{
+		v4security, "InternalUsers",
+		"removed in v5; call client.User.{GetUsers,GetUser,CreateUser,PatchUsers,PatchUser,DeleteUser} instead",
+	},
+	{
+		v4security, "NodesDN",
+		"removed in v5; call client.DistinguishedName.{GetDistinguishedNames,GetDistinguishedName,UpdateDistinguishedName," +
+			"PatchDistinguishedNames,PatchDistinguishedName,DeleteDistinguishedName} instead",
+	},
+	{v4security, "Roles", "removed in v5; call client.Role.{GetRoles,GetRole,CreateRole,PatchRoles,PatchRole,DeleteRole} instead"},
+	{
+		v4security, "RolesMapping",
+		"removed in v5; call client.RoleMapping.{GetRoleMappings,GetRoleMapping,CreateRoleMapping,PatchRoleMappings," +
+			"PatchRoleMapping,DeleteRoleMapping} instead",
+	},
+	{
+		v4security, "SecurityConfig",
+		"removed in v5; call client.Configuration.{GetConfiguration,UpdateConfiguration,PatchConfiguration} instead",
+	},
+	{
+		v4security, "SSL",
+		"removed in v5; call client.Certificate.GetCertificates, client.ReloadHTTPCertificates or client.ReloadTransportCertificates instead",
+	},
+	{
+		v4security, "Tenants",
+		"removed in v5; call client.Tenant.{GetTenants,GetTenant,CreateTenant,PatchTenants,PatchTenant,DeleteTenant} instead",
+	},
+	{v4ism, "Policies", "removed in v5; call client.Policy.{GetPolicies,GetPolicy,PutPolicy,DeletePolicy} instead"},
+}
+
 // debugParamFields are the fields every v4 Params type in sharedParamGroups
 // carries and v5 moved into the embedded DebugParams.
 //
@@ -306,12 +364,13 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 var debugParamFields = []string{"ErrorTrace", "FilterPath", "Human", "Pretty"}
 
 // sharedParamGroups lists the v4 Params types by the shared-param fields v5
-// moved into the embedded TimeoutParams/DebugParams. Each type name is the v4
-// opensearchapi type; the fields vanish from its renamed v5 counterpart.
+// moved into the embedded TimeoutParams/DebugParams. Each type name is a v4
+// type in the group's package; the fields vanish from its renamed v5 counterpart.
 // extra holds the timeout fields a group carries on top of debugParamFields.
 //
 //nolint:gochecknoglobals,goconst // immutable data table; OpenSearch param names repeat across rows
 var sharedParamGroups = []struct {
+	pkg   string // package of types; "" means v4api
 	extra []string
 	types []string
 }{
@@ -349,6 +408,7 @@ var sharedParamGroups = []struct {
 			"ScriptDeleteParams", "ScriptPutParams", "TemplateDeleteParams",
 		},
 	},
+	{pkg: v4ism, types: []string{"RefreshSearchAnalyzersParams"}},
 }
 
 // sharedParamDispositionsV4toV5 rules every shared param that moved into the
@@ -359,6 +419,7 @@ var sharedParamGroups = []struct {
 func sharedParamDispositionsV4toV5() []apirev.FieldDisposition {
 	var out []apirev.FieldDisposition
 	for _, g := range sharedParamGroups {
+		pkg := cmp.Or(g.pkg, v4api)
 		for _, typ := range g.types {
 			for _, f := range slices.Concat(debugParamFields, g.extra) {
 				embedded := "DebugParams"
@@ -367,7 +428,7 @@ func sharedParamDispositionsV4toV5() []apirev.FieldDisposition {
 					embedded = "TimeoutParams"
 				}
 				out = append(out, apirev.FieldDisposition{
-					FromPkgPath: v4api, FromType: typ, FromField: f,
+					FromPkgPath: pkg, FromType: typ, FromField: f,
 					Action: apirev.ActionManual,
 					Note: "moved into the embedded opensearchapi." + embedded + " in v5; a selector (p." + f +
 						" = x) still compiles, a composite-literal key must move into " + embedded + ": opensearchapi." + embedded + "{...}",

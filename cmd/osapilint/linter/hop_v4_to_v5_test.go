@@ -98,6 +98,15 @@ func TestHopV4toV5_ErrorHandlingFollowups(t *testing.T) {
 		"expected a followup for the errmask default flip (Config.Errors toggle)")
 }
 
+// TestHopV4toV5_PluginNewClientFollowup asserts the plugin constructor change
+// is surfaced as a followup.
+func TestHopV4toV5_PluginNewClientFollowup(t *testing.T) {
+	t.Parallel()
+
+	require.True(t, containsSubstr(planV4toV5(t).followups, "NewClient(*opensearch.Client)"),
+		"expected a followup for the plugin NewClient(Config) -> NewClient(*opensearch.Client) change")
+}
+
 // TestHopV4toV5_CatResponseFields pins the CAT response-array container renames
 // (v4 CatClient.Shards/Indices decode into these fields; v5 decodes into
 // Records). The rename carries a type-change Note because the element type also
@@ -280,6 +289,53 @@ func TestHopV4toV5_TemplateClientFields(t *testing.T) {
 
 			assertChangeKind(t, d.Structs[v4api+".Client"].Changes, field, apirev.KindManual)
 		})
+	}
+}
+
+// TestHopV4toV5_PluginRemovedTypes pins the removed plugin types: reporting
+// them as removed proves the plugin surfaces are loaded.
+func TestHopV4toV5_PluginRemovedTypes(t *testing.T) {
+	t.Parallel()
+
+	d := planV4toV5(t).delta
+
+	tests := []string{v4security + ".Config", v4ism + ".Config", v4ism + ".AddReq"}
+	for _, typ := range tests {
+		t.Run(typ, func(t *testing.T) {
+			t.Parallel()
+
+			require.Truef(t, d.RemovedTypes[typ], "%q should be reported removed", typ)
+		})
+	}
+}
+
+// TestHopV4toV5_PluginManualFields pins the plugin Client sub-client fields and
+// the shared RefreshSearchAnalyzers params as manual.
+func TestHopV4toV5_PluginManualFields(t *testing.T) {
+	t.Parallel()
+
+	d := planV4toV5(t).delta
+
+	tests := []struct {
+		pkg    string
+		typ    string
+		fields []string
+	}{
+		{v4security, typeClient, []string{
+			"Account", "ActionGroups", "Audit", "InternalUsers", "NodesDN", "Roles", "RolesMapping",
+			"SecurityConfig", "SSL", "Tenants",
+		}},
+		{v4ism, typeClient, []string{"Policies"}},
+		{v4ism, "RefreshSearchAnalyzersParams", debugParamFields},
+	}
+	for _, tt := range tests {
+		for _, field := range tt.fields {
+			t.Run(tt.pkg+"."+tt.typ+"#"+field, func(t *testing.T) {
+				t.Parallel()
+
+				assertChangeKind(t, d.Structs[tt.pkg+"."+tt.typ].Changes, field, apirev.KindManual)
+			})
+		}
 	}
 }
 

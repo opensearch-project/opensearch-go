@@ -114,7 +114,14 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
        -patterns ./opensearchapi,.,./opensearchtransport -out surface_v3.json
    ```
 
-2. Embed each surface (`//go:embed`) in `linter/embed.go` and register it in the `surfaces` map (`linter/transitions.go`).
+   The v4 and v5 surfaces each have a plugin companion, generated with the same command over the plugin packages:
+
+   ```sh
+   go run ./cmd/gensurface -dir <v5-module-dir> -version v5 \
+       -patterns ./plugins/security,./plugins/ism -out linter/surface_v5_plugins.json
+   ```
+
+2. Embed each surface (`//go:embed`) in `linter/embed.go` and register it in the `surfaces` map (`linter/transitions.go`); register a plugin companion in `pluginSurfaces`.
 
 3. Author `linter/hop_v3_to_v4.go`: diff the surfaces and rule on every changed type, field, and method. Follow `linter/hop_v4_to_v5.go`.
 
