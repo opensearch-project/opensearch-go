@@ -10,6 +10,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
+      # CHANGELOG.md holds hundreds of GitHub PR/issue links; checking all of
+      # them live on every run draws transient 500/503s that fail unrelated
+      # PRs. The cache lets a link that passed within the last day skip the
+      # request. 5xx results are never cached, so those links are rechecked
+      # next run rather than trusted.
+      - name: Restore lychee cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .lycheecache
+          key: cache-lychee-${{ github.sha }}
+          restore-keys: cache-lychee-
+
       # Blocking: fail the build only on genuinely broken links (4xx/5xx,
       # DNS failures, timeouts). Redirects are accepted here so a moved link
       # does not break CI on its own -- the pass below surfaces those.
@@ -17,7 +29,7 @@ jobs:
         id: lychee-broken
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
+          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
           fail: true
           jobSummary: true
         env:
@@ -30,6 +42,8 @@ jobs:
       # LICENSE.txt/NOTICE.txt are excluded here: their URLs are canonical
       # license text and standard attribution wording, not links to rewrite.
       # fail:false + if:always() so this always reports without breaking CI.
+      # No --cache here: the blocking pass caches the post-redirect 200, which
+      # would hide the redirect this pass exists to report.
       - name: Check for permanently-redirecting links
         id: lychee-redirects
         if: always()
