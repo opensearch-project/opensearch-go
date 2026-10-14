@@ -6,7 +6,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add the `compress` module (`github.com/opensearch-project/opensearch-go/compress/v5`) with the `Gzip`, `Deflate` and `Snappy` constructors, each returning an `opensearchtransport.Compressor` backed by `github.com/klauspost/compress`. The module is separate from the client so klauspost stays out of the core dependency graph, and no klauspost type appears in its API. `Gzip` and `Deflate` take a level and reject an invalid one at construction; `compress.DefaultLevel` selects a codec's own default
+
 ### Changed
+
+- Discover nested modules with `git ls-files` instead of `find`, so `make test-unit`, `make lint.local`, `make check-modules-standalone` and `make print-submodules` skip a stray `go.mod` under a git-ignored directory such as `tmp/`, and still see a new module before it is staged
+- Run the integration tests of nested modules in `make test-integ`, which used to stop at the root module's boundary
 
 ### Deprecated
 

@@ -11,6 +11,7 @@ updates:
       - "/"
       - "/cmd/osapilint"
       - "/cmd/osgen"
+      - "/compress"
       - "/log-slog"
       - "/log-zerolog"
       - "/osotel"
