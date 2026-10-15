@@ -115,6 +115,33 @@ Connection-pool Utilization, Saturation, and Errors, attributed by `pool`, deriv
 
 The Registry also records `opensearch.client.observer.dropped`, the count of request events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
 
+## Bulk indexer metrics -- `NewBulkIndexerObserver`
+
+`opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the indexer calls it directly, so it is not wired into `New`. Create it, register its instruments with a meter, and set it as the indexer's `Observer`:
+
+```go
+bo := osotel.NewBulkIndexerObserver()
+if err := bo.Register(meter); err != nil {
+	panic(err)
+}
+
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
+	Client:   client,
+	Observer: bo,
+})
+```
+
+Each call is recorded on the context the indexer's flush runs on, so a tracing SDK can attach the flush's span to the measurement. Attributes are low-cardinality (`result`, `scope`, `kind`, `retrying`, `outcome`); none carries an index name or a document id.
+
+| Instrument                                | Description                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `opensearch.client.bulk.requests`         | Bulk requests by `result`: `ok` when the cluster answered, `error` when the whole request failed.                              |
+| `opensearch.client.bulk.request.duration` | Bulk request latency histogram, in seconds.                                                                                    |
+| `opensearch.client.bulk.request.size`     | Bulk request body size histogram, in bytes.                                                                                    |
+| `opensearch.client.bulk.failures`         | Failed attempts by `scope` (`request` or `item`), `kind` (`rejected`, `unavailable`, `transport`, `permanent`) and `retrying`. |
+| `opensearch.client.bulk.retries`          | Items sent again after a failure, by `kind`.                                                                                   |
+| `opensearch.client.bulk.items`            | Items that reached a final state, by `outcome` (`succeeded` or `failed`).                                                      |
+
 ## Custom observers
 
 Any type implementing `osotel.Observer` can be wired into a Registry alongside (or instead of) the shipped sinks. An observer is a _sink_: it receives the full transport event and routes it to whatever instruments it owns. Embed `osotel.BaseObserver` for no-op defaults and override only the hook you need. `Register` is called once with the meter when you pass the observer to `New`; `OnRequestResponse` / `OnStreamResponse` are called on a dispatch worker (with the dispatch context) for every request, with the full `*opensearchtransport.RequestResponseEvent` / `*opensearchtransport.StreamResponseEvent` (valid only for the call -- do not retain).
