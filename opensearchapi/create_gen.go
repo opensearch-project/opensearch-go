@@ -244,7 +244,7 @@ func (c DocumentClient) Create(ctx context.Context, req CreateReq) (*CreateResp,
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

@@ -171,7 +171,7 @@ func (c SnapshotClient) CreateRepository(ctx context.Context, req SnapshotCreate
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err
@@ -188,7 +188,7 @@ func (c RepositoryClient) Create(ctx context.Context, req SnapshotCreateReposito
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

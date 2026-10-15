@@ -42,7 +42,7 @@ func TestIndicesShrinkReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesShrinkReq{Index: "test-index", Target: "test-target"},
-			wantMethod: http.MethodPost,
+			wantMethod: http.MethodPut,
 			wantPath:   "/test-index/_shrink/test-target",
 			wantErr:    false,
 		},

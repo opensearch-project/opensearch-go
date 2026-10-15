@@ -206,7 +206,7 @@ func (c IndicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*Indic
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err
