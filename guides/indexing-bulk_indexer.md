@@ -192,6 +192,8 @@ Before you give a stream up, for example when a partition is revoked in a rebala
 2. Call `tracker.Forget` and take the position it returns. Completions that arrive afterward are ignored.
 3. Commit that position, and only that position.
 
+What makes this safe is that the flush comes first and the position is read after it. Once `Flush` has returned and you are no longer admitting records for the stream, nothing further completes, so `tracker.Safe` and `tracker.Forget` return the same position. Reading it with `Safe`, committing, and then calling `Forget` is equally safe, and keeps the stream tracked if the commit fails.
+
 ## Observing the indexer
 
 `BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `FailureKind`. For a live stream of events instead, set `BulkIndexerConfig.Observer`, following the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the methods you need.

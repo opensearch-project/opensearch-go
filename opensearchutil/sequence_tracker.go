@@ -152,6 +152,14 @@ func (t *SequenceTracker[K]) SafeAll() map[K]int64 {
 //
 // A position taken from anywhere else, such as the highest record handed to the
 // indexer, can pass records that were never written.
+//
+// What makes the sequence safe is that the flush comes first and that the
+// position is read after it. Once Flush has returned and no more records are
+// being admitted for the stream, nothing further completes, so [SequenceTracker.Safe]
+// and Forget return the same position. Reading it with Safe, committing it, and
+// only then calling Forget is therefore equally safe, and is the better order if
+// you want to keep tracking the stream when the commit fails. Forget returns the
+// position so that reading it and ending the tracking are one step.
 func (t *SequenceTracker[K]) Forget(k K) (int64, bool) {
 	t.mu.Lock()
 	s := t.streams[k]
