@@ -598,6 +598,31 @@ func handler(ctx context.Context) error {
 
 `Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
 
+## `opensearchutil.BulkIndexer` interface gained `Cancel()`, and `Close` waits for every item
+
+The exported `BulkIndexer` interface gained a second method in v5.1:
+
+```go
+type BulkIndexer interface {
+    Add(context.Context, BulkIndexerItem) error
+    Flush(context.Context) error
+    Close(context.Context) error
+    Cancel() // new in v5.1
+    Stats() BulkIndexerStats
+}
+```
+
+Callers that build their indexer with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add a `Cancel()` method.
+
+`Cancel` stops the indexer immediately: requests in flight and retry backoff end, and every item that is not yet final fails through its own `OnFailure` exactly once. An item that was never sent fails with the new `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. It does not wait and does not replace `Close`.
+
+`Close` changes in two ways that matter if you depended on the old behavior:
+
+- **`Close` blocks until every item has reached its final state**, including requests in flight and any retry backoff, and it now escalates to `Cancel` when its own context ends. It then waits for the workers to unwind and returns the context's error, so it always returns in bounded time with every item final.
+- **A `Close` whose context had already ended used to return at once**, without waiting for or failing the items the indexer still held, and a worker stopped by the construction context could leave queued items without a callback. Both now get a final callback. If your `OnFailure` is not expecting `context.Canceled` or `ErrIndexerCanceled` during shutdown, add that case.
+
+The rest of the v5.1 additions are opt-in and change nothing until you set them: `BulkIndexerConfig.RetryPolicy`, `Fingerprinter`, and `Observer`, and `BulkIndexerItem.Metadata`. One exception to "nothing changes": with a `RetryPolicy` set, an item without a `DocumentID` is refused with `ErrMissingDocumentID` rather than sent. See [Bulk Indexer](guides/indexing-bulk_indexer.md).
+
 ## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
 
 When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
