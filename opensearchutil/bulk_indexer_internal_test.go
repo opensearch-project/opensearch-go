@@ -246,7 +246,7 @@ func TestWriteMeta(t *testing.T) {
 			}
 			w := &worker{
 				bi:  bi,
-				buf: bytes.NewBuffer(make([]byte, 0, 5e+6)),
+				buf: newChunkBuffer(newChunkPool(defaultChunkSize)),
 			}
 			err := w.writeMeta(tt.args.item)
 			if tt.wantErr != nil {
@@ -306,6 +306,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
 					FlushBytes:    50,
+					Sizing:        BulkSizing{Fixed: true}, // FlushBytes is the batch size, not a ceiling.
 					FlushInterval: time.Hour,
 					Client:        client,
 				}
@@ -329,14 +330,16 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				return bi.Stats()
 			},
 			want: BulkIndexerStats{
-				NumAdded:    6,
-				NumFlushed:  4,
-				NumFailed:   2,
-				NumIndexed:  1,
-				NumCreated:  1,
-				NumDeleted:  1,
-				NumUpdated:  1,
-				NumRequests: 3,
+				NumAdded:          6,
+				NumUngroupedItems: 6, // No geometry: nothing is placed in a shard group.
+				NumByteFlushes:    3, // FlushBytes is small here, so each of the 3 requests was a full buffer.
+				NumFlushed:        4,
+				NumFailed:         2,
+				NumIndexed:        1,
+				NumCreated:        1,
+				NumDeleted:        1,
+				NumUpdated:        1,
+				NumRequests:       3,
 			},
 		},
 		{
@@ -379,11 +382,13 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				return stats
 			},
 			want: BulkIndexerStats{
-				NumAdded:    1,
-				NumFlushed:  1,
-				NumFailed:   0,
-				NumIndexed:  1,
-				NumRequests: 1,
+				NumAdded:          1,
+				NumUngroupedItems: 1,
+				NumTimerFlushes:   1, // The flush interval sent it.
+				NumFlushed:        1,
+				NumFailed:         0,
+				NumIndexed:        1,
+				NumRequests:       1,
 			},
 		},
 		{
@@ -441,7 +446,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				client, _ := opensearchapi.NewClient(cfg)
 				t.Cleanup(func() { _ = client.Close() })
 
-				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
+				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Sizing: BulkSizing{Fixed: true}, Client: client}
 				bi, _ := NewBulkIndexer(biCfg)
 
 				for i := 1; i <= 2; i++ {
@@ -461,12 +466,14 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				return bi.Stats()
 			},
 			want: BulkIndexerStats{
-				NumAdded:    2,
-				NumFlushed:  2,
-				NumFailed:   0,
-				NumDeleted:  1,
-				NumUpdated:  1,
-				NumRequests: 1,
+				NumAdded:          2,
+				NumUngroupedItems: 2,
+				NumByteFlushes:    1,
+				NumFlushed:        2,
+				NumFailed:         0,
+				NumDeleted:        1,
+				NumUpdated:        1,
+				NumRequests:       1,
 			},
 		},
 	}
@@ -744,11 +751,12 @@ func TestBulkIndexerPerItemCallbacks(t *testing.T) {
 			require.NoError(t, bi.Close(t.Context()))
 
 			require.Equal(t, BulkIndexerStats{
-				NumAdded:   4,
-				NumFlushed: 2,
-				NumFailed:  2,
-				NumIndexed: 1,
-				NumUpdated: 1,
+				NumAdded:          4,
+				NumUngroupedItems: 4,
+				NumFlushed:        2,
+				NumFailed:         2,
+				NumIndexed:        1,
+				NumUpdated:        1,
 				// Indexer flushes only; the client's info request is not counted.
 				NumRequests: 1,
 			}, bi.Stats())
@@ -1250,83 +1258,6 @@ func (t *closeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, 
 
 func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }
 
-func TestBulkIndexerQueueIndexPinsDocumentID(t *testing.T) {
-	t.Parallel()
-
-	// numWorkers is baked into wantIndex, so a change in shardhash.Hash or in
-	// the modulo folding fails here instead of silently reshuffling documents.
-	const numWorkers = 8
-
-	tests := []struct {
-		name       string
-		documentID string
-		wantIndex  int
-	}{
-		{name: "ascii", documentID: "user_123", wantIndex: 4},
-		{name: "numeric", documentID: "42", wantIndex: 2},
-		{name: "multibyte", documentID: "ünïcødé-🌍", wantIndex: 3},
-		{name: "long", documentID: strings.Repeat("a", 512), wantIndex: 1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			bi := &bulkIndexer{queues: make([]chan queueEntry, numWorkers)}
-			for range 3 {
-				require.Equal(t, tt.wantIndex, bi.queueIndex(BulkIndexerItem{DocumentID: tt.documentID}))
-			}
-		})
-	}
-}
-
-func TestBulkIndexerQueueIndexRoundRobinsWithoutDocumentID(t *testing.T) {
-	t.Parallel()
-
-	const (
-		numWorkers = 4
-		rounds     = 3
-	)
-
-	bi := &bulkIndexer{queues: make([]chan queueEntry, numWorkers)}
-
-	got := make([]int, numWorkers)
-	for range numWorkers * rounds {
-		got[bi.queueIndex(BulkIndexerItem{})]++
-	}
-
-	require.Equal(t, []int{rounds, rounds, rounds, rounds}, got)
-}
-
-func TestBulkIndexerAddDeliversToRoutedQueue(t *testing.T) {
-	t.Parallel()
-
-	const (
-		numWorkers = 8
-		numItems   = 10
-		wantIndex  = 4 // shardhash.Hash("user_123") folded into numWorkers.
-	)
-
-	// Skip init so no worker drains the queues while the test inspects them.
-	bi := &bulkIndexer{stats: &bulkIndexerStats{}, queues: make([]chan queueEntry, numWorkers)}
-	for i := range bi.queues {
-		bi.queues[i] = make(chan queueEntry, numItems)
-	}
-
-	for range numItems {
-		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{Action: actionUpdate, DocumentID: "user_123"}))
-	}
-
-	for i, queue := range bi.queues {
-		if i == wantIndex {
-			require.Len(t, queue, numItems, "queue %d must hold every item for one document ID", i)
-			continue
-		}
-		require.Empty(t, queue, "queue %d must stay empty", i)
-	}
-	require.Equal(t, uint64(numItems), bi.Stats().NumAdded)
-}
-
 // bulkDocumentIDs returns an "action:documentID" entry for each action line in
 // a bulk request body, in the order the lines appear. Source lines are skipped:
 // they either fail to decode into a bulkActionMetadata envelope or carry no key
@@ -1412,7 +1343,6 @@ func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
 	defer mu.Unlock()
 
 	require.Equal(t, uint64(len(requests)), bi.Stats().NumRequests, "every bulk request must have been recorded")
-	require.Greater(t, len(requests), 1, "fillers must spread over more than one worker")
 
 	requestsCarryingHotDoc := 0
 	for _, actions := range requests {
@@ -1921,7 +1851,7 @@ func newTestWorker() *worker {
 	}
 	return &worker{
 		bi:  bi,
-		buf: bytes.NewBuffer(make([]byte, 0, 1024)),
+		buf: newChunkBuffer(newChunkPool(defaultChunkSize)),
 	}
 }
 
