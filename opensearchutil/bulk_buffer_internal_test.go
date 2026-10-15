@@ -1,0 +1,622 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+//go:build !integration
+
+package opensearchutil
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"math/rand"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+)
+
+// testChunkSize is small enough that every operation below crosses chunk
+// boundaries.
+const testChunkSize = 8
+
+func newTestChunkBuffer() *chunkBuffer {
+	return newChunkBuffer(newChunkPool(testChunkSize))
+}
+
+// TestChunkBufferMatchesBytesBuffer applies random writes, truncations and
+// resets to a chunkBuffer and a bytes.Buffer and requires them to agree.
+func TestChunkBufferMatchesBytesBuffer(t *testing.T) {
+	t.Parallel()
+
+	for seed := int64(1); seed <= 20; seed++ {
+		t.Run(fmt.Sprintf("seed %d", seed), func(t *testing.T) {
+			t.Parallel()
+
+			rng := rand.New(rand.NewSource(seed))
+			got, want := newTestChunkBuffer(), new(bytes.Buffer)
+
+			for step := range 300 {
+				switch op := rng.Intn(10); op {
+				case 0:
+					p := randomBytes(rng, rng.Intn(40))
+					_, _ = got.Write(p)
+					_, _ = want.Write(p)
+				case 1:
+					s := string(randomBytes(rng, rng.Intn(40)))
+					_, _ = got.WriteString(s)
+					_, _ = want.WriteString(s)
+				case 2:
+					c := alphabet[rng.Intn(len(alphabet))]
+					got.appendByte(c)
+					require.NoError(t, want.WriteByte(c))
+				case 3:
+					// Multi-byte characters straddle chunk boundaries too.
+					s := []string{"a", "é", "€", "🌍", "\n"}[rng.Intn(5)]
+					_, _ = got.WriteString(s)
+					_, _ = want.WriteString(s)
+				case 4:
+					src := string(randomBytes(rng, rng.Intn(100)))
+					gotN, gotErr := got.ReadFrom(strings.NewReader(src))
+					wantN, wantErr := want.ReadFrom(strings.NewReader(src))
+					require.Equal(t, wantN, gotN)
+					require.Equal(t, wantErr, gotErr)
+				case 5:
+					n := rng.Intn(want.Len() + 1)
+					got.Truncate(n)
+					want.Truncate(n)
+				case 6:
+					if rng.Intn(10) == 0 {
+						got.Reset()
+						want.Reset()
+					}
+				case 7:
+					// A one-byte write straddles a chunk boundary when the
+					// buffer sits at one.
+					got.Truncate(want.Len())
+				case 8, 9:
+					// A slice lent to the buffer, as a document sent without a copy is.
+					p := randomBytes(rng, rng.Intn(40))
+					got.appendRef(p)
+					_, _ = want.Write(p)
+				}
+
+				require.Equal(t, want.Len(), got.Len(), "step %d", step)
+				require.Equal(t, want.String(), got.String(), "step %d", step)
+			}
+		})
+	}
+}
+
+const alphabet = "abcdefghijklmnopqrstuvwxyz"
+
+func randomBytes(rng *rand.Rand, n int) []byte {
+	p := make([]byte, n)
+	for i := range p {
+		p[i] = alphabet[rng.Intn(len(alphabet))]
+	}
+
+	return p
+}
+
+func TestChunkBufferReads(t *testing.T) {
+	t.Parallel()
+
+	content := strings.Repeat("0123456789", 7) // 70 bytes: eight chunks, the last partial.
+
+	tests := []struct {
+		name string
+		read func(t *testing.T, b *chunkBuffer) string
+	}{
+		{
+			name: "ReadAll",
+			read: func(t *testing.T, b *chunkBuffer) string {
+				t.Helper()
+				got, err := io.ReadAll(b)
+				require.NoError(t, err)
+				return string(got)
+			},
+		},
+		{
+			name: "small reads",
+			read: func(t *testing.T, b *chunkBuffer) string {
+				t.Helper()
+				var out strings.Builder
+				p := make([]byte, 3)
+				for {
+					n, err := b.Read(p)
+					out.Write(p[:n])
+					if errors.Is(err, io.EOF) {
+						return out.String()
+					}
+					require.NoError(t, err)
+				}
+			},
+		},
+		{
+			name: "WriteTo",
+			read: func(t *testing.T, b *chunkBuffer) string {
+				t.Helper()
+				var out bytes.Buffer
+				n, err := b.WriteTo(&out)
+				require.NoError(t, err)
+				require.EqualValues(t, len(content), n)
+				return out.String()
+			},
+		},
+		{
+			name: "io.Copy",
+			read: func(t *testing.T, b *chunkBuffer) string {
+				t.Helper()
+				var out bytes.Buffer
+				_, err := io.Copy(&out, b)
+				require.NoError(t, err)
+				return out.String()
+			},
+		},
+		{
+			name: "NewReader",
+			read: func(t *testing.T, b *chunkBuffer) string {
+				t.Helper()
+				got, err := io.ReadAll(b.NewReader())
+				require.NoError(t, err)
+				return string(got)
+			},
+		},
+	}
+
+	fills := []struct {
+		name string
+		fill func(b *chunkBuffer)
+	}{
+		{"written", func(b *chunkBuffer) { _, _ = b.WriteString(content) }},
+		{"written and lent", func(b *chunkBuffer) {
+			_, _ = b.WriteString(content[:13])
+			b.appendRef([]byte(content[13:42]))
+			_, _ = b.WriteString(content[42:48])
+			b.appendRef([]byte(content[48:]))
+		}},
+	}
+
+	for _, fill := range fills {
+		for _, tt := range tests {
+			t.Run(fill.name+"/"+tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				b := newTestChunkBuffer()
+				fill.fill(b)
+				require.Equal(t, len(content), b.Len())
+
+				require.Equal(t, content, tt.read(t, b))
+			})
+		}
+	}
+
+	t.Run("a reader replays independently and leaves the buffer unread", func(t *testing.T) {
+		t.Parallel()
+
+		b := newTestChunkBuffer()
+		_, _ = b.WriteString(content)
+
+		for range 2 {
+			got, err := io.ReadAll(b.NewReader())
+			require.NoError(t, err)
+			require.Equal(t, content, string(got))
+		}
+		require.Equal(t, len(content), b.Len())
+		require.Equal(t, content, b.String())
+	})
+
+	t.Run("a replay is of the whole content after the buffer has been read", func(t *testing.T) {
+		t.Parallel()
+
+		b := newTestChunkBuffer()
+		_, _ = b.WriteString(content)
+
+		// A request sent again has had its body read to the end by the first attempt.
+		got, err := io.ReadAll(b)
+		require.NoError(t, err)
+		require.Equal(t, content, string(got))
+		require.Zero(t, b.Len())
+
+		for range 2 {
+			again, replayErr := io.ReadAll(b.NewReader())
+			require.NoError(t, replayErr)
+			require.Equal(t, content, string(again))
+		}
+	})
+
+	t.Run("a chunk-aligned buffer reads to its end", func(t *testing.T) {
+		t.Parallel()
+
+		b := newTestChunkBuffer()
+		aligned := strings.Repeat("x", testChunkSize*3)
+		_, _ = b.WriteString(aligned)
+
+		got, err := io.ReadAll(b)
+		require.NoError(t, err)
+		require.Equal(t, aligned, string(got))
+		require.Zero(t, b.Len())
+	})
+
+	t.Run("an empty buffer is at EOF", func(t *testing.T) {
+		t.Parallel()
+
+		n, err := newTestChunkBuffer().Read(make([]byte, 4))
+		require.Zero(t, n)
+		require.ErrorIs(t, err, io.EOF)
+	})
+}
+
+func TestChunkBufferTruncateRollsBack(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		content  string
+		truncate int
+	}{
+		{name: "inside a chunk", content: strings.Repeat("a", 20), truncate: 18},
+		{name: "on a chunk boundary", content: strings.Repeat("a", 20), truncate: testChunkSize * 2},
+		{name: "just past a boundary", content: strings.Repeat("a", 20), truncate: testChunkSize + 1},
+		{name: "to empty", content: strings.Repeat("a", 20), truncate: 0},
+		{name: "to the same length", content: strings.Repeat("a", 20), truncate: 20},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := newTestChunkBuffer()
+			_, _ = b.WriteString(tt.content)
+			b.Truncate(tt.truncate)
+
+			require.Equal(t, tt.truncate, b.Len())
+			require.Equal(t, tt.content[:tt.truncate], b.String())
+
+			// Writing after a rollback continues from the cut.
+			_, _ = b.WriteString("Z")
+			require.Equal(t, tt.content[:tt.truncate]+"Z", b.String())
+		})
+	}
+
+	t.Run("out of range panics", func(t *testing.T) {
+		t.Parallel()
+
+		b := newTestChunkBuffer()
+		_, _ = b.WriteString("abc")
+		require.Panics(t, func() { b.Truncate(4) })
+		require.Panics(t, func() { b.Truncate(-1) })
+	})
+}
+
+// TestChunkBufferLendsSlices: a slice lent to the buffer is read where it is, in
+// order among the bytes written around it, is never written to, and is let go of
+// without being handed to the pool.
+func TestChunkBufferLendsSlices(t *testing.T) {
+	t.Parallel()
+
+	pool := newChunkPool(testChunkSize)
+	b := newChunkBuffer(pool)
+
+	lent := []byte("0123456789ABCDEF0123") // Longer than a chunk.
+	snapshot := bytes.Clone(lent)
+
+	_, _ = b.WriteString("head|")
+	b.appendRef(lent)
+	_, _ = b.WriteString("|tail")
+	b.appendRef(nil)
+
+	require.Equal(t, "head|"+string(snapshot)+"|tail", b.String())
+	require.Equal(t, len("head|")+len(lent)+len("|tail"), b.Len())
+
+	// Writing after a lent slice goes to a new chunk and not into the slice.
+	require.Equal(t, snapshot, lent)
+	require.Equal(t, uint64(2), pool.served.Load(), "two owned segments: the head and the tail")
+
+	all, err := io.ReadAll(b.NewReader())
+	require.NoError(t, err)
+	require.Equal(t, "head|"+string(snapshot)+"|tail", string(all))
+
+	// Rolling back through the lent slice releases it, and only the chunks go back.
+	b.Truncate(len("head|") + 5)
+	require.Equal(t, "head|01234", b.String())
+	require.Equal(t, snapshot, lent, "truncation does not write to a lent slice")
+
+	b.Reset()
+	require.Zero(t, b.Len())
+	require.Equal(t, snapshot, lent)
+}
+
+// TestChunkPoolReusesChunks fills and resets a buffer repeatedly and requires
+// that chunks are taken from the pool far more often than they are made.
+func TestChunkPoolReusesChunks(t *testing.T) {
+	t.Parallel()
+
+	const (
+		cycles         = 50
+		chunksPerCycle = 10
+	)
+
+	pool := newChunkPool(testChunkSize)
+	b := newChunkBuffer(pool)
+	payload := strings.Repeat("x", testChunkSize*chunksPerCycle)
+
+	for range cycles {
+		_, _ = b.WriteString(payload)
+		b.Reset()
+	}
+
+	served, allocated := pool.served.Load(), pool.allocated.Load()
+	require.EqualValues(t, cycles*chunksPerCycle, served)
+	// Without reuse every chunk handed out is a new one. sync.Pool may drop a
+	// fraction of what is returned to it (the race detector drops one in four on
+	// purpose), so ask for a clear majority rather than every chunk.
+	require.Less(t, allocated, served/2, "chunks must come from the pool, not from the allocator")
+}
+
+// receive waits for a signal, and fails the test rather than hang when a broken
+// implementation never sends it.
+func receive[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+
+	select {
+	case v := <-ch:
+		return v
+	case <-time.After(20 * time.Second):
+		t.Fatal("timed out waiting for the budget to react")
+		panic("unreachable")
+	}
+}
+
+// testBudgetLimit is the limit of the budgets the tests below build.
+const testBudgetLimit = 100
+
+// budgetWith builds a budget whose blocking is observable: blocked receives once
+// each time an acquire begins to wait.
+func budgetWith() (*byteBudget, <-chan struct{}) {
+	b := newByteBudget(testBudgetLimit)
+	blocked := make(chan struct{}, 8)
+	b.onBlock = func() { blocked <- struct{}{} }
+
+	return b, blocked
+}
+
+func TestByteBudgetAcquireAndRelease(t *testing.T) {
+	t.Parallel()
+
+	b, _ := budgetWith()
+
+	n, err := b.acquire(t.Context(), nil, 60)
+	require.NoError(t, err)
+	require.EqualValues(t, 60, n)
+	require.EqualValues(t, 60, b.inUse())
+
+	n, err = b.acquire(t.Context(), nil, 40)
+	require.NoError(t, err)
+	require.EqualValues(t, 40, n)
+	require.EqualValues(t, 100, b.inUse())
+
+	b.release(100)
+	require.Zero(t, b.inUse())
+
+	blocked, _ := b.blockedStats()
+	require.Zero(t, blocked, "nothing waited")
+}
+
+func TestByteBudgetBlocksUntilReleased(t *testing.T) {
+	t.Parallel()
+
+	b, blocked := budgetWith()
+	_, err := b.acquire(t.Context(), nil, 100)
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, acquireErr := b.acquire(t.Context(), nil, 30)
+		done <- acquireErr
+	}()
+
+	receive(t, blocked)
+	require.EqualValues(t, 100, b.inUse(), "the waiter must not hold bytes yet")
+
+	b.release(30)
+	require.NoError(t, receive(t, done))
+	require.EqualValues(t, 100, b.inUse())
+
+	count, _ := b.blockedStats()
+	require.EqualValues(t, 1, count)
+}
+
+func TestByteBudgetServesWaitersInOrder(t *testing.T) {
+	t.Parallel()
+
+	b, blocked := budgetWith()
+	_, err := b.acquire(t.Context(), nil, 100)
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	for _, n := range []int64{60, 10} { // The large one arrives first.
+		wg.Go(func() {
+			_, acquireErr := b.acquire(t.Context(), nil, n)
+			require.NoError(t, acquireErr)
+		})
+		receive(t, blocked)
+	}
+
+	// 50 bytes free: the second waiter fits but must not pass the first.
+	b.release(50)
+	require.EqualValues(t, 50, b.inUse(), "a small waiter must not overtake a large one")
+
+	// 90 free: the first waiter takes 60, then the second takes 10.
+	b.release(40)
+	finished := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(finished)
+	}()
+	receive(t, finished)
+	require.EqualValues(t, 80, b.inUse())
+}
+
+func TestByteBudgetWaiterGivesUp(t *testing.T) {
+	t.Parallel()
+
+	stopped := make(chan struct{})
+
+	tests := []struct {
+		name    string
+		ctx     func() (context.Context, context.CancelFunc)
+		stop    <-chan struct{}
+		trigger func(cancel context.CancelFunc)
+		wantErr error
+	}{
+		{
+			name:    "context cancelled",
+			ctx:     func() (context.Context, context.CancelFunc) { return context.WithCancel(context.Background()) },
+			trigger: func(cancel context.CancelFunc) { cancel() },
+			wantErr: context.Canceled,
+		},
+		{
+			name:    "indexer stopped",
+			ctx:     func() (context.Context, context.CancelFunc) { return context.WithCancel(context.Background()) },
+			stop:    stopped,
+			trigger: func(context.CancelFunc) { close(stopped) },
+			wantErr: errBudgetStopped,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b, blocked := budgetWith()
+			_, err := b.acquire(t.Context(), nil, 100)
+			require.NoError(t, err)
+
+			ctx, cancel := tt.ctx()
+			defer cancel()
+
+			done := make(chan error, 1)
+			go func() {
+				_, acquireErr := b.acquire(ctx, tt.stop, 50)
+				done <- acquireErr
+			}()
+
+			receive(t, blocked)
+			tt.trigger(cancel)
+
+			require.ErrorIs(t, receive(t, done), tt.wantErr)
+			require.EqualValues(t, 100, b.inUse(), "a waiter that gave up must take nothing")
+
+			// The abandoned waiter left the queue, so the next caller is served.
+			b.release(100)
+			n, err := b.acquire(t.Context(), nil, 100)
+			require.NoError(t, err)
+			require.EqualValues(t, 100, n)
+		})
+	}
+}
+
+func TestByteBudgetCancelledHeadUnblocksTheNext(t *testing.T) {
+	t.Parallel()
+
+	b, blocked := budgetWith()
+	_, err := b.acquire(t.Context(), nil, 80)
+	require.NoError(t, err)
+
+	headCtx, cancelHead := context.WithCancel(t.Context())
+	headDone := make(chan error, 1)
+	go func() {
+		_, acquireErr := b.acquire(headCtx, nil, 90) // Cannot fit until 80 is released.
+		headDone <- acquireErr
+	}()
+	receive(t, blocked)
+
+	tailDone := make(chan error, 1)
+	go func() {
+		_, acquireErr := b.acquire(t.Context(), nil, 10) // Fits, but waits behind the head.
+		tailDone <- acquireErr
+	}()
+	receive(t, blocked)
+
+	cancelHead()
+	require.ErrorIs(t, receive(t, headDone), context.Canceled)
+	require.NoError(t, receive(t, tailDone))
+	require.EqualValues(t, 90, b.inUse())
+}
+
+func TestByteBudgetLetsAnOversizeItemThrough(t *testing.T) {
+	t.Parallel()
+
+	b, blocked := budgetWith()
+
+	n, err := b.acquire(t.Context(), nil, 10_000)
+	require.NoError(t, err)
+	require.EqualValues(t, 100, n, "an item beyond the whole budget takes the whole budget")
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = b.acquire(t.Context(), nil, 1)
+	}()
+	<-blocked // It runs alone: everything else waits.
+
+	b.release(n)
+	receive(t, done)
+}
+
+func TestByteBudgetReportsBlockedTime(t *testing.T) {
+	t.Parallel()
+
+	const tick = 7 * time.Millisecond
+
+	b, blocked := budgetWith()
+
+	var mu sync.Mutex
+	clock := time.Unix(0, 0)
+	b.now = func() time.Time {
+		mu.Lock()
+		defer mu.Unlock()
+		clock = clock.Add(tick)
+		return clock
+	}
+
+	_, err := b.acquire(t.Context(), nil, 100)
+	require.NoError(t, err)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = b.acquire(t.Context(), nil, 10)
+	}()
+	receive(t, blocked)
+	b.release(100)
+	receive(t, done)
+
+	count, total := b.blockedStats()
+	require.EqualValues(t, 1, count)
+	require.Equal(t, tick, total, "one start reading and one end reading, a tick apart")
+}
+
+func TestNilByteBudgetImposesNoLimit(t *testing.T) {
+	t.Parallel()
+
+	var b *byteBudget
+
+	n, err := b.acquire(t.Context(), nil, 1<<40)
+	require.NoError(t, err)
+	require.Zero(t, n)
+	b.release(5)
+	require.Zero(t, b.inUse())
+	count, total := b.blockedStats()
+	require.Zero(t, count)
+	require.Zero(t, total)
+}

@@ -1,0 +1,532 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package opensearchutil
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"io"
+	"slices"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/opensearch-project/opensearch-go/v5/internal/body"
+)
+
+// defaultChunkSize is the size of one slab chunk. A group holds a list of them
+// and spills into a new one when the last is full.
+//
+//nolint:mnd // Well-known power-of-two chunk size.
+const defaultChunkSize = 64 << 10
+
+// chunkPool hands out fixed-size chunks and takes them back, so buffers that
+// fill and flush over and over reuse memory instead of allocating it each time.
+// A buffer is a list of chunks, which a group can release in any order: a ring
+// would need first-in first-out release, and groups flush when they please.
+type chunkPool struct {
+	size int
+	pool sync.Pool
+
+	// allocated counts chunks the pool had to make because none was free.
+	allocated atomic.Uint64
+	// served counts every chunk handed out.
+	served atomic.Uint64
+}
+
+func newChunkPool(size int) *chunkPool {
+	p := &chunkPool{size: size}
+	p.pool.New = func() any {
+		p.allocated.Add(1)
+		chunk := make([]byte, size)
+
+		return &chunk
+	}
+
+	return p
+}
+
+func (p *chunkPool) get() *[]byte {
+	p.served.Add(1)
+
+	return p.pool.Get().(*[]byte)
+}
+
+func (p *chunkPool) put(chunk *[]byte) {
+	p.pool.Put(chunk)
+}
+
+// segment is a run of bytes in a chunkBuffer: either a pooled chunk the buffer
+// owns and writes into, or a slice the caller lent it.
+type segment struct {
+	// data is the bytes of the segment. For an owned segment it is the written part
+	// of the chunk, and grows as the buffer is written to.
+	data []byte
+	// chunk is the pooled chunk data lies in, and nil for a borrowed segment, which
+	// is never written to or returned to a pool.
+	chunk *[]byte
+	// pool is the pool chunk came from.
+	pool *chunkPool
+}
+
+// chunkBuffer is a byte buffer made of pooled chunks and of slices lent to it. It
+// writes where a bytes.Buffer would, rolls back with Truncate, and reads out as an
+// io.Reader, which is all a worker asks of it. It is not safe for concurrent use.
+//
+// A document sent without copying is a borrowed segment: the buffer holds the
+// caller's slice, reads it where it is, and lets go of it on Truncate or Reset
+// without having written to it. The caller must leave the slice alone until then,
+// and until the last reader from NewReader has finished.
+//
+// It is also a [body.BufferedReader], so a request built on it carries a
+// Content-Length and a GetBody as one built on a bytes.Buffer does, rather than
+// being sent chunked and copied whole by the transport.
+type chunkBuffer struct {
+	pool *chunkPool
+	// small, when set, supplies the chunk that follows a borrowed segment. What
+	// follows a lent document is its newline and the next action line, tens of bytes
+	// that would otherwise take a whole chunk of pool, so a buffer of lent documents
+	// would cost a chunk each.
+	small *chunkPool
+	// segs holds the segments in order.
+	segs []segment
+	size int
+
+	// readSeg and readOff are the position Read has reached, and read the bytes
+	// before it. Read does not move past the last segment once it has read it, so a
+	// write after that lands in the segment Read is in, not behind it.
+	readSeg int
+	readOff int
+	read    int
+}
+
+var _ body.BufferedReader = (*chunkBuffer)(nil)
+
+func newChunkBuffer(pool *chunkPool) *chunkBuffer {
+	return &chunkBuffer{pool: pool}
+}
+
+// Len returns the number of bytes written and not yet read.
+func (b *chunkBuffer) Len() int {
+	return b.size - b.read
+}
+
+// tail returns the free space at the end of the last chunk, adding a chunk when
+// that one is full or the last segment is borrowed.
+func (b *chunkBuffer) tail() []byte {
+	pool := b.pool
+
+	if n := len(b.segs); n > 0 {
+		last := &b.segs[n-1]
+		if last.chunk != nil && len(last.data) < len(*last.chunk) {
+			return (*last.chunk)[len(last.data):]
+		}
+
+		if last.chunk == nil && b.small != nil {
+			pool = b.small
+		}
+	}
+
+	chunk := pool.get()
+	b.segs = append(b.segs, segment{data: (*chunk)[:0], chunk: chunk, pool: pool})
+
+	return *chunk
+}
+
+// commit records that n bytes were written to the free space tail returned.
+func (b *chunkBuffer) commit(n int) {
+	last := &b.segs[len(b.segs)-1]
+	last.data = last.data[:len(last.data)+n]
+	b.size += n
+}
+
+// Write appends p, spilling into new chunks as the last one fills. It implements io.Writer.
+//
+//nolint:unparam // Keeps the io.Writer signature.
+func (b *chunkBuffer) Write(p []byte) (int, error) {
+	written := len(p)
+	for len(p) > 0 {
+		n := copy(b.tail(), p)
+		b.commit(n)
+		p = p[n:]
+	}
+
+	return written, nil
+}
+
+// WriteString appends s. Like bytes.Buffer.WriteString it returns the length and a nil error,
+// which callers that mirror that signature, tests among them, read.
+//
+//nolint:unparam // Keeps the bytes.Buffer signature.
+func (b *chunkBuffer) WriteString(s string) (int, error) {
+	written := len(s)
+	for len(s) > 0 {
+		n := copy(b.tail(), s)
+		b.commit(n)
+		s = s[n:]
+	}
+
+	return written, nil
+}
+
+// appendByte appends c.
+func (b *chunkBuffer) appendByte(c byte) {
+	b.tail()[0] = c
+	b.commit(1)
+}
+
+// appendRef appends p without copying it. The buffer reads p where it is, so p
+// must not change until the buffer has let go of it.
+func (b *chunkBuffer) appendRef(p []byte) {
+	if len(p) == 0 {
+		return
+	}
+
+	b.segs = append(b.segs, segment{data: p})
+	b.size += len(p)
+}
+
+// ReadFrom reads r to EOF into the buffer, as bytes.Buffer.ReadFrom does.
+func (b *chunkBuffer) ReadFrom(r io.Reader) (int64, error) {
+	var total int64
+	for {
+		n, err := r.Read(b.tail())
+		b.commit(n)
+		total += int64(n)
+
+		if errors.Is(err, io.EOF) {
+			return total, nil
+		}
+		if err != nil {
+			return total, err
+		}
+	}
+}
+
+// release lets go of a segment: a chunk goes back to the pool and a borrowed slice
+// is only forgotten.
+func (b *chunkBuffer) release(s segment) {
+	if s.chunk != nil {
+		s.pool.put(s.chunk)
+	}
+}
+
+// Truncate discards all but the first n bytes, and releases the segments that
+// held the rest. It panics when n is negative or beyond the end, as
+// bytes.Buffer.Truncate does.
+func (b *chunkBuffer) Truncate(n int) {
+	if n < 0 || n > b.size {
+		panic("opensearchutil: chunkBuffer: truncation out of range")
+	}
+
+	cut := b.size - n
+	for cut > 0 {
+		last := &b.segs[len(b.segs)-1]
+		if len(last.data) > cut {
+			last.data = last.data[:len(last.data)-cut]
+
+			break
+		}
+
+		cut -= len(last.data)
+		b.release(*last)
+		*last = segment{}
+		b.segs = b.segs[:len(b.segs)-1]
+	}
+
+	b.size = n
+
+	// An empty chunk at the end is no use to a reader, and a position past the
+	// content would stay there.
+	if b.read > n {
+		b.read = n
+	}
+	b.seek()
+}
+
+// seek puts the read position at b.read, which is at most the size.
+func (b *chunkBuffer) seek() {
+	b.readSeg, b.readOff = 0, 0
+
+	rest := b.read
+	for b.readSeg < len(b.segs)-1 && rest >= len(b.segs[b.readSeg].data) {
+		rest -= len(b.segs[b.readSeg].data)
+		b.readSeg++
+	}
+	b.readOff = rest
+}
+
+// Reset empties the buffer and returns its chunks to the pool.
+func (b *chunkBuffer) Reset() {
+	b.read = 0
+	b.Truncate(0)
+}
+
+// advance moves the read position on by n bytes of the segment Read is in.
+func (b *chunkBuffer) advance(n int) {
+	b.readOff += n
+	b.read += n
+
+	if b.readOff == len(b.segs[b.readSeg].data) && b.readSeg < len(b.segs)-1 {
+		b.readSeg++
+		b.readOff = 0
+	}
+}
+
+// Read reads the next unread bytes into p, as bytes.Buffer.Read does.
+func (b *chunkBuffer) Read(p []byte) (int, error) {
+	if b.Len() == 0 {
+		if len(p) == 0 {
+			return 0, nil
+		}
+
+		return 0, io.EOF
+	}
+
+	read := 0
+	for len(p) > 0 && b.Len() > 0 {
+		n := copy(p, b.unread())
+		b.advance(n)
+		read += n
+		p = p[n:]
+	}
+
+	return read, nil
+}
+
+// unread returns the written bytes of the segment Read is in that it has not
+// returned yet.
+func (b *chunkBuffer) unread() []byte {
+	return b.segs[b.readSeg].data[b.readOff:]
+}
+
+// WriteTo writes the unread bytes to w segment by segment without copying them, as
+// io.Copy prefers when its source offers it.
+func (b *chunkBuffer) WriteTo(w io.Writer) (int64, error) {
+	var total int64
+	for b.Len() > 0 {
+		part := b.unread()
+		n, err := w.Write(part)
+		b.advance(n)
+		total += int64(n)
+
+		if err != nil {
+			return total, err
+		}
+		if n < len(part) {
+			return total, io.ErrShortWrite
+		}
+	}
+
+	return total, nil
+}
+
+// NewReader returns a reader over the whole content, from its start, whatever has
+// been read from the buffer itself and independent of it: a request that is sent
+// again after the first attempt read the body to its end replays it from here. The
+// segments must not be released while it is in use.
+func (b *chunkBuffer) NewReader() io.Reader {
+	readers := make([]io.Reader, 0, len(b.segs))
+	for _, s := range b.segs {
+		readers = append(readers, bytes.NewReader(s.data))
+	}
+
+	return io.MultiReader(readers...)
+}
+
+// String returns the unread bytes as a string. It copies, and exists for debug
+// output.
+func (b *chunkBuffer) String() string {
+	if b == nil {
+		return "<nil>"
+	}
+
+	out := make([]byte, 0, b.Len())
+	for i := b.readSeg; i < len(b.segs); i++ {
+		part := b.segs[i].data
+		if i == b.readSeg {
+			part = part[b.readOff:]
+		}
+		out = append(out, part...)
+	}
+
+	return string(out)
+}
+
+// byteBudget bounds the bytes an indexer holds between Add and the end of the
+// flush that sends them. Add takes bytes before it queues an item, a worker
+// reconciles the amount with what it really wrote, and the flush that ends the
+// item's life gives them back. When the budget is spent Add waits, which is the
+// backpressure: memory stays bounded by the limit however slow the cluster is.
+//
+// Waiters are served in arrival order, so a large item is not starved by a
+// stream of small ones. A nil *byteBudget imposes no limit.
+type byteBudget struct {
+	limit int64
+
+	mu      sync.Mutex
+	used    int64
+	waiters []*budgetWaiter
+
+	// onBlock, when set, is called without the lock each time an acquire begins
+	// to wait. The indexer uses it to flush buffered data that is not on its way
+	// out already, so the wait does not last until the next flush interval.
+	onBlock func()
+	// onUnblock, when set, is called with the time an acquire waited, once the
+	// wait is over for whatever reason.
+	onUnblock func(ctx context.Context, waited time.Duration)
+	// now is the clock the blocked time is read from.
+	now func() time.Time
+
+	blocked     atomic.Uint64
+	blockedTime atomic.Int64 // Nanoseconds.
+}
+
+type budgetWaiter struct {
+	n       int64
+	ready   chan struct{}
+	granted bool
+}
+
+func newByteBudget(limit int64) *byteBudget {
+	return &byteBudget{limit: limit, now: time.Now}
+}
+
+// errBudgetStopped is returned by acquire when the stop channel closes first.
+var errBudgetStopped = errors.New("opensearchutil: bulk indexer stopped while waiting for buffer space")
+
+// acquire takes n bytes, waiting while they are not there. It returns the amount
+// taken: n, or the limit when n is larger, because an item bigger than the whole
+// budget must still be able to go through, alone. It fails with ctx's error when
+// ctx ends first, or errBudgetStopped when stop closes first, and takes nothing.
+func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64) (int64, error) {
+	if b == nil {
+		return 0, nil
+	}
+
+	n = min(max(n, 0), b.limit)
+
+	b.mu.Lock()
+	if len(b.waiters) == 0 && b.used+n <= b.limit {
+		b.used += n
+		b.mu.Unlock()
+
+		return n, nil
+	}
+
+	w := &budgetWaiter{n: n, ready: make(chan struct{})}
+	b.waiters = append(b.waiters, w)
+	b.mu.Unlock()
+
+	b.blocked.Add(1)
+	if b.onBlock != nil {
+		b.onBlock()
+	}
+
+	start := b.now()
+	defer func() {
+		waited := b.now().Sub(start)
+		b.blockedTime.Add(int64(waited))
+		if b.onUnblock != nil {
+			b.onUnblock(ctx, waited)
+		}
+	}()
+
+	var err error
+	select {
+	case <-w.ready:
+		return n, nil
+	case <-ctx.Done():
+		err = ctx.Err()
+	case <-stop:
+		err = errBudgetStopped
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if w.granted {
+		// The grant raced the cancellation and won: give the bytes back rather
+		// than hand them to a caller that has gone.
+		b.used -= n
+		b.grant()
+
+		return 0, err
+	}
+
+	if i := slices.Index(b.waiters, w); i >= 0 {
+		b.waiters = slices.Delete(b.waiters, i, i+1)
+		// The head may have been the one in the way of those behind it.
+		b.grant()
+	}
+
+	return 0, err
+}
+
+// release gives n bytes back and wakes the waiters that now fit.
+func (b *byteBudget) release(n int64) {
+	if b == nil || n <= 0 {
+		return
+	}
+
+	b.mu.Lock()
+	b.used -= n
+	b.grant()
+	b.mu.Unlock()
+}
+
+// grant serves waiters in order while the head fits; it must be called with the
+// lock held.
+func (b *byteBudget) grant() {
+	for len(b.waiters) > 0 {
+		w := b.waiters[0]
+		if b.used+w.n > b.limit {
+			return
+		}
+
+		b.used += w.n
+		w.granted = true
+		close(w.ready)
+
+		b.waiters[0] = nil
+		b.waiters = b.waiters[1:]
+	}
+}
+
+// waiting returns the number of acquires waiting for room.
+func (b *byteBudget) waiting() int {
+	if b == nil {
+		return 0
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return len(b.waiters)
+}
+
+// inUse returns the bytes currently taken.
+func (b *byteBudget) inUse() int64 {
+	if b == nil {
+		return 0
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.used
+}
+
+// blockedStats returns how many acquires had to wait and for how long in total.
+func (b *byteBudget) blockedStats() (uint64, time.Duration) {
+	if b == nil {
+		return 0, 0
+	}
+
+	return b.blocked.Load(), time.Duration(b.blockedTime.Load())
+}
