@@ -42,7 +42,7 @@ func TestPutScriptReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.PutScriptReq{ID: "test-id", Context: "test-context"},
-			wantMethod: http.MethodPost,
+			wantMethod: http.MethodPut,
 			wantPath:   "/_scripts/test-id/test-context",
 			wantErr:    false,
 		},

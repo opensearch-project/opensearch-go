@@ -196,7 +196,7 @@ func (c IndicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*Indices
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

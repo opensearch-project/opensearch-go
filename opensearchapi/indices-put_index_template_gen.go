@@ -215,7 +215,7 @@ func (c IndicesClient) PutIndexTemplate(ctx context.Context, req IndicesPutIndex
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

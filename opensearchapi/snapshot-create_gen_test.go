@@ -42,7 +42,7 @@ func TestSnapshotCreateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotCreateReq{Repository: "test-repository", Snapshot: "test-snapshot"},
-			wantMethod: http.MethodPost,
+			wantMethod: http.MethodPut,
 			wantPath:   "/_snapshot/test-repository/test-snapshot",
 			wantErr:    false,
 		},

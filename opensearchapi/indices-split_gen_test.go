@@ -42,7 +42,7 @@ func TestIndicesSplitReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesSplitReq{Index: "test-index", Target: "test-target"},
-			wantMethod: http.MethodPost,
+			wantMethod: http.MethodPut,
 			wantPath:   "/test-index/_split/test-target",
 			wantErr:    false,
 		},

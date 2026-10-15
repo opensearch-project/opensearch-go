@@ -42,7 +42,7 @@ func TestIndicesPutTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesPutTemplateReq{Name: "test-name"},
-			wantMethod: http.MethodPost,
+			wantMethod: http.MethodPut,
 			wantPath:   "/_template/test-name",
 			wantErr:    false,
 		},
