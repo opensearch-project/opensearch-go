@@ -95,4 +95,36 @@ func BenchmarkBulkIndexer(b *testing.B) {
 			docIDBuf.Reset()
 		}
 	})
+
+	// Documents of a few KiB: sent from a copy of each, and sent from the caller's
+	// own memory.
+	doc := []byte(`{"foo":"` + strings.Repeat("bar", 1400) + `"}`) // About 4 KiB.
+
+	for _, lend := range []bool{false, true} {
+		name := "Copied4KiB"
+		if lend {
+			name = "Lent4KiB"
+		}
+
+		b.Run(name, func(b *testing.B) {
+			client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransp{}}})
+			b.Cleanup(func() { _ = client.Close() })
+			bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{Client: client, FlushBytes: 1 << 20})
+			defer bi.Close(context.Background())
+
+			b.SetBytes(int64(len(doc)))
+
+			for i := 0; b.Loop(); i++ {
+				item := opensearchutil.BulkIndexerItem{Action: "index", DocumentID: strconv.Itoa(i)}
+				if lend {
+					_ = opensearchutil.AddZeroCopy(context.Background(), bi, opensearchutil.BulkIndexerZeroCopyItem{BulkIndexerItem: item, Data: doc})
+
+					continue
+				}
+
+				item.Body = bytes.NewReader(doc)
+				_ = bi.Add(context.Background(), item)
+			}
+		})
+	}
 }
