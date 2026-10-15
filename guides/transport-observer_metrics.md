@@ -84,6 +84,10 @@ http.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 
 Any type implementing `osprom.Observer` (embed `osprom.BaseObserver` for defaults) can be wired into the same Registry to build whatever metric set you need. Each sink receives the full transport event (`*RequestResponseEvent` / `*StreamResponseEvent`) on a dispatch worker -- so it can label by `RouteName`, `Index`, or `PoolName` -- and connection-lifecycle events synchronously. Its collectors are registered with the same Prometheus registerer when you pass the sink to `New`.
 
+## Bulk indexer metrics
+
+`opensearchutil.BulkIndexer` has its own observer, separate from the transport's: `BulkIndexerConfig.Observer` takes an `opensearchutil.BulkIndexerObserver`, which reports each bulk request, each failure of a whole request or of one item (with its scope, failure kind, and whether the retry policy is retrying), and each item's final outcome. It follows the same pattern -- embed `BaseBulkIndexerObserver` and override only what you need -- but the indexer calls it directly, so it is not wired through the `Registry`. `osprom.NewBulkIndexerObserver` and `osotel.NewBulkIndexerObserver` record those events as low-cardinality metrics. See [Bulk Indexer: Observing the indexer](indexing-bulk_indexer.md#observing-the-indexer) and the module READMEs for the metric lists.
+
 ## OpenTelemetry with `osotel`
 
 The [`osotel`](https://github.com/opensearch-project/opensearch-go/tree/main/osotel) module is the OpenTelemetry counterpart to `osprom`, with the same `Registry` + `Observer` model and async pooled pipeline. Wire an OTel `metric.Meter` (instead of a Prometheus registerer) and one or more `osotel.Observer` sinks into `osotel.New`; the shipped `osotel.NewRequestObserver` (RED) and `osotel.NewPoolObserver` (USE) record `opensearch.client.*` instruments. See `osotel/README.md`.

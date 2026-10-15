@@ -2,6 +2,8 @@
 
 The OpenSearch client retries on certain errors, such as `503 Service Unavailable`, immediately upon receiving the error response. The retry behavior is configurable.
 
+These are the transport's own retries. `opensearchutil.BulkIndexer` can add a second layer above them, a `RetryPolicy` that resends failed items after the transport has given up; the two multiply, and `DisableRetry` turns off only the transport's. See [Bulk Indexer](indexing-bulk_indexer.md#retrying-failed-items).
+
 ## Setup
 
 Let's create a client instance:
