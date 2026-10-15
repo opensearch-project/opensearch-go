@@ -234,6 +234,33 @@ func (cache *indexSlotCache) getOrCreate(indexName string) *indexSlot {
 	return slot
 }
 
+// register ensures indexName has a slot without counting a request against it,
+// and marks the slot active so idle eviction does not reclaim it while a caller
+// keeps asking about the index. Discovery populates the shard map only for
+// indexes that have a slot, and an index that is named in a bulk action line
+// rather than in the URL path never gets one from request routing, so a caller
+// that needs the index's geometry registers it here.
+func (cache *indexSlotCache) register(indexName string) *indexSlot {
+	m := cache.entries.Load()
+
+	if v, ok := m.Load(indexName); ok {
+		slot := v.(*indexSlot)
+		slot.idleSince.Store(0)
+		return slot
+	}
+
+	slot := &indexSlot{clock: realClock{}}
+	slot.fanOut.Store(int32(cache.minFanOut)) //nolint:gosec // minFanOut is bounded by config (default 1, max 32).
+
+	if v, loaded := m.LoadOrStore(indexName, slot); loaded {
+		existing := v.(*indexSlot)
+		existing.idleSince.Store(0)
+		return existing
+	}
+
+	return slot
+}
+
 // effectiveFanOut returns the current fan-out for a slot, clamped to
 // configuration bounds and available node count.
 //

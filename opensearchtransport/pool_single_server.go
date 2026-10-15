@@ -86,3 +86,11 @@ func (cp *singleServerPool) OnFailure(*Connection) error { return nil }
 func (cp *singleServerPool) URLs() []*url.URL { return []*url.URL{cp.connection.URL} }
 
 func (cp *singleServerPool) connections() []*Connection { return []*Connection{cp.connection} }
+
+func (cp *singleServerPool) connectionByName(name string) *Connection {
+	if cp.connection.Name == name {
+		return cp.connection
+	}
+
+	return nil
+}

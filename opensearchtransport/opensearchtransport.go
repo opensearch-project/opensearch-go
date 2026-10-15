@@ -53,6 +53,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
 	"github.com/opensearch-project/opensearch-go/v5/signer"
@@ -1518,7 +1519,7 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	if res != nil && res.Body != nil {
 		body, rerr := io.ReadAll(res.Body)
 		res.Body.Close()
-		res.Body = io.NopCloser(bytes.NewReader(body))
+		res.Body = bufbody.New(body)
 		n = int64(len(body))
 		if rerr != nil && err == nil {
 			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
@@ -1627,7 +1628,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			req.Header.Set(headerContentEncoding, tr.compressor.encoding)
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
-			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
+			if br, ok := origBody.(bufbody.BufferedReader); ok {
+				// Already in memory: replay it as it is instead of copying it.
+				req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(br.NewReader()), nil }
+				req.ContentLength = int64(br.Len())
+			} else if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer
 				if _, err := buf.ReadFrom(origBody); err != nil {
 					_ = origBody.Close()
@@ -1688,7 +1693,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			adaptiveShards  int
 		)
 
-		if tr.router != nil {
+		if pinned := pinnedWriteNode(req.Context()); pinned != nil && i == 0 {
+			// The caller chose the node: skip the router, keep everything else.
+			conn, poolName = pinned, poolWrite
+		} else if tr.router != nil {
 			var hop NextHop
 			hop, err = tr.router.Route(req.Context(), req)
 			conn = hop.Conn
