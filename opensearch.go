@@ -27,7 +27,6 @@
 package opensearch
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -44,6 +43,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
@@ -821,13 +821,15 @@ func Execute[T any](ctx context.Context, c *Client, method string, req Request, 
 		// Buffer the response payload into rawBody so the value-receiver String
 		// renders via the rawBody fast-path and never drains Body, and a
 		// subsequent ParseError still reads an intact Body.
-		data, rerr := io.ReadAll(resp.Body)
+		// The transport hands back a body it already holds in memory, whose bytes
+		// are taken without a second copy; any other body is read.
+		data, rerr := bufbody.ReadAll(resp.Body)
 		if rerr != nil {
 			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, rerr)
 		}
 
 		response.rawBody = data
-		response.Body = io.NopCloser(bytes.NewReader(data))
+		response.Body = bufbody.New(data)
 
 		if dataPointer != nil && !response.IsError() {
 			if err := json.Unmarshal(data, dataPointer); err != nil {

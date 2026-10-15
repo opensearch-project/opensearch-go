@@ -13,6 +13,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -234,36 +235,118 @@ func TestRequest_RawPath(t *testing.T) {
 func TestRequest_GetBody(t *testing.T) {
 	t.Parallel()
 
-	t.Run("bytes.Buffer is replayable", func(t *testing.T) {
-		t.Parallel()
-		body := bytes.NewBufferString(`{"hello":"world"}`)
-		req, err := Request("POST", "/test", body, nil, nil)
-		require.NoError(t, err)
-		require.NotNil(t, req.GetBody)
+	const payload = `{"hello":"world"}`
 
-		replay, err := req.GetBody()
-		require.NoError(t, err)
-		got, _ := io.ReadAll(replay)
-		require.JSONEq(t, `{"hello":"world"}`, string(got))
-	})
+	tests := []struct {
+		name string
+		body func() io.Reader
+		// wantLength is the ContentLength the request must carry; zero means none.
+		wantLength int64
+		// wantReplay is whether GetBody must exist, and then what it must yield on
+		// every call.
+		wantReplay bool
+		// wantNilHeader is set for a request that has neither body nor headers.
+		wantNilHeader bool
+	}{
+		{
+			name:       "bytes.Buffer is replayable",
+			body:       func() io.Reader { return bytes.NewBufferString(payload) },
+			wantLength: int64(len(payload)),
+			wantReplay: true,
+		},
+		{
+			name:       "bytes.Reader is replayable",
+			body:       func() io.Reader { return bytes.NewReader([]byte(payload)) },
+			wantLength: int64(len(payload)),
+			wantReplay: true,
+		},
+		{
+			name:       "strings.Reader is replayable",
+			body:       func() io.Reader { return strings.NewReader(payload) },
+			wantLength: int64(len(payload)),
+			wantReplay: true,
+		},
+		{
+			name:       "a BufferedReader body gets a length and a replay",
+			body:       func() io.Reader { return &chunkedBody{chunks: []string{`{"hello":`, `"world"}`}} },
+			wantLength: int64(len(payload)),
+			wantReplay: true,
+		},
+		{
+			name: "a plain reader has neither",
+			body: func() io.Reader { return io.MultiReader(strings.NewReader(payload)) },
+		},
+		{
+			name:          "no body and no headers leaves Header nil",
+			body:          func() io.Reader { return nil },
+			wantNilHeader: true,
+		},
+	}
 
-	t.Run("bytes.Reader is replayable", func(t *testing.T) {
-		t.Parallel()
-		body := bytes.NewReader([]byte(`{"hello":"world"}`))
-		req, err := Request("POST", "/test", body, nil, nil)
-		require.NoError(t, err)
-		require.NotNil(t, req.GetBody)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-		replay, err := req.GetBody()
-		require.NoError(t, err)
-		got, _ := io.ReadAll(replay)
-		require.JSONEq(t, `{"hello":"world"}`, string(got))
-	})
+			method := "POST"
+			if tt.wantNilHeader {
+				method = "GET"
+			}
 
-	t.Run("nil Header on GET with no body", func(t *testing.T) {
-		t.Parallel()
-		req, err := Request("GET", "/test", nil, nil, nil)
-		require.NoError(t, err)
-		require.Nil(t, req.Header)
-	})
+			req, err := Request(method, "/test", tt.body(), nil, nil)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantLength, req.ContentLength)
+
+			if tt.wantNilHeader {
+				require.Nil(t, req.Header)
+			}
+
+			if !tt.wantReplay {
+				require.Nil(t, req.GetBody)
+				return
+			}
+
+			// A request is sent again after the first attempt has read its body to the
+			// end, so each replay must be of the whole body whatever was read before it,
+			// and independent of the others.
+			require.NotNil(t, req.GetBody)
+			_, drainErr := io.Copy(io.Discard, req.Body)
+			require.NoError(t, drainErr)
+			for range 2 {
+				replay, replayErr := req.GetBody()
+				require.NoError(t, replayErr)
+				got, readErr := io.ReadAll(replay)
+				require.NoError(t, readErr)
+				require.JSONEq(t, payload, string(got))
+			}
+		})
+	}
+}
+
+// chunkedBody is a body.BufferedReader made of several pieces.
+type chunkedBody struct {
+	chunks []string
+	read   io.Reader
+}
+
+func (b *chunkedBody) Read(p []byte) (int, error) {
+	if b.read == nil {
+		b.read = b.NewReader()
+	}
+	return b.read.Read(p)
+}
+
+func (b *chunkedBody) Len() int {
+	n := 0
+	for _, c := range b.chunks {
+		n += len(c)
+	}
+	return n
+}
+
+func (b *chunkedBody) NewReader() io.Reader {
+	readers := make([]io.Reader, len(b.chunks))
+	for i, c := range b.chunks {
+		readers[i] = strings.NewReader(c)
+	}
+	return io.MultiReader(readers...)
 }
