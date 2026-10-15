@@ -6,7 +6,12 @@
 
 package linter
 
-import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
+import (
+	"slices"
+	"strings"
+
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
+)
 
 // hop_v4_to_v5.go is the hand-authored v4 -> v5 migration data: the human
 // judgment that cannot be auto-derived from the type surfaces. It is the
@@ -25,7 +30,7 @@ import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/ap
 //     survivors need no entry; the surface diff handles them.
 //
 //   - Call-site rules. Method regrouping onto sub-clients, removed-helper
-//     replacements, and value->pointer argument adjustments concern how code
+//     replacements, and argument-shape adjustments (Req vs *Req) concern how code
 //     CALLS the client, not the shape of request/response structs, so they are
 //     expressed as explicit rules verified by the osv4mig corpus build rather
 //     than derived from the type surfaces.
@@ -36,6 +41,9 @@ const (
 
 	v4root      = "github.com/opensearch-project/opensearch-go/v4"
 	v4transport = "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+
+	v4security = "github.com/opensearch-project/opensearch-go/v4/plugins/security"
+	v4ism      = "github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 )
 
 // hopV4toV5 is the complete v4 -> v5 transition, registered in hops (see
@@ -52,7 +60,7 @@ var hopV4toV5 = hop{
 	// surface (the DocumentGetReq -> GetReq family) and from the documented
 	// renames in opensearchapi/UPGRADING_V4_TO_V5.md (the per-shard error types);
 	// extend as new consumers or upgrade-doc entries surface additional renames.
-	TypeRenames: []apirev.TypeRename{
+	TypeRenames: slices.Concat([]apirev.TypeRename{
 		{FromPkgPath: v4api, FromName: "DocumentGetReq", ToPkgPath: v5api, ToName: "GetReq"},
 		{FromPkgPath: v4api, FromName: "DocumentGetResp", ToPkgPath: v5api, ToName: "GetResp"},
 		{FromPkgPath: v4api, FromName: "DocumentDeleteByQueryReq", ToPkgPath: v5api, ToName: "DeleteByQueryReq"},
@@ -61,10 +69,17 @@ var hopV4toV5 = hop{
 		{FromPkgPath: v4api, FromName: "IndicesCountResp", ToPkgPath: v5api, ToName: "CountResp"},
 		{FromPkgPath: v4api, FromName: "ScrollGetReq", ToPkgPath: v5api, ToName: "ScrollReq"},
 		{FromPkgPath: v4api, FromName: "ScrollGetResp", ToPkgPath: v5api, ToName: "ScrollResp"},
+		{FromPkgPath: v4api, FromName: "DocumentGetParams", ToPkgPath: v5api, ToName: "GetParams"},
+		{FromPkgPath: v4api, FromName: "DocumentDeleteByQueryParams", ToPkgPath: v5api, ToName: "DeleteByQueryParams"},
+		{FromPkgPath: v4api, FromName: "IndicesCountParams", ToPkgPath: v5api, ToName: "CountParams"},
+		{FromPkgPath: v4api, FromName: "ScrollGetParams", ToPkgPath: v5api, ToName: "ScrollParams"},
+		// Snapshot element types behind SnapshotGetResp.
+		{FromPkgPath: v4api, FromName: "SnapshotGet", ToPkgPath: v5api, ToName: "SnapshotInfo"},
+		{FromPkgPath: v4api, FromName: "SnapshotGetShards", ToPkgPath: v5api, ToName: "ShardStatistics"},
 		// Error-handling per-shard types (opensearchapi/UPGRADING_V4_TO_V5.md).
 		{FromPkgPath: v4api, FromName: "ResponseShards", ToPkgPath: v5api, ToName: "ShardStatistics"},
 		{FromPkgPath: v4api, FromName: "ResponseShardsFailure", ToPkgPath: v5api, ToName: "ShardSearchFailure"},
-	},
+	}, opFamilyTypeRenames()),
 
 	// FieldDispositions rules on struct fields that vanished on the v5 side. Every
 	// entry here is a rename established from the v4/v5 package SOURCE, not guessed
@@ -88,16 +103,16 @@ var hopV4toV5 = hop{
 	// from opensearchapi/UPGRADING_V4_TO_V5.md's method-grouping tables plus the
 	// v5 generated client shape (Count/DeleteByQuery moved to top-level; document
 	// ops to Doc; etc.). Extend as new consumers surface additional paths.
-	MethodRegroups: []methodRegroup{
-		{FromPath: []string{"Indices", "Count"}, ToPath: []string{"Count"}, PtrArg: true},
-		{FromPath: []string{"Document", "DeleteByQuery"}, ToPath: []string{"DeleteByQuery"}, PtrArg: true},
-		{FromPath: []string{"Indices", "Delete"}, ToPath: []string{"Indices", "Delete"}, PtrArg: true},
-		{FromPath: []string{"Indices", "Exists"}, ToPath: []string{"Indices", "Exists"}, PtrArg: true},
-		{FromPath: []string{"Index"}, ToPath: []string{"Doc", "Index"}, PtrArg: false},
+	MethodRegroups: append([]methodRegroup{
+		{FromPath: []string{"Indices", "Count"}, ToPath: []string{"Count"}, Arg: argAddr},
+		{FromPath: []string{"Document", "DeleteByQuery"}, ToPath: []string{"DeleteByQuery"}, Arg: argAddr},
+		{FromPath: []string{"Indices", "Delete"}, ToPath: []string{"Indices", "Delete"}, Arg: argAddr},
+		{FromPath: []string{"Indices", "Exists"}, ToPath: []string{"Indices", "Exists"}, Arg: argAddr},
+		{FromPath: []string{"Index"}, ToPath: []string{"Doc", "Index"}},
 		// Top-level methods that stayed top-level but now take *Req in v5. Same
-		// path, PtrArg only - the regroup machinery doubles as a "wrap the arg" rule.
-		{FromPath: []string{"UpdateByQuery"}, ToPath: []string{"UpdateByQuery"}, PtrArg: true},
-	},
+		// path, Arg only - the regroup machinery doubles as a "wrap the arg" rule.
+		{FromPath: []string{"UpdateByQuery"}, ToPath: []string{"UpdateByQuery"}, Arg: argAddr},
+	}, opFamilyRegroups()...),
 
 	// RemovedHelpers handles package-level helpers removed in v5, from
 	// opensearchapi or the root package.
@@ -118,10 +133,15 @@ var hopV4toV5 = hop{
 		"errmask default flipped: Config.Errors == nil now reports every partial-failure category (v4 masked all).",
 		"opensearchapi.NewClient now injects a default Router when Config.Client.Router is nil - verify OPENSEARCH_GO_ROUTER expectations.",
 		"EnableMetrics removed: Metrics() no longer errors when disabled - drop any code that branched on that error.",
-		"Timeout/Pretty/Human/ErrorTrace moved into embedded TimeoutParams/DebugParams - restructure those assignments by hand.",
+		"Pretty/Human/ErrorTrace/FilterPath, cat H/V, Timeout, ClusterManagerTimeout and MasterTimeout " +
+			"moved into the embedded DebugParams/TimeoutParams - " +
+			"a selector (p.Pretty = x) still compiles, but below Go 1.27 a composite-literal key must move into " +
+			"DebugParams: opensearchapi.DebugParams{...} or TimeoutParams: opensearchapi.TimeoutParams{...}.",
 		"DocumentError -> ErrorRespBase: v5 nests the cause in ErrorRespBase.Error (an ErrorCause) with Status on the envelope; " +
 			"read Reason/Type/CausedBy/RootCause from .Error (Reason is now *string - nil-check) and rework per-error access by hand " +
 			"- see opensearchapi/UPGRADING_V4_TO_V5.md.",
+		"plugins/security and plugins/ism NewClient(Config) became NewClient(*opensearch.Client) and returns only *Client; " +
+			"the sub-clients are regrouped - see opensearchapi/UPGRADING_V4_TO_V5.md (Plugins).",
 	},
 }
 
@@ -176,28 +196,106 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		{"SnapshotRestoreReq", "Repo", "", "Repository"},
 		{"SnapshotStatusReq", "Repo", "", "Repository"},
 		{"SnapshotStatusReq", "Snapshots", "", "Snapshot"},
+		// Params: v4 `params["q"] = r.Query`.
+		{"DocumentDeleteByQueryParams", "Query", "DeleteByQueryParams", "Q"},
+		{"IndicesCountParams", "Query", "CountParams", "Q"},
+
+		// Template, script and data stream op families. The v4 identifier fields
+		// are the spec path elements (ospath.<Name>Path{...}); the target type
+		// follows the op family rename.
+		{"IndexTemplateCreateReq", "IndexTemplate", "", "Name"},
+		{"IndexTemplateDeleteReq", "IndexTemplate", "", "Name"},
+		{"IndexTemplateExistsReq", "IndexTemplate", "", "Name"},
+		{"IndexTemplateSimulateReq", "IndexTemplate", "", "Name"},
+		{"IndexTemplateGetReq", "IndexTemplates", "", "Name"},
+		{"IndexTemplateSimulateIndexReq", "Index", "", "Name"},
+		{"ComponentTemplateCreateReq", "ComponentTemplate", "", "Name"},
+		{"ComponentTemplateDeleteReq", "ComponentTemplate", "", "Name"},
+		{"ComponentTemplateGetReq", "ComponentTemplate", "", "Name"},
+		{"ComponentTemplateExistsReq", "ComponentTemplate", "", "Name"},
+		{"TemplateCreateReq", "Template", "", "Name"},
+		{"TemplateDeleteReq", "Template", "", "Name"},
+		{"TemplateGetReq", "Templates", "", "Name"},
+		{"TemplateGetResp", "Templates", "", "Entries"}, // v4 decodes into &data.Templates, v5 UnmarshalJSON into Entries
+		{"ScriptDeleteReq", "ScriptID", "", "ID"},
+		{"ScriptGetReq", "ScriptID", "", "ID"},
+		{"ScriptPutReq", "ScriptID", "", "ID"},
+		{"ScriptPutReq", "ScriptContext", "", "Context"},
+		{"DataStreamCreateReq", "DataStream", "", "Name"},
+		{"DataStreamGetReq", "DataStreams", "", "Name"},
+		{"DataStreamStatsReq", "DataStreams", "", "Name"},
+		{"DataStreamIndices", "Name", "", "IndexName"}, // json:"index_name"
+		{"DataStreamIndices", "UUID", "", "IndexUUID"}, // json:"index_uuid"
+	}
+
+	// manuals: fields whose data relocated or changed shape, so no 1:1 rewrite is
+	// safe.
+	const simulateIndexParamNote = "v5 IndicesSimulateIndexTemplateParams has no such param; dropping it would change the request"
+	manuals := []struct{ typ, field, note string }{
+		{"TemplateExistsReq", "Template", "v5 takes Name []string; v4 sent []string{Template}"},
+		{"DataStreamDeleteReq", "DataStream", "v5 takes Name []string; v4 sent []string{DataStream}"},
+		{"IndexTemplateSimulateIndexParams", "Cause", simulateIndexParamNote},
+		{"IndexTemplateSimulateIndexParams", "Create", simulateIndexParamNote},
+
+		// Sub-clients removed from the API client. A call through them is
+		// regrouped (MethodRegroups); a bare reference, such as storing the
+		// sub-client in a variable, has no mechanical target.
+		{
+			typeClient, "IndexTemplate",
+			"removed in v5; call client.Indices.{PutIndexTemplate,DeleteIndexTemplate,GetIndexTemplate," +
+				"ExistsIndexTemplate,SimulateTemplate,SimulateIndexTemplate} instead",
+		},
+		{typeClient, "ComponentTemplate", "removed in v5; call client.Cluster.{Put,Delete,Get,Exists}ComponentTemplate instead"},
+		{typeClient, "Template", "removed in v5; call client.Indices.{Put,Delete,Get,Exists}Template instead"},
+		{
+			typeClient, "Script",
+			"removed in v5; call client.{DeleteScript,PutScript,GetScript,GetScriptContext,GetScriptLanguages," +
+				"ScriptsPainlessExecute} instead",
+		},
+		{
+			typeClient, "DataStream",
+			"removed in v5; call client.Indices.{CreateDataStream,DeleteDataStream,GetDataStream,DataStreamsStats} instead",
+		},
 	}
 
 	// removals: fields genuinely gone in v5, listed explicitly so they are
 	// ActionRemove rather than "unclassified". Includes fields inside type-renamed
 	// structs (which the same-name diff never sees) and the opensearch/
-	// opensearchtransport Config knobs dropped in v5 (EnableMetrics is also called
-	// out in SemanticFollowups; DisableResponseBuffering was likewise removed).
+	// opensearchtransport Config knob dropped in v5 (EnableMetrics is also called
+	// out in SemanticFollowups).
 	removals := []struct{ pkg, typ, field string }{
 		{v4api, "ScrollGetResp", "MaxScore"},        // top-level max_score dropped in v5 (moved per-hit)
 		{v4api, "ResponseShardsFailure", "Primary"}, // dropped in v5 ShardSearchFailure
 		{v4api, "ResponseShardsFailure", "Status"},  // dropped in v5 ShardSearchFailure
 		{v4root, "Config", "EnableMetrics"},
-		{v4root, "Config", "DisableResponseBuffering"},
 		{v4transport, "Config", "EnableMetrics"},
-		{v4transport, "Config", "DisableResponseBuffering"},
 	}
 
-	out := make([]apirev.FieldDisposition, 0, len(renames)+len(removals))
+	toName := map[string]string{}
+	for _, r := range opFamilyTypeRenames() {
+		toName[r.FromName] = r.ToName
+	}
+
+	out := make([]apirev.FieldDisposition, 0, len(renames)+len(manuals)+len(removals)+len(pluginClientManuals))
+	for _, m := range pluginClientManuals {
+		out = append(out, apirev.FieldDisposition{
+			FromPkgPath: m.pkg, FromType: typeClient, FromField: m.field,
+			Action: apirev.ActionManual, Note: m.note,
+		})
+	}
+	for _, m := range manuals {
+		out = append(out, apirev.FieldDisposition{
+			FromPkgPath: v4api, FromType: m.typ, FromField: m.field,
+			Action: apirev.ActionManual, Note: m.note,
+		})
+	}
 	for _, r := range renames {
 		toType := r.toType
 		if toType == "" {
 			toType = r.fromType
+			if renamed, ok := toName[r.fromType]; ok {
+				toType = renamed
+			}
 		}
 		out = append(out, apirev.FieldDisposition{
 			FromPkgPath: v4api, FromType: r.fromType, FromField: r.fromField,
@@ -210,6 +308,146 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 			FromPkgPath: r.pkg, FromType: r.typ, FromField: r.field,
 			Action: apirev.ActionRemove,
 		})
+	}
+	return out
+}
+
+// pluginClientManuals rules the v4 plugin Client sub-client fields as MANUAL: v5
+// regroups the sub-clients under new names, so a bare reference has no
+// mechanical target and plugin calls are not regrouped.
+//
+//nolint:gochecknoglobals // immutable data table
+var pluginClientManuals = []struct{ pkg, field, note string }{
+	{v4security, "Account", "removed in v5; call client.GetAccountDetails or client.ChangePassword instead"},
+	{
+		v4security, "ActionGroups",
+		"removed in v5; call client.ActionGroup.{GetActionGroups,GetActionGroup,CreateActionGroup," +
+			"PatchActionGroups,PatchActionGroup,DeleteActionGroup} instead",
+	},
+	{
+		v4security, "Audit",
+		"removed in v5; call client.AuditConfiguration.{GetAuditConfiguration,UpdateAuditConfiguration,PatchAuditConfiguration} instead",
+	},
+	{
+		v4security, "InternalUsers",
+		"removed in v5; call client.User.{GetUsers,GetUser,CreateUser,PatchUsers,PatchUser,DeleteUser} instead",
+	},
+	{
+		v4security, "NodesDN",
+		"removed in v5; call client.DistinguishedName.{GetDistinguishedNames,GetDistinguishedName,UpdateDistinguishedName," +
+			"PatchDistinguishedNames,PatchDistinguishedName,DeleteDistinguishedName} instead",
+	},
+	{v4security, "Roles", "removed in v5; call client.Role.{GetRoles,GetRole,CreateRole,PatchRoles,PatchRole,DeleteRole} instead"},
+	{
+		v4security, "RolesMapping",
+		"removed in v5; call client.RoleMapping.{GetRoleMappings,GetRoleMapping,CreateRoleMapping,PatchRoleMappings," +
+			"PatchRoleMapping,DeleteRoleMapping} instead",
+	},
+	{
+		v4security, "SecurityConfig",
+		"removed in v5; call client.Configuration.{GetConfiguration,UpdateConfiguration,PatchConfiguration} instead",
+	},
+	{
+		v4security, "SSL",
+		"removed in v5; call client.Certificate.GetCertificates, client.ReloadHTTPCertificates or client.ReloadTransportCertificates instead",
+	},
+	{
+		v4security, "Tenants",
+		"removed in v5; call client.Tenant.{GetTenants,GetTenant,CreateTenant,PatchTenants,PatchTenant,DeleteTenant} instead",
+	},
+	{v4ism, "Policies", "removed in v5; call client.Policy.{GetPolicies,GetPolicy,PutPolicy,DeletePolicy} instead"},
+}
+
+// opFamilies pairs each v4 template, script and data stream op family with its
+// v5 name. Each family has a Req, Params and Resp type; the template Exists ops
+// have no Resp. Every v4 name is the ospath element its request builds, and
+// Simulate/SimulateIndex are paired by URL (/_index_template/_simulate and
+// /_simulate_index). from and to name the Req/Params/Resp type family; fromCall
+// and toCall are the dotted client call paths the family's method moves between.
+// The argument shape follows the v4 and v5 method signatures: v4 Get on the index
+// and component templates takes *Req (nil-checked) where v5 takes Req; v4
+// Template Exists, Script PainlessExecute and DataStream Delete take Req where v5
+// takes *Req. Where both sides take *Req, the target nil-checks it, so the
+// argument passes through (argSame): wrapping nil in & would not compile.
+//
+//nolint:gochecknoglobals,goconst // immutable data table; op names repeat across tables
+var opFamilies = []struct {
+	from, to         string
+	fromCall, toCall string
+	arg              argShape
+	noResp           bool
+}{
+	{"IndexTemplateCreate", "IndicesPutIndexTemplate", "IndexTemplate.Create", "Indices.PutIndexTemplate", argSame, false},
+	{"IndexTemplateDelete", "IndicesDeleteIndexTemplate", "IndexTemplate.Delete", "Indices.DeleteIndexTemplate", argSame, false},
+	{"IndexTemplateGet", "IndicesGetIndexTemplate", "IndexTemplate.Get", "Indices.GetIndexTemplate", argValue, false},
+	{"IndexTemplateExists", "IndicesExistsIndexTemplate", "IndexTemplate.Exists", "Indices.ExistsIndexTemplate", argSame, true},
+	{"IndexTemplateSimulate", "IndicesSimulateTemplate", "IndexTemplate.Simulate", "Indices.SimulateTemplate", argSame, false},
+	{
+		"IndexTemplateSimulateIndex", "IndicesSimulateIndexTemplate",
+		"IndexTemplate.SimulateIndex", "Indices.SimulateIndexTemplate",
+		argSame, false,
+	},
+	{
+		"ComponentTemplateCreate", "ClusterPutComponentTemplate",
+		"ComponentTemplate.Create", "Cluster.PutComponentTemplate",
+		argSame, false,
+	},
+	{
+		"ComponentTemplateDelete", "ClusterDeleteComponentTemplate",
+		"ComponentTemplate.Delete", "Cluster.DeleteComponentTemplate",
+		argSame, false,
+	},
+	{"ComponentTemplateGet", "ClusterGetComponentTemplate", "ComponentTemplate.Get", "Cluster.GetComponentTemplate", argValue, false},
+	{
+		"ComponentTemplateExists", "ClusterExistsComponentTemplate",
+		"ComponentTemplate.Exists", "Cluster.ExistsComponentTemplate",
+		argSame, true,
+	},
+	{"TemplateCreate", "IndicesPutTemplate", "Template.Create", "Indices.PutTemplate", argSame, false},
+	{"TemplateDelete", "IndicesDeleteTemplate", "Template.Delete", "Indices.DeleteTemplate", argSame, false},
+	{"TemplateGet", "IndicesGetTemplate", "Template.Get", "Indices.GetTemplate", argSame, false},
+	{"TemplateExists", "IndicesExistsTemplate", "Template.Exists", "Indices.ExistsTemplate", argAddr, true},
+	{"ScriptDelete", "DeleteScript", "Script.Delete", "DeleteScript", argSame, false},
+	{"ScriptPut", "PutScript", "Script.Put", "PutScript", argSame, false},
+	{"ScriptGet", "GetScript", "Script.Get", "GetScript", argSame, false},
+	{"ScriptContext", "GetScriptContext", "Script.Context", "GetScriptContext", argSame, false},
+	{"ScriptLanguage", "GetScriptLanguages", "Script.Language", "GetScriptLanguages", argSame, false},
+	{"ScriptPainlessExecute", "ScriptsPainlessExecute", "Script.PainlessExecute", "ScriptsPainlessExecute", argAddr, false},
+	{"DataStreamCreate", "IndicesCreateDataStream", "DataStream.Create", "Indices.CreateDataStream", argSame, false},
+	{"DataStreamDelete", "IndicesDeleteDataStream", "DataStream.Delete", "Indices.DeleteDataStream", argAddr, false},
+	{"DataStreamGet", "IndicesGetDataStream", "DataStream.Get", "Indices.GetDataStream", argSame, false},
+	{"DataStreamStats", "IndicesDataStreamsStats", "DataStream.Stats", "Indices.DataStreamsStats", argSame, false},
+}
+
+// opFamilyTypeRenames returns the type renames for opFamilies plus the nested
+// element types behind their responses. Each nested rename is proven by the
+// parent field's identical JSON tag.
+func opFamilyTypeRenames() []apirev.TypeRename {
+	out := make([]apirev.TypeRename, 0, len(opFamilies)*3+6)
+	add := func(from, to string) {
+		out = append(out, apirev.TypeRename{FromPkgPath: v4api, FromName: from, ToPkgPath: v5api, ToName: to})
+	}
+	for _, f := range opFamilies {
+		add(f.from+"Req", f.to+"Req")
+		add(f.from+"Params", f.to+"Params")
+		if !f.noResp {
+			add(f.from+"Resp", f.to+"Resp")
+		}
+	}
+	add("IndexTemplateGetDetails", "IndicesGetIndexTemplateIndexTemplateItem")
+	add("ComponentTemplateGetDetails", "ClusterComponentTemplate")
+	add("TemplateGetDetails", "IndicesTemplateMapping")
+	add("DataStreamGetDetails", "IndicesDataStream")
+	add("DataStreamStatsDetails", "IndicesDataStreamStats")
+	add("DataStreamIndices", "IndicesDataStreamIndex")
+	return out
+}
+
+// opFamilyRegroups returns the sub-client moves for opFamilies.
+func opFamilyRegroups() []methodRegroup {
+	out := make([]methodRegroup, 0, len(opFamilies))
+	for _, f := range opFamilies {
+		out = append(out, methodRegroup{FromPath: strings.Split(f.fromCall, "."), ToPath: strings.Split(f.toCall, "."), Arg: f.arg})
 	}
 	return out
 }

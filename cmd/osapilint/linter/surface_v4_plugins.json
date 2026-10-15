@@ -1,0 +1,3450 @@
+{
+  "version": "v4",
+  "structs": [
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "AddBody",
+      "fields": [
+        {
+          "name": "PolicyID",
+          "type": "string",
+          "jsonTag": "policy_id"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "AddReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.AddBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "AddResp",
+      "fields": [
+        {
+          "name": "FailedIndices",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.FailedIndex",
+          "jsonTag": "failed_indices"
+        },
+        {
+          "name": "Failures",
+          "type": "bool",
+          "jsonTag": "failures"
+        },
+        {
+          "name": "UpdatedIndices",
+          "type": "int",
+          "jsonTag": "updated_indices"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ChangeBody",
+      "fields": [
+        {
+          "name": "Include",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.ChangeBodyInclude",
+          "jsonTag": "include,omitempty"
+        },
+        {
+          "name": "PolicyID",
+          "type": "string",
+          "jsonTag": "policy_id"
+        },
+        {
+          "name": "State",
+          "type": "string",
+          "jsonTag": "state"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ChangeBodyInclude",
+      "fields": [
+        {
+          "name": "State",
+          "type": "string",
+          "jsonTag": "state"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ChangeReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.ChangeBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ChangeResp",
+      "fields": [
+        {
+          "name": "FailedIndices",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.FailedIndex",
+          "jsonTag": "failed_indices"
+        },
+        {
+          "name": "Failures",
+          "type": "bool",
+          "jsonTag": "failures"
+        },
+        {
+          "name": "UpdatedIndices",
+          "type": "int",
+          "jsonTag": "updated_indices"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "Client",
+      "fields": [
+        {
+          "name": "Client",
+          "type": "*github.com/opensearch-project/opensearch-go/v4.Client"
+        },
+        {
+          "name": "Policies",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.policiesClient"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "Config",
+      "fields": [
+        {
+          "name": "Client",
+          "type": "github.com/opensearch-project/opensearch-go/v4.Config"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ExplainItem",
+      "fields": [
+        {
+          "name": "Action",
+          "type": "*struct{Name string \"json:\\\"name\\\"\"; StartTime int64 \"json:\\\"start_time\\\"\"; Index int \"json:\\\"index\\\"\"; Failed bool \"json:\\\"failed\\\"\"; ConsumedRetries int \"json:\\\"consumed_retries\\\"\"; LastRetryTime int64 \"json:\\\"last_retry_time\\\"\"}",
+          "jsonTag": "action,omitempty"
+        },
+        {
+          "name": "Enabled",
+          "type": "*bool",
+          "jsonTag": "enabled"
+        },
+        {
+          "name": "Index",
+          "type": "string",
+          "jsonTag": "index,omitempty"
+        },
+        {
+          "name": "IndexCreationDate",
+          "type": "int64",
+          "jsonTag": "index_creation_date,omitempty"
+        },
+        {
+          "name": "IndexUUID",
+          "type": "string",
+          "jsonTag": "index_uuid,omitempty"
+        },
+        {
+          "name": "Info",
+          "type": "*struct{Message string \"json:\\\"message\\\"\"}",
+          "jsonTag": "info,omitempty"
+        },
+        {
+          "name": "OpenDistroPolicyID",
+          "type": "*string",
+          "jsonTag": "index.opendistro.index_state_management.policy_id"
+        },
+        {
+          "name": "PluginPolicyID",
+          "type": "*string",
+          "jsonTag": "index.plugins.index_state_management.policy_id"
+        },
+        {
+          "name": "Policy",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyBody",
+          "jsonTag": "policy,omitempty"
+        },
+        {
+          "name": "PolicyID",
+          "type": "string",
+          "jsonTag": "policy_id,omitempty"
+        },
+        {
+          "name": "PolicyPrimaryTerm",
+          "type": "int",
+          "jsonTag": "policy_primary_term,omitempty"
+        },
+        {
+          "name": "PolicySeqNo",
+          "type": "int",
+          "jsonTag": "policy_seq_no,omitempty"
+        },
+        {
+          "name": "RetryInfo",
+          "type": "*struct{Failed bool \"json:\\\"failed\\\"\"; ConsumedRetries int \"json:\\\"consumed_retries\\\"\"}",
+          "jsonTag": "retry_info,omitempty"
+        },
+        {
+          "name": "RolledOver",
+          "type": "bool",
+          "jsonTag": "rolled_over,omitempty"
+        },
+        {
+          "name": "RolledOverIndexName",
+          "type": "string",
+          "jsonTag": "rolled_over_index_name,omitempty"
+        },
+        {
+          "name": "State",
+          "type": "*struct{Name string \"json:\\\"name\\\"\"; StartTime int64 \"json:\\\"start_time\\\"\"}",
+          "jsonTag": "state,omitempty"
+        },
+        {
+          "name": "Step",
+          "type": "*struct{Name string \"json:\\\"name\\\"\"; StartTime int64 \"json:\\\"start_time\\\"\"; StepStatus string \"json:\\\"step_status\\\"\"}",
+          "jsonTag": "step,omitempty"
+        },
+        {
+          "name": "Validate",
+          "type": "*struct{Message string \"json:\\\"validation_message\\\"\"; Status string \"json:\\\"validation_status\\\"\"}",
+          "jsonTag": "validate,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ExplainParams",
+      "fields": [
+        {
+          "name": "ShowPolicy",
+          "type": "bool"
+        },
+        {
+          "name": "ValidateAction",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ExplainReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        },
+        {
+          "name": "Params",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.ExplainParams"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "ExplainResp",
+      "fields": [
+        {
+          "name": "Indices",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v4/plugins/ism.ExplainItem"
+        },
+        {
+          "name": "TotalManagedIndices",
+          "type": "int",
+          "jsonTag": "total_managed_indices"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "FailedIndex",
+      "fields": [
+        {
+          "name": "IndexName",
+          "type": "string",
+          "jsonTag": "index_name"
+        },
+        {
+          "name": "IndexUUID",
+          "type": "string",
+          "jsonTag": "index_uuid"
+        },
+        {
+          "name": "Reason",
+          "type": "string",
+          "jsonTag": "reason"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "Inspect",
+      "fields": [
+        {
+          "name": "Response",
+          "type": "*github.com/opensearch-project/opensearch-go/v4.Response"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "NotificationChannel",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "string",
+          "jsonTag": "id"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "NotificationDestination",
+      "fields": [
+        {
+          "name": "Chime",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationDestinationURL",
+          "jsonTag": "chime,omitempty"
+        },
+        {
+          "name": "CustomWebhook",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationDestinationCustomWebhook",
+          "jsonTag": "custom_webhook,omitempty"
+        },
+        {
+          "name": "Slack",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationDestinationURL",
+          "jsonTag": "slack,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "NotificationDestinationCustomWebhook",
+      "fields": [
+        {
+          "name": "HeaderParams",
+          "type": "map[string]string",
+          "jsonTag": "header_params,omitempty"
+        },
+        {
+          "name": "Host",
+          "type": "string",
+          "jsonTag": "host,omitempty"
+        },
+        {
+          "name": "Password",
+          "type": "string",
+          "jsonTag": "password,omitempty"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path,omitempty"
+        },
+        {
+          "name": "Port",
+          "type": "int",
+          "jsonTag": "port,omitempty"
+        },
+        {
+          "name": "QueryParams",
+          "type": "map[string]string",
+          "jsonTag": "query_params,omitempty"
+        },
+        {
+          "name": "Scheme",
+          "type": "string",
+          "jsonTag": "scheme,omitempty"
+        },
+        {
+          "name": "URL",
+          "type": "string",
+          "jsonTag": "url,omitempty"
+        },
+        {
+          "name": "Username",
+          "type": "string",
+          "jsonTag": "username,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "NotificationDestinationURL",
+      "fields": [
+        {
+          "name": "URL",
+          "type": "string",
+          "jsonTag": "url"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "NotificationMessageTemplate",
+      "fields": [
+        {
+          "name": "Lang",
+          "type": "string",
+          "jsonTag": "lang,omitempty"
+        },
+        {
+          "name": "Source",
+          "type": "string",
+          "jsonTag": "source"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesDeleteReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Policy",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesDeleteResp",
+      "fields": [
+        {
+          "name": "ForcedRefresh",
+          "type": "bool",
+          "jsonTag": "forced_refresh"
+        },
+        {
+          "name": "ID",
+          "type": "string",
+          "jsonTag": "_id"
+        },
+        {
+          "name": "Index",
+          "type": "string",
+          "jsonTag": "_index"
+        },
+        {
+          "name": "PrimaryTerm",
+          "type": "int",
+          "jsonTag": "_primary_term"
+        },
+        {
+          "name": "Result",
+          "type": "string",
+          "jsonTag": "result"
+        },
+        {
+          "name": "SeqNo",
+          "type": "int",
+          "jsonTag": "_seq_no"
+        },
+        {
+          "name": "Shards",
+          "type": "struct{Total int \"json:\\\"total\\\"\"; Successful int \"json:\\\"successful\\\"\"; Failed int \"json:\\\"failed\\\"\"}",
+          "jsonTag": "_shards"
+        },
+        {
+          "name": "Type",
+          "type": "string",
+          "jsonTag": "_type"
+        },
+        {
+          "name": "Version",
+          "type": "int",
+          "jsonTag": "_version"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Policy",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesGetResp",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "*string",
+          "jsonTag": "_id,omitempty"
+        },
+        {
+          "name": "Policies",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.Policy",
+          "jsonTag": "policies,omitempty"
+        },
+        {
+          "name": "Policy",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyBody",
+          "jsonTag": "policy,omitempty"
+        },
+        {
+          "name": "PrimaryTerm",
+          "type": "*int",
+          "jsonTag": "_primary_term,omitempty"
+        },
+        {
+          "name": "SeqNo",
+          "type": "*int",
+          "jsonTag": "_seq_no,omitempty"
+        },
+        {
+          "name": "TotalPolicies",
+          "type": "*int",
+          "jsonTag": "total_policies,omitempty"
+        },
+        {
+          "name": "Version",
+          "type": "*int",
+          "jsonTag": "_version,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesPutBody",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "string",
+          "jsonTag": "_id,omitempty"
+        },
+        {
+          "name": "Policy",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyBody",
+          "jsonTag": "policy"
+        },
+        {
+          "name": "PrimaryTerm",
+          "type": "*int",
+          "jsonTag": "_primary_term,omitempty"
+        },
+        {
+          "name": "SeqNo",
+          "type": "*int",
+          "jsonTag": "_seq_no,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesPutParams",
+      "fields": [
+        {
+          "name": "IfPrimaryTerm",
+          "type": "*int"
+        },
+        {
+          "name": "IfSeqNo",
+          "type": "*int"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.PoliciesPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Params",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.PoliciesPutParams"
+        },
+        {
+          "name": "Policy",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PoliciesPutResp",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "string",
+          "jsonTag": "_id"
+        },
+        {
+          "name": "Policy",
+          "type": "struct{Policy github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyBody \"json:\\\"policy\\\"\"}",
+          "jsonTag": "policy"
+        },
+        {
+          "name": "PrimaryTerm",
+          "type": "int",
+          "jsonTag": "_primary_term"
+        },
+        {
+          "name": "SeqNo",
+          "type": "int",
+          "jsonTag": "_seq_no"
+        },
+        {
+          "name": "Version",
+          "type": "int",
+          "jsonTag": "_version"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "Policy",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "string",
+          "jsonTag": "_id,omitempty"
+        },
+        {
+          "name": "Policy",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyBody",
+          "jsonTag": "policy"
+        },
+        {
+          "name": "PrimaryTerm",
+          "type": "*int",
+          "jsonTag": "_primary_term,omitempty"
+        },
+        {
+          "name": "SeqNo",
+          "type": "*int",
+          "jsonTag": "_seq_no,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyBody",
+      "fields": [
+        {
+          "name": "DefaultState",
+          "type": "string",
+          "jsonTag": "default_state"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description,omitempty"
+        },
+        {
+          "name": "ErrorNotification",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyErrorNotification",
+          "jsonTag": "error_notification"
+        },
+        {
+          "name": "LastUpdatedTime",
+          "type": "int64",
+          "jsonTag": "last_updated_time,omitempty"
+        },
+        {
+          "name": "PolicyID",
+          "type": "string",
+          "jsonTag": "policy_id,omitempty"
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "int",
+          "jsonTag": "schema_version,omitempty"
+        },
+        {
+          "name": "States",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyState",
+          "jsonTag": "states"
+        },
+        {
+          "name": "Template",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.Template",
+          "jsonTag": "ism_template,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyErrorNotification",
+      "fields": [
+        {
+          "name": "Channel",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationChannel",
+          "jsonTag": "channel,omitempty"
+        },
+        {
+          "name": "Destination",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationDestination",
+          "jsonTag": "destination,omitempty"
+        },
+        {
+          "name": "MessageTemplate",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationMessageTemplate",
+          "jsonTag": "message_template"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyState",
+      "fields": [
+        {
+          "name": "Actions",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateAction",
+          "jsonTag": "actions,omitzero"
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name"
+        },
+        {
+          "name": "Transitions",
+          "type": "*[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateTransition",
+          "jsonTag": "transitions,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateAction",
+      "fields": [
+        {
+          "name": "Alias",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateAlias",
+          "jsonTag": "alias,omitempty"
+        },
+        {
+          "name": "Allocation",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateAllocation",
+          "jsonTag": "allocation,omitempty"
+        },
+        {
+          "name": "Close",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateClose",
+          "jsonTag": "close,omitempty"
+        },
+        {
+          "name": "Delete",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateDelete",
+          "jsonTag": "delete,omitempty"
+        },
+        {
+          "name": "ForceMerge",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateForeMerge",
+          "jsonTag": "force_merge,omitempty"
+        },
+        {
+          "name": "IndexPriority",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateIndexPriority",
+          "jsonTag": "index_priority,omitempty"
+        },
+        {
+          "name": "Notification",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateNotification",
+          "jsonTag": "notification,omitempty"
+        },
+        {
+          "name": "Open",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateOpen",
+          "jsonTag": "open,omitempty"
+        },
+        {
+          "name": "ReadOnly",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateReadOnly",
+          "jsonTag": "read_only,omitempty"
+        },
+        {
+          "name": "ReadWrite",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateReadWrite",
+          "jsonTag": "read_write,omitempty"
+        },
+        {
+          "name": "ReplicaCount",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateReplicaCount",
+          "jsonTag": "replica_count,omitempty"
+        },
+        {
+          "name": "Retry",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateRetry",
+          "jsonTag": "retry,omitempty"
+        },
+        {
+          "name": "Rollover",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateRollover",
+          "jsonTag": "rollover,omitempty"
+        },
+        {
+          "name": "Rollup",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateRollup",
+          "jsonTag": "rollup,omitempty"
+        },
+        {
+          "name": "Shrink",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateShrink",
+          "jsonTag": "shrink,omitempty"
+        },
+        {
+          "name": "Snapshot",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateSnapshot",
+          "jsonTag": "snapshot,omitempty"
+        },
+        {
+          "name": "Timeout",
+          "type": "string",
+          "jsonTag": "timeout,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateAlias",
+      "fields": [
+        {
+          "name": "Actions",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateAliasAction",
+          "jsonTag": "actions"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateAliasAction",
+      "fields": [
+        {
+          "name": "Add",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateAliasName",
+          "jsonTag": "add,omitempty"
+        },
+        {
+          "name": "Remove",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateAliasName",
+          "jsonTag": "remove,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateAliasName",
+      "fields": [
+        {
+          "name": "Aliases",
+          "type": "[]string",
+          "jsonTag": "aliases"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateAllocation",
+      "fields": [
+        {
+          "name": "Exclude",
+          "type": "map[string]string",
+          "jsonTag": "exclude,omitempty"
+        },
+        {
+          "name": "Include",
+          "type": "map[string]string",
+          "jsonTag": "include,omitempty"
+        },
+        {
+          "name": "Require",
+          "type": "map[string]string",
+          "jsonTag": "require,omitempty"
+        },
+        {
+          "name": "WaitFor",
+          "type": "*bool",
+          "jsonTag": "wait_for,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateClose",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateDelete",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateForeMerge",
+      "fields": [
+        {
+          "name": "MaxNumSegments",
+          "type": "int",
+          "jsonTag": "max_num_segments"
+        },
+        {
+          "name": "TaskExecutionTimeout",
+          "type": "string",
+          "jsonTag": "task_execution_timeout,omitempty"
+        },
+        {
+          "name": "WaitForCompletion",
+          "type": "*bool",
+          "jsonTag": "wait_for_completion,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateIndexPriority",
+      "fields": [
+        {
+          "name": "Priority",
+          "type": "int",
+          "jsonTag": "priority"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateNotification",
+      "fields": [
+        {
+          "name": "Destination",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationDestination",
+          "jsonTag": "destination"
+        },
+        {
+          "name": "MessageTemplate",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.NotificationMessageTemplate",
+          "jsonTag": "message_template"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateOpen",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateReadOnly",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateReadWrite",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateReplicaCount",
+      "fields": [
+        {
+          "name": "NumberOfReplicas",
+          "type": "int",
+          "jsonTag": "number_of_replicas"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateRetry",
+      "fields": [
+        {
+          "name": "Backoff",
+          "type": "string",
+          "jsonTag": "backoff,omitempty"
+        },
+        {
+          "name": "Count",
+          "type": "int",
+          "jsonTag": "count"
+        },
+        {
+          "name": "Delay",
+          "type": "string",
+          "jsonTag": "delay,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateRollover",
+      "fields": [
+        {
+          "name": "CopyAlias",
+          "type": "bool",
+          "jsonTag": "copy_alias,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "int",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "MinIndexAge",
+          "type": "string",
+          "jsonTag": "min_index_age,omitempty"
+        },
+        {
+          "name": "MinPrimaryShardSize",
+          "type": "string",
+          "jsonTag": "min_primary_shard_size,omitempty"
+        },
+        {
+          "name": "MinSize",
+          "type": "string",
+          "jsonTag": "min_size,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateRollup",
+      "fields": [
+        {
+          "name": "ISMRollup",
+          "type": "struct{Description string \"json:\\\"description,omitempty\\\"\"; TargetIndex string \"json:\\\"target_index\\\"\"; PageSize string \"json:\\\"page_size\\\"\"; Dimensions []encoding/json.RawMessage \"json:\\\"dimensions\\\"\"; Metrics []struct{SourceField string \"json:\\\"source_field\\\"\"; Metrics []map[string]struct{} \"json:\\\"metrics\\\"\"} \"json:\\\"metrics\\\"\"}",
+          "jsonTag": "ism_rollup"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateShrink",
+      "fields": [
+        {
+          "name": "Aliases",
+          "type": "[]map[string]any",
+          "jsonTag": "aliases,omitempty"
+        },
+        {
+          "name": "ForceUnsafe",
+          "type": "bool",
+          "jsonTag": "force_unsafe,omitempty"
+        },
+        {
+          "name": "MaxShardSize",
+          "type": "string",
+          "jsonTag": "max_shard_size,omitempty"
+        },
+        {
+          "name": "NumNewShards",
+          "type": "int",
+          "jsonTag": "num_new_shards,omitempty"
+        },
+        {
+          "name": "PercentageOfSourceShards",
+          "type": "float32",
+          "jsonTag": "percentage_of_source_shards,omitempty"
+        },
+        {
+          "name": "SwitchAliases",
+          "type": "bool",
+          "jsonTag": "switch_aliases,omitempty"
+        },
+        {
+          "name": "TargetIndexNameTemplate",
+          "type": "*struct{Source string \"json:\\\"source\\\"\"; Lang string \"json:\\\"lang,omitempty\\\"\"}",
+          "jsonTag": "target_index_name_template,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateSnapshot",
+      "fields": [
+        {
+          "name": "Repository",
+          "type": "string",
+          "jsonTag": "repository"
+        },
+        {
+          "name": "Snapshot",
+          "type": "string",
+          "jsonTag": "snapshot"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateTransition",
+      "fields": [
+        {
+          "name": "Conditions",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateTransitionCondition",
+          "jsonTag": "conditions,omitempty"
+        },
+        {
+          "name": "StateName",
+          "type": "string",
+          "jsonTag": "state_name"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateTransitionCondition",
+      "fields": [
+        {
+          "name": "Cron",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.PolicyStateTransitionConditionCron",
+          "jsonTag": "cron,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "int",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "MinIndexAge",
+          "type": "string",
+          "jsonTag": "min_index_age,omitempty"
+        },
+        {
+          "name": "MinRolloverAge",
+          "type": "string",
+          "jsonTag": "min_rollover_age,omitempty"
+        },
+        {
+          "name": "MinSize",
+          "type": "string",
+          "jsonTag": "min_size,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "PolicyStateTransitionConditionCron",
+      "fields": [
+        {
+          "name": "Expression",
+          "type": "string",
+          "jsonTag": "expression"
+        },
+        {
+          "name": "Timezone",
+          "type": "string",
+          "jsonTag": "timezone"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RefreshSearchAnalyzersParams",
+      "fields": [
+        {
+          "name": "ErrorTrace",
+          "type": "bool"
+        },
+        {
+          "name": "FilterPath",
+          "type": "[]string"
+        },
+        {
+          "name": "Human",
+          "type": "bool"
+        },
+        {
+          "name": "Pretty",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RefreshSearchAnalyzersReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        },
+        {
+          "name": "Params",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.RefreshSearchAnalyzersParams"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RefreshSearchAnalyzersResp",
+      "fields": [
+        {
+          "name": "Shards",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/ism.RefreshSearchAnalyzersShards",
+          "jsonTag": "_shards"
+        },
+        {
+          "name": "SuccessfulRefreshDetails",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.RefreshSearchAnalyzersSuccessfulRefreshDetails",
+          "jsonTag": "successful_refresh_details"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RefreshSearchAnalyzersShards",
+      "fields": [
+        {
+          "name": "Failed",
+          "type": "int",
+          "jsonTag": "failed"
+        },
+        {
+          "name": "Successful",
+          "type": "int",
+          "jsonTag": "successful"
+        },
+        {
+          "name": "Total",
+          "type": "int",
+          "jsonTag": "total"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RefreshSearchAnalyzersSuccessfulRefreshDetails",
+      "fields": [
+        {
+          "name": "Index",
+          "type": "string",
+          "jsonTag": "index"
+        },
+        {
+          "name": "RefreshedAnalyzers",
+          "type": "[]string",
+          "jsonTag": "refreshed_analyzers"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RemoveReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RemoveResp",
+      "fields": [
+        {
+          "name": "FailedIndices",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.FailedIndex",
+          "jsonTag": "failed_indices"
+        },
+        {
+          "name": "Failures",
+          "type": "bool",
+          "jsonTag": "failures"
+        },
+        {
+          "name": "UpdatedIndices",
+          "type": "int",
+          "jsonTag": "updated_indices"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RetryBody",
+      "fields": [
+        {
+          "name": "State",
+          "type": "string",
+          "jsonTag": "state"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RetryReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "*github.com/opensearch-project/opensearch-go/v4/plugins/ism.RetryBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "RetryResp",
+      "fields": [
+        {
+          "name": "FailedIndices",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/ism.FailedIndex",
+          "jsonTag": "failed_indices"
+        },
+        {
+          "name": "Failures",
+          "type": "bool",
+          "jsonTag": "failures"
+        },
+        {
+          "name": "UpdatedIndices",
+          "type": "int",
+          "jsonTag": "updated_indices"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/ism",
+      "name": "Template",
+      "fields": [
+        {
+          "name": "IndexPatterns",
+          "type": "[]string",
+          "jsonTag": "index_patterns,omitempty"
+        },
+        {
+          "name": "LastUpdatedTime",
+          "type": "int64",
+          "jsonTag": "last_updated_time,omitempty"
+        },
+        {
+          "name": "Priority",
+          "type": "int",
+          "jsonTag": "priority"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AccountGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AccountGetResp",
+      "fields": [
+        {
+          "name": "BackendRoles",
+          "type": "[]string",
+          "jsonTag": "backend_roles"
+        },
+        {
+          "name": "CustomAttributes",
+          "type": "[]string",
+          "jsonTag": "custom_attribute_names"
+        },
+        {
+          "name": "IsHidden",
+          "type": "bool",
+          "jsonTag": "is_hidden"
+        },
+        {
+          "name": "IsInternaluser",
+          "type": "bool",
+          "jsonTag": "is_internal_user"
+        },
+        {
+          "name": "IsReserved",
+          "type": "bool",
+          "jsonTag": "is_reserved"
+        },
+        {
+          "name": "Roles",
+          "type": "[]string",
+          "jsonTag": "roles"
+        },
+        {
+          "name": "Tennants",
+          "type": "map[string]bool",
+          "jsonTag": "tenants"
+        },
+        {
+          "name": "UserName",
+          "type": "string",
+          "jsonTag": "user_name"
+        },
+        {
+          "name": "UserRequestedTenant",
+          "type": "*string",
+          "jsonTag": "user_requested_tenant"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AccountPutBody",
+      "fields": [
+        {
+          "name": "CurrentPassword",
+          "type": "string",
+          "jsonTag": "current_password"
+        },
+        {
+          "name": "Password",
+          "type": "string",
+          "jsonTag": "password"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AccountPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.AccountPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AccountPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsDeleteReq",
+      "fields": [
+        {
+          "name": "ActionGroup",
+          "type": "string"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsDeleteResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsGet",
+      "fields": [
+        {
+          "name": "AllowedActions",
+          "type": "[]string",
+          "jsonTag": "allowed_actions"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description,omitempty"
+        },
+        {
+          "name": "Hidden",
+          "type": "bool",
+          "jsonTag": "hidden"
+        },
+        {
+          "name": "Reserved",
+          "type": "bool",
+          "jsonTag": "reserved"
+        },
+        {
+          "name": "Static",
+          "type": "bool",
+          "jsonTag": "static"
+        },
+        {
+          "name": "Type",
+          "type": "string",
+          "jsonTag": "type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsGetReq",
+      "fields": [
+        {
+          "name": "ActionGroup",
+          "type": "string"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsGetResp",
+      "fields": [
+        {
+          "name": "Groups",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v4/plugins/security.ActionGroupsGet"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsPatchReq",
+      "fields": [
+        {
+          "name": "ActionGroup",
+          "type": "string"
+        },
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ActionGroupsPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsPutBody",
+      "fields": [
+        {
+          "name": "AllowedActions",
+          "type": "[]string",
+          "jsonTag": "allowed_actions"
+        },
+        {
+          "name": "Description",
+          "type": "*string",
+          "jsonTag": "description,omitempty"
+        },
+        {
+          "name": "Type",
+          "type": "*string",
+          "jsonTag": "type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsPutReq",
+      "fields": [
+        {
+          "name": "ActionGroup",
+          "type": "string"
+        },
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ActionGroupsPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ActionGroupsPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditConfig",
+      "fields": [
+        {
+          "name": "Audit",
+          "type": "struct{IgnoreUsers []string \"json:\\\"ignore_users\\\"\"; IgnoreRequests []string \"json:\\\"ignore_requests\\\"\"; IgnoreHeaders *[]string \"json:\\\"ignore_headers,omitempty\\\"\"; IgnoreURLParams *[]string \"json:\\\"ignore_url_params,omitempty\\\"\"; DisabledRestCategories []string \"json:\\\"disabled_rest_categories\\\"\"; DisabledTransportCategories []string \"json:\\\"disabled_transport_categories\\\"\"; LogRequestBody bool \"json:\\\"log_request_body\\\"\"; ResolveIndices bool \"json:\\\"resolve_indices\\\"\"; ResolveBulkRequests bool \"json:\\\"resolve_bulk_requests\\\"\"; ExcludeSensitiveHeaders bool \"json:\\\"exclude_sensitive_headers\\\"\"; EnableTransport bool \"json:\\\"enable_transport\\\"\"; EnableRest bool \"json:\\\"enable_rest\\\"\"}",
+          "jsonTag": "audit"
+        },
+        {
+          "name": "Compliance",
+          "type": "struct{Enabled bool \"json:\\\"enabled\\\"\"; WriteLogDiffs bool \"json:\\\"write_log_diffs\\\"\"; ReadWatchedFields encoding/json.RawMessage \"json:\\\"read_watched_fields\\\"\"; ReadIgnoreUsers []string \"json:\\\"read_ignore_users\\\"\"; WriteWatchedIndices []string \"json:\\\"write_watched_indices\\\"\"; WriteIgnoreUsers []string \"json:\\\"write_ignore_users\\\"\"; ReadMetadataOnly bool \"json:\\\"read_metadata_only\\\"\"; WriteMetadataOnly bool \"json:\\\"write_metadata_only\\\"\"; ExternalConfig bool \"json:\\\"external_config\\\"\"; InternalConfig bool \"json:\\\"internal_config\\\"\"}",
+          "jsonTag": "compliance"
+        },
+        {
+          "name": "Enabled",
+          "type": "bool",
+          "jsonTag": "enabled"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditGetResp",
+      "fields": [
+        {
+          "name": "Config",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.AuditConfig",
+          "jsonTag": "config"
+        },
+        {
+          "name": "ReadOnly",
+          "type": "[]string",
+          "jsonTag": "_readonly"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.AuditPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditPutBody",
+      "fields": [
+        {
+          "name": "Audit",
+          "type": "struct{IgnoreUsers []string \"json:\\\"ignore_users\\\"\"; IgnoreRequests []string \"json:\\\"ignore_requests\\\"\"; IgnoreHeaders *[]string \"json:\\\"ignore_headers,omitempty\\\"\"; IgnoreURLParams *[]string \"json:\\\"ignore_url_params,omitempty\\\"\"; DisabledRestCategories []string \"json:\\\"disabled_rest_categories\\\"\"; DisabledTransportCategories []string \"json:\\\"disabled_transport_categories\\\"\"; LogRequestBody bool \"json:\\\"log_request_body\\\"\"; ResolveIndices bool \"json:\\\"resolve_indices\\\"\"; ResolveBulkRequests bool \"json:\\\"resolve_bulk_requests\\\"\"; ExcludeSensitiveHeaders bool \"json:\\\"exclude_sensitive_headers\\\"\"; EnableTransport bool \"json:\\\"enable_transport\\\"\"; EnableRest bool \"json:\\\"enable_rest\\\"\"}",
+          "jsonTag": "audit"
+        },
+        {
+          "name": "Compliance",
+          "type": "struct{Enabled bool \"json:\\\"enabled\\\"\"; WriteLogDiffs bool \"json:\\\"write_log_diffs\\\"\"; ReadWatchedFields encoding/json.RawMessage \"json:\\\"read_watched_fields\\\"\"; ReadIgnoreUsers []string \"json:\\\"read_ignore_users\\\"\"; WriteWatchedIndices []string \"json:\\\"write_watched_indices\\\"\"; WriteIgnoreUsers []string \"json:\\\"write_ignore_users\\\"\"; ReadMetadataOnly bool \"json:\\\"read_metadata_only\\\"\"; WriteMetadataOnly bool \"json:\\\"write_metadata_only\\\"\"; ExternalConfig bool \"json:\\\"external_config\\\"\"; InternalConfig bool \"json:\\\"internal_config\\\"\"}",
+          "jsonTag": "compliance"
+        },
+        {
+          "name": "Enabled",
+          "type": "bool",
+          "jsonTag": "enabled"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.AuditPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "AuditPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "Client",
+      "fields": [
+        {
+          "name": "Account",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.accountClient"
+        },
+        {
+          "name": "ActionGroups",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.actiongroupsClient"
+        },
+        {
+          "name": "Audit",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.auditClient"
+        },
+        {
+          "name": "Client",
+          "type": "*github.com/opensearch-project/opensearch-go/v4.Client"
+        },
+        {
+          "name": "InternalUsers",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.internalusersClient"
+        },
+        {
+          "name": "NodesDN",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.nodesdnClient"
+        },
+        {
+          "name": "Roles",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.rolesClient"
+        },
+        {
+          "name": "RolesMapping",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.rolesmappingClient"
+        },
+        {
+          "name": "SSL",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.sslClient"
+        },
+        {
+          "name": "SecurityConfig",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.securityconfigClient"
+        },
+        {
+          "name": "Tenants",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.tenantsClient"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "Config",
+      "fields": [
+        {
+          "name": "Client",
+          "type": "github.com/opensearch-project/opensearch-go/v4.Config"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigDynamic",
+      "fields": [
+        {
+          "name": "AuthFailureListeners",
+          "type": "encoding/json.RawMessage",
+          "jsonTag": "auth_failure_listeners"
+        },
+        {
+          "name": "Authc",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigDynamicAuthc",
+          "jsonTag": "authc"
+        },
+        {
+          "name": "Authz",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigDynamicAuthz",
+          "jsonTag": "authz"
+        },
+        {
+          "name": "DisableIntertransportAuth",
+          "type": "bool",
+          "jsonTag": "disable_intertransport_auth"
+        },
+        {
+          "name": "DisableRestAuth",
+          "type": "bool",
+          "jsonTag": "disable_rest_auth"
+        },
+        {
+          "name": "DoNotFailOnForbidden",
+          "type": "bool",
+          "jsonTag": "do_not_fail_on_forbidden"
+        },
+        {
+          "name": "DoNotFailOnForbiddenEmpty",
+          "type": "bool",
+          "jsonTag": "do_not_fail_on_forbidden_empty"
+        },
+        {
+          "name": "FilteredAliasMode",
+          "type": "string",
+          "jsonTag": "filtered_alias_mode"
+        },
+        {
+          "name": "HTTP",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigDynamicHTTP",
+          "jsonTag": "http"
+        },
+        {
+          "name": "HostsResolverMode",
+          "type": "string",
+          "jsonTag": "hosts_resolver_mode"
+        },
+        {
+          "name": "Kibana",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigDynamicKibana",
+          "jsonTag": "kibana"
+        },
+        {
+          "name": "MultiRolespanEnabled",
+          "type": "bool",
+          "jsonTag": "multi_rolespan_enabled"
+        },
+        {
+          "name": "OnBehalfOf",
+          "type": "*struct{Enabled bool \"json:\\\"enabled\\\"\"}",
+          "jsonTag": "on_behalf_of,omitempty"
+        },
+        {
+          "name": "RespectRequestIndicesOptions",
+          "type": "bool",
+          "jsonTag": "respect_request_indices_options"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigDynamicAuthc",
+      "fields": [
+        {
+          "name": "BasicInternalAuthDomain",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; Order int \"json:\\\"order\\\"\"; HTTPAuthenticator struct{Challenge bool \"json:\\\"challenge\\\"\"; Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"http_authenticator\\\"\"; AuthenticationBackend struct{Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"authentication_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "basic_internal_auth_domain"
+        },
+        {
+          "name": "ClientcertAuthDomain",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; Order int \"json:\\\"order\\\"\"; HTTPAuthenticator struct{Challenge bool \"json:\\\"challenge\\\"\"; Type string \"json:\\\"type\\\"\"; Config struct{UsernameAttribute string \"json:\\\"username_attribute\\\"\"} \"json:\\\"config\\\"\"} \"json:\\\"http_authenticator\\\"\"; AuthenticationBackend struct{Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"authentication_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "clientcert_auth_domain"
+        },
+        {
+          "name": "JwtAuthDomain",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; Order int \"json:\\\"order\\\"\"; HTTPAuthenticator struct{Challenge bool \"json:\\\"challenge\\\"\"; Type string \"json:\\\"type\\\"\"; Config struct{JwksURI string \"json:\\\"jwks_uri,omitempty\\\"\"; SigningKey string \"json:\\\"signing_key\\\"\"; JwtHeader string \"json:\\\"jwt_header\\\"\"; JwtClockSkewToleranceSeconds int \"json:\\\"jwt_clock_skew_tolerance_seconds\\\"\"} \"json:\\\"config\\\"\"} \"json:\\\"http_authenticator\\\"\"; AuthenticationBackend struct{Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"authentication_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "jwt_auth_domain"
+        },
+        {
+          "name": "KerberosAuthDomain",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; Order int \"json:\\\"order\\\"\"; HTTPAuthenticator struct{Challenge bool \"json:\\\"challenge\\\"\"; Type string \"json:\\\"type\\\"\"; Config struct{KrbDebug bool \"json:\\\"krb_debug\\\"\"; StripRealmFromPrincipal bool \"json:\\\"strip_realm_from_principal\\\"\"} \"json:\\\"config\\\"\"} \"json:\\\"http_authenticator\\\"\"; AuthenticationBackend struct{Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"authentication_backend\\\"\"}",
+          "jsonTag": "kerberos_auth_domain"
+        },
+        {
+          "name": "LDAP",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; Order int \"json:\\\"order\\\"\"; HTTPAuthenticator struct{Challenge bool \"json:\\\"challenge\\\"\"; Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"http_authenticator\\\"\"; AuthenticationBackend struct{Type string \"json:\\\"type\\\"\"; Config struct{EnableSSL bool \"json:\\\"enable_ssl\\\"\"; EnableStartTLS bool \"json:\\\"enable_start_tls\\\"\"; EnableSSLClientAuth bool \"json:\\\"enable_ssl_client_auth\\\"\"; VerifyHostnames bool \"json:\\\"verify_hostnames\\\"\"; Hosts []string \"json:\\\"hosts\\\"\"; Userbase string \"json:\\\"userbase\\\"\"; Usersearch string \"json:\\\"usersearch\\\"\"} \"json:\\\"config\\\"\"} \"json:\\\"authentication_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "ldap"
+        },
+        {
+          "name": "ProxyAuthDomain",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; Order int \"json:\\\"order\\\"\"; HTTPAuthenticator struct{Challenge bool \"json:\\\"challenge\\\"\"; Type string \"json:\\\"type\\\"\"; Config struct{UserHeader string \"json:\\\"user_header\\\"\"; RolesHeader string \"json:\\\"roles_header\\\"\"} \"json:\\\"config\\\"\"} \"json:\\\"http_authenticator\\\"\"; AuthenticationBackend struct{Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"authentication_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "proxy_auth_domain"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigDynamicAuthz",
+      "fields": [
+        {
+          "name": "RolesFromAnotherLdap",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; AuthorizationBackend struct{Type string \"json:\\\"type\\\"\"; Config encoding/json.RawMessage \"json:\\\"config\\\"\"} \"json:\\\"authorization_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "roles_from_another_ldap"
+        },
+        {
+          "name": "RolesFromMyldap",
+          "type": "struct{HTTPEnabled bool \"json:\\\"http_enabled\\\"\"; TransportEnabled *bool \"json:\\\"transport_enabled,omitempty\\\"\"; AuthorizationBackend struct{Type string \"json:\\\"type\\\"\"; Config struct{EnableSsl bool \"json:\\\"enable_ssl\\\"\"; EnableStartTLS bool \"json:\\\"enable_start_tls\\\"\"; EnableSslClientAuth bool \"json:\\\"enable_ssl_client_auth\\\"\"; VerifyHostnames bool \"json:\\\"verify_hostnames\\\"\"; Hosts []string \"json:\\\"hosts\\\"\"; Rolebase string \"json:\\\"rolebase\\\"\"; Rolesearch string \"json:\\\"rolesearch\\\"\"; Userrolename string \"json:\\\"userrolename\\\"\"; Rolename string \"json:\\\"rolename\\\"\"; ResolveNestedRoles bool \"json:\\\"resolve_nested_roles\\\"\"; Userbase string \"json:\\\"userbase\\\"\"; Usersearch string \"json:\\\"usersearch\\\"\"} \"json:\\\"config\\\"\"} \"json:\\\"authorization_backend\\\"\"; Description string \"json:\\\"description\\\"\"}",
+          "jsonTag": "roles_from_myldap"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigDynamicHTTP",
+      "fields": [
+        {
+          "name": "AnonymousAuthEnabled",
+          "type": "bool",
+          "jsonTag": "anonymous_auth_enabled"
+        },
+        {
+          "name": "Xff",
+          "type": "struct{Enabled bool \"json:\\\"enabled\\\"\"; InternalProxies string \"json:\\\"internalProxies\\\"\"; RemoteIPHeader string \"json:\\\"remoteIpHeader\\\"\"}",
+          "jsonTag": "xff"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigDynamicKibana",
+      "fields": [
+        {
+          "name": "DefaultTenant",
+          "type": "*string",
+          "jsonTag": "default_tenant,omitempty"
+        },
+        {
+          "name": "Index",
+          "type": "string",
+          "jsonTag": "index"
+        },
+        {
+          "name": "MultitenancyEnabled",
+          "type": "bool",
+          "jsonTag": "multitenancy_enabled"
+        },
+        {
+          "name": "PrivateTenantEnabled",
+          "type": "*bool",
+          "jsonTag": "private_tenant_enabled,omitempty"
+        },
+        {
+          "name": "ServerUsername",
+          "type": "string",
+          "jsonTag": "server_username"
+        },
+        {
+          "name": "SignInOptions",
+          "type": "[]string",
+          "jsonTag": "sign_in_options,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigGetResp",
+      "fields": [
+        {
+          "name": "Config",
+          "type": "struct{Dynamic github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigDynamic \"json:\\\"dynamic\\\"\"}",
+          "jsonTag": "config"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigPutBody",
+      "fields": [
+        {
+          "name": "Dynamic",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigDynamic",
+          "jsonTag": "dynamic"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.ConfigPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "ConfigPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "FlushCacheReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "FlushCacheResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "HealthReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "HealthResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "*string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Mode",
+          "type": "string",
+          "jsonTag": "mode"
+        },
+        {
+          "name": "Settings",
+          "type": "map[string]any",
+          "jsonTag": "settings"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "Inspect",
+      "fields": [
+        {
+          "name": "Response",
+          "type": "*github.com/opensearch-project/opensearch-go/v4.Response"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersDeleteReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "User",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersDeleteResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersGetItem",
+      "fields": [
+        {
+          "name": "Attributes",
+          "type": "map[string]string",
+          "jsonTag": "attributes"
+        },
+        {
+          "name": "BackendRoles",
+          "type": "[]string",
+          "jsonTag": "backend_roles"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description"
+        },
+        {
+          "name": "Hash",
+          "type": "string",
+          "jsonTag": "hash"
+        },
+        {
+          "name": "Hidden",
+          "type": "bool",
+          "jsonTag": "hidden"
+        },
+        {
+          "name": "Reserved",
+          "type": "bool",
+          "jsonTag": "reserved"
+        },
+        {
+          "name": "SecurityRoles",
+          "type": "[]string",
+          "jsonTag": "opendistro_security_roles"
+        },
+        {
+          "name": "Statis",
+          "type": "bool",
+          "jsonTag": "static"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "User",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersGetResp",
+      "fields": [
+        {
+          "name": "Users",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v4/plugins/security.InternalUsersGetItem"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.InternalUsersPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "User",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersPutBody",
+      "fields": [
+        {
+          "name": "Attributes",
+          "type": "map[string]string",
+          "jsonTag": "attributes,omitempty"
+        },
+        {
+          "name": "BackendRoles",
+          "type": "[]string",
+          "jsonTag": "backend_roles,omitempty"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description,omitempty"
+        },
+        {
+          "name": "Hash",
+          "type": "string",
+          "jsonTag": "hash,omitempty"
+        },
+        {
+          "name": "Password",
+          "type": "string",
+          "jsonTag": "password,omitempty"
+        },
+        {
+          "name": "SecurityRoles",
+          "type": "[]string",
+          "jsonTag": "opendistro_security_roles,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.InternalUsersPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "User",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "InternalUsersPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNDeleteReq",
+      "fields": [
+        {
+          "name": "Cluster",
+          "type": "string"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNDeleteResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNGetReq",
+      "fields": [
+        {
+          "name": "Cluster",
+          "type": "string"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNGetResp",
+      "fields": [
+        {
+          "name": "DistinguishedNames",
+          "type": "map[string]struct{NodesDN []string \"json:\\\"nodes_dn\\\"\"}"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.NodesDNPatchBody"
+        },
+        {
+          "name": "Cluster",
+          "type": "string"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNPutBody",
+      "fields": [
+        {
+          "name": "NodesDN",
+          "type": "[]string",
+          "jsonTag": "nodes_dn"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.NodesDNPutBody"
+        },
+        {
+          "name": "Cluster",
+          "type": "string"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "NodesDNPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesDeleteReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesDeleteResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesGetIndexPermission",
+      "fields": [
+        {
+          "name": "AllowedActions",
+          "type": "[]string",
+          "jsonTag": "allowed_actions"
+        },
+        {
+          "name": "DLS",
+          "type": "string",
+          "jsonTag": "dls"
+        },
+        {
+          "name": "FLS",
+          "type": "[]string",
+          "jsonTag": "fls"
+        },
+        {
+          "name": "IndexPatterns",
+          "type": "[]string",
+          "jsonTag": "index_patterns"
+        },
+        {
+          "name": "MaskedFields",
+          "type": "[]string",
+          "jsonTag": "masked_fields"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesGetItem",
+      "fields": [
+        {
+          "name": "ClusterPermissions",
+          "type": "[]string",
+          "jsonTag": "cluster_permissions"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description"
+        },
+        {
+          "name": "Hidden",
+          "type": "bool",
+          "jsonTag": "hidden"
+        },
+        {
+          "name": "IndexPermissions",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesGetIndexPermission",
+          "jsonTag": "index_permissions"
+        },
+        {
+          "name": "Reserved",
+          "type": "bool",
+          "jsonTag": "reserved"
+        },
+        {
+          "name": "Statis",
+          "type": "bool",
+          "jsonTag": "static"
+        },
+        {
+          "name": "TenantPermissions",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesGetTenantPermission",
+          "jsonTag": "tenant_permissions"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesGetResp",
+      "fields": [
+        {
+          "name": "Roles",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesGetItem"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesGetTenantPermission",
+      "fields": [
+        {
+          "name": "AllowedActions",
+          "type": "[]string",
+          "jsonTag": "allowed_actions"
+        },
+        {
+          "name": "TenantPatterns",
+          "type": "[]string",
+          "jsonTag": "tenant_patterns"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesIndexPermission",
+      "fields": [
+        {
+          "name": "AllowedActions",
+          "type": "[]string",
+          "jsonTag": "allowed_actions,omitempty"
+        },
+        {
+          "name": "DLS",
+          "type": "string",
+          "jsonTag": "dls,omitempty"
+        },
+        {
+          "name": "FLS",
+          "type": "[]string",
+          "jsonTag": "fls,omitempty"
+        },
+        {
+          "name": "IndexPatterns",
+          "type": "[]string",
+          "jsonTag": "index_patterns,omitempty"
+        },
+        {
+          "name": "MaskedFields",
+          "type": "[]string",
+          "jsonTag": "masked_fields,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingDeleteReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingDeleteResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingGetItem",
+      "fields": [
+        {
+          "name": "AndBackendRoles",
+          "type": "[]string",
+          "jsonTag": "and_backend_roles"
+        },
+        {
+          "name": "BackendRoles",
+          "type": "[]string",
+          "jsonTag": "backend_roles"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description"
+        },
+        {
+          "name": "Hidden",
+          "type": "bool",
+          "jsonTag": "hidden"
+        },
+        {
+          "name": "Hosts",
+          "type": "[]string",
+          "jsonTag": "hosts"
+        },
+        {
+          "name": "Reserved",
+          "type": "bool",
+          "jsonTag": "reserved"
+        },
+        {
+          "name": "Users",
+          "type": "[]string",
+          "jsonTag": "users"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingGetResp",
+      "fields": [
+        {
+          "name": "RolesMapping",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesMappingGetItem"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesMappingPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingPutBody",
+      "fields": [
+        {
+          "name": "AndBackendRoles",
+          "type": "[]string",
+          "jsonTag": "and_backend_roles,omitempty"
+        },
+        {
+          "name": "BackendRoles",
+          "type": "[]string",
+          "jsonTag": "backend_roles,omitempty"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description,omitempty"
+        },
+        {
+          "name": "Hosts",
+          "type": "[]string",
+          "jsonTag": "hosts,omitempty"
+        },
+        {
+          "name": "Users",
+          "type": "[]string",
+          "jsonTag": "users,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesMappingPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesMappingPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesPutBody",
+      "fields": [
+        {
+          "name": "ClusterPermissions",
+          "type": "[]string",
+          "jsonTag": "cluster_permissions,omitempty"
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description,omitempty"
+        },
+        {
+          "name": "IndexPermissions",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesIndexPermission",
+          "jsonTag": "index_permissions,omitempty"
+        },
+        {
+          "name": "TenantPermissions",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesTenantPermission",
+          "jsonTag": "tenant_permissions,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.RolesPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Role",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "RolesTenantPermission",
+      "fields": [
+        {
+          "name": "AllowedActions",
+          "type": "[]string",
+          "jsonTag": "allowed_actions,omitempty"
+        },
+        {
+          "name": "TenantPatterns",
+          "type": "[]string",
+          "jsonTag": "tenant_patterns,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLCertItem",
+      "fields": [
+        {
+          "name": "IssuerDN",
+          "type": "string",
+          "jsonTag": "issuer_dn"
+        },
+        {
+          "name": "NotAfter",
+          "type": "time.Time",
+          "jsonTag": "not_after"
+        },
+        {
+          "name": "NotBefore",
+          "type": "time.Time",
+          "jsonTag": "not_before"
+        },
+        {
+          "name": "SAN",
+          "type": "string",
+          "jsonTag": "san"
+        },
+        {
+          "name": "SubjectDN",
+          "type": "string",
+          "jsonTag": "subject_dn"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLGetResp",
+      "fields": [
+        {
+          "name": "HTTPCerts",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/security.SSLCertItem",
+          "jsonTag": "http_certificates_list"
+        },
+        {
+          "name": "TransportCert",
+          "type": "[]github.com/opensearch-project/opensearch-go/v4/plugins/security.SSLCertItem",
+          "jsonTag": "transport_certificates_list"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLHTTPReloadReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLHTTPReloadResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLTransportReloadReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "SSLTransportReloadResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsDeleteReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Tenant",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsDeleteResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsGetItem",
+      "fields": [
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description"
+        },
+        {
+          "name": "Hidden",
+          "type": "bool",
+          "jsonTag": "hidden"
+        },
+        {
+          "name": "Reserved",
+          "type": "bool",
+          "jsonTag": "reserved"
+        },
+        {
+          "name": "Statis",
+          "type": "bool",
+          "jsonTag": "static"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsGetReq",
+      "fields": [
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Tenant",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsGetResp",
+      "fields": [
+        {
+          "name": "Tenants",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v4/plugins/security.TenantsGetItem"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsPatchBodyItem",
+      "fields": [
+        {
+          "name": "OP",
+          "type": "string",
+          "jsonTag": "op"
+        },
+        {
+          "name": "Path",
+          "type": "string",
+          "jsonTag": "path"
+        },
+        {
+          "name": "Value",
+          "type": "any",
+          "jsonTag": "value,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsPatchReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.TenantsPatchBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Tenant",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsPatchResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsPutBody",
+      "fields": [
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsPutReq",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "github.com/opensearch-project/opensearch-go/v4/plugins/security.TenantsPutBody"
+        },
+        {
+          "name": "Header",
+          "type": "net/http.Header"
+        },
+        {
+          "name": "Tenant",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v4/plugins/security",
+      "name": "TenantsPutResp",
+      "fields": [
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message"
+        },
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status"
+        }
+      ]
+    }
+  ]
+}

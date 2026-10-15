@@ -39,16 +39,35 @@ var surfaces = map[major][]byte{
 	5: surfaceV5JSON,
 }
 
+// pluginSurfaces holds the embedded plugin-package struct surface for the majors
+// that have one. decodeSurface appends it to the version's surface.
+//
+//nolint:gochecknoglobals // const-ish surface registry, immutable after init
+var pluginSurfaces = map[major][]byte{
+	4: surfaceV4PluginsJSON,
+	5: surfaceV5PluginsJSON,
+}
+
 // methodRegroup rewrites a source client call path to its target sub-client
 // path. Match is on the resolved method selector; the linter confirms the
 // receiver is an opensearchapi client type before rewriting. A same-path entry
-// with PtrArg set doubles as a "wrap the arg in &" rule for methods that stayed
-// put but began taking *Req.
+// with Arg other than argSame doubles as an argument-adjusting rule for methods
+// that stayed put but changed how they take the request.
 type methodRegroup struct {
 	FromPath []string // e.g. ["Indices","Count"] matched as client.Indices.Count
 	ToPath   []string // e.g. ["Count"]           -> client.Count
-	PtrArg   bool     // target method takes *Req: wrap the sole request argument in &
+	Arg      argShape // how the target method takes the request argument
 }
+
+// argShape is how a regrouped method's request argument changes between the
+// source and target signatures.
+type argShape int
+
+const (
+	argSame  argShape = iota // argument passes through unchanged
+	argAddr                  // target takes *Req and the source took Req: wrap the argument in &
+	argValue                 // target takes Req and the source took *Req: pass the value
+)
 
 // hop is one adjacent transition (From -> From+1): the hand-authored data that
 // cannot be auto-derived from the surfaces alone.
