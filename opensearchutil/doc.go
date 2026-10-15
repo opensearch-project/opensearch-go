@@ -26,5 +26,39 @@
 
 /*
 Package opensearchutil provides helper utilities to the Go client for OpenSearch.
+
+# Bulk indexing
+
+[NewBulkIndexer] returns a [BulkIndexer], a parallel, asynchronous indexer built on the bulk API. Add
+documents one at a time with [BulkIndexer.Add]; the indexer batches them across several workers and
+reports the fate of each through the item's OnSuccess and OnFailure callbacks, exactly one of which
+fires when the item is final. [BulkIndexer.Flush] drains what has been added and keeps the
+indexer open, [BulkIndexer.Close] waits for every item and releases it, and [BulkIndexer.Cancel]
+stops it immediately.
+
+A [BulkIndexerConfig] can also set:
+
+  - RetryPolicy, a [RetryPolicy] that decides whether a failed item is sent again, told whether the
+    whole request failed or one item did ([FailureScope]) and how ([FailureKind]). Retrying needs
+    deterministic document ids, so an item without one fails with [ErrMissingDocumentID].
+  - Fingerprinter, a [DocumentFingerprinter] that derives an id for an item that has none.
+  - Observer, a [BulkIndexerObserver] that receives an event for each request, each failure, and each
+    item's final state, for statistics and metrics.
+
+[BulkIndexerItem].Metadata carries opaque data, such as a stream offset, back to the callbacks
+without being sent to the cluster.
+
+# Committing a stream position
+
+[SequenceTracker] reports how far each of several ordered streams can safely advance when records
+complete out of order, which is how a [BulkIndexer] finishes them. It reports only the end of a
+contiguous prefix.
+
+# JSON bodies
+
+[NewJSONReader] encodes a Go value as a request body.
+
+See the Bulk Indexer guide at
+https://github.com/opensearch-project/opensearch-go/blob/main/guides/indexing-bulk_indexer.md.
 */
 package opensearchutil
