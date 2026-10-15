@@ -382,6 +382,9 @@ type byteBudget struct {
 	onUnblock func(ctx context.Context, waited time.Duration)
 	// now is the clock the blocked time is read from.
 	now func() time.Time
+	// halt, when set, ends every wait for room when it closes, as the indexer's
+	// Cancel does.
+	halt <-chan struct{}
 
 	blocked     atomic.Uint64
 	blockedTime atomic.Int64 // Nanoseconds.
@@ -444,6 +447,8 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64)
 	case <-ctx.Done():
 		err = ctx.Err()
 	case <-stop:
+		err = errBudgetStopped
+	case <-b.halt:
 		err = errBudgetStopped
 	}
 

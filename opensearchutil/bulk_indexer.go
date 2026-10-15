@@ -143,13 +143,45 @@ type BulkIndexer interface {
 	// going. Items added concurrently may land in this drain or the next, and
 	// the bulk requests run on ctx.
 	//
-	// A non-nil error means the drain itself failed; documents the cluster
-	// rejected individually go to their OnFailure callback. Safe alongside Add
-	// and other concurrent Flush calls. After Close it returns ErrBulkIndexerClosed.
+	// When Flush returns without a context error, every item it covered has
+	// reached its final state and had its OnSuccess or OnFailure called: the
+	// callbacks run before the drain is reported done, so a caller may commit
+	// an external position, such as a stream offset, from what the callbacks
+	// recorded the moment Flush returns. Callers rely on this ordering.
+	//
+	// When ctx ends first, Flush returns the context's error and stops waiting.
+	// It does not undo the drain: the requests it started finish on their own. The bulk
+	// requests run on ctx, so a request still in flight is cancelled and the
+	// items it carried fail with that error. Their callbacks, like those of
+	// items the drain had not reached, fire exactly once, but may fire after
+	// Flush has returned. So when Flush returns a context error, the items it
+	// covered are not known to be final: record completions as the callbacks
+	// report them rather than inferring them from the return.
+	//
+	// A non-nil error that is not a context error means the drain itself
+	// failed; documents the cluster rejected individually go to their
+	// OnFailure callback. Safe alongside Add and other concurrent Flush calls.
+	// After Close it returns ErrBulkIndexerClosed.
 	Flush(context.Context) error
 
-	// Close waits until all added items are flushed and closes the indexer.
+	// Close waits until every added item has reached its final state, which
+	// includes waiting out requests in flight and retry backoff, and closes the
+	// indexer. It blocks for as long as that takes, bounded by the client's own
+	// request timeouts and the retry policy's limit.
+	//
+	// When ctx ends first, Close escalates to Cancel: the items not yet final
+	// fail, the workers unwind promptly, and Close returns ctx's error once
+	// they have. Pass a context with a deadline to bound Close, or run it in a
+	// goroutine to avoid waiting.
 	Close(context.Context) error
+
+	// Cancel stops the indexer immediately instead of waiting: requests in
+	// flight are canceled, retry backoff ends, and every item that is not yet
+	// final fails through its OnFailure exactly once, with ErrIndexerCanceled
+	// when it was never sent. Items added afterwards fail the same way. Cancel
+	// does not wait and does not replace Close, which still must be called. It
+	// is idempotent and safe for concurrent use, including from a callback.
+	Cancel()
 
 	// Stats returns indexer statistics.
 	Stats() BulkIndexerStats
@@ -204,6 +236,22 @@ type BulkIndexerConfig struct {
 	// caller records the distribution of waits, in a histogram for instance;
 	// BulkIndexerStats carries only their count and total.
 	OnAddBlocked func(context.Context, time.Duration)
+
+	// RetryPolicy, when set, decides whether an item that failed is sent again.
+	// With it set, OnSuccess and OnFailure fire once per item, when the item
+	// reaches a final state, never for an attempt that is going to be retried.
+	// When nil, an item that fails is not retried. Retrying requires every
+	// item to carry a DocumentID, which the indexer enforces; see [RetryPolicy].
+	RetryPolicy RetryPolicy
+
+	// Fingerprinter, when set, derives the DocumentID of an item that has none.
+	// See [DocumentFingerprinter].
+	Fingerprinter DocumentFingerprinter
+
+	// Observer, when set, receives notifications about the requests the indexer
+	// sends and how each item fares, for statistics and metrics. See
+	// [BulkIndexerObserver] for what it may do.
+	Observer BulkIndexerObserver
 
 	// Parameters of the Bulk API.
 	Index               string
@@ -319,6 +367,11 @@ type BulkIndexerStats struct {
 	// is too small for the workload; one that grows while requests stall says the
 	// limit is doing its job.
 	BlockedAddDuration time.Duration
+
+	// NumRetries counts the items sent again after a failure, indexed by the
+	// FailureKind of the failure that caused it. An item retried twice counts
+	// twice.
+	NumRetries [numFailureKinds]uint64
 }
 
 // TimerFlushRatio returns the share of the batches sent because they filled or
@@ -351,6 +404,14 @@ type BulkIndexerItem struct {
 	RequireAlias        *bool
 	Body                io.ReadSeeker
 	RetryOnConflict     *int
+
+	// Metadata is opaque data the caller attaches to the item, such as the
+	// stream offset the document was read from. It is never serialized into the
+	// request and the indexer never reads it. It comes back unchanged in the
+	// BulkIndexerItem handed to OnSuccess and OnFailure, so a callback can
+	// recover it without a closure per item. The indexer keeps the value
+	// referenced until the item reaches a final state.
+	Metadata any
 
 	OnSuccess func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem)        // Per item
 	OnFailure func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) // Per item
@@ -520,7 +581,13 @@ type bulkIndexer struct {
 	// the deferred implicit-client Close.
 	stopFlush   context.CancelFunc
 	flusherDone chan struct{}
-	stats       *bulkIndexerStats
+
+	// cancelCtx ends when Cancel is called, or Close escalates. It is joined
+	// into the context of every flush, so requests and retry backoff end with it.
+	//nolint:containedctx // Carries the cancellation of Cancel to the workers.
+	cancelCtx context.Context
+	cancel    context.CancelFunc
+	stats     *bulkIndexerStats
 
 	metaPool         sync.Pool
 	metaPoolMaxBytes int
@@ -575,6 +642,7 @@ type bulkIndexerStats struct {
 	numUngroupedItems atomic.Uint64
 	numByteFlushes    atomic.Uint64
 	numTimerFlushes   atomic.Uint64
+	numRetries        [numFailureKinds]atomic.Uint64
 }
 
 // NewBulkIndexer creates a new bulk indexer.
@@ -665,6 +733,8 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		}
 	}
 
+	bi.cancelCtx, bi.cancel = context.WithCancel(context.Background())
+
 	bi.init(cfg.Context)
 
 	return &bi, nil
@@ -715,6 +785,15 @@ func defaultNodeBytes(cfg BulkIndexerConfig, router ShardRouter) int {
 }
 
 // Add adds an item to the indexer.
+//
+// An item that has no DocumentID is given one by [BulkIndexerConfig].Fingerprinter
+// when it is set. When a RetryPolicy is set and no id can be had, the item is
+// not queued and fails through its OnFailure with [ErrMissingDocumentID]; Add
+// returns nil, and that OnFailure runs on the caller's goroutine.
+//
+// After Cancel an item is not queued either: it fails through its OnFailure with
+// [ErrIndexerCanceled], and Add returns nil. After Close, Add returns
+// [ErrBulkIndexerClosed].
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 	return bi.add(ctx, item)
 }
@@ -737,6 +816,15 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 		return bi.addFailed(ctx, err)
 	}
 
+	if bi.canceled() {
+		return bi.refuse(ctx, item, ErrIndexerCanceled)
+	}
+
+	item, err := bi.ensureDocumentID(ctx, item)
+	if err != nil {
+		return bi.refuse(ctx, item, err)
+	}
+
 	key, node, err := bi.place(ctx, item)
 	if err != nil {
 		return bi.addFailed(ctx, err)
@@ -749,6 +837,10 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 
 	held, err = bi.budget.acquire(ctx, bi.workersDone(), held)
 	if err != nil {
+		if bi.canceled() && errors.Is(err, errBudgetStopped) {
+			return bi.refuse(ctx, item, ErrIndexerCanceled)
+		}
+
 		return bi.addFailed(ctx, err)
 	}
 
@@ -770,6 +862,29 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 	}
 
 	return nil
+}
+
+// refuse fails an item that was taken from the caller but will not be queued:
+// Add returns nil and the item's OnFailure, or OnError when it has none, hears
+// of err. A lent document is the caller's again, since the indexer is done with
+// it. After Close the item is not taken at all, and Add reports that instead.
+func (bi *bulkIndexer) refuse(ctx context.Context, item BulkIndexerItem, err error) error {
+	if bi.isClosed() {
+		return ErrBulkIndexerClosed
+	}
+
+	bi.rejectItem(ctx, item, err)
+	releaseLent([]BulkIndexerItem{item})
+
+	return nil
+}
+
+// isClosed reports whether Close has begun.
+func (bi *bulkIndexer) isClosed() bool {
+	bi.sched.Lock()
+	defer bi.sched.Unlock()
+
+	return bi.sched.closed
 }
 
 // addFailed counts and reports an Add that did not take its item.
@@ -1028,8 +1143,11 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 	return bi.sched.drain(ctx, true)
 }
 
-// Close stops the periodic flush, sends everything that is buffered, and stops
-// the workers.
+// Close stops the periodic flush, sends everything that is buffered, waits for
+// every added item to reach its final state, which includes the requests in
+// flight and the retry backoff, and stops the indexer. If ctx ends first, Close
+// cancels the indexer, as Cancel does, waits for the requests to unwind, and
+// returns ctx's error.
 func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
 
@@ -1040,9 +1158,9 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.stopFlush()
 	<-bi.flusherDone
 
-	// Close the implicitly-created client on every exit path (including the
-	// ctx-cancelled early return below), or the shared cache refcount -- and
-	// thus the transport's goroutines and pool -- would leak.
+	// Close the implicitly-created client on every exit path, or the shared
+	// cache refcount -- and thus the transport's goroutines and pool -- would
+	// leak.
 	if bi.implicitClient {
 		defer func() {
 			if err := bi.config.Client.Close(); err != nil && bi.config.OnError != nil {
@@ -1050,11 +1168,24 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 			}
 		}()
 	}
+	// Release the cancellation context once Close is done with it.
+	defer bi.cancel()
 
-	defer func() {
-		bi.sched.close()
-		bi.wg.Wait()
-	}()
+	// A context that ends while Close waits cancels the indexer, so the wait
+	// below is bounded. A context that has already ended does so at once and
+	// synchronously, since AfterFunc would run the cancel on its own goroutine.
+	if ctx.Err() != nil {
+		bi.Cancel()
+	}
+	stop := context.AfterFunc(ctx, bi.Cancel)
+	defer stop()
+
+	// Each batch reports its own failure to OnError as it finishes.
+	drainErr := bi.sched.drain(ctx, false)
+
+	bi.sched.close()
+	bi.wg.Wait()
+	bi.failStranded(ctx)
 
 	if err := ctx.Err(); err != nil {
 		if bi.config.OnError != nil {
@@ -1064,9 +1195,8 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 		return err
 	}
 
-	// Each batch reports its own failure to OnError as it finishes.
-	if err := bi.sched.drain(ctx, false); err != nil && bi.config.OnError != nil {
-		bi.config.OnError(ctx, err)
+	if drainErr != nil && bi.config.OnError != nil {
+		bi.config.OnError(ctx, drainErr)
 	}
 
 	return nil
@@ -1077,7 +1207,7 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 	blocked, blockedFor := bi.budget.blockedStats()
 	inFlight := max(bi.flushingBytes.Load(), 0)
 
-	return BulkIndexerStats{
+	stats := BulkIndexerStats{
 		NumAdded:         bi.stats.numAdded.Load(),
 		BulkAddFailCount: bi.stats.bulkAddFailCount.Load(),
 		NumFlushed:       bi.stats.numFlushed.Load(),
@@ -1098,6 +1228,11 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 		NumBlockedAdds:     blocked,
 		BlockedAddDuration: blockedFor,
 	}
+	for i := range bi.stats.numRetries {
+		stats.NumRetries[i] = bi.stats.numRetries[i].Load()
+	}
+
+	return stats
 }
 
 // flushTrigger says what made a batch be sent.
@@ -1121,6 +1256,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 	bi.sched = newScheduler(bi)
 	bi.budget = newByteBudget(int64(bi.config.MaxMemoryBytes))
 	bi.budget.onBlock = bi.sched.relieve
+	bi.budget.halt = bi.cancelCtx.Done()
 	if bi.config.OnAddBlocked != nil {
 		bi.budget.onUnblock = bi.config.OnAddBlocked
 	}
@@ -1134,6 +1270,11 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 
 	// Nothing is sent once the construction context has ended.
 	context.AfterFunc(ctx, bi.sched.stop)
+
+	// Cancel sends what is buffered at once, so that it fails now and not at the
+	// next flush.
+	//nolint:contextcheck // Cancel acts on its own context, not the construction context.
+	context.AfterFunc(bi.cancelCtx, func() { bi.sched.flushCanceled(bi.cancelCtx) })
 
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)
 
@@ -1198,7 +1339,7 @@ func (bi *bulkIndexer) run(b *buffer) {
 	}
 
 	w := bi.workerPool.Get().(*worker)
-	w.send(b)
+	w.sendBuffer(b)
 	bi.workerPool.Put(w)
 }
 
@@ -1217,19 +1358,28 @@ type worker struct {
 	// throttled is set by flush when the node rejected the request or any item
 	// with a 429, and failed when the request did not complete. Items the cluster
 	// rejected for their own sake, a version conflict or a mapping error, are
-	// neither: they say nothing about the node.
+	// neither: they say nothing about the node. Either is set when any attempt at
+	// the buffer drew it.
 	throttled, failed bool
+	// sent and busy total the bytes of the requests made for the buffer, retries
+	// included, and the time they took, which is what the controllers read the
+	// node's rate from.
+	sent int64
+	busy time.Duration
 }
 
 // observeResponse records what the response to a bulk request says about the
 // node, before the items are dealt with.
 func (w *worker) observeResponse(blk *opensearchapi.BulkResp, err error) {
-	w.throttled = isThrottled(blk, err)
-	w.failed = !w.throttled && isTransportFailure(err)
+	throttled := isThrottled(blk, err)
+	w.throttled = w.throttled || throttled
+	w.failed = w.failed || (!throttled && isTransportFailure(err))
 }
 
-// send serializes and sends one buffer.
-func (w *worker) send(b *buffer) {
+// sendBuffer serializes and sends one buffer, retrying what the policy asks to,
+// and reports the outcome to the scheduler once every item has reached its final
+// state.
+func (w *worker) sendBuffer(b *buffer) {
 	bi := w.bi
 	ctx := b.ctx
 
@@ -1238,14 +1388,19 @@ func (w *worker) send(b *buffer) {
 	w.items = w.items[:0]
 	w.node = b.dest
 	w.throttled, w.failed = false, false
+	w.sent, w.busy = 0, 0
 
 	for _, item := range b.items {
-		if err := w.writeItem(ctx, item); err != nil {
-			if item.OnFailure != nil {
-				item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
-			}
+		if bi.canceled() {
+			_ = w.failUnsent(ctx, item, ErrIndexerCanceled, 0) //nolint:errcheck // a canceled item is not an OnError matter
 
-			bi.stats.numFailed.Add(1)
+			continue
+		}
+
+		if err := w.writeItem(ctx, item); err != nil {
+			// Reported to the item's OnFailure alone, not to OnError: the return is
+			// what OnError would get.
+			_ = w.failUnsent(ctx, item, err, 0) //nolint:errcheck // see above
 
 			continue
 		}
@@ -1253,10 +1408,7 @@ func (w *worker) send(b *buffer) {
 		w.items = append(w.items, item)
 	}
 
-	size := int64(w.buf.Len())
-	start := bi.now()
 	err := w.flush(withBatchNode(ctx, w.node))
-	elapsed := bi.now().Sub(start)
 
 	// flush resets the buffer; this hands its chunks back if it returned early.
 	w.buf.Reset()
@@ -1264,11 +1416,12 @@ func (w *worker) send(b *buffer) {
 	clear(w.items)
 	w.items = w.items[:0]
 
-	// The request has ended and the callbacks have run: the documents lent to the
+	// Every attempt has ended and the callbacks have run: the documents lent to the
 	// indexer are the caller's again, before the memory they held is given back.
+	// With a retry policy that is the final attempt, not the first.
 	releaseLent(b.items)
 
-	bi.sched.complete(b, observeSample(w.node, size, elapsed, w.throttled, w.failed), err)
+	bi.sched.complete(b, observeSample(w.node, w.sent, w.busy, w.throttled, w.failed), err)
 }
 
 // releaseLent returns the documents lent to the indexer to their owners.
@@ -1451,6 +1604,10 @@ func (w *worker) writeBody(ctx context.Context, item *BulkIndexerItem) error {
 
 // flush writes out the batch the worker holds.
 func (w *worker) flush(ctx context.Context) error {
+	// The flush ends with Cancel as well as with the caller's context.
+	ctx, release := w.bi.joinCancel(ctx)
+	defer release()
+
 	if w.bi.config.OnFlushStart != nil {
 		ctx = w.bi.config.OnFlushStart(ctx)
 	}
@@ -1470,12 +1627,28 @@ func (w *worker) flush(ctx context.Context) error {
 		w.buf.Reset()
 	}()
 
+	// Nothing is sent once the indexer is canceled: the buffered items fail.
+	if w.bi.canceled() {
+		return w.failCanceled(ctx)
+	}
+
 	// w.buf is passed as a Stringer so its contents are rendered only when a
 	// debug logger is installed; the emit runs before the deferred Reset above,
 	// so the buffer is still intact.
 	opensearchtransport.Debug().Int("worker", w.id).Stringer("body", w.buf).Msg("BulkIndexer: flush")
 
+	return w.sendWithRetry(ctx)
+}
+
+// send makes one bulk request carrying the buffered items and reports its
+// result. attempt is 1 for the first request of a flush and counts up for each
+// retry.
+func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 	w.bi.stats.numRequests.Add(1)
+
+	// The body is read out of the buffer by the request, so size it first.
+	size := w.buf.Len()
+
 	req := opensearchapi.BulkReq{
 		Index: w.bi.config.Index,
 		Body:  w.buf,
@@ -1500,23 +1673,58 @@ func (w *worker) flush(ctx context.Context) error {
 		Header: w.bi.config.Header,
 	}
 
+	start := w.bi.now()
 	blk, err := w.bi.config.Client.Doc.Bulk(w.toNode(ctx), req)
+	elapsed := w.bi.now().Sub(start)
+
+	// The controllers read a rate, bytes over the time the node spent on them, so
+	// the time spent waiting between attempts is left out.
+	w.sent += int64(size)
+	w.busy += elapsed
 	w.observeResponse(blk, err)
 
-	return w.processBulkResp(ctx, blk, err)
+	if obs := w.bi.config.Observer; obs != nil {
+		ev := BulkRequestEvent{
+			Index:      w.bi.config.Index,
+			Worker:     w.id,
+			Attempt:    attempt,
+			Items:      len(w.items),
+			Bytes:      size,
+			Duration:   elapsed,
+			StatusCode: batchStatus(blk),
+		}
+		// A *PartialBulkError means the cluster answered, so the request did not fail.
+		_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+		if err != nil && !isPartial {
+			ev.Err = err
+		}
+		obs.OnRequestEnd(ctx, ev)
+	}
+
+	return w.processBulkResp(ctx, blk, err, attempt)
 }
 
 // processBulkResp reports the result of one bulk request: the per-item results
 // when the cluster answered, or a whole-buffer failure when the request did not
 // land. A *PartialBulkError is the former, so each rejected document reaches its
 // OnFailure callback; a rejected document with no OnFailure has its error joined
-// into the return so the flush sites (worker.run, auto-flush, Close) surface it
+// into the return so the flush sites (a buffer's send, auto-flush, Close) surface it
 // through OnError. When every rejected document has an OnFailure, the return is
 // nil and OnError does not fire.
-func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkResp, err error) error {
+//
+// With a RetryPolicy set, a failure the policy asks to retry is not reported:
+// the item comes back in the returned retryBatch instead, and neither its
+// callback nor the failure count sees it until a later attempt settles it.
+// attempt is the number of requests the items in w.items have been through,
+// counting this one.
+func (w *worker) processBulkResp(
+	ctx context.Context, blk *opensearchapi.BulkResp, err error, attempt int,
+) (retryBatch, error) {
 	_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
 	if err != nil && !isPartial {
-		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
+		wrapped := fmt.Errorf("flush: %w", err)
+		status := batchStatus(blk)
+		return w.handleBulkError(ctx, wrapped, classifyBatchFailure(status, err), status, attempt)
 	}
 
 	// The bulk API returns one result per serialized action. More results than
@@ -1526,15 +1734,17 @@ func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkRes
 	// Fewer results needs no guard; the loop simply leaves the extras
 	// undispatched.
 	if got, want := len(blk.Items), len(w.items); got > want {
-		return w.handleBulkError(ctx, fmt.Errorf(
-			"flush: bulk response has %d items, indexer serialized %d", got, want,
-		))
+		mismatch := fmt.Errorf("flush: %w", &bulkResponseMismatchError{got: got, want: want})
+		return w.handleBulkError(ctx, mismatch, FailurePermanent, batchStatus(blk), attempt)
 	}
 
 	// Errors for rejected items that have no OnFailure callback of their own.
 	// Left nil on the happy path (every item succeeds, or every rejected item
 	// has an OnFailure), so errors.Join returns nil and no OnError fires.
-	var errs []error
+	var (
+		errs  []error
+		retry retryBatch
+	)
 	for i, blkItem := range blk.Items {
 		var (
 			item BulkIndexerItem
@@ -1557,14 +1767,24 @@ func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkRes
 			op, info = actionUpdate, *blkItem.Update
 		}
 		if info.Error != nil || info.Status >= http.StatusMultipleChoices {
-			w.bi.stats.numFailed.Add(1)
-			// A rejected item goes to its own OnFailure; one without falls back
-			// to OnError so the failure is not swallowed.
-			if item.OnFailure != nil {
-				item.OnFailure(ctx, item, bulkRespItemForOnFailure(info), nil)
-			} else {
-				errs = append(errs, bulkItemFailure(op, info))
+			delay, ok := w.decideRetry(ctx, BulkFailureEvent{
+				Scope:      ScopeItem,
+				Kind:       classifyItemFailure(info),
+				Attempt:    attempt,
+				Items:      1,
+				DocumentID: item.DocumentID,
+				StatusCode: info.Status,
+				Resp:       info,
+			})
+			if ok {
+				retry.add(failedItem{item: item, op: op, resp: info, attempt: attempt}, delay)
+				continue
 			}
+
+			// A rejected item goes to its own OnFailure; one without falls back
+			// to OnError so the failure is not swallowed. A nil result is
+			// dropped by errors.Join below.
+			errs = append(errs, w.settleFailed(ctx, item, op, info, nil, attempt))
 		} else {
 			w.bi.stats.numFlushed.Add(1)
 
@@ -1579,27 +1799,47 @@ func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkRes
 				w.bi.stats.numUpdated.Add(1)
 			}
 
+			w.observeSettled(ctx, item, attempt, false, info, nil)
 			if item.OnSuccess != nil {
 				item.OnSuccess(ctx, item, info)
 			}
 		}
 	}
 
-	return errors.Join(errs...)
+	return retry, errors.Join(errs...)
 }
 
-func (w *worker) handleBulkError(ctx context.Context, err error) error {
-	w.bi.stats.numFailed.Add(uint64(len(w.items)))
-
-	// info (the response item) will be empty since the bulk request failed
-	info := bulkRespItemForOnFailure(opensearchapi.BulkRespItem{})
-	for i := range w.items {
-		if item := w.items[i]; item.OnFailure != nil {
-			item.OnFailure(ctx, item, info, err)
+// handleBulkError settles a request that failed as a whole. The policy is asked
+// once, for the request: every item in it drew the same failure. When it asks
+// for a retry the items come back in the retryBatch and nothing is reported;
+// otherwise each item fails with err, and so does the flush. status is the HTTP
+// status of the response, or 0 when none arrived.
+func (w *worker) handleBulkError(
+	ctx context.Context, err error, kind FailureKind, status, attempt int,
+) (retryBatch, error) {
+	delay, ok := w.decideRetry(ctx, BulkFailureEvent{
+		Scope:      ScopeRequest,
+		Kind:       kind,
+		Attempt:    attempt,
+		Items:      len(w.items),
+		StatusCode: status,
+		Err:        err,
+	})
+	if ok {
+		retry := retryBatch{items: make([]failedItem, 0, len(w.items)), delay: delay}
+		for _, item := range w.items {
+			retry.items = append(retry.items, failedItem{item: item, err: err, attempt: attempt})
 		}
+
+		return retry, nil
 	}
 
-	return err
+	// Each item's own OnFailure hears of it; the flush reports err once, below.
+	for _, item := range w.items {
+		_ = w.settleFailed(ctx, item, item.Action, opensearchapi.BulkRespItem{}, err, attempt) //nolint:errcheck // err is returned below
+	}
+
+	return retryBatch{}, err
 }
 
 // bulkRespItemForOnFailure ensures BulkRespItem.Error is non-nil so OnFailure

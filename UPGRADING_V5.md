@@ -596,7 +596,32 @@ func handler(ctx context.Context) error {
 }
 ```
 
-`Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
+`Flush` covers the items the indexer held when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. After `Close`, `Flush` and `Add` return `ErrBulkIndexerClosed`.
+
+## `opensearchutil.BulkIndexer` interface gained `Cancel()`, and `Close` waits for every item
+
+The exported `BulkIndexer` interface gained a second method in v5.1:
+
+```go
+type BulkIndexer interface {
+    Add(context.Context, BulkIndexerItem) error
+    Flush(context.Context) error
+    Close(context.Context) error
+    Cancel() // new in v5.1
+    Stats() BulkIndexerStats
+}
+```
+
+Callers that build their indexer with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add a `Cancel()` method.
+
+`Cancel` stops the indexer immediately: requests in flight and retry backoff end, and every item that is not yet final fails through its own `OnFailure` exactly once. An item that was never sent fails with the new `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. It does not wait and does not replace `Close`.
+
+`Close` changes in two ways that matter if you depended on the old behavior:
+
+- **`Close` blocks until every item has reached its final state**, including requests in flight and any retry backoff, and it now escalates to `Cancel` when its own context ends. It then waits for the requests in flight to unwind and returns the context's error, so it always returns in bounded time with every item final.
+- **A `Close` whose context had already ended used to return at once**, without waiting for or failing the items the indexer still held, and an indexer stopped by the construction context could leave buffered items without a callback. Both now get a final callback. If your `OnFailure` is not expecting `context.Canceled` or `ErrIndexerCanceled` during shutdown, add that case.
+
+The rest of the v5.1 additions are opt-in and change nothing until you set them: `BulkIndexerConfig.RetryPolicy`, `Fingerprinter`, and `Observer`, and `BulkIndexerItem.Metadata`. One exception to "nothing changes": with a `RetryPolicy` set, an item without a `DocumentID` is refused with `ErrMissingDocumentID` rather than sent. See [Bulk Indexer](guides/indexing-bulk_indexer.md).
 
 ## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
 
@@ -728,3 +753,13 @@ DiscoverNodesInterval: 0, // no periodic discovery
 // After
 DiscoverNodesInterval: -1, // no periodic discovery
 ```
+
+## `opensearchutil.BulkIndexer` buffers per shard, under a memory limit
+
+The indexer keeps a buffer for each shard of the indexes it writes to and sends each buffer, as one bulk request, to the node hosting the shard, where it used to hand every item to one of `NumWorkers` workers by hashing its `DocumentID`. Three things change for code that was tuned to the old model:
+
+- **`NumWorkers` is a cap, not a pool.** It limits the bulk requests outstanding at once, and the default, 0, sets no cap beyond the ones that are always there: a shard has one request out at a time, and a node has as many as the window the transport allows its write pool. If you set it to size a pool, delete it; if you set it to 1 to serialize requests, it still does.
+- **Memory is bounded.** `MaxMemoryBytes` limits what the indexer holds from `Add` until the request that sends the item has finished, and `Add` waits when it is spent. It defaults to `max(GOMEMLIMIT/4, 4 GiB, DefaultMaxMemoryBytes)` when the process has a Go memory limit, and to 512 MiB when it does not. A process with a Go memory limit under 16 GiB that wants the indexer held inside it sets `MaxMemoryBytes`.
+- **Buffer sizes follow the cluster.** `FlushBytes` is now the ceiling for a shard's buffer, and the indexer shrinks a shard's buffer, and a node's share of the memory, as the shard or node slows down, well before it answers 429. `BulkSizing{Fixed: true}` turns that off.
+
+`opensearchutil.AddZeroCopy` sends a document from the caller's own slice instead of copying it, and gives the slice back through `Release`; see its documentation for what the caller gives up.

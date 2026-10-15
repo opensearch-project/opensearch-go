@@ -1,6 +1,8 @@
 # Bulk
 
 > **Runnable example:** [`_samples/indexing-bulk.go`](../_samples/indexing-bulk.go)
+>
+> For continuous ingestion, where you add documents one at a time and want batching, retries, and per-document callbacks handled for you, see [Bulk Indexer](indexing-bulk_indexer.md).
 
 In this guide, you'll learn how to use the OpenSearch Golang Client API to perform bulk operations. You'll learn how to index, update, and delete multiple documents in a single request.
 

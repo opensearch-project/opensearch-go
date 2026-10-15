@@ -80,6 +80,13 @@ func ExampleNewBulkIndexer() {
 
 	// Add an item to the indexer
 	//
+	// source is the kind of value Metadata carries: where the document came
+	// from, so a callback can report on it without a closure per item.
+	type source struct {
+		Topic  string
+		Offset int64
+	}
+
 	err = indexer.Add(
 		context.Background(),
 		opensearchutil.BulkIndexerItem{
@@ -92,13 +99,18 @@ func ExampleNewBulkIndexer() {
 			// Body is an `io.Reader` with the payload
 			Body: strings.NewReader(`{"title":"Test"}`),
 
+			// Metadata is opaque to the indexer: it is never sent to the
+			// cluster and comes back unchanged in the callbacks below
+			Metadata: source{Topic: "events", Offset: 42},
+
 			// OnSuccess is the optional callback for each successful operation
 			OnSuccess: func(
 				ctx context.Context,
 				item opensearchutil.BulkIndexerItem,
 				res opensearchapi.BulkRespItem,
 			) {
-				fmt.Printf("[%d] %v test/%s", res.Status, res.Result, item.DocumentID)
+				from, _ := item.Metadata.(source)
+				fmt.Printf("[%d] %v test/%s from %s@%d", res.Status, res.Result, item.DocumentID, from.Topic, from.Offset)
 			},
 
 			// OnFailure is the optional callback for each failed operation
@@ -107,10 +119,11 @@ func ExampleNewBulkIndexer() {
 				item opensearchutil.BulkIndexerItem,
 				res opensearchapi.BulkRespItem, err error,
 			) {
+				from, _ := item.Metadata.(source)
 				if err != nil {
-					log.Printf("ERROR: %s", err)
+					log.Printf("ERROR: %s@%d: %s", from.Topic, from.Offset, err)
 				} else {
-					log.Printf("ERROR: %s: %v", res.Error.Type, res.Error.Reason)
+					log.Printf("ERROR: %s@%d: %s: %v", from.Topic, from.Offset, res.Error.Type, res.Error.Reason)
 				}
 			},
 		},

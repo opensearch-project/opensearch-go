@@ -119,6 +119,33 @@ ro := osprom.NewRequestObserver(
 reg, err := osprom.New(promReg, ro)
 ```
 
+## Bulk indexer metrics -- `NewBulkIndexerObserver`
+
+`opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the indexer calls it directly, so it is not wired into `New`. Create it, register its collectors, and set it as the indexer's `Observer`:
+
+```go
+bo := osprom.NewBulkIndexerObserver()
+if err := bo.Register(promReg); err != nil {
+	panic(err)
+}
+
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
+	Client:   client,
+	Observer: bo,
+})
+```
+
+Labels are low-cardinality (`result`, `scope`, `kind`, `retrying`, `outcome`); none carries an index name or a document id.
+
+| Metric                                            | Description                                                                                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `opensearch_client_bulk_requests_total`           | Bulk requests by `result`: `ok` when the cluster answered, `error` when the whole request failed.                              |
+| `opensearch_client_bulk_request_duration_seconds` | Bulk request latency histogram.                                                                                                |
+| `opensearch_client_bulk_request_size_bytes`       | Bulk request body size histogram.                                                                                              |
+| `opensearch_client_bulk_failures_total`           | Failed attempts by `scope` (`request` or `item`), `kind` (`rejected`, `unavailable`, `transport`, `permanent`) and `retrying`. |
+| `opensearch_client_bulk_retries_total`            | Items sent again after a failure, by `kind`.                                                                                   |
+| `opensearch_client_bulk_items_total`              | Items that reached a final state, by `outcome` (`succeeded` or `failed`).                                                      |
+
 ## Custom observers
 
 Any type implementing `osprom.Observer` can be wired into a Registry alongside (or instead of) the shipped bundle. An observer is a _sink_: it receives the full transport event and routes it to whatever metrics it owns. Embed `osprom.BaseObserver` for no-op defaults and override only the hook you need. `Register` is called once when you pass the observer to `New`; `OnRequestResponse` / `OnStreamResponse` are called on a dispatch worker for every request, with the full `*opensearchtransport.RequestResponseEvent` / `*opensearchtransport.StreamResponseEvent` (valid only for the call -- do not retain).

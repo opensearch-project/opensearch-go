@@ -25,20 +25,20 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// eventLog records what happened to items, in order, from any goroutine.
-type eventLog struct {
+// lentLog records what happened to items, in order, from any goroutine.
+type lentLog struct {
 	mu     sync.Mutex
 	events []string
 }
 
-func (l *eventLog) addf(format string, args ...any) {
+func (l *lentLog) addf(format string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.events = append(l.events, fmt.Sprintf(format, args...))
 }
 
-func (l *eventLog) snapshot() []string {
+func (l *lentLog) snapshot() []string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -131,7 +131,7 @@ func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 			bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Hour, ShardRouter: NoShardRouter})
 
 			var (
-				log      eventLog
+				log      lentLog
 				released = map[int]int{}
 				mu       sync.Mutex
 			)

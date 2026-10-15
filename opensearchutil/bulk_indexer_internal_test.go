@@ -1844,6 +1844,7 @@ func TestBulkIndexerFlushIsSafeForConcurrentUse(t *testing.T) {
 func newTestWorker() *worker {
 	bi := &bulkIndexer{
 		stats:            &bulkIndexerStats{},
+		now:              time.Now,
 		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 		metaPool: sync.Pool{
 			New: func() any { return new(bytes.Buffer) },

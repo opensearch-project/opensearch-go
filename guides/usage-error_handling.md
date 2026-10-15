@@ -627,7 +627,9 @@ func bulkItemResult(item opensearchapi.BulkItem) *opensearchapi.BulkRespItem {
 
 Retrying a bulk request after `context.DeadlineExceeded` is safe only when the original request included a server-side timeout (`BulkParams.Timeout`). Without one, the server likely continues processing the original request after the client gives up. Each retry can add another concurrent bulk operation targeting the same primary shards, potentially exhausting thread pools and triggering `es_rejected_execution_exception` across the cluster. See [Bulk: Why missing server-side timeouts can cause cascading overload](indexing-bulk.md#why-missing-server-side-timeouts-can-cause-cascading-overload) for the full failure sequence.
 
-When implementing retry logic for bulk operations:
+If you ingest through `opensearchutil.BulkIndexer`, it can drive this loop for you: set a `RetryPolicy` and it resends the failed items, classifying each failure and refusing to send an item without a document id. See [Bulk Indexer](indexing-bulk_indexer.md#retrying-failed-items).
+
+When implementing retry logic for bulk operations yourself:
 
 - **Always set `BulkParams.Timeout`** shorter than the client-side context deadline. This ensures the server aborts incomplete shard operations before the client retries.
 - **Do not retry on `context.DeadlineExceeded` if no server-side timeout was set.** The original request is likely still running. Retrying compounds the problem.
@@ -700,6 +702,8 @@ func (m *OperationMetrics) Report() {
 | `illegal_argument_exception`       | Invalid parameters    | Fix query            |
 
 ## Complete Example: Production-Ready Bulk Indexer
+
+This example hand-writes the batching and retry loop on top of the typed `Bulk` call. `opensearchutil.BulkIndexer` provides the same machinery ready-made, with a pluggable `RetryPolicy`; see [Bulk Indexer](indexing-bulk_indexer.md).
 
 ```go
 package main

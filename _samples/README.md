@@ -35,6 +35,7 @@ Connection, routing, and node-discovery behavior.
 Writing and managing indices and documents.
 
 - `indexing-bulk.go` - bulk index/update/delete in a single request.
+- `indexing-bulk_indexer.go` - stream documents through `BulkIndexer` with a retry policy, generated ids, an observer, per-item metadata, and a `SequenceTracker`.
 - `indexing-document_lifecycle.go` - create, read, update, and delete documents.
 - `indexing-index_lifecycle.go` - create, configure, and delete indices.
 - `indexing-advanced_index_actions.go` - clear cache, flush, refresh, force merge, and other index actions.
