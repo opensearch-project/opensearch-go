@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Add the `compress` module (`github.com/opensearch-project/opensearch-go/compress/v5`) with the `Gzip`, `Deflate` and `Snappy` constructors, each returning an `opensearchtransport.Compressor` backed by `github.com/klauspost/compress`. The module is separate from the client so klauspost stays out of the core dependency graph, and no klauspost type appears in its API. `Gzip` and `Deflate` take a level and reject an invalid one at construction; `compress.DefaultLevel` selects a codec's own default
+- Add `opensearchapi.BuildMSearchBody` and `opensearchapi.MSearchSubSearch`, which build the newline-delimited body for `MSearchReq.Body` from typed `SearchBody` values, so callers no longer hand-encode a header line and a body line for each search. A sub-search with no `Indices` runs against the indices of the `MSearchReq`, and a nil `Body` becomes an empty search. `BuildMSearchBody` returns an error when it gets no sub-searches ([#1214](https://github.com/opensearch-project/opensearch-go/pull/1214))
 
 ### Changed
 

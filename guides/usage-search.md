@@ -316,13 +316,13 @@ When you search with a PIT you do not specify indices; the PIT already pins them
 
 A PIT ID has its own type, `opensearchapi.PITID`, and every request and response field that carries one uses it. OpenSearch takes it only in a request body, never in a path, query parameter or header, because the ID is a large base64 token:
 
-| Request                                      | Body field      | Go field                                                                          |
-| -------------------------------------------- | --------------- | --------------------------------------------------------------------------------- |
-| search                                       | `"pit": {"id"}` | `SearchBody.PIT` (`SearchPointInTimeReference.ID`)                                |
-| async search (`plugins/asynchronous_search`) | `"pit": {"id"}` | `AsynchronousSearchSearch.PIT` (`SearchPointInTimeReference.ID`)                  |
-| each search of an msearch                    | `"pit": {"id"}` | none: `MSearchReq.Body` is an `io.Reader`, so encode a `SearchBody` for each line |
-| delete PIT                                   | `"pit_id": []`  | `DeletePITBody.PITID`                                                             |
-| cat PIT segments                             | `"pit_id": []`  | `CatPITSegmentsBody.PITID`                                                        |
+| Request                                      | Body field      | Go field                                                                                |
+| -------------------------------------------- | --------------- | --------------------------------------------------------------------------------------- |
+| search                                       | `"pit": {"id"}` | `SearchBody.PIT` (`SearchPointInTimeReference.ID`)                                      |
+| async search (`plugins/asynchronous_search`) | `"pit": {"id"}` | `AsynchronousSearchSearch.PIT` (`SearchPointInTimeReference.ID`)                        |
+| each search of an msearch                    | `"pit": {"id"}` | `MSearchSubSearch.Body.PIT`; `BuildMSearchBody` encodes the lines for `MSearchReq.Body` |
+| delete PIT                                   | `"pit_id": []`  | `DeletePITBody.PITID`                                                                   |
+| cat PIT segments                             | `"pit_id": []`  | `CatPITSegmentsBody.PITID`                                                              |
 
 It comes back in the create-PIT response (`CreatePITResp.PITID`) and in every search against the PIT (`SearchResp.PITID`). A scroll has its own `scroll_id` and never takes a PIT ID. `PIT.Search`, `PIT.Close` and `SearchCursor.Apply` put the ID in the right place for you.
 
@@ -485,10 +485,12 @@ The router automatically detects operation types and routes them to the most app
 	}
 
 	// Multi-search operations also route to data nodes
+	msearchBody, err := opensearchapi.BuildMSearchBody(opensearchapi.MSearchSubSearch{})
+	if err != nil {
+		return err
+	}
 	_, err = routedClient.MSearch(ctx, &opensearchapi.MSearchReq{
-		Body: strings.NewReader(`{}
-{"query": {"match_all": {}}}
-`),
+		Body: msearchBody,
 	})
 	if err != nil {
 		return err
