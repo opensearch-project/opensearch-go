@@ -6,6 +6,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Dependencies
+
+## [5.0.3]
+
+### Added
+
 - Add the `compress` module (`github.com/opensearch-project/opensearch-go/compress/v5`) with the `Gzip`, `Deflate` and `Snappy` constructors, each returning an `opensearchtransport.Compressor` backed by `github.com/klauspost/compress`. The module is separate from the client so klauspost stays out of the core dependency graph, and no klauspost type appears in its API. `Gzip` and `Deflate` take a level and reject an invalid one at construction; `compress.DefaultLevel` selects a codec's own default
 - Add `opensearchapi.BuildMSearchBody` and `opensearchapi.MSearchSubSearch`, which build the newline-delimited body for `MSearchReq.Body` from typed `SearchBody` values, so callers no longer hand-encode a header line and a body line for each search. A sub-search with no `Indices` runs against the indices of the `MSearchReq`, and a nil `Body` becomes an empty search. `BuildMSearchBody` returns an error when it gets no sub-searches ([#1214](https://github.com/opensearch-project/opensearch-go/pull/1214))
 
@@ -14,10 +30,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Discover nested modules with `git ls-files` instead of `find`, so `make test-unit`, `make lint.local`, `make check-modules-standalone` and `make print-submodules` skip a stray `go.mod` under a git-ignored directory such as `tmp/`, and still see a new module before it is staged
 - Run the integration tests of nested modules in `make test-integ`, which used to stop at the root module's boundary
 - **BREAKING**: default `DiscoverNodesInterval` to 30s when a router is in use, including the default router. With the old `0` default the discovery loop never ran, so the client missed nodes added after startup, and a node flagged after a failed request stayed out of shard-aware routing until restart, because only that loop refreshes `/_cat/shards`. A negative value now turns periodic discovery off; without a router `0` still does. See [UPGRADING_V5.md](UPGRADING_V5.md#discovernodesinterval-defaults-to-30s-with-a-router) ([#1211](https://github.com/opensearch-project/opensearch-go/pull/1211))
-
-### Deprecated
-
-### Removed
 
 ### Fixed
 
@@ -29,10 +41,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `cmd/osapilint`: keep the fields a struct promotes through an embedded type alias when generating a surface, and regenerate the v5 surfaces from v5.0.2. v5 moved `Pretty`, `Human`, `ErrorTrace`, `FilterPath`, the cat `H` and `V`, and the timeout params into the aliased `DebugParams` and `TimeoutParams`, and the generator dropped them, so the v5 surface was missing fields that exist. The v4 -> v5 run aborted with an `osapilint bug` error on v4 code that used one of these on a Params type that keeps its name (for example `SearchParams{Pretty: true}`) or `H` or `V` on a cat params type. The run now completes. A selector such as `p.Pretty = true` compiles on v5. A composite-literal key does not compile below Go 1.27 and has to move into `DebugParams: opensearchapi.DebugParams{...}` or `TimeoutParams: opensearchapi.TimeoutParams{...}`, which the v4 -> v5 follow-up line now says
 
 - Fix godoc and guide defaults that disagreed with the code: `MaxRetries` defaults to 6, not 3; `HealthCheckTimeout` to 5s, not 3s; `HealthCheckMaxRetries` to 6, not 3; and `HealthCheckJitter` to 0.1, not 0.2. A negative `HealthCheckMaxRetries` disables health check retries, leaving one attempt, rather than disabling health checks ([#1211](https://github.com/opensearch-project/opensearch-go/pull/1211))
-
-### Security
-
-### Dependencies
 
 ## [5.0.2]
 
@@ -601,7 +609,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.2...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.3...HEAD
+[5.0.3]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.6.0...v5.0.0
