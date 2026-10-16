@@ -9,6 +9,7 @@ package opensearchutil
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -52,6 +53,14 @@ type buffer struct {
 	// dest is the node the request goes to, captured when the buffer is dispatched
 	// so that sending it does not read state the scheduler goes on changing.
 	dest Node
+
+	// after are the earlier buffers of documents that belong to no shard that hold
+	// a document with the same id as one in this buffer. The buffer is not sent
+	// before they have finished, which keeps the documents of one id in order
+	// although such buffers are otherwise sent without regard to each other.
+	after []*buffer
+	// finished is set once the buffer's request has completed.
+	finished bool
 
 	sealed     bool
 	dispatched bool
@@ -168,6 +177,9 @@ type scheduler struct {
 	sealed []*buffer
 	// live holds every buffer that is not complete.
 	live map[*buffer]struct{}
+	// lastByID maps the id of a document that belongs to no shard to the buffer it
+	// was last added to, for as long as that buffer has not finished.
+	lastByID map[string]*buffer
 	// sealedPending counts buffers that are sealed and not complete.
 	sealedPending int
 	// sink is the node unrouted documents are being filled into.
@@ -187,6 +199,8 @@ func newScheduler(bi *bulkIndexer) *scheduler {
 		shards: make(map[shardKey]*shardState),
 		nodes:  make(map[string]*nodeState),
 		live:   make(map[*buffer]struct{}),
+
+		lastByID: make(map[string]*buffer),
 	}
 }
 
@@ -259,12 +273,14 @@ func (s *scheduler) sinkNode() *nodeState {
 	return best
 }
 
-// add places an item. key is nil for an item that belongs to no shard. reserved is
-// what the item holds of the job's memory, and size the estimated size of its
-// part of the request body.
+// add places an item. key is nil for an item that belongs to no shard. order is
+// the id or routing value whose documents are written in the order they were
+// added, empty when there is no such order to keep. reserved is what the item
+// holds of the job's memory, and size the estimated size of its part of the
+// request body.
 //
 // It must be called with the lock held.
-func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKey, node Node) {
+func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKey, node Node, order string) {
 	var ss *shardState
 	var ns *nodeState
 
@@ -295,6 +311,9 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 	}
 
 	b.items = append(b.items, item)
+	if !ss.ordered && order != "" {
+		s.orderAfterEarlier(b, order)
+	}
 	b.bytes += size
 	b.held += reserved
 	s.hold(b.node, reserved)
@@ -312,6 +331,35 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 		}
 		ns.crowded = true
 	}
+}
+
+// orderAfterEarlier makes buffer b of documents that belong to no shard wait for
+// the earlier buffer that holds a document with the same order key, if that has
+// not finished. A shard's buffers go one at a time, but these may be out together,
+// and two requests that carry the same id could then reach the server in either
+// order. Buffers are filled one at a time, so a buffer only ever waits for an
+// earlier one and the waits cannot form a cycle. A stream whose ids do not repeat
+// within a buffer's lifetime never waits.
+func (s *scheduler) orderAfterEarlier(b *buffer, order string) {
+	prev := s.lastByID[order]
+	s.lastByID[order] = b
+
+	if prev == nil || prev == b || slices.Contains(b.after, prev) {
+		return
+	}
+
+	b.after = append(b.after, prev)
+}
+
+// ready reports whether every buffer b must follow has finished.
+func (b *buffer) ready() bool {
+	for _, prev := range b.after {
+		if !prev.finished {
+			return false
+		}
+	}
+
+	return true
 }
 
 // hold records that n more bytes are held for the node, in an open buffer.
@@ -485,6 +533,15 @@ func (s *scheduler) pump() {
 			continue
 		}
 
+		// Waiting for an earlier buffer does not hold up the buffers behind it,
+		// which do not share its documents unless they follow it in turn.
+		if !b.ready() {
+			remaining = append(remaining, b)
+
+			continue
+		}
+		b.after = nil
+
 		ns.queued--
 		ns.inflight++
 		ss.inflight++
@@ -528,6 +585,14 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 
 	delete(s.live, b)
 	s.sealedPending--
+	b.finished = true
+	if !ss.ordered {
+		for _, item := range b.items {
+			if order := s.bi.orderKey(item); s.lastByID[order] == b {
+				delete(s.lastByID, order)
+			}
+		}
+	}
 	b.err = err
 	reportToOnError := err != nil && b.waiters == 0
 

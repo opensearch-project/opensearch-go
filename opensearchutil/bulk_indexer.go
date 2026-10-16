@@ -817,6 +817,20 @@ func (bi *bulkIndexer) AddZeroCopy(ctx context.Context, item BulkIndexerZeroCopy
 	return bi.add(ctx, item.BulkIndexerItem)
 }
 
+// orderKey returns the value whose items are written in the order they were
+// added: the document id, or failing that the routing value. It is empty for an
+// item with neither, which has no order to keep.
+func (bi *bulkIndexer) orderKey(item BulkIndexerItem) string {
+	switch {
+	case item.DocumentID != "":
+		return item.DocumentID
+	case item.Routing != nil && *item.Routing != "":
+		return *item.Routing
+	default:
+		return bi.config.Routing
+	}
+}
+
 func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 	if err := ctx.Err(); err != nil {
 		return bi.addFailed(ctx, err)
@@ -857,7 +871,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 
 		return ErrBulkIndexerClosed
 	}
-	bi.sched.add(item, size, held, key, node)
+	bi.sched.add(item, size, held, key, node, bi.orderKey(item))
 	bi.sched.Unlock()
 
 	bi.stats.numAdded.Add(1)
