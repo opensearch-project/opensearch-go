@@ -189,3 +189,47 @@ func TestRequestRetryReplaysTheWholeBody(t *testing.T) {
 	defer mu.Unlock()
 	require.Equal(t, []string{payload, payload}, bodies, "the retry must carry the whole body")
 }
+
+// closeTrackingBody is a countingBody that counts its Close calls.
+type closeTrackingBody struct {
+	countingBody
+	closed atomic.Int64
+}
+
+//nolint:unparam // Keeps the io.Closer signature.
+func (b *closeTrackingBody) Close() error {
+	b.closed.Add(1)
+	return nil
+}
+
+// TestStreamClosesBodyOfRequestItFailsToSend: a request that fails before any
+// round trip, here because it cannot be signed, still has its body closed, so a
+// body that lends memory is released.
+func TestStreamClosesBodyOfRequestItFailsToSend(t *testing.T) {
+	t.Parallel()
+
+	u, err := url.Parse("http://example.com")
+	require.NoError(t, err)
+
+	var roundTrips atomic.Int64
+	tp, err := New(Config{
+		URLs:   []*url.URL{u},
+		Signer: &mockSigner{ReturnError: true},
+		Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+			roundTrips.Add(1)
+			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	body := &closeTrackingBody{countingBody: countingBody{data: []byte(`{"a":1}`)}}
+	req, err := http.NewRequest(http.MethodPost, "/_bulk", body)
+	require.NoError(t, err)
+
+	//nolint:bodyclose // the request fails before a response exists
+	_, err = tp.Stream(req)
+	require.ErrorContains(t, err, "failed to sign request")
+	require.Zero(t, roundTrips.Load(), "nothing was sent")
+	require.Equal(t, int64(1), body.closed.Load(), "the body of the unsent request is closed")
+}

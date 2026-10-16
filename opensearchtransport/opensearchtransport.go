@@ -1736,6 +1736,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 				res = nil
 				break
 			}
+			if i == 0 {
+				// Nothing was sent, so the body is still open. On a retry it is
+				// the previous attempt's, which the round trip closed.
+				closeRequestBody(req)
+			}
 			return nil, sr, err
 		}
 
@@ -1764,6 +1769,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 
 		if err = tr.signRequest(attemptReq); err != nil {
+			closeRequestBody(attemptReq)
 			return nil, sr, fmt.Errorf("failed to sign request: %w", err)
 		}
 
@@ -3351,4 +3357,13 @@ func (b *cancelOnCloseBody) Close() error {
 	err := b.ReadCloser.Close()
 	b.cancel()
 	return err
+}
+
+// closeRequestBody closes the body of a request that is returned without being
+// sent, as an [http.RoundTripper] does for a request it fails. A body that
+// lends memory, such as a bulk indexer's buffer, is released by its Close.
+func closeRequestBody(req *http.Request) {
+	if req.Body != nil && req.Body != http.NoBody {
+		_ = req.Body.Close()
+	}
 }
