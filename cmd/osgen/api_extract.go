@@ -511,7 +511,7 @@ func resolvePut(group string, ops []struct {
 	path   *openapi3.PathItem
 	url    string
 }, methods []string, isNDJSON bool,
-) (preferPut bool, putOnlyPathFields []ir.PathCaseCondition, err error) {
+) (bool, []ir.PathCaseCondition, error) {
 	if isNDJSON || !slices.Contains(methods, http.MethodPut) ||
 		!slices.Contains(methods, http.MethodPost) || slices.Contains(methods, http.MethodGet) {
 		return false, nil, nil
@@ -553,10 +553,11 @@ func resolvePut(group string, ops []struct {
 		return false, nil, fmt.Errorf("%s: some paths allow PUT and others are POST-only, but no path field distinguishes them", group)
 	}
 
+	conditions := make([]ir.PathCaseCondition, 0, len(putOnlyParams))
 	for _, p := range putOnlyParams {
-		putOnlyPathFields = append(putOnlyPathFields, ir.PathCaseCondition{Field: pathFieldNameList(p.name, p.isList), IsList: p.isList})
+		conditions = append(conditions, ir.PathCaseCondition{Field: pathFieldNameList(p.name, p.isList), IsList: p.isList})
 	}
-	return false, putOnlyPathFields, nil
+	return false, conditions, nil
 }
 
 type pathParam struct {
