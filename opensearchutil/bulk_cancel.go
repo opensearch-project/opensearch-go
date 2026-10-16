@@ -8,6 +8,7 @@ package opensearchutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -56,14 +57,16 @@ func (bi *bulkIndexer) joinCancel(ctx context.Context) (context.Context, func())
 }
 
 // failCanceled fails every item in the worker's buffer with ErrIndexerCanceled,
-// without sending them, and returns that error once for the flush site to
-// report.
+// without sending them. An item without an OnFailure of its own is reported
+// through the returned error, as for any other unsent item, so a buffer whose
+// items all have one does not reach OnError.
 func (w *worker) failCanceled(ctx context.Context) error {
+	errs := make([]error, 0, len(w.items))
 	for _, item := range w.items {
-		_ = w.failUnsent(ctx, item, ErrIndexerCanceled, 0) //nolint:errcheck // the flush reports ErrIndexerCanceled once
+		errs = append(errs, w.failUnsent(ctx, item, ErrIndexerCanceled, 0))
 	}
 
-	return ErrIndexerCanceled
+	return errors.Join(errs...)
 }
 
 // flushCanceled runs when the indexer is canceled: it seals every open buffer, so

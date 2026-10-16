@@ -221,7 +221,9 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Dur
 		delay time.Duration
 		retry bool
 	)
-	if policy := w.bi.config.RetryPolicy; policy != nil {
+	// A canceled indexer or an ended context sends nothing more, so the policy is
+	// not asked and the failure is not counted as a retry.
+	if policy := w.bi.config.RetryPolicy; policy != nil && ctx.Err() == nil && !w.bi.canceled() {
 		delay, retry = policy.Retry(ev.Attempt, ev.Scope, ev.Kind, ev.Resp, ev.Err)
 	}
 	delay = max(delay, 0)
@@ -297,9 +299,13 @@ func (w *worker) observeSettled(
 // failUnsent fails an item that could not be written to a request, because it
 // does not serialize or has no document id. A retry cannot help, so the policy
 // is not asked. attempts is the number of requests that carried the item
-// before, 0 for an item never sent. It returns what settleFailed does. It must
+// before, 0 for an item never sent. It returns what settleFailed does.
+//
+// A cancellation is not a failure of the work, so it is left out of the
+// failure events, whose kinds count what went wrong; the item still reaches
+// OnItemSettled with ErrIndexerCanceled.
 func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, err error, attempts int) error {
-	if obs := w.bi.config.Observer; obs != nil {
+	if obs := w.bi.config.Observer; obs != nil && !errors.Is(err, ErrIndexerCanceled) {
 		obs.OnItemFailure(ctx, BulkFailureEvent{
 			Scope:      ScopeItem,
 			Kind:       FailurePermanent,
@@ -317,7 +323,7 @@ func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, err error
 
 // sendWithRetry sends the buffered items and, while the policy asks for it,
 // sends the ones that failed again. It returns once every item has reached a
-// final state; the error is the join of what each request reported. It must be
+// final state; the error is the join of what each request reported.
 func (w *worker) sendWithRetry(ctx context.Context) error {
 	var errs []error
 
@@ -366,7 +372,7 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 
 // rebuild replaces the worker's buffer with a fresh serialization of items, in
 // order, and returns how many were written. An item that no longer serializes,
-// because its body cannot be read a second time, fails at once. It must be
+// because its body cannot be read a second time, fails at once.
 func (w *worker) rebuild(ctx context.Context, items []failedItem) (int, error) {
 	clear(w.items)
 	w.items = w.items[:0]
@@ -387,7 +393,7 @@ func (w *worker) rebuild(ctx context.Context, items []failedItem) (int, error) {
 
 // failPending fails items whose retry was abandoned, each with the failure it
 // last drew. An item without an OnFailure of its own is reported through the
-// returned error instead, once per distinct request failure. It must be called
+// returned error instead, once per distinct request failure.
 func (w *worker) failPending(ctx context.Context, items []failedItem) error {
 	var (
 		errs      []error

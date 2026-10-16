@@ -10,6 +10,7 @@ package opensearchutil
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -239,4 +240,84 @@ func TestBulkIndexerConstructionContextEndedLeavesNoItemBehind(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 
 	require.Equal(t, int64(1), f.succeeded.Load()+f.failed.Load(), "exactly one final callback")
+}
+
+func TestBulkIndexerCancelDoesNotCountARetry(t *testing.T) {
+	t.Parallel()
+
+	inFlight := make(chan struct{}, 1)
+	client := newBulkTestClient(t, withInfo(func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return defaultRoundTripFunc(req)
+		}
+		inFlight <- struct{}{}
+		<-req.Context().Done()
+
+		return nil, req.Context().Err()
+	}), withoutTransportRetry)
+
+	var asked atomic.Int64
+	bi := newBulkIndexer(t, BulkIndexerConfig{
+		NumWorkers: 1,
+		Client:     client,
+		// A policy that always retries: only the canceled context can stop it.
+		RetryPolicy: RetryPolicyFunc(func(
+			int, FailureScope, FailureKind, opensearchapi.BulkRespItem, error,
+		) (time.Duration, bool) {
+			asked.Add(1)
+			return time.Hour, true
+		}),
+	})
+
+	f := newFinals(1)
+	require.NoError(t, bi.Add(t.Context(), f.item("a")))
+
+	go func() { _ = bi.Flush(t.Context()) }()
+
+	<-inFlight
+	bi.Cancel()
+	require.NoError(t, bi.Close(t.Context()))
+
+	require.Equal(t, int64(1), f.failed.Load())
+	require.Zero(t, asked.Load(), "a canceled indexer sends nothing more, so the policy is not asked")
+	require.Equal(t, [numFailureKinds]uint64{}, bi.Stats().NumRetries, "no retry was sent, so none is counted")
+}
+
+// cancelObserver counts what the observer hears of canceled items.
+type cancelObserver struct {
+	BaseBulkIndexerObserver
+
+	failures atomic.Int64
+	settled  atomic.Int64
+	canceled atomic.Int64
+}
+
+func (o *cancelObserver) OnItemFailure(context.Context, BulkFailureEvent) { o.failures.Add(1) }
+
+func (o *cancelObserver) OnItemSettled(_ context.Context, ev BulkItemEvent) {
+	o.settled.Add(1)
+	if ev.Failed && errors.Is(ev.Err, ErrIndexerCanceled) {
+		o.canceled.Add(1)
+	}
+}
+
+func TestBulkIndexerCancelIsNotReportedAsAFailureKind(t *testing.T) {
+	t.Parallel()
+
+	seq := &bulkSequence{outcomes: []bulkOutcome{outcomeOK}}
+	client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
+	obs := &cancelObserver{}
+	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, Observer: obs})
+
+	f := newFinals(2)
+	require.NoError(t, bi.Add(t.Context(), f.item("a")))
+	bi.Cancel()
+	// Added after Cancel, so refused on the caller's goroutine.
+	require.NoError(t, bi.Add(t.Context(), f.item("late")))
+	require.NoError(t, bi.Close(t.Context()))
+
+	require.Equal(t, int64(2), f.failed.Load())
+	require.Equal(t, int64(2), obs.settled.Load(), "each item is settled")
+	require.Equal(t, int64(2), obs.canceled.Load(), "with ErrIndexerCanceled")
+	require.Zero(t, obs.failures.Load(), "and none is a failure of any kind")
 }

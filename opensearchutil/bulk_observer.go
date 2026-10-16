@@ -68,7 +68,10 @@ type BulkIndexerObserver interface {
 
 	// OnItemFailure is called when one item fails, once per failed attempt,
 	// before any retry. It is called for an item the cluster rejected and for
-	// an item that was never sent. The event's Scope is [ScopeItem].
+	// an item that was never sent, but not for one failed by [BulkIndexer.Cancel]
+	// or a Close that escalated: a cancellation is no failure of the work, and
+	// the item's [BulkIndexerObserver.OnItemSettled] carries [ErrIndexerCanceled].
+	// The event's Scope is [ScopeItem].
 	OnItemFailure(ctx context.Context, event BulkFailureEvent)
 
 	// OnItemSettled is called once per item, when it reaches its final state:
