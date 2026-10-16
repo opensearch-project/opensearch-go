@@ -137,7 +137,9 @@ type BulkFailureEvent struct {
 	// Index is the default index of the indexer, empty when items carry their own.
 	Index string
 
-	// Worker is the id of the worker handling the failure.
+	// Worker is the id of the worker handling the failure, or 0 for none: an
+	// item refused before it reached a worker, or left unsent when the indexer
+	// stopped, has no worker.
 	Worker int
 
 	// Attempt is the number of requests that have carried the failed work,
@@ -189,7 +191,9 @@ type BulkItemEvent struct {
 	// Metadata is the item's [BulkIndexerItem].Metadata, unchanged.
 	Metadata any
 
-	// Worker is the id of the worker that settled the item.
+	// Worker is the id of the worker that settled the item, or 0 for none: an
+	// item refused before it reached a worker, or left unsent when the indexer
+	// stopped, has no worker.
 	Worker int
 
 	// Attempts is the number of requests that carried the item: 1 when it

@@ -166,8 +166,8 @@ type BulkIndexer interface {
 
 	// Close waits until every added item has reached its final state, which
 	// includes waiting out requests in flight and retry backoff, and closes the
-	// indexer. It blocks for as long as that takes, bounded by the client's own
-	// request timeouts and the retry policy's limit.
+	// indexer. It blocks for as long as that takes, bounded only by the client's
+	// own request timeouts and by when the retry policy gives up.
 	//
 	// When ctx ends first, Close escalates to Cancel: the items not yet final
 	// fail, the workers unwind promptly, and Close returns ctx's error once
@@ -315,16 +315,17 @@ type BulkIndexerConfig struct {
 	MaxMemoryBytes int
 
 	// NodeBytes is what a node starts with of the job's memory to buffer documents
-	// bound for it, in open shard buffers, and the least it is ever left with once
-	// others are using theirs. It is a starting point and a floor, and not a limit:
-	// the indexer gives a node that is taking everything it is sent more, up to what
-	// the other nodes leave of MaxMemoryBytes, so an indexer that fixes on a few
-	// nodes uses the memory for them, and takes it back as more nodes are used. A
-	// node that rejects a request, slows down, or is given more than it takes is
-	// allowed less. When the open buffers for a node outgrow what it is allowed, its
-	// fullest is sent; an item that crosses the line is still accepted. Defaults to
-	// MaxMemoryBytes divided among the nodes the router knows, and at least
-	// FlushBytes.
+	// bound for it, in open shard buffers. It is a starting point, and not a limit
+	// or a floor: the indexer gives a node that is taking everything it is sent
+	// more, up to what the other nodes leave of MaxMemoryBytes, so an indexer that
+	// fixes on a few nodes uses the memory for them, and takes it back as more
+	// nodes are used. The other nodes can take a node back down to its even share
+	// of MaxMemoryBytes but not below it, and a node that rejects a request, slows
+	// down, or is given more than it takes is allowed less than that, though never
+	// less than one shard buffer, FlushBytes. When the open buffers for a node
+	// outgrow what it is allowed, its fullest is sent; an item that crosses the
+	// line is still accepted. Defaults to MaxMemoryBytes divided among the nodes
+	// the router knows, and at least FlushBytes.
 	NodeBytes int
 }
 

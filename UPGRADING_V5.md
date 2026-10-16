@@ -600,7 +600,7 @@ func handler(ctx context.Context) error {
 
 ## `opensearchutil.BulkIndexer` interface gained `Cancel()`, and `Close` waits for every item
 
-The exported `BulkIndexer` interface gained a second method in v5.1:
+The exported `BulkIndexer` interface gained a new method in v5.1, `Cancel`, so a type that implements the interface no longer satisfies it until it adds the method:
 
 ```go
 type BulkIndexer interface {
