@@ -66,6 +66,13 @@ type Operation struct {
 	// For [GET, POST] operations with a body, POST is used when Body != nil.
 	HTTPMethods []string
 
+	// PreferPut is true when every URL variant allows PUT and the spec also
+	// allows POST: the client sends PUT. PutOnlyPathFields is set instead when only some
+	// variants allow PUT: the client sends the primary method, switching to PUT
+	// when every listed path field is set (e.g. ID for Index).
+	PreferPut         bool
+	PutOnlyPathFields []PathCaseCondition
+
 	PrimaryPath string
 	HasBody     bool
 

@@ -108,43 +108,28 @@ func bodyMethodSwitch(op *ir.Operation) string {
 	return ""
 }
 
-// prefersPut reports whether the spec's POST/PUT alternative should resolve to
-// PUT. The spec lists methods alphabetically, so POST would otherwise win for
-// create-or-replace operations. NDJSON bulk operations and operations that
-// also allow GET keep their spec order.
-func prefersPut(op *ir.Operation) bool {
-	return !op.IsNDJSON &&
-		slices.Contains(op.HTTPMethods, http.MethodPut) &&
-		slices.Contains(op.HTTPMethods, http.MethodPost) &&
-		!slices.Contains(op.HTTPMethods, http.MethodGet)
+// putCondition returns the Go expression that is true when the request carries
+// every path field in op.PutOnlyPathFields, i.e. when the client should send PUT.
+func putCondition(op *ir.Operation) string {
+	conds := make([]string, 0, len(op.PutOnlyPathFields))
+	for _, f := range op.PutOnlyPathFields {
+		if f.IsList {
+			conds = append(conds, "len(req."+f.Field+") > 0")
+		} else {
+			conds = append(conds, "req."+f.Field+` != ""`)
+		}
+	}
+	return strings.Join(conds, " && ")
 }
 
-// conditionalPutField returns the request field that selects PUT over the
-// primary POST when set. Only operations with a POST-only path variant that has
-// no PUT counterpart need it: for index the spec allows PUT only on
-// /{index}/_doc/{id}, while /{index}/_doc is POST-only. Returns "" if no such
-// switch applies.
-func conditionalPutField(op *ir.Operation) string {
-	if !prefersPut(op) {
-		return ""
-	}
-	switch op.Group {
-	case "index":
-		return "ID"
-	default:
-		return ""
-	}
-}
-
-// PrimaryMethod returns the method the client sends by default: PUT for
-// operations that prefer it (unless PUT is conditional, see
-// conditionalPutField), otherwise the first HTTP method listed for the
-// operation.
+// PrimaryMethod returns the method the client sends by default: PUT when the
+// extractor found PUT allowed on every path (see ir.Operation.PreferPut),
+// otherwise the first HTTP method listed for the operation.
 func PrimaryMethod(op *ir.Operation) string {
 	if len(op.HTTPMethods) == 0 {
 		return ""
 	}
-	if prefersPut(op) && conditionalPutField(op) == "" {
+	if op.PreferPut {
 		return http.MethodPut
 	}
 	return op.HTTPMethods[0]
