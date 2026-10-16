@@ -32,8 +32,8 @@ const (
 	FailureUnavailable
 
 	// FailureTransport means the outcome is unknown: the request failed before
-	// a response arrived, or the response was a server error other than 503 or
-	// could not be read. The batch may have been applied in full, in part, or
+	// a response arrived, or the response was a server error other than 503 (for
+	// one item, a status of 500 or more other than 503) or could not be read. The batch may have been applied in full, in part, or
 	// not at all, so retrying it can write a document twice unless the writes
 	// are idempotent. See the precondition on [RetryPolicy].
 	FailureTransport
@@ -144,9 +144,13 @@ func classifyItemFailure(info opensearchapi.BulkRespItem) FailureKind {
 		return FailureRejected
 	case http.StatusServiceUnavailable:
 		return FailureUnavailable
-	default:
-		return FailurePermanent
 	}
+
+	if info.Status >= http.StatusInternalServerError {
+		return FailureTransport
+	}
+
+	return FailurePermanent
 }
 
 // classifyBatchFailure classifies a bulk request that failed as a whole. status

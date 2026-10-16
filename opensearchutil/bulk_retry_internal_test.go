@@ -40,7 +40,9 @@ func TestClassifyFailure(t *testing.T) {
 			{name: "version conflict", status: http.StatusConflict, want: FailurePermanent},
 			{name: "mapping error", status: http.StatusBadRequest, want: FailurePermanent},
 			{name: "not found", status: http.StatusNotFound, want: FailurePermanent},
-			{name: "server error", status: http.StatusInternalServerError, want: FailurePermanent},
+			{name: "server error", status: http.StatusInternalServerError, want: FailureTransport},
+			{name: "bad gateway", status: http.StatusBadGateway, want: FailureTransport},
+			{name: "gateway timeout", status: http.StatusGatewayTimeout, want: FailureTransport},
 			{name: "no status", status: 0, want: FailurePermanent},
 		}
 
