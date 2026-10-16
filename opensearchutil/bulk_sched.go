@@ -594,11 +594,13 @@ func (s *scheduler) drain(ctx context.Context, collect bool) error {
 	workersDone := s.bi.workersDone()
 	var errs []error
 
-	for _, b := range buffers {
+	for i, b := range buffers {
 		select {
 		case <-ctx.Done():
+			s.abandon(collect, buffers[i:])
 			return ctx.Err()
 		case <-workersDone:
+			s.abandon(collect, buffers[i:])
 			return s.bi.config.Context.Err()
 		case <-b.done:
 			if collect && b.err != nil {
@@ -608,6 +610,43 @@ func (s *scheduler) drain(ctx context.Context, collect bool) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// abandon withdraws a drain from the buffers it stopped waiting for, because its
+// context ended or the workers stopped. A buffer that no Flush waits for reports
+// its own error to OnError when it completes, and one that completed since the
+// drain began, while the drain was still counted, would otherwise have reported
+// to nobody: Flush returned the context's error, not the buffer's.
+func (s *scheduler) abandon(collect bool, buffers []*buffer) {
+	if !collect {
+		return
+	}
+
+	var unreported []*buffer
+
+	s.Lock()
+	for _, b := range buffers {
+		b.waiters--
+		if b.waiters > 0 {
+			continue
+		}
+
+		select {
+		case <-b.done:
+			if b.err != nil {
+				unreported = append(unreported, b)
+			}
+		default:
+		}
+	}
+	s.Unlock()
+
+	if s.bi.config.OnError == nil {
+		return
+	}
+	for _, b := range unreported {
+		s.bi.config.OnError(b.ctx, b.err)
+	}
 }
 
 // evictIdle forgets the shards that have had nothing buffered and nothing in
