@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -57,6 +58,10 @@ type apiOperation struct {
 	// variant in the spec); remaining methods are sorted alphabetically.
 	// For [GET, POST] operations with a body, POST is used when Body != nil.
 	HTTPMethods []string
+
+	// PreferPut and PutOnlyPathFields decide between POST and PUT; see resolvePut.
+	PreferPut         bool
+	PutOnlyPathFields []ir.PathCaseCondition
 
 	PrimaryPath string // canonical URL path pattern (e.g. "/{index}/_refresh")
 
@@ -240,7 +245,10 @@ func extractOperations(
 	result := make([]apiOperation, 0, len(grouped))
 	var paramExclusions []ir.Exclusion
 	for group, gd := range grouped {
-		op, pExc := buildAPIOperation(group, gd.ops, spec, vrange)
+		op, pExc, err := buildAPIOperation(group, gd.ops, spec, vrange)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
 		result = append(result, op)
 		paramExclusions = append(paramExclusions, pExc...)
 	}
@@ -263,7 +271,7 @@ func buildAPIOperation(group string, ops []struct {
 	path   *openapi3.PathItem
 	url    string
 }, spec *openapi3.T, vrange VersionRange,
-) (apiOperation, []ir.Exclusion) {
+) (apiOperation, []ir.Exclusion, error) {
 	// Sort ops by URL for determinism, then by operationId within the same URL
 	// to preserve the spec's declared primary ordering (e.g. search.0 is POST,
 	// search.1 is GET - the spec author chose .0 as primary).
@@ -353,6 +361,11 @@ func buildAPIOperation(group string, ops []struct {
 			}
 			apiOp.RequestSchemaRef = mt.Schema
 		}
+	}
+
+	var err error
+	if apiOp.PreferPut, apiOp.PutOnlyPathFields, err = resolvePut(group, ops, apiOp.HTTPMethods, apiOp.IsNDJSON); err != nil {
+		return apiOperation{}, nil, err
 	}
 
 	// Union path fields across all URL variants. Union path parameters
@@ -479,7 +492,72 @@ func buildAPIOperation(group string, ops []struct {
 	apiOp.IsPointerReq = !hasRequiredScalarPath(apiOp.PathFields)
 	apiOp.IsNoBody = len(methods) == 1 && methods[0] == http.MethodHead
 
-	return apiOp, paramExc
+	return apiOp, paramExc, nil
+}
+
+// resolvePut decides between POST and PUT for operations the spec allows both ways.
+// The spec lists methods alphabetically, so POST would otherwise win for
+// create-or-replace operations. NDJSON bulk operations and operations that also
+// allow GET keep the spec's order.
+//
+// When every path variant allows PUT, preferPut is true. When only some do
+// (e.g. index: PUT on /{index}/_doc/{id}, POST-only on /{index}/_doc), the
+// client sends PUT when all path fields carried only by the PUT variants are
+// set, returned as the second value. Generation fails if no such field exists,
+// rather than guessing.
+func resolvePut(group string, ops []struct {
+	method string
+	op     *openapi3.Operation
+	path   *openapi3.PathItem
+	url    string
+}, methods []string, isNDJSON bool,
+) (bool, []ir.PathCaseCondition, error) {
+	if isNDJSON || !slices.Contains(methods, http.MethodPut) ||
+		!slices.Contains(methods, http.MethodPost) || slices.Contains(methods, http.MethodGet) {
+		return false, nil, nil
+	}
+
+	// Split the URL variants into those that allow PUT and those that don't,
+	// remembering each variant's path parameters.
+	paramsByURL := make(map[string][]pathParam)
+	allowsPut := make(set[string])
+	for _, o := range ops {
+		paramsByURL[o.url] = extractPathParams(o.path, o.op, o.url)
+		if strings.EqualFold(o.method, http.MethodPut) {
+			allowsPut.add(o.url)
+		}
+	}
+	if len(allowsPut) == len(paramsByURL) {
+		return true, nil, nil
+	}
+
+	// A parameter tells the variants apart if every PUT variant has it and
+	// no POST-only variant does.
+	var putOnlyParams []pathParam
+	for _, candidate := range paramsByURL[slices.Collect(sortedKeys(allowsPut))[0]] {
+		onEveryPutURL, onOtherURL := true, false
+		for url, params := range paramsByURL {
+			has := slices.ContainsFunc(params, func(p pathParam) bool { return p.name == candidate.name })
+			if allowsPut.has(url) && !has {
+				onEveryPutURL = false
+			}
+			if !allowsPut.has(url) && has {
+				onOtherURL = true
+			}
+		}
+		if onEveryPutURL && !onOtherURL {
+			putOnlyParams = append(putOnlyParams, candidate)
+		}
+	}
+	if len(putOnlyParams) == 0 {
+		return false, nil, fmt.Errorf("%s: some paths allow PUT and others are POST-only, but no path field distinguishes them", group)
+	}
+
+	conditions := make([]ir.PathCaseCondition, 0, len(putOnlyParams))
+	for _, p := range putOnlyParams {
+		conditions = append(conditions, ir.PathCaseCondition{Field: pathFieldNameList(p.name, p.isList), IsList: p.isList})
+	}
+	return false, conditions, nil
 }
 
 type pathParam struct {

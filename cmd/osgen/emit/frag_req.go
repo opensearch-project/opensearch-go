@@ -108,10 +108,29 @@ func bodyMethodSwitch(op *ir.Operation) string {
 	return ""
 }
 
-// PrimaryMethod returns the first HTTP method listed for the operation.
+// putCondition returns the Go expression that is true when the request carries
+// every path field in op.PutOnlyPathFields, i.e. when the client should send PUT.
+func putCondition(op *ir.Operation) string {
+	conds := make([]string, 0, len(op.PutOnlyPathFields))
+	for _, f := range op.PutOnlyPathFields {
+		if f.IsList {
+			conds = append(conds, "len(req."+f.Field+") > 0")
+		} else {
+			conds = append(conds, "req."+f.Field+` != ""`)
+		}
+	}
+	return strings.Join(conds, " && ")
+}
+
+// PrimaryMethod returns the method the client sends by default: PUT when the
+// extractor found PUT allowed on every path (see ir.Operation.PreferPut),
+// otherwise the first HTTP method listed for the operation.
 func PrimaryMethod(op *ir.Operation) string {
 	if len(op.HTTPMethods) == 0 {
 		return ""
+	}
+	if op.PreferPut {
+		return http.MethodPut
 	}
 	return op.HTTPMethods[0]
 }

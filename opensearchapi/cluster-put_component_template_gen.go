@@ -181,7 +181,7 @@ func (c ClusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutC
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

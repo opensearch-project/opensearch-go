@@ -60,6 +60,7 @@ func (f *DispatchFragment) Body() (string, error) {
 		"methodConst":      HTTPMethodConst,
 		"primaryMethod":    PrimaryMethod,
 		"bodyMethodSwitch": bodyMethodSwitch,
+		"putCondition":     putCondition,
 		"recvTopLevel":     func() string { return recvTopLevel },
 		"recvSubClient":    func() string { return recvSubClient },
 		"requestErr":       func() string { return errExpr },
@@ -873,7 +874,20 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		data {{$op.TypePrefix}}Resp
 		err  error
 	)
-{{- if bodyMethodSwitch $op}}
+{{- if $op.PutOnlyPathFields}}
+	method := http.MethodPost
+	if {{putCondition $op}} {
+		method = http.MethodPut
+	}
+	if data.response, err = request( {{- ""}}
+		ctx,
+		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
+		method,
+		req, &data,
+	); err != nil {
+		return &data, {{requestErr}}
+	}
+{{- else if bodyMethodSwitch $op}}
 	method := {{methodConst (primaryMethod $op)}}
 	if req.Body != nil{{if $op.HasTypedBody}} || req.BodyReader != nil{{end}} {
 		method = {{methodConst (bodyMethodSwitch $op)}}

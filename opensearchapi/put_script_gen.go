@@ -171,7 +171,7 @@ func (c Client) PutScript(ctx context.Context, req PutScriptReq) (*PutScriptResp
 	if data.response, err = request(
 		ctx,
 		&c,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err
