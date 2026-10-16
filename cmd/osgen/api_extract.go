@@ -503,8 +503,8 @@ func buildAPIOperation(group string, ops []struct {
 // When every path variant allows PUT, preferPut is true. When only some do
 // (e.g. index: PUT on /{index}/_doc/{id}, POST-only on /{index}/_doc), the
 // client sends PUT when all path fields carried only by the PUT variants are
-// set, returned as putOnlyPathFields. Generation fails if no such field exists, rather
-// than guessing.
+// set, returned as the second value. Generation fails if no such field exists,
+// rather than guessing.
 func resolvePut(group string, ops []struct {
 	method string
 	op     *openapi3.Operation
