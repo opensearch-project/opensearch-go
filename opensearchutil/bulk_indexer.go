@@ -445,10 +445,16 @@ type BulkIndexerZeroCopyItem struct {
 	Data []byte
 
 	// Release, when set, is called once for each item that [AddZeroCopy] accepted,
-	// after the indexer is finished with Data: the request carrying it has ended and
-	// the callbacks have returned, whatever the outcome. It is not called for an item
-	// that was not accepted, which the caller still owns. It runs on the goroutine
-	// that sent the request and must not block or call Add.
+	// after the indexer is finished with Data: the request carrying it has ended,
+	// retries included, and the callbacks have returned, whatever the outcome, and
+	// the transport has finished reading it. net/http can go on reading a request
+	// body after it has answered, when the server replies early or the context ends,
+	// so in that rare case Release runs when the transport is done, on its
+	// goroutine, and possibly after Close has returned. A transport that never
+	// finishes with the body never has Release called; the slice is then left to
+	// the garbage collector and the caller's pool simply makes another. Release is
+	// not called for an item that was not accepted, which the caller still owns. It
+	// must not block or call Add.
 	Release func(data []byte)
 }
 
@@ -1352,6 +1358,9 @@ type worker struct {
 
 	buf   *chunkBuffer
 	items []BulkIndexerItem
+	// retired are the buffers of earlier attempts that a transport was still
+	// reading when the next attempt began; see recycleBuf.
+	retired []*chunkBuffer
 
 	// node is the node the buffer is sent to.
 	node Node
@@ -1389,6 +1398,7 @@ func (w *worker) sendBuffer(b *buffer) {
 	w.node = b.dest
 	w.throttled, w.failed = false, false
 	w.sent, w.busy = 0, 0
+	w.retired = nil
 
 	for _, item := range b.items {
 		if bi.canceled() {
@@ -1410,27 +1420,63 @@ func (w *worker) sendBuffer(b *buffer) {
 
 	err := w.flush(withBatchNode(ctx, w.node))
 
-	// flush resets the buffer; this hands its chunks back if it returned early.
-	w.buf.Reset()
-	w.buf = nil
 	clear(w.items)
 	w.items = w.items[:0]
 
-	// Every attempt has ended and the callbacks have run: the documents lent to the
-	// indexer are the caller's again, before the memory they held is given back.
-	// With a retry policy that is the final attempt, not the first.
-	releaseLent(b.items)
+	// Every attempt has ended and the callbacks have run: the chunks go back to the
+	// pool, and the documents lent to the indexer are the caller's again, before the
+	// memory they held is given back. With a retry policy that is the final attempt,
+	// not the first. If the transport is still reading the body, as net/http can
+	// after it has returned, both wait for it to finish.
+	buf, lent := w.buf, lentBodies(b.items)
+	bufs := append(w.retired, buf) //nolint:gocritic // The retired slice is handed on whole.
+	w.buf, w.retired = nil, nil
+	buf.whenIdle(buf.Reset)
+	whenAllIdle(bufs, func() { releaseLentBodies(lent) })
 
 	bi.sched.complete(b, observeSample(w.node, w.sent, w.busy, w.throttled, w.failed), err)
 }
 
 // releaseLent returns the documents lent to the indexer to their owners.
 func releaseLent(items []BulkIndexerItem) {
+	releaseLentBodies(lentBodies(items))
+}
+
+// lentBodies returns the documents lent to the indexer among items, or nil.
+func lentBodies(items []BulkIndexerItem) []*lentBody {
+	var lent []*lentBody
 	for i := range items {
-		if lent, ok := items[i].Body.(*lentBody); ok && lent.release != nil {
-			lent.release(lent.data)
+		if l, ok := items[i].Body.(*lentBody); ok && l.release != nil {
+			lent = append(lent, l)
 		}
 	}
+
+	return lent
+}
+
+// releaseLentBodies calls the Release function of each.
+func releaseLentBodies(lent []*lentBody) {
+	for _, l := range lent {
+		l.release(l.data)
+	}
+}
+
+// recycleBuf empties the worker's buffer for the next attempt. A transport that is
+// still reading the last attempt's body, which net/http can after it has returned,
+// is left the buffer, and the worker takes a new one; the old buffer gives its
+// chunks back when the transport is done with them.
+func (w *worker) recycleBuf() {
+	if w.buf.idle() {
+		w.buf.Reset()
+
+		return
+	}
+
+	old := w.buf
+	w.buf = newChunkBuffer(w.bi.chunks)
+	w.buf.small = w.bi.pieces
+	w.retired = append(w.retired, old)
+	old.whenIdle(old.Reset)
 }
 
 // batchNodeKey is the context key for [withBatchNode].
@@ -1624,7 +1670,7 @@ func (w *worker) flush(ctx context.Context) error {
 	defer func() {
 		clear(w.items)
 		w.items = w.items[:0]
-		w.buf.Reset()
+		w.recycleBuf()
 	}()
 
 	// Nothing is sent once the indexer is canceled: the buffered items fail.
@@ -1651,7 +1697,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 
 	req := opensearchapi.BulkReq{
 		Index: w.bi.config.Index,
-		Body:  w.buf,
+		Body:  w.buf.lease(),
 		Params: &opensearchapi.BulkParams{
 			Pipeline:            w.bi.config.Pipeline,
 			Refresh:             w.bi.config.Refresh,

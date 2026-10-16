@@ -620,3 +620,99 @@ func TestNilByteBudgetImposesNoLimit(t *testing.T) {
 	require.Zero(t, count)
 	require.Zero(t, total)
 }
+
+// TestChunkBufferLeaseCountsActiveReaders: a body handed to a transport is in use
+// until it has been read to its end or closed, whichever comes first and however
+// many replays there are, and whatever waits for the buffer to fall idle runs when
+// the last reader finishes.
+func TestChunkBufferLeaseCountsActiveReaders(t *testing.T) {
+	t.Parallel()
+
+	const content = "0123456789abcdefghij"
+
+	tests := []struct {
+		name string
+		// finish ends the body's use in one way.
+		finish func(t *testing.T, body *leasedBody)
+	}{
+		{"read to the end", func(t *testing.T, body *leasedBody) {
+			t.Helper()
+			_, err := io.ReadAll(body)
+			require.NoError(t, err)
+		}},
+		{"written out", func(t *testing.T, body *leasedBody) {
+			t.Helper()
+			_, err := body.WriteTo(io.Discard)
+			require.NoError(t, err)
+		}},
+		{"closed unread", func(t *testing.T, body *leasedBody) {
+			t.Helper()
+			require.NoError(t, body.Close())
+		}},
+		{"closed twice", func(t *testing.T, body *leasedBody) {
+			t.Helper()
+			require.NoError(t, body.Close())
+			require.NoError(t, body.Close())
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			buf := newTestChunkBuffer()
+			_, _ = buf.WriteString(content)
+			require.True(t, buf.idle())
+
+			body := buf.lease()
+			require.False(t, buf.idle(), "leased")
+
+			ran := 0
+			buf.whenIdle(func() { ran++ })
+			require.Zero(t, ran, "waits for the reader")
+
+			tt.finish(t, body)
+			require.True(t, buf.idle())
+			require.Equal(t, 1, ran, "runs when the last reader finishes, once")
+
+			// Finishing again does not count the reader a second time.
+			require.NoError(t, body.Close())
+			require.True(t, buf.idle())
+		})
+	}
+
+	t.Run("a replay is a reader of its own", func(t *testing.T) {
+		t.Parallel()
+
+		buf := newTestChunkBuffer()
+		_, _ = buf.WriteString(content)
+
+		body := buf.lease()
+		_, err := io.ReadAll(body)
+		require.NoError(t, err)
+		require.True(t, buf.idle())
+
+		again := body.NewReader()
+		require.False(t, buf.idle(), "a retry reads the chunks again")
+
+		ran := false
+		buf.whenIdle(func() { ran = true })
+		got, err := io.ReadAll(again)
+		require.NoError(t, err)
+		require.Equal(t, content, string(got), "the whole content, from the start")
+		require.True(t, ran)
+
+		closer, ok := again.(io.Closer)
+		require.True(t, ok)
+		require.NoError(t, closer.Close())
+		require.True(t, buf.idle())
+	})
+
+	t.Run("runs at once when nothing is reading", func(t *testing.T) {
+		t.Parallel()
+
+		ran := false
+		newTestChunkBuffer().whenIdle(func() { ran = true })
+		require.True(t, ran)
+	})
+}

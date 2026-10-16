@@ -141,7 +141,7 @@ func Request(method string, path string, body io.Reader, params map[string]strin
 		case bufbody.BufferedReader:
 			buf.req.ContentLength = int64(v.Len())
 			buf.req.GetBody = func() (io.ReadCloser, error) {
-				return io.NopCloser(v.NewReader()), nil
+				return bufbody.Replay(v), nil
 			}
 		}
 

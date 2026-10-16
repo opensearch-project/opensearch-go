@@ -98,3 +98,54 @@ func TestReadAll(t *testing.T) {
 		require.Equal(t, len(data), b.Len())
 	})
 }
+
+type closableBody struct {
+	*body.Bytes
+	closed *bool
+}
+
+func (c closableBody) NewReader() io.Reader {
+	return closableReader{Reader: c.Bytes.NewReader(), closed: c.closed}
+}
+
+type closableReader struct {
+	io.Reader
+	closed *bool
+}
+
+//
+//nolint:unparam // Keeps the io.Closer signature.
+func (c closableReader) Close() error { *c.closed = true; return nil }
+
+// TestReplay: a replay of a body whose reader can be closed is that reader, so the
+// transport's close reaches the owner; any other replay closes into nothing.
+func TestReplay(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		newBody     func(closed *bool) body.BufferedReader
+		wantReached bool
+	}{
+		{"a closable reader", func(closed *bool) body.BufferedReader {
+			return closableBody{Bytes: body.New([]byte("abc")), closed: closed}
+		}, true},
+		{"a reader that cannot be closed", func(*bool) body.BufferedReader { return body.New([]byte("abc")) }, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var closed bool
+			rc := body.Replay(tt.newBody(&closed))
+
+			got, err := io.ReadAll(rc)
+			require.NoError(t, err)
+			require.Equal(t, "abc", string(got), "the whole content, from the start")
+
+			require.NoError(t, rc.Close())
+			require.Equal(t, tt.wantReached, closed)
+		})
+	}
+}

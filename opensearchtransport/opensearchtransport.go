@@ -1630,7 +1630,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		} else if req.GetBody == nil {
 			if br, ok := origBody.(bufbody.BufferedReader); ok {
 				// Already in memory: replay it as it is instead of copying it.
-				req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(br.NewReader()), nil }
+				req.GetBody = func() (io.ReadCloser, error) { return bufbody.Replay(br), nil }
 				req.ContentLength = int64(br.Len())
 			} else if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer

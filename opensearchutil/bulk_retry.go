@@ -366,7 +366,7 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 func (w *worker) rebuild(ctx context.Context, items []failedItem) (int, error) {
 	clear(w.items)
 	w.items = w.items[:0]
-	w.buf.Reset()
+	w.recycleBuf()
 
 	var errs []error
 	for _, f := range items {

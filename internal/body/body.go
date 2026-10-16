@@ -49,6 +49,19 @@ type ContiguousReader interface {
 	Bytes() []byte
 }
 
+// Replay returns a reader over the whole content of b, from its start, for a
+// request that is sent again. When the reader NewReader returns can be closed, the
+// request's transport closes it, which lets a body that is shared with its owner
+// tell when the transport is done with it; otherwise the close does nothing.
+func Replay(b BufferedReader) io.ReadCloser {
+	r := b.NewReader()
+	if rc, ok := r.(io.ReadCloser); ok {
+		return rc
+	}
+
+	return io.NopCloser(r)
+}
+
 // ReadAll returns everything r has left. It takes the bytes of a
 // [ContiguousReader] without copying or consuming them, and reads any other
 // reader to its end.

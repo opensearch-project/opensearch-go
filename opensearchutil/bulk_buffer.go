@@ -35,8 +35,9 @@ type chunkPool struct {
 
 	// allocated counts chunks the pool had to make because none was free.
 	allocated atomic.Uint64
-	// served counts every chunk handed out.
-	served atomic.Uint64
+	// served counts every chunk handed out, and returned every one given back.
+	served   atomic.Uint64
+	returned atomic.Uint64
 }
 
 func newChunkPool(size int) *chunkPool {
@@ -58,6 +59,7 @@ func (p *chunkPool) get() *[]byte {
 }
 
 func (p *chunkPool) put(chunk *[]byte) {
+	p.returned.Add(1)
 	p.pool.Put(chunk)
 }
 
@@ -103,6 +105,13 @@ type chunkBuffer struct {
 	readSeg int
 	readOff int
 	read    int
+
+	// active counts the readers handed to a transport that have neither reached the
+	// end of the body nor been closed; see [chunkBuffer.lease]. onIdle runs when it
+	// falls to zero.
+	active atomic.Int32
+	idleMu sync.Mutex
+	onIdle []func()
 }
 
 var _ body.BufferedReader = (*chunkBuffer)(nil)
@@ -534,4 +543,171 @@ func (b *byteBudget) blockedStats() (uint64, time.Duration) {
 	}
 
 	return b.blocked.Load(), time.Duration(b.blockedTime.Load())
+}
+
+// A request body made of pooled chunks is read by the transport on its own
+// schedule, and net/http can go on reading it after RoundTrip has returned: when
+// the server answers before the whole body is written, or the request's context
+// ends. The chunks must not go back to the pool, nor the lent slices back to their
+// owners, while that can happen. So a body is handed to the transport through a
+// lease that counts the readers that have neither reached the end nor been
+// closed, and the chunks are recycled when the count is zero: at once in the
+// ordinary case, and by the last reader to finish otherwise. A reader that never
+// finishes leaves its chunks to the garbage collector, which is safe and only
+// costs the reuse.
+
+// lease returns the buffer as the body of a request. The buffer counts as in use
+// until the body reaches its end or is closed.
+func (b *chunkBuffer) lease() *leasedBody {
+	b.active.Add(1)
+
+	return &leasedBody{b: b}
+}
+
+// idle reports whether no reader the buffer handed out is still active.
+func (b *chunkBuffer) idle() bool {
+	return b.active.Load() == 0
+}
+
+// finishReader records that a reader is done, and runs the callback waiting for
+// the buffer to fall idle when it was the last.
+func (b *chunkBuffer) finishReader() {
+	if b.active.Add(-1) != 0 {
+		return
+	}
+
+	b.idleMu.Lock()
+	callbacks := b.onIdle
+	b.onIdle = nil
+	b.idleMu.Unlock()
+
+	for _, f := range callbacks {
+		f()
+	}
+}
+
+// whenIdle runs f once no reader is active: now, when none is, and otherwise on
+// the goroutine of the last reader to finish.
+func (b *chunkBuffer) whenIdle(f func()) {
+	b.idleMu.Lock()
+	if b.active.Load() == 0 {
+		b.idleMu.Unlock()
+		f()
+
+		return
+	}
+	b.onIdle = append(b.onIdle, f)
+	b.idleMu.Unlock()
+}
+
+// whenAllIdle runs f once none of bufs has an active reader.
+func whenAllIdle(bufs []*chunkBuffer, f func()) {
+	var pending atomic.Int32
+	pending.Store(int32(len(bufs))) //nolint:gosec // A handful of buffers.
+
+	for _, b := range bufs {
+		b.whenIdle(func() {
+			if pending.Add(-1) == 0 {
+				f()
+			}
+		})
+	}
+}
+
+// leasedBody is a chunkBuffer as the body of one request.
+type leasedBody struct {
+	b    *chunkBuffer
+	once sync.Once
+}
+
+var _ body.BufferedReader = (*leasedBody)(nil)
+
+func (l *leasedBody) finish() { l.once.Do(l.b.finishReader) }
+
+// Read implements [io.Reader].
+func (l *leasedBody) Read(p []byte) (int, error) {
+	n, err := l.b.Read(p)
+	if errors.Is(err, io.EOF) {
+		l.finish()
+	}
+
+	return n, err
+}
+
+// WriteTo implements [io.WriterTo], so the transport can write the chunks out
+// without copying them.
+func (l *leasedBody) WriteTo(w io.Writer) (int64, error) {
+	n, err := l.b.WriteTo(w)
+	if err == nil {
+		l.finish()
+	}
+
+	return n, err
+}
+
+// Len returns the number of bytes not yet read.
+func (l *leasedBody) Len() int { return l.b.Len() }
+
+// NewReader returns a counted reader over the whole content, for a request that is
+// sent again.
+func (l *leasedBody) NewReader() io.Reader {
+	l.b.active.Add(1)
+
+	return &leasedReader{Reader: l.b.NewReader(), b: l.b}
+}
+
+// Close implements [io.Closer].
+//
+//nolint:unparam // Keeps the io.Closer signature.
+func (l *leasedBody) Close() error {
+	l.finish()
+
+	return nil
+}
+
+// leasedReader is one replay of a leased body.
+type leasedReader struct {
+	io.Reader
+	b    *chunkBuffer
+	once sync.Once
+}
+
+func (r *leasedReader) finish() { r.once.Do(r.b.finishReader) }
+
+// Read implements [io.Reader].
+func (r *leasedReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	if errors.Is(err, io.EOF) {
+		r.finish()
+	}
+
+	return n, err
+}
+
+// WriteTo implements [io.WriterTo], keeping the segment-by-segment write of the
+// reader it wraps.
+func (r *leasedReader) WriteTo(w io.Writer) (int64, error) {
+	var (
+		n   int64
+		err error
+	)
+	if wt, ok := r.Reader.(io.WriterTo); ok {
+		n, err = wt.WriteTo(w)
+	} else {
+		n, err = io.Copy(w, struct{ io.Reader }{r.Reader})
+	}
+	if err == nil {
+		r.finish()
+	}
+
+	return n, err
+}
+
+// Close implements [io.Closer].
+//
+//nolint:unparam // Keeps the io.Closer signature.
+func (r *leasedReader) Close() error {
+	r.finish()
+
+	return nil
 }

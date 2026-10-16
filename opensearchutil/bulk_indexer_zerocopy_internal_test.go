@@ -393,3 +393,141 @@ func TestLentBodyReadsLikeAReader(t *testing.T) {
 		})
 	}
 }
+
+// TestBulkIndexerWaitsForTheTransportToFinishWithABody: net/http can go on reading
+// a request body after RoundTrip has returned. The chunks are not recycled, nor a
+// lent document released, while it does, and are when it is done.
+func TestBulkIndexerWaitsForTheTransportToFinishWithABody(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// finish ends the transport's use of the body.
+		finish func(t *testing.T, body io.ReadCloser)
+	}{
+		{"it reads the body to the end", func(t *testing.T, body io.ReadCloser) {
+			t.Helper()
+			_, err := io.Copy(io.Discard, body)
+			require.NoError(t, err)
+		}},
+		{"it closes the body unread", func(t *testing.T, body io.ReadCloser) {
+			t.Helper()
+			require.NoError(t, body.Close())
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				mu     sync.Mutex
+				bodies []io.ReadCloser
+			)
+			client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+				if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+					return defaultRoundTripFunc(req)
+				}
+
+				// Answer without touching the body, as a server that replies early does.
+				mu.Lock()
+				bodies = append(bodies, req.Body)
+				mu.Unlock()
+
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Body:       io.NopCloser(strings.NewReader(`{"took":1,"errors":false,"items":[{"index":{"_id":"d","status":201}}]}`)),
+					Header:     http.Header{"Content-Type": []string{"application/json"}},
+				}, nil
+			})
+
+			bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client, ShardRouter: NoShardRouter})
+			require.NoError(t, err)
+			indexer := bi.(*bulkIndexer)
+
+			var released atomic.Int64
+			require.NoError(t, AddZeroCopy(t.Context(), bi, BulkIndexerZeroCopyItem{
+				BulkIndexerItem: BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: "d"},
+				Data:            lentDoc(1),
+				Release:         func([]byte) { released.Add(1) },
+			}))
+			require.NoError(t, bi.Close(t.Context()), "the request is answered, so Close does not wait for the body")
+
+			mu.Lock()
+			require.Len(t, bodies, 1)
+			body := bodies[0]
+			mu.Unlock()
+
+			require.Zero(t, released.Load(), "the transport may still be reading the lent document")
+			require.EqualValues(t, 2, indexer.chunks.served.Load()+indexer.pieces.served.Load())
+			require.Zero(t, indexer.chunks.returned.Load()+indexer.pieces.returned.Load(), "and the chunks are not recycled under it")
+
+			tt.finish(t, body)
+
+			require.EqualValues(t, 1, released.Load(), "released when the transport is done")
+			require.EqualValues(t, 2, indexer.chunks.returned.Load()+indexer.pieces.returned.Load(), "and the chunks go back")
+
+			require.NoError(t, body.Close())
+			require.EqualValues(t, 1, released.Load(), "once")
+		})
+	}
+}
+
+// TestBulkIndexerRetryDoesNotRewriteABodyTheTransportIsReading: when a request is
+// answered before the transport has read its body, the retry is built in a buffer
+// of its own, and the first attempt's body is read later exactly as it was sent.
+func TestBulkIndexerRetryDoesNotRewriteABodyTheTransportIsReading(t *testing.T) {
+	t.Parallel()
+
+	var (
+		mu     sync.Mutex
+		bodies []io.ReadCloser
+	)
+	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return defaultRoundTripFunc(req)
+		}
+
+		mu.Lock()
+		bodies = append(bodies, req.Body)
+		attempt := len(bodies)
+		mu.Unlock()
+
+		items := `{"index":{"_id":"b","status":201}}`
+		if attempt == 1 {
+			// The first attempt is answered without reading its body: a is
+			// accepted and b is rejected.
+			items = `{"index":{"_id":"a","status":201}},{"index":{"_id":"b","status":429}}`
+		} else {
+			_, _ = io.Copy(io.Discard, req.Body)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"took":1,"errors":false,"items":[%s]}`, items))),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client, ShardRouter: NoShardRouter, RetryPolicy: retryOnce})
+	require.NoError(t, err)
+
+	for i, id := range []string{"a", "b"} {
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+			Index: "idx", Action: actionIndex, DocumentID: id, Body: strings.NewReader(fmt.Sprintf(`{"v":%d}`, i)),
+		}))
+	}
+	require.NoError(t, bi.Close(t.Context()))
+
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, bodies, 2, "a, then b alone")
+
+	first, err := io.ReadAll(bodies[0])
+	require.NoError(t, err)
+	require.Equal(t, 4, strings.Count(string(first), "\n"), "both documents, as sent: %q", first)
+	require.Contains(t, string(first), `"_id":"a"`)
+	require.Contains(t, string(first), `"_id":"b"`)
+}
