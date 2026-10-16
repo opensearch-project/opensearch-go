@@ -252,7 +252,7 @@ func (s *fakeServer) roundTrip(req *http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body))}, nil
 	}
 
-	return defaultRoundTripFunc(req)
+	return bulkOKResponse(len(sent.actions)), nil
 }
 
 func (s *fakeServer) requests() []sentRequest {

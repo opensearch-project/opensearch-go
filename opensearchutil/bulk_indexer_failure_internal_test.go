@@ -90,6 +90,10 @@ var (
 		return jsonResponse(http.StatusOK, bulkItemsJSON(append(slices.Clip(actions), "index:extra"),
 			http.StatusCreated, "")), nil
 	}
+	// outcomeMissingItem answers 200 with one result fewer than the request had actions.
+	outcomeMissingItem bulkOutcome = func(actions []string) (*http.Response, error) {
+		return jsonResponse(http.StatusOK, bulkItemsJSON(actions[:len(actions)-1], http.StatusCreated, "")), nil
+	}
 )
 
 // bulkSequence answers the info request and then each bulk request in turn with
@@ -223,6 +227,14 @@ func TestBulkIndexerFailureKinds(t *testing.T) {
 			wantOnErr: 1,
 		},
 		{
+			name:      "response holds fewer results than the items",
+			outcome:   outcomeMissingItem,
+			item:      BulkIndexerItem{Action: "index", DocumentID: "doc", Body: strings.NewReader(`{"a":1}`)},
+			want:      failureCallback{ID: "doc", HasErr: true, ErrPrefix: "flush: "},
+			wantErrIn: "bulk response has 0 items, indexer serialized 1",
+			wantOnErr: 1,
+		},
+		{
 			name:    "document cannot be serialized",
 			outcome: outcomeOK,
 			// NaN cannot be serialized into the action metadata line. The
@@ -302,6 +314,7 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 		{name: "whole request refused with 429", first: outcomeTooManyRequests, wantFlush: true},
 		{name: "whole request refused with 503", first: outcomeUnavailable, wantFlush: true},
 		{name: "response cannot be paired with the items", first: outcomeExtraItem, wantFlush: true},
+		{name: "response holds fewer results than the items", first: outcomeMissingItem, wantFlush: true},
 		// Every rejected item has an OnFailure, so the drain itself succeeded.
 		{name: "every item rejected", first: outcomeEveryItemRejected, wantFlush: false},
 	}

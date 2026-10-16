@@ -1773,13 +1773,13 @@ func (w *worker) processBulkResp(
 		return w.handleBulkError(ctx, wrapped, classifyBatchFailure(status, err), status, attempt)
 	}
 
-	// The bulk API returns one result per serialized action. More results than
-	// w.items means the response cannot be paired positionally: the loop below
-	// would read w.items[i] past the end and panic, and even the results that
-	// line up may belong to other items. Fail every serialized item instead.
-	// Fewer results needs no guard; the loop simply leaves the extras
-	// undispatched.
-	if got, want := len(blk.Items), len(w.items); got > want {
+	// The bulk API returns one result per serialized action. A different number
+	// of results than w.items means the response cannot be paired positionally:
+	// more would make the loop below read w.items[i] past the end and panic, and
+	// fewer would leave the extra items without a callback, so Flush would
+	// return nil with items unsettled. Even the results that line up may belong
+	// to other items. Fail every serialized item instead.
+	if got, want := len(blk.Items), len(w.items); got != want {
 		mismatch := fmt.Errorf("flush: %w", &bulkResponseMismatchError{got: got, want: want})
 		return w.handleBulkError(ctx, mismatch, FailurePermanent, batchStatus(blk), attempt)
 	}

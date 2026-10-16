@@ -67,6 +67,19 @@ var defaultRoundTripFunc = func(*http.Request) (*http.Response, error) {
 	return &http.Response{Body: io.NopCloser(strings.NewReader(`{}`))}, nil
 }
 
+// bulkOKResponse answers a bulk request that carried n actions with a success
+// for each, as the cluster does; a response with fewer results than actions is
+// one the indexer rejects.
+func bulkOKResponse(n int) *http.Response {
+	items := strings.TrimSuffix(strings.Repeat(`{"index":{"status":200}},`, n), ",")
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(`{"errors":false,"items":[` + items + `]}`)),
+	}
+}
+
 type mockTransport struct {
 	RoundTripFunc func(*http.Request) (*http.Response, error)
 }
@@ -1376,9 +1389,12 @@ func (r *bulkRecorder) roundTrip(req *http.Request) (*http.Response, error) {
 	// RoundTrip runs on a worker goroutine, so record the body and leave every
 	// assertion to the test goroutine.
 	if body, err := io.ReadAll(req.Body); err == nil {
+		ids := bulkDocumentIDs(body)
 		r.mu.Lock()
-		r.mu.requests = append(r.mu.requests, bulkDocumentIDs(body))
+		r.mu.requests = append(r.mu.requests, ids)
 		r.mu.Unlock()
+
+		return bulkOKResponse(len(ids)), nil
 	}
 	return defaultRoundTripFunc(req)
 }
