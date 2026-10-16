@@ -443,7 +443,7 @@ func synthesizeReqCasesIR(op *ir.Operation, pkg, corePkg string) []ReqTestCase {
 			}
 		}
 		wantMethod, fullPath := PrimaryMethod(op), evalPathBuilder(op.PathBuilder, substitutions)
-		if conditionalPutField(op) != "" {
+		if len(op.PutOnlyPathFields) > 0 {
 			wantMethod = http.MethodPut
 		}
 		cases = append(cases, ReqTestCase{

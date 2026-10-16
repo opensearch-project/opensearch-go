@@ -57,13 +57,13 @@ func (f *DispatchFragment) Body() (string, error) {
 	errExpr := requestErrExpr(f.emittableErrorTypes())
 
 	tmpl := template.Must(template.New("dispatch").Funcs(template.FuncMap{
-		"methodConst":         HTTPMethodConst,
-		"primaryMethod":       PrimaryMethod,
-		"bodyMethodSwitch":    bodyMethodSwitch,
-		"conditionalPutField": conditionalPutField,
-		"recvTopLevel":        func() string { return recvTopLevel },
-		"recvSubClient":       func() string { return recvSubClient },
-		"requestErr":          func() string { return errExpr },
+		"methodConst":      HTTPMethodConst,
+		"primaryMethod":    PrimaryMethod,
+		"bodyMethodSwitch": bodyMethodSwitch,
+		"putCondition":     putCondition,
+		"recvTopLevel":     func() string { return recvTopLevel },
+		"recvSubClient":    func() string { return recvSubClient },
+		"requestErr":       func() string { return errExpr },
 		"opMethodComment": func(methodName string, op *ir.Operation) string {
 			return MethodComment(MethodDocData{
 				MethodName:        methodName,
@@ -874,9 +874,9 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		data {{$op.TypePrefix}}Resp
 		err  error
 	)
-{{- if conditionalPutField $op}}
-	method := {{methodConst (primaryMethod $op)}}
-	if req.{{conditionalPutField $op}} != "" {
+{{- if $op.PutOnlyPathFields}}
+	method := http.MethodPost
+	if {{putCondition $op}} {
 		method = http.MethodPut
 	}
 	if data.response, err = request( {{- ""}}
