@@ -49,7 +49,7 @@ The indexer sends a shard's buffer when it reaches the size the indexer chose fo
 Things to know:
 
 - **`Add` after `Close` returns `ErrBulkIndexerClosed`.** `Add` otherwise returns an error only when the context you pass ends before the item is queued; it blocks while the indexer holds `MaxMemoryBytes`.
-- **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` are written in the order you added them: a shard has one request out at a time, and a retry happens in that request's slot, so a later buffer of the shard is not sent ahead of it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is ordered the same way by its id: the id picks one of eight lanes, each with one request out at a time.
+- **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` are written in the order you added them: a shard has one request out at a time, and a retry happens in that request's slot, so a later buffer of the shard is not sent ahead of it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is ordered the same way by its id: the buffer holding it is not sent until the earlier buffer that holds a document with the same id has finished, while buffers that share no id are sent in parallel.
 - **Callbacks run on the goroutine that sends the request.** A slow callback stalls its buffer, and the shard's next one, but not the rest of the indexer. Do not call `Add`, `Flush`, or `Close` from a callback; `Cancel` is safe.
 - **Every item gets exactly one final callback**: `OnSuccess` or `OnFailure`.
 
