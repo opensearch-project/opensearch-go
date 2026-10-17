@@ -577,7 +577,6 @@ type bulkIndexer struct {
 	// itemPool recycles the slices that carry a buffer's items to the request that
 	// sends them, and workerPool the state a request is sent with.
 	itemPool, workerPool sync.Pool
-	workerSeq            atomic.Int64
 
 	ticker *time.Ticker
 	// stopFlush cancels the flusher goroutine; flusherDone is closed when that
@@ -1287,7 +1286,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 	}
 
 	bi.itemPool.New = func() any { return new([]BulkIndexerItem) }
-	bi.workerPool.New = func() any { return &worker{id: int(bi.workerSeq.Add(1)), bi: bi} }
+	bi.workerPool.New = func() any { return &worker{bi: bi} }
 
 	// Nothing is sent once the construction context has ended.
 	context.AfterFunc(ctx, bi.sched.stop)
@@ -1368,7 +1367,6 @@ func (bi *bulkIndexer) run(b *buffer) {
 // it as one bulk request, and reports the outcome to the scheduler. buf and items
 // are the buffer being sent, valid from the start of send to the end of flush.
 type worker struct {
-	id int
 	bi *bulkIndexer
 
 	buf   *chunkBuffer
@@ -1678,7 +1676,7 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	if w.buf.Len() < 1 {
-		opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: flush skipped, buffer empty")
+		opensearchtransport.Debug().Str("node", w.node.Name).Msg("BulkIndexer: flush skipped, buffer empty")
 		return nil
 	}
 
@@ -1696,7 +1694,7 @@ func (w *worker) flush(ctx context.Context) error {
 	// w.buf is passed as a Stringer so its contents are rendered only when a
 	// debug logger is installed; the emit runs before the deferred Reset above,
 	// so the buffer is still intact.
-	opensearchtransport.Debug().Int("worker", w.id).Stringer("body", w.buf).Msg("BulkIndexer: flush")
+	opensearchtransport.Debug().Str("node", w.node.Name).Stringer("body", w.buf).Msg("BulkIndexer: flush")
 
 	return w.sendWithRetry(ctx)
 }
@@ -1747,7 +1745,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 	if obs := w.bi.config.Observer; obs != nil {
 		ev := BulkRequestEvent{
 			Index:      w.bi.config.Index,
-			Worker:     w.id,
+			Node:       w.node.Name,
 			Attempt:    attempt,
 			Items:      len(w.items),
 			Bytes:      size,

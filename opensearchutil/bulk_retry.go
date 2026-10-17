@@ -214,7 +214,7 @@ func (r *retryBatch) add(f failedItem, delay time.Duration) {
 
 // decideRetry reports a failure to the observer and asks the configured policy
 // whether to send the affected work again. With no policy it declines. The
-// event arrives without its Index, Worker, Retrying and Delay, which are filled
+// event arrives without its Index, Node, Retrying and Delay, which are filled
 // in here.
 func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Duration, bool) {
 	var (
@@ -234,7 +234,7 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Dur
 	}
 
 	if obs := w.bi.config.Observer; obs != nil {
-		ev.Index, ev.Worker = w.bi.config.Index, w.id
+		ev.Index, ev.Node = w.bi.config.Index, w.node.Name
 		if ev.Scope == ScopeRequest {
 			obs.OnRequestFailure(ctx, ev)
 		} else {
@@ -288,7 +288,7 @@ func (w *worker) observeSettled(
 		Action:     item.Action,
 		DocumentID: item.DocumentID,
 		Metadata:   item.Metadata,
-		Worker:     w.id,
+		Node:       w.node.Name,
 		Attempts:   attempts,
 		Failed:     failed,
 		Resp:       resp,
@@ -310,7 +310,7 @@ func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, err error
 			Scope:      ScopeItem,
 			Kind:       FailurePermanent,
 			Index:      w.bi.config.Index,
-			Worker:     w.id,
+			Node:       w.node.Name,
 			Attempt:    attempts,
 			Items:      1,
 			DocumentID: item.DocumentID,

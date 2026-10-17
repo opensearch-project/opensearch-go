@@ -101,8 +101,9 @@ type BulkRequestEvent struct {
 	// Index is the default index of the indexer, empty when items carry their own.
 	Index string
 
-	// Worker is the id of the worker that sent the request.
-	Worker int
+	// Node is the name of the node the request was sent to, as [FlushNode] reports
+	// it. It is empty for a request the transport routed as it saw fit.
+	Node string
 
 	// Attempt is 1 for the first request of a flush and counts up for each
 	// retry of it.
@@ -137,10 +138,10 @@ type BulkFailureEvent struct {
 	// Index is the default index of the indexer, empty when items carry their own.
 	Index string
 
-	// Worker is the id of the worker handling the failure, or 0 for none: an
-	// item refused before it reached a worker, or left unsent when the indexer
-	// stopped, has no worker.
-	Worker int
+	// Node is the name of the node the failed work was bound for, as [FlushNode]
+	// reports it. It is empty for work with no node of its own: a request the
+	// transport routed as it saw fit, or an item refused before it was buffered.
+	Node string
 
 	// Attempt is the number of requests that have carried the failed work,
 	// counting the one that just failed: 1 after the first request. It is 0
@@ -191,10 +192,10 @@ type BulkItemEvent struct {
 	// Metadata is the item's [BulkIndexerItem].Metadata, unchanged.
 	Metadata any
 
-	// Worker is the id of the worker that settled the item, or 0 for none: an
-	// item refused before it reached a worker, or left unsent when the indexer
-	// stopped, has no worker.
-	Worker int
+	// Node is the name of the node the item's last request was bound for, as
+	// [FlushNode] reports it. It is empty for an item with no node of its own: one
+	// the transport routed as it saw fit, or one refused before it was buffered.
+	Node string
 
 	// Attempts is the number of requests that carried the item: 1 when it
 	// settled on its first, more after retries, and 0 when it was never sent.

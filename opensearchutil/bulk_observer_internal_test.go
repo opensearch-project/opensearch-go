@@ -181,7 +181,6 @@ func TestBulkIndexerObserver(t *testing.T) {
 			require.Len(t, log.requests, len(bodies))
 			for i, e := range log.requests {
 				require.Equal(t, len(bodies[i]), e.Bytes, "request %d bytes", i)
-				require.Equal(t, 1, e.Worker)
 				require.GreaterOrEqual(t, e.Duration, time.Duration(0))
 			}
 		})
