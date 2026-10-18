@@ -138,6 +138,22 @@ func TestSizerAIMDCutsByAFixedFactor(t *testing.T) {
 	require.Greater(t, s.bytes(), before)
 }
 
+func TestSizerAIMDHoldsOnAnOverloadedPool(t *testing.T) {
+	s := newTestSizer(BulkSizing{AIMD: true})
+	for range 10 {
+		s.observe(flushOf(s.bytes(), 100e6))
+	}
+	before := s.bytes()
+
+	// The node keeps up, but the transport sees its write pool rejecting.
+	for range 5 {
+		f := flushOf(s.bytes(), 100e6)
+		f.overloaded = true
+		s.observe(f)
+	}
+	require.Equal(t, before, s.bytes(), "an overloaded pool neither grows nor cuts the size")
+}
+
 func TestSizerAIMDHoldsAfterARejection(t *testing.T) {
 	s := newTestSizer(BulkSizing{AIMD: true})
 	for range 40 {

@@ -222,6 +222,27 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 })
 ```
 
+### How AIMD and the PID controller relate
+
+They are two ways of taking the same step, and a flush uses one or the other, never both. Everything around the step is shared:
+
+- A rejection cuts the size by `Backoff` and holds it for a few flushes. A failed request cuts it by the square root of `Backoff`, and a node that was given more than it takes is cut gently. None of these depends on the mode.
+- Both read the same signal: the node's rate against the best recent rate, as a slowdown measured against `Headroom`. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
+- Both grow nothing during the hold after a rejection, and both keep the size between `MinBytes` and the ceiling.
+
+What differs is the size of the step for a flush that completed without a rejection:
+
+| | PID (default) | AIMD (`Sizing.AIMD`) |
+| --- | --- | --- |
+| Healthy flush | Grows by `StepBytes` scaled by `min(u, 1)`, so a node only just within `Headroom` grows by a fraction of a step | Grows by exactly `StepBytes`; holds the size at exactly `Headroom` or while the node's write pool is rejecting |
+| Slow flush | Multiplies the size by `1 + max(u, -0.5)`: a node barely past `Headroom` loses little, one far past it loses up to half | Multiplies the size by the square root of `Backoff` (about 0.71 by default), however far past `Headroom` the node is |
+| Where growth turns to cuts | Can sit on either side of `Headroom`, since the integral and derivative terms add to `u` | At `Headroom` |
+| Memory | The integral term remembers recent flushes; the derivative term remembers the last one | None: each flush is judged alone |
+
+So AIMD is the PID controller with the shaping taken out. It is simpler to reason about and easier to predict, but it treats a marginal slowdown like a severe one, and it settles into a sawtooth around `Headroom` instead of easing toward it. The PID controller damps that sawtooth, at the cost of three gains to tune. Reach for AIMD when the PID controller's behavior is hard to account for in production, and for the gains when it is close and wants adjusting.
+
+This AIMD is unrelated to the AIMD congestion windows the transport keeps for connection scoring, described in [Request Routing](transport-routing.md#aimd-congestion-windows). They share a name and the additive-increase, multiplicative-decrease shape, and nothing else: that one steers which connection a request uses, and this one steers how many bytes a batch carries.
+
 ### Changing it without a code change
 
 An operator can override these settings from the environment, which is how to back off the controller on a deployment you cannot rebuild:

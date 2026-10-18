@@ -34,6 +34,18 @@ import (
 //     sets how hard each step is, unless AIMD is set, which takes a fixed step up
 //     and a fixed cut down instead.
 //
+// AIMD and the PID controller are two ways to take the same step, and a flush
+// uses one or the other. Rejections, failures, a crowded node, the hold after a
+// rejection and the bounds are the same in both. For a flush that completed
+// without a rejection, the PID controller scales the step by how far the node is
+// from Headroom, with memory of recent flushes (Ki) and of the trend (Kd), so a
+// marginal slowdown costs little and a severe one up to half the size. AIMD
+// grows by exactly StepBytes while the node is within Headroom, holds the size at
+// Headroom or while the node's write pool is rejecting, and cuts by the square
+// root of Backoff once the node is past it, however far past, with no memory: it
+// is easier to predict and settles into a sawtooth around Headroom. This AIMD is
+// not the congestion window the transport keeps for connection scoring.
+//
 // An operator can override Fixed, AIMD, Kp, Ki and Kd without a code change through
 // OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and OPENSEARCH_GO_BULK_PID_KP,
 // _KI and _KD, read when the indexer is built. A variable that is set and valid
@@ -360,14 +372,17 @@ func (s *sizer) steer(f flushSample) {
 	}
 }
 
-// aimd steers by additive increase, multiplicative decrease alone: e is at or
-// above 0 while the node is within its headroom, and below it once the node has
-// slowed past it. It is the step steer takes when the PID controller is bypassed.
+// aimd steers by additive increase, multiplicative decrease alone: e is above 0
+// while the node is within its headroom, 0 at the headroom or while the node's
+// write pool is rejecting, and below 0 once the node has slowed past it. It is
+// the step steer takes when the PID controller is bypassed.
 func (s *sizer) aimd(e float64) {
 	switch {
-	case e >= 0 && s.hold > 0:
+	case e == 0:
+		// At the headroom, or an overloaded pool: neither grow nor cut.
+	case e > 0 && s.hold > 0:
 		s.hold--
-	case e >= 0:
+	case e > 0:
 		s.target += s.cfg.step
 	default:
 		s.target *= math.Sqrt(s.cfg.backoff)
