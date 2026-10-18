@@ -9,7 +9,6 @@
 package opensearchutil
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -167,7 +166,7 @@ func FuzzItemMeta(f *testing.F) {
 
 		bi := &bulkIndexer{
 			metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
-			metaPool:         sync.Pool{New: func() any { return new(bytes.Buffer) }},
+			metaPool:         sync.Pool{New: newMetaEncoder},
 		}
 		w := &worker{bi: bi, buf: newChunkBuffer(newChunkPool(defaultChunkSize))}
 		defer w.buf.Reset()
@@ -175,6 +174,7 @@ func FuzzItemMeta(f *testing.F) {
 		require.NoError(t, w.writeMeta(item))
 		line := w.buf.String()
 
+		require.Equal(t, referenceMeta(t, item), line, "the pooled encoder writes what a fresh encoder and a map did")
 		require.Equal(t, 1, strings.Count(line, "\n"), "one line")
 		require.Equal(t, byte('\n'), line[len(line)-1], "terminated by a newline")
 

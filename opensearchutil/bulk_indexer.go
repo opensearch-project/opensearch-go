@@ -787,12 +787,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		nodeSizing:       nodeResolved,
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
 		implicitClient:   implicitClient,
-		metaPool: sync.Pool{
-			New: func() any {
-				//nolint:mnd // 512B matches the original per-worker aux preallocation.
-				return bytes.NewBuffer(make([]byte, 0, 512))
-			},
-		},
+		metaPool:         sync.Pool{New: newMetaEncoder},
 	}
 
 	if warning != nil {
@@ -1667,9 +1662,72 @@ func (w *worker) writeItem(ctx context.Context, item BulkIndexerItem) error {
 
 // writeMeta formats and writes the item metadata to the buffer.
 func (w *worker) writeMeta(item BulkIndexerItem) error {
-	var err error
+	enc := w.bi.metaPool.Get().(*metaEncoder)
 
-	meta := bulkActionMetadata{
+	line, err := enc.encode(&item)
+	if err != nil {
+		// An encoder that failed is not trusted with another item.
+		return err
+	}
+
+	_, err = w.buf.Write(line)
+
+	w.bi.putMetaEncoder(enc)
+
+	return err
+}
+
+func (bi *bulkIndexer) putMetaEncoder(enc *metaEncoder) {
+	if enc.buf.Cap() <= bi.metaPoolMaxBytes {
+		bi.metaPool.Put(enc)
+	}
+}
+
+// metaEncoder writes the action line of an item, such as {"index":{"_id":"1"}}
+// and a newline. It is pooled whole, so that an item costs no allocation for it: the
+// buffer it writes into, the JSON encoder bound to that buffer, and the metadata
+// and the line the encoder is given are made once and reused for every item.
+//
+// The line is a struct with a field for each of the four actions the bulk API has,
+// of which exactly one is set. Encoding a struct allocates nothing, where encoding
+// the map[string]metadata that an arbitrary action name needs allocates for every
+// entry, so an action with another name takes the map, with the same output.
+type metaEncoder struct {
+	buf  bytes.Buffer
+	enc  *json.Encoder
+	meta bulkActionMetadata
+	line actionLine
+	// entry is the one-entry map for an action that is not one of the four.
+	entry map[string]*bulkActionMetadata
+}
+
+// actionLine is an action line with a field for each action the bulk API knows. Only
+// the one that is set is written.
+type actionLine struct {
+	Index  *bulkActionMetadata `json:"index,omitempty"`
+	Create *bulkActionMetadata `json:"create,omitempty"`
+	Update *bulkActionMetadata `json:"update,omitempty"`
+	Delete *bulkActionMetadata `json:"delete,omitempty"`
+}
+
+// newMetaEncoder makes a metaEncoder, as a sync.Pool wants it.
+func newMetaEncoder() any {
+	e := &metaEncoder{entry: make(map[string]*bulkActionMetadata, 1)}
+	e.buf.Grow(initialMetaBytes)
+	e.enc = json.NewEncoder(&e.buf)
+	e.enc.SetEscapeHTML(false)
+
+	return e
+}
+
+// initialMetaBytes is the size a metaEncoder's buffer starts at.
+const initialMetaBytes = 512
+
+// encode returns the action line for item. The line is the encoder's buffer: it is
+// good until the next call, and the caller copies it. The encoder keeps no reference
+// to the item once it returns.
+func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
+	e.meta = bulkActionMetadata{
 		Index:               item.Index,
 		DocumentID:          item.DocumentID,
 		Version:             item.Version,
@@ -1684,36 +1742,37 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 	}
 
 	// Can not specify version or seq num if no document ID is passed
-	if meta.DocumentID == "" {
-		meta.Version = nil
-		meta.VersionType = nil
+	if e.meta.DocumentID == "" {
+		e.meta.Version = nil
+		e.meta.VersionType = nil
 	}
 
-	buf := w.bi.metaPool.Get().(*bytes.Buffer)
-	buf.Reset()
+	e.buf.Reset()
 
-	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(false)
-
-	err = enc.Encode(map[string]bulkActionMetadata{
-		item.Action: meta,
-	})
-	if err != nil {
-		w.bi.putMetaBuffer(buf)
-		return err
+	var err error
+	switch item.Action {
+	case "index":
+		e.line.Index = &e.meta
+		err = e.enc.Encode(&e.line)
+	case "create":
+		e.line.Create = &e.meta
+		err = e.enc.Encode(&e.line)
+	case "update":
+		e.line.Update = &e.meta
+		err = e.enc.Encode(&e.line)
+	case "delete":
+		e.line.Delete = &e.meta
+		err = e.enc.Encode(&e.line)
+	default:
+		e.entry[item.Action] = &e.meta
+		err = e.enc.Encode(e.entry)
+		clear(e.entry)
 	}
 
-	_, err = w.buf.Write(buf.Bytes())
+	e.line = actionLine{}
+	e.meta = bulkActionMetadata{}
 
-	w.bi.putMetaBuffer(buf)
-
-	return err
-}
-
-func (bi *bulkIndexer) putMetaBuffer(buf *bytes.Buffer) {
-	if buf.Cap() <= bi.metaPoolMaxBytes {
-		bi.metaPool.Put(buf)
-	}
+	return e.buf.Bytes(), err
 }
 
 // writeBody writes the item body to the buffer.

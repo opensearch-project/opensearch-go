@@ -253,9 +253,7 @@ func TestWriteMeta(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			bi := &bulkIndexer{
 				metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
-				metaPool: sync.Pool{
-					New: func() any { return new(bytes.Buffer) },
-				},
+				metaPool:         sync.Pool{New: newMetaEncoder},
 			}
 			w := &worker{
 				bi:  bi,
@@ -1862,9 +1860,7 @@ func newTestWorker() *worker {
 		stats:            &bulkIndexerStats{},
 		now:              time.Now,
 		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
-		metaPool: sync.Pool{
-			New: func() any { return new(bytes.Buffer) },
-		},
+		metaPool:         sync.Pool{New: newMetaEncoder},
 	}
 	return &worker{
 		bi:  bi,
@@ -2061,4 +2057,103 @@ func TestWorkerFlushGuardsMismatchedResponseCount(t *testing.T) {
 	require.Equal(t, uint64(1), w.bi.stats.numFailed.Load())
 	require.Equal(t, 0, w.buf.Len())
 	require.Empty(t, w.items)
+}
+
+// referenceMeta writes the action line as the indexer did before metaEncoder: a fresh
+// encoder and a map of the metadata for every item.
+func referenceMeta(t *testing.T, item BulkIndexerItem) string {
+	t.Helper()
+
+	meta := bulkActionMetadata{
+		Index: item.Index, DocumentID: item.DocumentID, Version: item.Version, VersionType: item.VersionType,
+		Routing: item.Routing, IfPrimaryTerm: item.IfPrimaryTerm, IfSeqNum: item.IfSeqNum,
+		WaitForActiveShards: item.WaitForActiveShards, Refresh: item.Refresh, RequireAlias: item.RequireAlias,
+		RetryOnConflict: item.RetryOnConflict,
+	}
+	if meta.DocumentID == "" {
+		meta.Version, meta.VersionType = nil, nil
+	}
+
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	require.NoError(t, enc.Encode(map[string]bulkActionMetadata{item.Action: meta}))
+
+	return buf.String()
+}
+
+// TestMetaEncoderReuse writes the action line for a series of items with one
+// metaEncoder, as the pool does, and checks each line against the one the indexer used
+// to write: byte for byte, and with nothing of an earlier item's fields, key or pointers
+// left in the encoder.
+func TestMetaEncoderReuse(t *testing.T) {
+	t.Parallel()
+
+	routing := "r-1"
+	version := int64(3)
+	versionType := "external"
+	seqNo, primaryTerm := int64(7), int64(2)
+	refresh, requireAlias, retries := "wait_for", true, 4
+
+	tests := []struct {
+		name string
+		item BulkIndexerItem
+	}{
+		{name: "an index with every field", item: BulkIndexerItem{
+			Action: "index", Index: "i", DocumentID: "d", Routing: &routing, Version: &version, VersionType: &versionType,
+			IfSeqNum: &seqNo, IfPrimaryTerm: &primaryTerm, Refresh: &refresh, RequireAlias: &requireAlias,
+			RetryOnConflict: &retries, WaitForActiveShards: "all",
+		}},
+		{name: "a bare delete after a full index", item: BulkIndexerItem{Action: "delete", DocumentID: "x"}},
+		{name: "a create with no fields at all", item: BulkIndexerItem{Action: "create"}},
+		{name: "an update with a version and no id", item: BulkIndexerItem{Action: "update", Version: &version, VersionType: &versionType}},
+		{name: "characters that HTML escaping would change", item: BulkIndexerItem{Action: "index", DocumentID: "a<b>&c"}},
+		{name: "a quote and a newline are escaped", item: BulkIndexerItem{Action: "update", DocumentID: "a\"b\nc"}},
+		{name: "invalid UTF-8", item: BulkIndexerItem{Action: "index", DocumentID: "a\xffb"}},
+		{name: "an action the bulk API does not have", item: BulkIndexerItem{Action: "custom", DocumentID: "1"}},
+		{name: "an empty action", item: BulkIndexerItem{DocumentID: "1"}},
+		{name: "an action name that needs escaping", item: BulkIndexerItem{Action: "in\"dex", DocumentID: "1"}},
+		{name: "an index again, after the others", item: BulkIndexerItem{Action: "index", Index: "i2", DocumentID: "d2"}},
+	}
+
+	e := newMetaEncoder().(*metaEncoder) // One encoder for every case, in order.
+	for _, tt := range tests {
+		line, err := e.encode(&tt.item)
+		require.NoError(t, err, tt.name)
+		require.Equal(t, referenceMeta(t, tt.item), string(line), tt.name)
+		require.Equal(t, actionLine{}, e.line, "%s: the line is cleared", tt.name)
+		require.Equal(t, bulkActionMetadata{}, e.meta, "%s: the metadata is cleared", tt.name)
+		require.Empty(t, e.entry, "%s: the map is cleared", tt.name)
+	}
+}
+
+func TestMetaEncoderFailure(t *testing.T) {
+	t.Parallel()
+
+	e := newMetaEncoder().(*metaEncoder)
+
+	for _, action := range []string{"index", "custom"} {
+		_, err := e.encode(&BulkIndexerItem{Action: action, DocumentID: "1", WaitForActiveShards: math.NaN()})
+
+		var target *json.UnsupportedValueError
+		require.ErrorAs(t, err, &target, action)
+	}
+}
+
+func BenchmarkWriteMeta(b *testing.B) {
+	bi := &bulkIndexer{
+		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
+		metaPool:         sync.Pool{New: newMetaEncoder},
+	}
+	w := &worker{bi: bi, buf: newChunkBuffer(newChunkPool(defaultChunkSize))}
+	item := BulkIndexerItem{Action: "index", Index: "bench-index", DocumentID: "doc-000123"}
+
+	b.ReportAllocs()
+
+	for b.Loop() {
+		if err := w.writeMeta(item); err != nil {
+			b.Fatal(err)
+		}
+		w.buf.Reset()
+	}
 }

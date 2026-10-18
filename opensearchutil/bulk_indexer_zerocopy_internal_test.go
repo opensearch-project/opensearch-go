@@ -262,7 +262,7 @@ func TestBulkIndexerZeroCopyDoesNotCopyTheDocument(t *testing.T) {
 	w := &worker{
 		bi: &bulkIndexer{
 			metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
-			metaPool:         sync.Pool{New: func() any { return new(bytes.Buffer) }},
+			metaPool:         sync.Pool{New: newMetaEncoder},
 		},
 		buf: newChunkBuffer(chunks),
 	}
