@@ -337,3 +337,94 @@ func TestSizerCrowdedCutsGently(t *testing.T) {
 	}
 	require.EqualValues(t, testCeiling/32, crowded.bytes(), "but never below the floor")
 }
+
+// newTestLimit is the sizer of a node's limit: it starts at the initial size and
+// is steered by rejections alone.
+func newTestLimit() *sizer {
+	r := BulkSizing{}.resolve(testCeiling)
+	r.limit = true
+
+	return newSizer(r)
+}
+
+func TestLimitIgnoresHowSlowTheNodeIs(t *testing.T) {
+	t.Parallel()
+
+	s := newTestLimit()
+	step := int64(s.cfg.step)
+
+	// A node five times slower than its best would cut a shard buffer. It does not
+	// cut the limit, which grows by a step per flush the node did not reject.
+	s.observe(flushOf(s.bytes(), 100e6))
+	for range 5 {
+		before := s.bytes()
+		s.observe(flushOf(s.bytes(), 20e6))
+		require.Equal(t, before+step, s.bytes())
+	}
+}
+
+func TestLimitGrowsByAFixedStepUpToTheCeiling(t *testing.T) {
+	t.Parallel()
+
+	s := newTestLimit()
+	step := int64(s.cfg.step)
+
+	before := s.bytes()
+	s.observe(flushOf(s.bytes(), 100e6))
+	require.Equal(t, before+step, s.bytes())
+
+	for range 100 {
+		s.observe(flushOf(s.bytes(), 100e6))
+	}
+	require.EqualValues(t, testCeiling, s.bytes())
+}
+
+func TestLimitHalvesOnARejectionAndHolds(t *testing.T) {
+	t.Parallel()
+
+	s := newTestLimit()
+	for range 100 {
+		s.observe(flushOf(s.bytes(), 100e6))
+	}
+
+	s.observe(rejectedFlush())
+	cut := s.bytes()
+	require.EqualValues(t, testCeiling/2, cut)
+
+	for range sizingHoldFlushes {
+		s.observe(flushOf(s.bytes(), 100e6))
+		require.Equal(t, cut, s.bytes(), "no growth while the hold lasts")
+	}
+	s.observe(flushOf(s.bytes(), 100e6))
+	require.Greater(t, s.bytes(), cut, "growth resumes after the hold")
+}
+
+func TestLimitHoldsOnAnOverloadedPool(t *testing.T) {
+	t.Parallel()
+
+	s := newTestLimit()
+	before := s.bytes()
+
+	f := flushOf(s.bytes(), 100e6)
+	f.overloaded = true
+	s.observe(f)
+	require.Equal(t, before, s.bytes())
+}
+
+func TestLimitStillGivesWayWhenCrowdedOrFailed(t *testing.T) {
+	t.Parallel()
+
+	s := newTestLimit()
+	for range 100 {
+		s.observe(flushOf(s.bytes(), 100e6))
+	}
+	full := s.bytes()
+
+	f := flushOf(s.bytes(), 100e6)
+	f.crowded = true
+	s.observe(f)
+	require.Less(t, s.bytes(), full, "a crowded node is told so")
+
+	s.observe(flushSample{bytes: 1 << 20, failed: true})
+	require.Less(t, s.bytes(), full)
+}

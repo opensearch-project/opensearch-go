@@ -11,6 +11,7 @@ package opensearchutil
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -182,4 +183,27 @@ func TestBulkIndexerEnvFixedModeFixesTheNodeLimit(t *testing.T) {
 	require.Equal(t, [3]float64{share, share, share},
 		[3]float64{bi.nodeSizing.min, bi.nodeSizing.initial, bi.nodeSizing.max},
 		"a fixed node limit is the even share, not the whole job")
+}
+
+func TestBulkIndexerNodeLimitStartsWideOpen(t *testing.T) {
+	t.Parallel()
+
+	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
+	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
+		NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, FlushInterval: time.Hour,
+	}).(*bulkIndexer)
+
+	require.InDelta(t, float64(64<<20), bi.nodeSizing.initial, 0, "an unset NodeBytes starts the limit at the whole job")
+	require.Less(t, bi.config.NodeBytes, bi.config.MaxMemoryBytes, "while the even share is still what a fixed limit uses")
+}
+
+func TestBulkIndexerNodeLimitStartsWhereTheCallerSays(t *testing.T) {
+	t.Parallel()
+
+	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
+	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
+		NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, NodeBytes: 8 << 20, FlushInterval: time.Hour,
+	}).(*bulkIndexer)
+
+	require.InDelta(t, float64(8<<20), bi.nodeSizing.initial, 0)
 }

@@ -195,14 +195,16 @@ What makes this safe is that the flush comes first and the position is read afte
 
 ## Sizing batches
 
-By default the indexer does not send every buffer at `FlushBytes`. It treats `FlushBytes` as a ceiling and steers the size of the batches sent to each node, and of each node's limit, by what the node can take. `BulkIndexerConfig.Sizing` tunes this; the zero value selects defaults derived from `FlushBytes`.
+By default the indexer does not send every buffer at `FlushBytes`. It treats `FlushBytes` as a ceiling and steers the size of the batches sent for each shard, and the limit on what is buffered for each node, by what the node can take. `BulkIndexerConfig.Sizing` tunes this; the zero value selects defaults derived from `FlushBytes`.
 
-Two signals steer the size:
+Two controllers work at two levels. A **shard's buffer** follows how quickly that shard's requests are served, with the PID controller below. A **node's limit**, the ceiling above the buffers of the shards it hosts, is learned from rejections alone and ignores how fast the node is. Two signals steer a shard's buffer:
 
 - **A rejection** (a 429 from the node's write thread pool) cuts the size by `Backoff` at once, and holds it there for a few flushes. A request that fails for another reason cuts it by the square root of `Backoff`.
 - **The node's service rate**, in bytes sent per second of time on the node (the round trip less the network distance), is compared with the best rate seen recently. While the rate stays within `Headroom` of that best, the size grows by `StepBytes` per flush. When the node slows by more than that, the size is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
 
 How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`).
+
+The node's limit starts wide open, with the whole of the job's memory unless you set `NodeBytes` to start it lower, and the other nodes can only take it back down to its even share. A rejection cuts it by `Backoff` and holds it there for a few flushes, after which it grows again by a step per flush the node accepted, up to what the other nodes leave of the job. It does not remember where the last rejection was: a 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the limit keeps probing and settles into a sawtooth around whatever the server accepts now. A request that fails for another reason cuts it by the square root of `Backoff`, and it is also cut gently when more was buffered for the node than it was allowed. It never goes below one full shard buffer. So a node that slows down without rejecting gets smaller buffers from its shards and keeps its limit, and a node that rejects has the memory held for it cut, whatever its speed.
 
 ### Choosing a mode
 
@@ -224,7 +226,7 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 ### How AIMD and the PID controller relate
 
-They are two ways of taking the same step, and a flush uses one or the other, never both. Everything around the step is shared:
+They are two ways of taking the same step for a shard's buffer, and a flush uses one or the other, never both. The node's limit above the buffers is not affected by the choice: it is always additive increase and multiplicative decrease on rejections. Everything around the step is shared:
 
 - A rejection cuts the size by `Backoff` and holds it for a few flushes. A failed request cuts it by the square root of `Backoff`, and a node that was given more than it takes is cut gently. None of these depends on the mode.
 - Both read the same signal: the node's rate against the best recent rate, as a slowdown measured against `Headroom`. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.

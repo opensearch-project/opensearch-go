@@ -278,8 +278,9 @@ func TestBulkIndexerNodeLimitHalvesOnARejection(t *testing.T) {
 
 // TestBulkIndexerBacksOffAsANodeSlowsDown is the bulk indexer giving way before
 // anything is rejected: the node only gets slower, as when it is busy with other
-// requests, and its shards' buffers and its limit shrink, then grow back when it
-// recovers.
+// requests, and its shards' buffers shrink, then grow back when it recovers. The
+// node's limit does not move: it is the ceiling above the buffers, and only a
+// rejection cuts it.
 func TestBulkIndexerBacksOffAsANodeSlowsDown(t *testing.T) {
 	t.Parallel()
 
@@ -306,7 +307,7 @@ func TestBulkIndexerBacksOffAsANodeSlowsDown(t *testing.T) {
 		h.round("n0")
 	}
 	require.Less(t, h.shardTarget("n0"), shardHealthy/2, "buffers must shrink well before the node rejects anything")
-	require.Less(t, h.nodeLimit("n0"), limitHealthy/2)
+	require.Equal(t, limitHealthy, h.nodeLimit("n0"), "a slow node is not a rejecting one, so its limit stands")
 
 	setRate(100e6)
 	for range 120 {

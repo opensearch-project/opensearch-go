@@ -34,6 +34,15 @@ import (
 //     sets how hard each step is, unless AIMD is set, which takes a fixed step up
 //     and a fixed cut down instead.
 //
+// That is how a shard's buffer is sized. The node's limit, the ceiling above the
+// buffers of the shards it hosts, is a controller of its own: it grows by a step
+// while the node accepts what it is sent, and is cut by Backoff when the node
+// answers 429, by the square root of Backoff when a request fails, and gently
+// when more was buffered for the node than it was allowed. How fast the node is
+// does not move it, so a slow node that is not rejecting gets smaller buffers
+// and keeps its limit. Rejections teach the ceiling, and the PID controller, or
+// AIMD, works beneath it.
+//
 // AIMD and the PID controller are two ways to take the same step, and a flush
 // uses one or the other. Rejections, failures, a crowded node, the hold after a
 // rejection and the bounds are the same in both. For a flush that completed
@@ -132,8 +141,14 @@ const (
 
 // resolvedSizing is BulkSizing with its defaults applied.
 type resolvedSizing struct {
-	fixed    bool
-	aimd     bool
+	fixed bool
+	aimd  bool
+	// limit marks the sizer of a node's limit. Where a shard's buffer follows how
+	// quickly its requests are served, the limit is the ceiling above that: it
+	// takes a fixed step up while the node is clean and is cut only by what the
+	// node refuses, so it learns what the node accepts from rejections and leaves
+	// the node's speed to the shard buffers beneath it.
+	limit    bool
 	min, max float64
 	initial  float64
 	step     float64
@@ -314,11 +329,27 @@ func (s *sizer) observe(f flushSample) {
 	case float64(f.bytes) < s.sampleFloor():
 		// Too small to tell anything about the node.
 		return
+	case s.cfg.limit:
+		s.climb(f)
 	default:
 		s.steer(f)
 	}
 
 	s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
+}
+
+// climb is the step of a node's limit for a flush that completed without a
+// rejection: additive increase, held while the node's write pool is rejecting
+// and for a few flushes after a rejection. It does not look at how fast the
+// node served the flush.
+func (s *sizer) climb(f flushSample) {
+	switch {
+	case f.overloaded:
+	case s.hold > 0:
+		s.hold--
+	default:
+		s.target += s.cfg.step
+	}
 }
 
 // steer applies the PID-modulated step for a flush that completed.
