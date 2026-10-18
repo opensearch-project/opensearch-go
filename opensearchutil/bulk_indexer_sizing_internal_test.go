@@ -462,3 +462,35 @@ func TestBulkIndexerBacksOffWhenARequestFails(t *testing.T) {
 		require.Greater(t, c.after, c.before/2, "%s: milder than the halving a rejection gets", c.name)
 	}
 }
+
+// TestBulkIndexerNewShardStartsFromTheNodesBaseline: a shard that starts on a node
+// that has slowed down is measured against the best the node has shown, so it is
+// cut at once, and does not take the node's slow rate for the best it can do.
+func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
+	t.Parallel()
+
+	const (
+		ceilingDocs = 400
+		oldShard    = 0
+		newShard    = 1
+	)
+
+	h := newSizingHarness(t, ceilingDocs, 2, "n0")
+	var rate atomic.Uint64
+	rate.Store(uint64(100e6))
+	h.server.advance = func(r sentRequest) {
+		h.clock.advance(time.Duration(float64(r.bytes) / float64(rate.Load()) * float64(time.Second)))
+	}
+
+	for range 40 {
+		h.roundShard(oldShard)
+	}
+
+	rate.Store(uint64(20e6)) // The node slows down before the second shard has sent anything.
+	h.roundShard(newShard)
+
+	bi := h.bi.(*bulkIndexer)
+	got, ok := bi.shardTargetOf("idx", newShard)
+	require.True(t, ok)
+	require.Less(t, got, int64(bi.sizing.initial), "its first flush shows a node slower than it was")
+}

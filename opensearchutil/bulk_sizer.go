@@ -34,9 +34,12 @@ import (
 //     sets how hard each step is, unless AIMD is set, which takes a fixed step up
 //     and a fixed cut down instead.
 //
-// That is how a shard's buffer is sized. The node's limit, the ceiling above the
-// buffers of the shards it hosts, is a controller of its own: it grows by a step
-// while the node accepts what it is sent, and is cut by Backoff when the node
+// That is how a shard's buffer is sized, against the best rate the shards of its
+// node have shown: a shard that starts on a node is seeded with the node's best
+// rate, so that its first flush is not taken for the best the node can do.
+//
+// The node's limit, the ceiling above the buffers of the shards it hosts, is a
+// controller of its own: it grows by a step while the node accepts what it is sent, and is cut by Backoff when the node
 // answers 429, by the square root of Backoff when a request fails, and gently
 // when more was buffered for the node than it was allowed. How fast the node is
 // does not move it, so a slow node that is not rejecting gets smaller buffers
@@ -330,12 +333,46 @@ func (s *sizer) observe(f flushSample) {
 		// Too small to tell anything about the node.
 		return
 	case s.cfg.limit:
+		s.learn(f)
 		s.climb(f)
 	default:
 		s.steer(f)
 	}
 
 	s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
+}
+
+// learn folds a flush into the best rate seen, which a shard that starts on the
+// node is seeded with, so that it does not take the node's rate while it is
+// degraded for the best it can do.
+func (s *sizer) learn(f flushSample) {
+	if rate, ok := f.rate(); ok {
+		s.baseRate = math.Max(rate, s.baseRate*sizingBaseDecay)
+	}
+}
+
+// seed gives a sizer that has seen nothing the best rate its node has shown, so
+// that its first flush is measured against what the node can do and not against
+// itself.
+func (s *sizer) seed(rate float64) {
+	if s.baseRate == 0 && rate > 0 {
+		s.baseRate = rate
+	}
+}
+
+// rate is the node's service rate for the flush, in bytes per nanosecond of time
+// on the node (the round trip less the distance, but not less than a part of it),
+// and false when the flush says nothing about it.
+func (f flushSample) rate() (float64, bool) {
+	service := f.latency - f.distance
+	if floor := time.Duration(float64(f.latency) * sizingMinServiceFraction); service < floor {
+		service = floor
+	}
+	if service <= 0 {
+		return 0, false
+	}
+
+	return float64(f.bytes) / float64(service), true
 }
 
 // climb is the step of a node's limit for a flush that completed without a
@@ -354,15 +391,10 @@ func (s *sizer) climb(f flushSample) {
 
 // steer applies the PID-modulated step for a flush that completed.
 func (s *sizer) steer(f flushSample) {
-	service := f.latency - f.distance
-	if floor := time.Duration(float64(f.latency) * sizingMinServiceFraction); service < floor {
-		service = floor
-	}
-	if service <= 0 {
+	rate, ok := f.rate()
+	if !ok {
 		return
 	}
-
-	rate := float64(f.bytes) / float64(service)
 
 	decay := sizingBaseDecay
 	if s.target <= s.cfg.min {

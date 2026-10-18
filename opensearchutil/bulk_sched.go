@@ -118,10 +118,10 @@ type nodeState struct {
 	// queued counts the node's sealed buffers not yet sent, and inflight its
 	// requests out.
 	queued, inflight int
-	// limit is the controller behind how much the node may have open. It starts at
-	// the node's even share of the job, follows the node as a whole (what it
-	// rejects, how its service rate moves, whether anything asks it for more) and
-	// is read through nodeLimit, which bounds it by the rest of the job.
+	// limit is the controller behind how much the node may have open. It starts
+	// wide open and follows what the node rejects, and is read through nodeLimit,
+	// which bounds it by the rest of the job. It also keeps the best service rate
+	// the node has shown, which seeds the shards that start on it.
 	limit *sizer
 	// sink serves documents that belong to no shard.
 	sink *shardState
@@ -579,6 +579,10 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	shard := sample
 	shard.rejected = false
 	node.crowded, ns.crowded = ns.crowded, false
+	// A shard's first flush is measured against the best the node has shown, which
+	// it learns before this flush is folded in, so that a shard that starts while
+	// the node is degraded does not take that for the best it can do.
+	ss.sizer.seed(ns.limit.baseRate)
 	ns.limit.observe(node)
 	ss.sizer.observe(shard)
 	ss.idleSince = s.bi.now()

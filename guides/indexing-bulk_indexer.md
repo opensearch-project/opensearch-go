@@ -206,6 +206,8 @@ How hard each step is comes from a PID controller on the node's normalized slowd
 
 The node's limit starts wide open, with the whole of the job's memory unless you set `NodeBytes` to start it lower, and the other nodes can only take it back down to its even share. A rejection cuts it by `Backoff` and holds it there for a few flushes, after which it grows again by a step per flush the node accepted, up to what the other nodes leave of the job. It does not remember where the last rejection was: a 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the limit keeps probing and settles into a sawtooth around whatever the server accepts now. A request that fails for another reason cuts it by the square root of `Backoff`, and it is also cut gently when more was buffered for the node than it was allowed. It never goes below one full shard buffer. So a node that slows down without rejecting gets smaller buffers from its shards and keeps its limit, and a node that rejects has the memory held for it cut, whatever its speed.
 
+A shard's buffer is compared with the best rate the node has shown, and the node keeps that best rate for all its shards. A shard that starts on a node, such as the first document for a new index, therefore starts from what the node has done and not from its own first flush, so a shard that starts while the node is busy does not take the busy rate for the best it can do. The first shard on a node to send anything has no such history and learns its own.
+
 ### Choosing a mode
 
 | Mode | Set with | Behavior |

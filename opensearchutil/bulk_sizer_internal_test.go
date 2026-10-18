@@ -428,3 +428,49 @@ func TestLimitStillGivesWayWhenCrowdedOrFailed(t *testing.T) {
 	s.observe(flushSample{bytes: 1 << 20, failed: true})
 	require.Less(t, s.bytes(), full)
 }
+
+func TestLimitLearnsTheNodesBestRate(t *testing.T) {
+	t.Parallel()
+
+	s := newTestLimit()
+	require.Zero(t, s.baseRate)
+
+	s.observe(flushOf(s.bytes(), 100e6))
+	best := s.baseRate
+	require.Positive(t, best)
+
+	s.observe(flushOf(s.bytes(), 20e6))
+	require.Greater(t, s.baseRate, best*0.99, "a slow flush does not lower the best rate, which only fades slowly")
+
+	s.observe(flushSample{bytes: 1 << 20, rejected: true})
+	require.Greater(t, s.baseRate, best*0.99, "a rejection says nothing about the rate")
+}
+
+func TestSizerSeededFromTheNodeSeesASlowNodeOnItsFirstFlush(t *testing.T) {
+	t.Parallel()
+
+	node := newTestLimit()
+	node.observe(flushOf(node.bytes(), 100e6))
+
+	fresh := newTestSizer(BulkSizing{})
+	start := fresh.bytes()
+	fresh.observe(flushOf(fresh.bytes(), 20e6))
+	require.Greater(t, fresh.bytes(), start, "unseeded, a first flush is the best the node has done")
+
+	seeded := newTestSizer(BulkSizing{})
+	seeded.seed(node.baseRate)
+	seeded.observe(flushOf(seeded.bytes(), 20e6))
+	require.Less(t, seeded.bytes(), start, "seeded, the same flush is a node that has slowed down")
+}
+
+func TestSizerSeedOnlyFillsAnEmptyBaseline(t *testing.T) {
+	t.Parallel()
+
+	s := newTestSizer(BulkSizing{})
+	s.seed(0)
+	require.Zero(t, s.baseRate, "nothing to seed from")
+
+	s.seed(3)
+	s.seed(7)
+	require.InDelta(t, 3, s.baseRate, 0, "a baseline the sizer has is not replaced")
+}
