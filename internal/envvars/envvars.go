@@ -171,13 +171,25 @@ const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 
 // BulkMode overrides BulkSizing.Fixed for opensearchutil.BulkIndexer: "fixed"
 // sends every batch at FlushBytes, "adaptive" lets the controller size the
-// batches. Case-insensitive; any other value is ignored.
+// batches. Case-insensitive; any other value is ignored. How the controller
+// sizes batches is explained in guides/indexing-bulk_indexer.md#sizing-batches.
 const BulkMode = "OPENSEARCH_GO_BULK_MODE"
 
 // BulkPIDKp, BulkPIDKi and BulkPIDKd override BulkSizing.Kp, Ki and Kd, the
 // gains of the PID controller that modulates each step of the batch size. Each is
 // a non-negative float, and 0 turns that term off. A value that does not parse,
 // or is negative, NaN or infinite, is ignored.
+//
+// A PID controller is the idea behind a car's cruise control: it measures how far
+// the thing it steers is from where it should be (here, how much a node has
+// slowed down) and corrects in proportion to three things. Kp, the proportional
+// gain, reacts to how far off the node is now. Ki, the integral gain, reacts to
+// how long it has been off. Kd, the derivative gain, reacts to how fast the
+// difference is changing. The defaults are 1, 0.1 and 0.25 and suit most clusters.
+//
+// guides/indexing-bulk_indexer.md#how-the-pid-controller-works explains each term
+// in plain language with graphs, and says what to watch for when changing one.
+// guides/config-envvars.md#bulk-indexer lists the variables.
 const (
 	BulkPIDKp = "OPENSEARCH_GO_BULK_PID_KP"
 	BulkPIDKi = "OPENSEARCH_GO_BULK_PID_KI"
@@ -188,7 +200,7 @@ const (
 // additive-increase, multiplicative-decrease and bypasses the PID controller
 // (so BulkPIDKp, Ki and Kd have no effect), "off" keeps the PID-modulated step.
 // strconv.ParseBool values are accepted as well. Case-insensitive; any other
-// value is ignored.
+// value is ignored. See guides/indexing-bulk_indexer.md#how-aimd-and-the-pid-controller-relate.
 const BulkAIMD = "OPENSEARCH_GO_BULK_AIMD"
 
 // DefaultClientTTL sets the idle eviction window for the process-wide cache of

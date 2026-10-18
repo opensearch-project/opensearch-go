@@ -4,7 +4,65 @@
 
 The [Bulk guide](indexing-bulk.md) sends one `bulk` request that you build and check yourself. `opensearchutil.BulkIndexer` sits on top of it for continuous ingestion: you hand it documents one at a time, and it keeps a buffer for each shard, sends each buffer to the node hosting the shard, and tells you what happened to each document through callbacks.
 
-The batch sizing controller, retry policy, observer, document-id enforcement, fingerprinter, `Metadata`, `Cancel`, and `SequenceTracker` described below are new in v5.1.0.
+## A long-lived client
+
+A `BulkIndexer` is meant to be a long-running, stateful client, not a helper you build for one request. It holds a buffer for each shard, it learns how fast and how loaded each node is, and it keeps its worker goroutines and timers running. Build one when your process starts, and keep it for as long as you are writing to the cluster.
+
+Delimit your work into jobs with `Flush`, and reuse the indexer for the next job:
+
+```go
+for job := range jobs {
+	for _, doc := range job.Documents {
+		if err := indexer.Add(ctx, itemFor(doc)); err != nil {
+			return err
+		}
+	}
+
+	// The job ends here: wait until every item added so far is final.
+	if err := indexer.Flush(ctx); err != nil {
+		return err
+	}
+	commit(job) // every callback for this job has already run
+}
+
+// Once, when the process shuts down.
+return indexer.Close(ctx)
+```
+
+Creating an indexer per job throws away what the controllers learned about the nodes, so each new one starts from scratch, and each one that is not closed leaves its goroutines running. Share one indexer between goroutines instead: `Add` is safe for concurrent use.
+
+## How the pieces fit together
+
+| Term | Meaning |
+| --- | --- |
+| **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. It reaches a final state exactly once: `OnSuccess` or `OnFailure`. |
+| **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
+| **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
+| **Node limit** | How many bytes may be buffered for a node, across all the shard buffers it hosts. It bounds memory and is the indexer's answer to a node that rejects writes. |
+| **Controllers** | The code that sets the two sizes above. The *shard-buffer controller* chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The *node-limit controller* sets the node limit from the node's 429 responses (AIMD). See [Sizing batches](#sizing-batches). |
+| **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items). |
+
+The indexer owns them in this shape:
+
+```
+BulkIndexer
+├── node A                  node limit: bytes buffered for the node         (AIMD on 429s)
+│   ├── shard 0 buffer      sent when full; one request in flight per shard (PID on latency, or fixed)
+│   └── shard 3 buffer
+├── node B
+│   └── shard 1 buffer
+└── unplaced                items with no known shard, sent to the nearest node with room
+```
+
+An item travels through it like this:
+
+1. `Add` places the item in the buffer for its shard. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory frees up.
+2. A buffer is sent as one bulk request, to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` passes, or when you call `Flush` or `Close`.
+3. The response is read **item by item**. A bulk request is not all-or-nothing: a `200` can carry items the cluster rejected, and that is partial success, not an error. An item the cluster accepted gets `OnSuccess`.
+4. An item that was rejected, or whose whole request failed, is classified by scope and kind (see [Retrying failed items](#retrying-failed-items)). With a retry policy that asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnFailure`. See [Three kinds of failure](#three-kinds-of-failure) for how to read its arguments.
+5. Every completed request also teaches the controllers: the latency of the request feeds the shard's controller, and a 429 feeds the node's.
+
+So `Flush` returning means every item you added has reached its final callback. It does not mean every item succeeded; the callbacks, or `OnError` for an item with no `OnFailure`, say which did not.
 
 ## Basic use
 
@@ -44,7 +102,9 @@ if err := indexer.Close(ctx); err != nil {
 fmt.Printf("%+v\n", indexer.Stats())
 ```
 
-The indexer sends a shard's buffer when it reaches the size the indexer chose for that shard, at most `FlushBytes` (default 5 MB), every `FlushInterval` (default 30 seconds), and when you call `Flush` or `Close`. `Body` is an `io.ReadSeeker`, because the indexer rewinds it after reading. Add `Index` to an item to send it to an index other than the config default.
+The indexer sends its buffered data as bulk requests when a buffer is full, when `FlushInterval` (default 30 seconds) passes, and when you call `Flush` or `Close`. What counts as full depends on the sizing mode. By default the indexer is adaptive: a controller picks the size of each shard's buffer from how quickly the node is serving that shard's requests, never more than `FlushBytes` (default 5 MiB). With `Sizing.Fixed`, a buffer is full at exactly `FlushBytes`. See [Sizing batches](#sizing-batches).
+
+`Body` is an `io.ReadSeeker`, because the indexer rewinds it after reading. Add `Index` to an item to send it to an index other than the config default.
 
 Things to know:
 
@@ -64,6 +124,10 @@ Things to know:
 When `Flush` returns without a context error, every item it covered has already had its callback, so you can commit an external position from what the callbacks recorded. If the context ends first, `Flush` returns that error and stops waiting; the items still get their callback, exactly once, but possibly after it returned.
 
 `Close` blocks until every item is final. If its context ends first it escalates to `Cancel`: the items not yet final fail, the requests unwind, and `Close` returns the context's error. To bound it, pass a context with a deadline; to avoid waiting, run it in a goroutine.
+
+### Why you must close an indexer
+
+An indexer is more than a buffer. It runs a periodic flush on a timer and goroutines that send requests, it holds pooled buffers and, when you did not pass a `Client`, a client of its own. `Close` is what stops and releases all of that, after sending what is still buffered. An indexer that is dropped without `Close` keeps its goroutines and timer alive, keeps its memory, and loses any item still sitting in a buffer when the process exits. `Flush` is not a substitute: it drains what has been added and leaves everything running. Call `Close` once, when you are done with the indexer for good, and reuse the indexer until then (see [A long-lived client](#a-long-lived-client)).
 
 After `Cancel`, each item that is not yet final fails through its `OnFailure` exactly once. An item that was never sent fails with `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. An item that was in a request when it was canceled fails with that request's error, which is ambiguous about whether it landed. `Add` after `Cancel` fails the item the same way and returns nil.
 
@@ -197,16 +261,77 @@ What makes this safe is that the flush comes first and the position is read afte
 
 By default the indexer does not send every buffer at `FlushBytes`. It treats `FlushBytes` as a ceiling and steers the size of the batches sent for each shard, and the limit on what is buffered for each node, by what the node can take. `BulkIndexerConfig.Sizing` tunes this; the zero value selects defaults derived from `FlushBytes`.
 
+### Why it is adaptive
+
+A single indexer cannot know how much a cluster can take. The cluster is shared by many writers, its capacity changes as other work comes and goes, and a batch that is right for one node at one moment overloads it at another. A fleet of fixed-size writers either leaves capacity unused or fills the write queues and draws 429s. So the indexer measures instead, with two signals that need no coordination between clients:
+
+- **429 responses** are the server's hard limit, the point at which its write queue is full. The indexer reacts to them with additive increase, multiplicative decrease (AIMD), the same scheme TCP uses to find a network's capacity: probe upward in small steps while the node accepts writes, and cut sharply when it refuses one.
+- **Write latency** moves before a queue fills. A PID controller watches how quickly each node is serving a shard's requests and gives the shard smaller buffers as the node slows, so bulk traffic gives way before anything is rejected, and larger buffers while the node keeps up.
+
+Together they aim to keep a node busy without queueing it into rejections, and since every client in the fleet makes the same adjustments from the same signals, the load they add together stays near what the cluster can take.
+
 Two controllers work at two levels. A **shard's buffer** follows how quickly that shard's requests are served, with the PID controller below. A **node's limit**, the ceiling above the buffers of the shards it hosts, is learned from rejections alone and ignores how fast the node is. Two signals steer a shard's buffer:
 
 - **A rejection** (a 429 from the node's write thread pool) cuts the size by `Backoff` at once, and holds it there for a few flushes. A request that fails for another reason cuts it by the square root of `Backoff`.
 - **The node's service rate**, in bytes sent per second of time on the node (the round trip less the network distance), is compared with the best rate seen recently. While the rate stays within `Headroom` of that best, the size grows by `StepBytes` per flush. When the node slows by more than that, the size is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
 
-How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`).
+How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). If you have not met a PID controller before, [How the PID controller works](#how-the-pid-controller-works) explains it.
 
 The node's limit starts wide open, with the whole of the job's memory unless you set `NodeBytes` to start it lower, and the other nodes can only take it back down to its even share. A rejection cuts it by `Backoff` and holds it there for a few flushes, after which it grows again by a step per flush the node accepted, up to what the other nodes leave of the job. It does not remember where the last rejection was: a 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the limit keeps probing and settles into a sawtooth around whatever the server accepts now. A request that fails for another reason cuts it by the square root of `Backoff`, and it is also cut gently when more was buffered for the node than it was allowed. It never goes below one full shard buffer. So a node that slows down without rejecting gets smaller buffers from its shards and keeps its limit, and a node that rejects has the memory held for it cut, whatever its speed.
 
 A shard's buffer is compared with the best rate the node has shown, and the node keeps that best rate for all its shards. A shard that starts on a node, such as the first document for a new index, therefore starts from what the node has done and not from its own first flush, so a shard that starts while the node is busy does not take the busy rate for the best it can do. The first shard on a node to send anything has no such history and learns its own.
+
+### How the PID controller works
+
+A PID controller is the idea behind a car's cruise control. You pick a speed. The controller measures the actual speed, finds the difference (the *error*), and decides how hard to press the throttle. It does that with three terms, each scaled by a *gain*:
+
+| Term | Gain | Reacts to | In plain terms |
+| --- | --- | --- | --- |
+| **P**roportional | `Kp` | the error now | How far off are we? The further off, the harder the correction. |
+| **I**ntegral | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and pushes harder, so the controller does not settle for "a little slow" forever. |
+| **D**erivative | `Kd` | how fast the error is changing | Is it getting better or worse, and how fast? A node that suddenly slows is cut harder, before the proportional term catches up; one that is recovering is given more room sooner. |
+
+The three results are added up into one number, `u`, and `u` decides the step.
+
+Here the thing being steered is the size of one shard's buffer, and the measurement is the *service rate* of the node: bytes sent per second of time the node spent on the request, compared with the best rate seen recently. The error `e` is 1 for a node as fast as its best, 0 when it has slowed by `Headroom` (25% by default), and -1 when it has slowed by twice that or more:
+
+```
+ e
++1 ●━━━━━━━╲                       node as fast as its best recent rate
+           ╲
+ 0 ┈┈┈┈┈┈┈┈┈┈●┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈  slowdown = Headroom: hold the size
+                ╲
+-1               ●━━━━━━━━━━━━━━━  slowdown of 2 × Headroom or worse (clamped)
+   └──────┬───────┬───────┬──────── slowdown
+          0      0.25    0.5       (0 = best rate seen, 1 = twice as slow)
+```
+
+The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never takes away more than half. Over time the buffer climbs while the node keeps up and gives way as it slows:
+
+```
+buffer size
+FlushBytes ┤            ●━━━━━━━●                      ceiling
+           │          ╱         ╲                     
+           │        ╱            ╲        ╱╲          node slows past Headroom:
+           │      ╱               ╲      ╱  ╲╱━━━━     steps down in proportion,
+           │    ╱                  ●╲  ╱               then settles where the
+           │  ╱                       ●                node keeps up
+ start     ┤●
+           └─────────────────────────────────────── flushes
+```
+
+(The second graph is an illustration of the shape, not a measurement.)
+
+The defaults suit most clusters. If you must change them, change one at a time:
+
+| To get | Do | Watch for |
+| --- | --- | --- |
+| Faster growth and harder cuts | raise `Kp` | oscillation: the size swinging up and down |
+| Less reaction to one noisy flush | lower `Kp`, or set `Kd` to `0` | slower response to a real slowdown |
+| No memory of past flushes | set `Ki` to `0` | a mild, lasting slowdown going uncorrected |
+| No PID at all | `OPENSEARCH_GO_BULK_AIMD=on` | a sawtooth around `Headroom` instead of an easing |
+
+A gain of `0` turns that term off. The operator overrides are listed in [Changing it without a code change](#changing-it-without-a-code-change).
 
 ### Choosing a mode
 
@@ -221,7 +346,7 @@ To soften the PID controller without dropping it, set a gain to `0`: `Ki` and `K
 ```go
 indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 	Client:     client,
-	FlushBytes: 5 << 20,
+	FlushBytes: 5 << 20, // 5 MiB: the largest request a shard's buffer grows to
 	Sizing:     opensearchutil.BulkSizing{AIMD: true},
 })
 ```
