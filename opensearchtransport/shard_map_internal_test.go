@@ -145,11 +145,24 @@ func TestShardMapShard(t *testing.T) {
 	t.Parallel()
 
 	m := ShardMap{RoutingNumShards: 640, PrimaryShards: 5}
-	for _, routing := range []string{"a", "doc-1", "tenant:acme", "cafe"} {
-		got := m.Shard(routing)
-		require.GreaterOrEqual(t, got, 0)
-		require.Less(t, got, 5)
-		require.Equal(t, shardForRouting(routing, 640, 5), got)
+	tests := []struct {
+		name    string
+		routing string
+	}{
+		{name: "a single character", routing: "a"},
+		{name: "a document id", routing: "doc-1"},
+		{name: "a tenant key with a colon", routing: "tenant:acme"},
+		{name: "a short hex word", routing: "cafe"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := m.Shard(tt.routing)
+			require.GreaterOrEqual(t, got, 0)
+			require.Less(t, got, 5)
+			require.Equal(t, shardForRouting(tt.routing, 640, 5), got)
+		})
 	}
 }
 
@@ -366,21 +379,41 @@ func TestTransportWriteNodes(t *testing.T) {
 func TestConnectionWritePool(t *testing.T) {
 	t.Parallel()
 
-	conn := routableConn(t, "n1", time.Millisecond)
+	tests := []struct {
+		name  string
+		setup func(conn *Connection)
+		want  PoolWindow
+	}{
+		{
+			name:  "before the node reports its pools",
+			setup: func(*Connection) {},
+			want:  PoolWindow{Window: 1},
+		},
+		{
+			name: "after the node reports a window, requests in flight and an overloaded pool",
+			setup: func(conn *Connection) {
+				pc := conn.pools.getOrCreate(poolWrite)
+				pc.cwnd.Store(6)
+				pc.mu.Lock()
+				pc.mu.maxCwnd = 16
+				pc.mu.Unlock()
+				conn.addInFlight(poolWrite)
+				conn.addInFlight(poolWrite)
+				pc.overloaded.Store(true)
+			},
+			want: PoolWindow{Window: 6, MaxWindow: 16, InFlight: 2, Overloaded: true},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	// Before the node reports its pools.
-	require.Equal(t, PoolWindow{Window: 1}, conn.WritePool())
+			conn := routableConn(t, "n1", time.Millisecond)
+			tt.setup(conn)
 
-	pc := conn.pools.getOrCreate(poolWrite)
-	pc.cwnd.Store(6)
-	pc.mu.Lock()
-	pc.mu.maxCwnd = 16
-	pc.mu.Unlock()
-	conn.addInFlight(poolWrite)
-	conn.addInFlight(poolWrite)
-	pc.overloaded.Store(true)
-
-	require.Equal(t, PoolWindow{Window: 6, MaxWindow: 16, InFlight: 2, Overloaded: true}, conn.WritePool())
+			require.Equal(t, tt.want, conn.WritePool())
+		})
+	}
 }
 
 func TestTransportShardMapUnavailable(t *testing.T) {
@@ -513,48 +546,70 @@ func (h *pinHarness) hosts() []string {
 func TestWithWriteNode(t *testing.T) {
 	t.Parallel()
 
-	t.Run("requests go to the pinned node", func(t *testing.T) {
-		t.Parallel()
+	const (
+		nodeA = "node-a:9200" // where ordinary routing always sends a request
+		nodeB = "node-b:9200"
+	)
 
-		h := newPinHarness(t)
-		b := h.node(t, "node-b:9200")
+	tests := []struct {
+		name string
+		// pin is the host the requests are pinned to; empty sends them unpinned.
+		pin string
+		// setup runs before the requests, with the pinned connection if there is one.
+		setup func(h *pinHarness, pinned *Connection)
+		// sends is how many requests are sent.
+		sends int
+		want  []string
+		why   string
+	}{
+		{
+			name:  "requests go to the pinned node",
+			pin:   nodeB,
+			sends: 5,
+			want:  []string{nodeB, nodeB, nodeB, nodeB, nodeB},
+		},
+		{
+			name:  "an unpinned request is routed as usual",
+			sends: 1,
+			want:  []string{nodeA},
+		},
+		{
+			name: "a pin on a node that is out of service is ignored",
+			pin:  nodeB,
+			setup: func(_ *pinHarness, pinned *Connection) {
+				pinned.clearLifecycleBit(lcActive | lcStandby)
+			},
+			sends: 1,
+			want:  []string{nodeA},
+		},
+		{
+			name: "a retry does not go back to the pinned node",
+			pin:  nodeB,
+			setup: func(h *pinHarness, _ *Connection) {
+				h.mu.failFirstOn = nodeB
+			},
+			sends: 1,
+			want:  []string{nodeB, nodeA},
+			why:   "the retry follows ordinary routing instead of the pin, whose node just failed",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-		for range 5 {
-			h.send(t, b)
-		}
-		require.Equal(t, []string{"node-b:9200", "node-b:9200", "node-b:9200", "node-b:9200", "node-b:9200"}, h.hosts())
-	})
+			h := newPinHarness(t)
+			var pinned *Connection
+			if tt.pin != "" {
+				pinned = h.node(t, tt.pin)
+			}
+			if tt.setup != nil {
+				tt.setup(h, pinned)
+			}
 
-	t.Run("an unpinned request is routed as usual", func(t *testing.T) {
-		t.Parallel()
-
-		h := newPinHarness(t)
-		h.send(t, nil)
-		require.Equal(t, []string{"node-a:9200"}, h.hosts())
-	})
-
-	t.Run("a pin on a node that is out of service is ignored", func(t *testing.T) {
-		t.Parallel()
-
-		h := newPinHarness(t)
-		b := h.node(t, "node-b:9200")
-		b.clearLifecycleBit(lcActive | lcStandby)
-
-		h.send(t, b)
-		require.Equal(t, []string{"node-a:9200"}, h.hosts())
-	})
-
-	t.Run("a retry does not go back to the pinned node", func(t *testing.T) {
-		t.Parallel()
-
-		h := newPinHarness(t)
-		h.mu.failFirstOn = "node-b:9200"
-		b := h.node(t, "node-b:9200")
-
-		h.send(t, b)
-		hosts := h.hosts()
-		require.Len(t, hosts, 2)
-		require.Equal(t, []string{"node-b:9200", "node-a:9200"}, hosts,
-			"the retry follows ordinary routing instead of the pin, whose node just failed")
-	})
+			for range tt.sends {
+				h.send(t, pinned)
+			}
+			require.Equal(t, tt.want, h.hosts(), tt.why)
+		})
+	}
 }
