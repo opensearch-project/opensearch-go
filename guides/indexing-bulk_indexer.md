@@ -39,7 +39,7 @@ Creating an indexer per job throws away what the controllers learned about the n
 | **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
 | **Node limit** | How many bytes may be buffered for a node, across all the shard buffers it hosts. It bounds memory and is the indexer's answer to a node that rejects writes. |
-| **Controllers** | The code that sets the two sizes above. The *shard-buffer controller* chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The *node-limit controller* sets the node limit from the node's 429 responses (AIMD). See [Sizing batches](#sizing-batches). |
+| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-limit controller_ sets the node limit from the node's 429 responses (AIMD). See [Sizing batches](#sizing-batches). |
 | **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items). |
 
 The indexer owns them in this shape:
@@ -283,17 +283,17 @@ A shard's buffer is compared with the best rate the node has shown, and the node
 
 ### How the PID controller works
 
-A PID controller is the idea behind a car's cruise control. You pick a speed. The controller measures the actual speed, finds the difference (the *error*), and decides how hard to press the throttle. It does that with three terms, each scaled by a *gain*:
+A PID controller is the idea behind a car's cruise control. You pick a speed. The controller measures the actual speed, finds the difference (the _error_), and decides how hard to press the throttle. It does that with three terms, each scaled by a _gain_:
 
-| Term | Gain | Reacts to | In plain terms |
-| --- | --- | --- | --- |
-| **P**roportional | `Kp` | the error now | How far off are we? The further off, the harder the correction. |
-| **I**ntegral | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and pushes harder, so the controller does not settle for "a little slow" forever. |
-| **D**erivative | `Kd` | how fast the error is changing | Is it getting better or worse, and how fast? A node that suddenly slows is cut harder, before the proportional term catches up; one that is recovering is given more room sooner. |
+| Term             | Gain | Reacts to                            | In plain terms                                                                                                                                                                    |
+| ---------------- | ---- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P**roportional | `Kp` | the error now                        | How far off are we? The further off, the harder the correction.                                                                                                                   |
+| **I**ntegral     | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and pushes harder, so the controller does not settle for "a little slow" forever.                        |
+| **D**erivative   | `Kd` | how fast the error is changing       | Is it getting better or worse, and how fast? A node that suddenly slows is cut harder, before the proportional term catches up; one that is recovering is given more room sooner. |
 
 The three results are added up into one number, `u`, and `u` decides the step.
 
-Here the thing being steered is the size of one shard's buffer, and the measurement is the *service rate* of the node: bytes sent per second of time the node spent on the request, compared with the best rate seen recently. The error `e` is 1 for a node as fast as its best, 0 when it has slowed by `Headroom` (25% by default), and -1 when it has slowed by twice that or more:
+Here the thing being steered is the size of one shard's buffer, and the measurement is the _service rate_ of the node: bytes sent per second of time the node spent on the request, compared with the best rate seen recently. The error `e` is 1 for a node as fast as its best, 0 when it has slowed by `Headroom` (25% by default), and -1 when it has slowed by twice that or more:
 
 ```
  e
@@ -311,7 +311,7 @@ The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positi
 ```
 buffer size
 FlushBytes ┤            ●━━━━━━━●                      ceiling
-           │          ╱         ╲                     
+           │          ╱         ╲
            │        ╱            ╲        ╱╲          node slows past Headroom:
            │      ╱               ╲      ╱  ╲╱━━━━     steps down in proportion,
            │    ╱                  ●╲  ╱               then settles where the
@@ -324,12 +324,12 @@ FlushBytes ┤            ●━━━━━━━●                      ceili
 
 The defaults suit most clusters. If you must change them, change one at a time:
 
-| To get | Do | Watch for |
-| --- | --- | --- |
-| Faster growth and harder cuts | raise `Kp` | oscillation: the size swinging up and down |
-| Less reaction to one noisy flush | lower `Kp`, or set `Kd` to `0` | slower response to a real slowdown |
-| No memory of past flushes | set `Ki` to `0` | a mild, lasting slowdown going uncorrected |
-| No PID at all | `OPENSEARCH_GO_BULK_AIMD=on` | a sawtooth around `Headroom` instead of an easing |
+| To get                           | Do                             | Watch for                                         |
+| -------------------------------- | ------------------------------ | ------------------------------------------------- |
+| Faster growth and harder cuts    | raise `Kp`                     | oscillation: the size swinging up and down        |
+| Less reaction to one noisy flush | lower `Kp`, or set `Kd` to `0` | slower response to a real slowdown                |
+| No memory of past flushes        | set `Ki` to `0`                | a mild, lasting slowdown going uncorrected        |
+| No PID at all                    | `OPENSEARCH_GO_BULK_AIMD=on`   | a sawtooth around `Headroom` instead of an easing |
 
 A gain of `0` turns that term off. The operator overrides are listed in [Changing it without a code change](#changing-it-without-a-code-change).
 
@@ -414,13 +414,13 @@ typical := stats.Slowdown.Median    // how much slower than its best the typical
 pushedBack := stats.NumRejections   // only grows: compare with the last reading
 ```
 
-| Reading | Moves when | Use it to |
-| --- | --- | --- |
-| `BudgetFill()` | the indexer holds more than the cluster takes | slow down smoothly, well before `Add` blocks |
-| `NumRejections` | a node answers 429 | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
-| `NodeLimit` | a node rejects writes (down) or takes them again (up) | tell congestion from relief: 1 is clear |
-| `Slowdown` | a node serves requests more slowly than it did at its best | read slowness directly, before any node rejects anything: 0 is at its best, 1 is twice as slow |
-| `BufferSize` | the indexer finds a node slow (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches |
+| Reading         | Moves when                                                     | Use it to                                                                                       |
+| --------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `BudgetFill()`  | the indexer holds more than the cluster takes                  | slow down smoothly, well before `Add` blocks                                                    |
+| `NumRejections` | a node answers 429                                             | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
+| `NodeLimit`     | a node rejects writes (down) or takes them again (up)          | tell congestion from relief: 1 is clear                                                         |
+| `Slowdown`      | a node serves requests more slowly than it did at its best     | read slowness directly, before any node rejects anything: 0 is at its best, 1 is twice as slow  |
+| `BufferSize`    | the indexer finds a node slow (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches                                   |
 
 `NodeLimit`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
 
