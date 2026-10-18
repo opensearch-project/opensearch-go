@@ -593,7 +593,14 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// the node is degraded does not take that for the best it can do.
 	ss.sizer.seed(ns.limit.baseRate)
 	ns.limit.observe(node)
-	ss.sizer.observe(shard)
+	// A request the node rejected says nothing about how fast it serves: it is
+	// answered quickly because no work was done, and a shard controller that read it
+	// as a healthy flush would grow the shard's buffer and raise its best rate while
+	// the node is saying it is full. The node's limit has taken it; the shard's
+	// controller does not see it at all.
+	if !sample.rejected {
+		ss.sizer.observe(shard)
+	}
 	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
 	if slow, ok := ns.limit.slowdown(node); ok {
 		ns.slowdown = smooth(ns.slowdown, slow)

@@ -494,3 +494,66 @@ func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
 	require.True(t, ok)
 	require.Less(t, got, int64(bi.sizing.initial), "its first flush shows a node slower than it was")
 }
+
+// TestBulkIndexerRejectedRequestsDoNotTeachTheShardController answers every request
+// with a rejection, far faster than the node serves real work, as a node does, and
+// checks that the node's limit is cut and the shard's buffer is left where it was,
+// where a shard controller that took the quick answer for a fast flush would grow it.
+func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// respond answers a request that is being rejected.
+		respond func(r sentRequest) (int, string)
+	}{
+		{
+			name: "every item rejected in an answered request",
+			respond: func(r sentRequest) (int, string) {
+				return http.StatusOK, rejectingResponse(len(r.actions))
+			},
+		},
+		{
+			name: "the whole request refused with a 429",
+			respond: func(sentRequest) (int, string) {
+				return http.StatusTooManyRequests, `{"error":{"type":"es_rejected_execution_exception","reason":"queue full"},"status":429}`
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			h := newSizingHarness(t, 400, 1, "n0")
+
+			var reject atomic.Bool
+			var rate atomic.Uint64
+			rate.Store(uint64(100e6))
+			h.server.respond = func(r sentRequest, _ string) (int, string) {
+				if reject.Load() {
+					return tt.respond(r)
+				}
+
+				return http.StatusOK, `{"took":1,"errors":false,"items":[]}`
+			}
+			h.server.advance = func(r sentRequest) {
+				h.clock.advance(time.Duration(float64(r.bytes) / float64(rate.Load()) * float64(time.Second)))
+			}
+
+			for range 10 {
+				h.round("n0")
+			}
+			shardBefore, limitBefore := h.shardTarget("n0"), h.nodeLimit("n0")
+
+			reject.Store(true)
+			rate.Store(uint64(1e9)) // The rejection comes back ten times faster than the work takes.
+			for range 5 {
+				h.round("n0")
+			}
+			waitIdle(t, h.bi)
+
+			require.Equal(t, shardBefore, h.shardTarget("n0"), "the shard's buffer is not grown by rejections")
+			require.Less(t, h.nodeLimit("n0"), limitBefore/4, "while the node's limit is cut")
+		})
+	}
+}
