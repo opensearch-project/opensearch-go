@@ -397,6 +397,35 @@ export OPENSEARCH_GO_BULK_PID_KI=0 OPENSEARCH_GO_BULK_PID_KD=0
 
 The [environment variable reference](config-envvars.md#bulk-indexer) lists every value.
 
+## Steering a consumer by the indexer's load
+
+If your service reads from a stream such as Kafka and writes to OpenSearch, it should read less when OpenSearch is slow. Reading too much and then crashing makes recovery longer, because everything read and not yet committed is replayed. `Add` alone is a poor signal for this: it blocks only once the whole `MaxMemoryBytes` is spent, and a blocked `Add` stalls your poll loop, which can pass the stream's poll timeout and trigger a rebalance.
+
+`GetStats` gives a better one. It loads the indexer's statistics into a struct you own and reuse, so it allocates nothing and cannot change the indexer, and it takes no lock, so you can call it as often as you like while other goroutines call `Add`:
+
+```go
+var stats opensearchutil.BulkIndexerStats // reused: GetStats replaces everything in it
+if err := indexer.GetStats(&stats); err != nil {
+	return err
+}
+
+fill := stats.BudgetFill()     // 0 to 1: how much of MaxMemoryBytes is held
+worst := stats.WorstNodeLimit  // 1 while every node is wide open, lower as a node rejects writes
+pushedBack := stats.NumRejections // only grows: compare with the last reading
+```
+
+Three readings describe how the cluster is taking your writes:
+
+| Reading | Moves when | Use it to |
+| --- | --- | --- |
+| `BudgetFill()` | the indexer holds more than the cluster takes | slow down smoothly, well before `Add` blocks |
+| `NumRejections` | a node answers 429 | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
+| `WorstNodeLimit` | a node rejects writes (down) or accepts them again (up) | tell congestion from relief: below 1 the indexer is holding back, and a return to 1 says it is clear |
+
+The second number to bound is your own: how many records you have read and not yet made safe to commit. With a [`SequenceTracker`](#committing-a-stream-position) that is the offset you have read minus `Safe`, and it is exactly what a crash would replay. A simple consumer keeps it under a limit, pauses its partitions when `BudgetFill` passes a high mark or `NumRejections` rises, and resumes below a low mark. The marks are yours: a wider gap between them pauses less often.
+
+These readings follow the cluster and do not change the indexer's controllers, which go on adapting to the same signals without your help. A consumer that adapts by them is a second loop over the same resource, so give it a gentler time constant than the indexer's, or it and the indexer will chase each other.
+
 ## Observing the indexer
 
 `BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `FailureKind`. For a live stream of events instead, set `BulkIndexerConfig.Observer`, following the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the methods you need.

@@ -378,7 +378,7 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 				NumFlushed:        1,
 				NumIndexed:        1,
 				NumRequests:       2,
-			}, bi.Stats())
+			}, withoutLoad(bi.Stats()))
 		})
 	}
 }

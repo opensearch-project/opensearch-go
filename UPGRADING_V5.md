@@ -598,9 +598,9 @@ func handler(ctx context.Context) error {
 
 `Flush` covers the items the indexer held when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. After `Close`, `Flush` and `Add` return `ErrBulkIndexerClosed`.
 
-## `opensearchutil.BulkIndexer` interface gained `Cancel()`, and `Close` waits for every item
+## `opensearchutil.BulkIndexer` interface gained `Cancel()` and `GetStats()`, and `Close` waits for every item
 
-The exported `BulkIndexer` interface gained a new method in v5.1, `Cancel`, so a type that implements the interface no longer satisfies it until it adds the method:
+The exported `BulkIndexer` interface gained two methods in v5.1, `Cancel` and `GetStats`, so a type that implements the interface no longer satisfies it until it adds them:
 
 ```go
 type BulkIndexer interface {
@@ -609,10 +609,11 @@ type BulkIndexer interface {
     Close(context.Context) error
     Cancel() // new in v5.1
     Stats() BulkIndexerStats
+    GetStats(dst *BulkIndexerStats) error // new in v5.1
 }
 ```
 
-Callers that build their indexer with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add a `Cancel()` method.
+Callers that build their indexer with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add `Cancel()` and `GetStats(*BulkIndexerStats) error` methods. A fake's `GetStats` can copy its own `BulkIndexerStats` into `*dst` and return `ErrNilStats` for a nil `dst`.
 
 `Cancel` stops the indexer immediately: requests in flight and retry backoff end, and every item that is not yet final fails through its own `OnFailure` exactly once. An item that was never sent fails with the new `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. It does not wait and does not replace `Close`.
 

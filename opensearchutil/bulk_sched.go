@@ -9,6 +9,7 @@ package opensearchutil
 import (
 	"context"
 	"errors"
+	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -585,6 +586,7 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	ss.sizer.seed(ns.limit.baseRate)
 	ns.limit.observe(node)
 	ss.sizer.observe(shard)
+	s.publishLoad(sample)
 	ss.idleSince = s.bi.now()
 
 	delete(s.live, b)
@@ -765,4 +767,21 @@ func observeSample(node Node, bytes int64, latency time.Duration, throttled, fai
 	}
 
 	return f
+}
+
+// publishLoad stores what the controllers now know where a caller can read it
+// without a lock: a rejection is counted, and the smallest node limit is worked out
+// again. It runs once per completed request, with the scheduler's lock held.
+func (s *scheduler) publishLoad(sample flushSample) {
+	if sample.rejected {
+		s.bi.stats.numRejections.Add(1)
+	}
+
+	worst := 1.0
+	for _, ns := range s.nodes {
+		if ceiling := ns.limit.cfg.max; ceiling > 0 {
+			worst = min(worst, ns.limit.target/ceiling)
+		}
+	}
+	s.bi.stats.worstNodeLimit.Store(math.Float64bits(worst))
 }

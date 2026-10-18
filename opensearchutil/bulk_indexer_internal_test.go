@@ -494,7 +494,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.run(t)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, withoutLoad(got))
 		})
 	}
 }
@@ -772,7 +772,7 @@ func TestBulkIndexerPerItemCallbacks(t *testing.T) {
 				NumUpdated:        1,
 				// Indexer flushes only; the client's info request is not counted.
 				NumRequests: 1,
-			}, bi.Stats())
+			}, withoutLoad(bi.Stats()))
 
 			require.Equal(t, []testItemCallback{
 				{ID: "1", Body: `{"title":"foo"}`},

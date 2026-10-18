@@ -329,7 +329,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Equal(t, BulkIndexerStats{
 			NumAdded: 2, NumUngroupedItems: 2, NumFlushed: 2, NumIndexed: 2, NumRequests: 2,
 			NumRetries: [numFailureKinds]uint64{FailureRejected: 2},
-		}, run.stats)
+		}, withoutLoad(run.stats))
 	})
 
 	t.Run("only the rejected item is sent again", func(t *testing.T) {
@@ -353,7 +353,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Equal(t, BulkIndexerStats{
 			NumAdded: 3, NumUngroupedItems: 3, NumFlushed: 3, NumIndexed: 3, NumRequests: 2,
 			NumRetries: [numFailureKinds]uint64{FailureRejected: 1},
-		}, run.stats)
+		}, withoutLoad(run.stats))
 	})
 
 	t.Run("attempts count up until the policy gives up", func(t *testing.T) {

@@ -103,6 +103,9 @@ const (
 // closed.
 var ErrBulkIndexerClosed = errors.New("opensearchutil: bulk indexer is closed")
 
+// ErrNilStats is returned by GetStats when it is given no struct to fill.
+var ErrNilStats = errors.New("opensearchutil: GetStats needs a non-nil BulkIndexerStats")
+
 // ErrShardRoutingUnavailable is wrapped by the error passed to OnWarning when
 // the indexer starts without shard-aware buffering because it has no way to
 // learn where shards live.
@@ -185,6 +188,17 @@ type BulkIndexer interface {
 
 	// Stats returns indexer statistics.
 	Stats() BulkIndexerStats
+
+	// GetStats loads the indexer's statistics into dst, which replaces everything
+	// in it. It is for a caller that reads them often, for example one that steers
+	// its own input by how loaded the indexer is: the caller owns dst and reuses
+	// it, so nothing is allocated, and the indexer's state can only be read
+	// through it, never written. Every value is loaded from an atomic, so GetStats
+	// takes no lock and is safe to call at any time and from any goroutine, but the
+	// values are loaded one after another and are not a single instant: a counter
+	// can have moved between two of them. It returns [ErrNilStats] when dst is nil,
+	// and works on a closed indexer, whose statistics no longer change.
+	GetStats(dst *BulkIndexerStats) error
 }
 
 // BulkIndexerConfig represents configuration of the indexer.
@@ -383,6 +397,31 @@ type BulkIndexerStats struct {
 	// FailureKind of the failure that caused it. An item retried twice counts
 	// twice.
 	NumRetries [numFailureKinds]uint64
+
+	// MaxMemoryBytes is the limit BufferedBytes and InFlightBytes count against.
+	MaxMemoryBytes uint64
+	// NumRejections counts the requests a node answered with a 429, for the whole
+	// request or for any item in it, whether or not a RetryPolicy sent them again.
+	// It only grows, so a caller that samples it sees that the cluster pushed back
+	// since it last looked, however briefly, and can compare two readings for a rate.
+	NumRejections uint64
+	// WorstNodeLimit is the smallest limit on what is buffered for a node, as a
+	// fraction of the most the indexer would allow it: 1 while every node is wide
+	// open, falling as a node rejects writes and rising again as it takes them. It is
+	// 1 before any node has been used. It is the AIMD controller's state, so it
+	// moves only when a node pushes back, and not when a node merely slows down.
+	WorstNodeLimit float64
+}
+
+// BudgetFill returns how full the indexer's memory is, from 0 to 1: the bytes it
+// holds, buffered and in requests, over MaxMemoryBytes. Add starts to wait when it
+// reaches 1. It is 0 when MaxMemoryBytes is not known.
+func (s BulkIndexerStats) BudgetFill() float64 {
+	if s.MaxMemoryBytes == 0 {
+		return 0
+	}
+
+	return min(float64(s.BufferedBytes+s.InFlightBytes)/float64(s.MaxMemoryBytes), 1)
 }
 
 // TimerFlushRatio returns the share of the batches sent because they filled or
@@ -659,6 +698,11 @@ type bulkIndexerStats struct {
 	numByteFlushes    atomic.Uint64
 	numTimerFlushes   atomic.Uint64
 	numRetries        [numFailureKinds]atomic.Uint64
+
+	numRejections atomic.Uint64
+	// worstNodeLimit is the smallest node limit as a fraction of its ceiling, as the
+	// bits of a float64.
+	worstNodeLimit atomic.Uint64
 }
 
 // NewBulkIndexer creates a new bulk indexer.
@@ -1244,10 +1288,28 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 
 // Stats returns indexer statistics.
 func (bi *bulkIndexer) Stats() BulkIndexerStats {
+	var stats BulkIndexerStats
+	bi.loadStats(&stats)
+
+	return stats
+}
+
+// GetStats loads the indexer statistics into dst; see [BulkIndexer].
+func (bi *bulkIndexer) GetStats(dst *BulkIndexerStats) error {
+	if dst == nil {
+		return ErrNilStats
+	}
+	bi.loadStats(dst)
+
+	return nil
+}
+
+// loadStats overwrites dst with the statistics, each loaded from an atomic.
+func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 	blocked, blockedFor := bi.budget.blockedStats()
 	inFlight := max(bi.flushingBytes.Load(), 0)
 
-	stats := BulkIndexerStats{
+	*dst = BulkIndexerStats{
 		NumAdded:         bi.stats.numAdded.Load(),
 		BulkAddFailCount: bi.stats.bulkAddFailCount.Load(),
 		NumFlushed:       bi.stats.numFlushed.Load(),
@@ -1267,12 +1329,14 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 		InFlightBytes:      uint64(inFlight),
 		NumBlockedAdds:     blocked,
 		BlockedAddDuration: blockedFor,
+
+		MaxMemoryBytes: uint64(max(bi.config.MaxMemoryBytes, 0)),
+		NumRejections:  bi.stats.numRejections.Load(),
+		WorstNodeLimit: math.Float64frombits(bi.stats.worstNodeLimit.Load()),
 	}
 	for i := range bi.stats.numRetries {
-		stats.NumRetries[i] = bi.stats.numRetries[i].Load()
+		dst.NumRetries[i] = bi.stats.numRetries[i].Load()
 	}
-
-	return stats
 }
 
 // flushTrigger says what made a batch be sent.
@@ -1304,6 +1368,8 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 	if bi.config.NumWorkers > 0 {
 		bi.slots = make(chan struct{}, bi.config.NumWorkers)
 	}
+
+	bi.stats.worstNodeLimit.Store(math.Float64bits(1))
 
 	bi.itemPool.New = func() any { return new([]BulkIndexerItem) }
 	bi.workerPool.New = func() any { return &worker{bi: bi} }
