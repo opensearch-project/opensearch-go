@@ -85,6 +85,11 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: 'go-client/go.mod' }
 
+      - run: make workspace
+        # See test-unit.yml.
+        if: contains(github.event.pull_request.labels.*.name, 'pending-root-release')
+        working-directory: go-client
+
       - name: Integration test
         working-directory: go-client
         run: make test-integ-core race=true

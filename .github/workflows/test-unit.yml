@@ -18,6 +18,11 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: 'go.mod' }
       - run: go version
+      - run: make workspace
+        # A pull request labeled pending-root-release has a nested module that
+        # requires a root version not tagged yet, so build the nested modules
+        # against this checkout. See DEVELOPER_GUIDE.md#nested-modules.
+        if: contains(github.event.pull_request.labels.*.name, 'pending-root-release')
       - run: make test-unit race=true
         if: matrix.os != 'ubuntu-latest'
       - run: make test-unit race=true coverage=true
@@ -42,11 +47,18 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: 'go.mod' }
       - run: go version
+      - run: make workspace
+        # See the test job.
+        if: contains(github.event.pull_request.labels.*.name, 'pending-root-release')
       - run: make test-bench
       - run: make test-alloc
 
   modules:
     name: Nested modules build standalone
+    # The check pending-root-release waives: a required root version that is
+    # not tagged yet cannot resolve standalone. It runs again once the tag
+    # exists and the label is removed.
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'pending-root-release') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6

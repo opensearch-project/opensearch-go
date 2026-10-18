@@ -220,6 +220,16 @@ check-modules-standalone:  ## Build and vet every nested module against the root
 print-submodules:  ## Print the discovered nested module directories, one per line
 	@printf "%s\n" $(SUBMODULES)
 
+workspace:  ## Write a go.work that builds every nested module against this checkout's root
+# Replaces each root version a nested module requires with the checkout; Go
+# refuses a version-less replace of a workspace module.
+# See DEVELOPER_GUIDE.md#nested-modules.
+	@go work init . $(SUBMODULES)
+	@root=$$(awk '$$1 == "module" { print $$2 }' go.mod); \
+	for v in $$(for mod in $(SUBMODULES); do awk -v p="$$root" '{ for (i = 1; i < NF; i++) if ($$i == p) print $$(i + 1) }' "$$mod/go.mod"; done | sort -u); do \
+		go work edit -replace="$$root@$$v=./" || exit $$?; \
+	done
+
 build-samples:  ## Compile and vet each _samples/*.go program
 	@printf "\033[2m-> Building _samples...\033[0m\n"
 	@failed=0; \
@@ -1036,5 +1046,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples check-modules-standalone print-submodules
+.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples check-modules-standalone print-submodules workspace
 .SILENT: lint.markdown
