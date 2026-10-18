@@ -75,35 +75,46 @@ func TestBulkSizingEnvAIMD(t *testing.T) {
 }
 
 func TestBulkSizingEnvPIDGains(t *testing.T) {
-	t.Run("each gain overrides on its own", func(t *testing.T) {
-		t.Setenv(envvars.BulkPIDKi, "0.5")
+	defaults := [3]float64{sizingDefaultKp, sizingDefaultKi, sizingDefaultKd}
 
-		r := BulkSizing{}.resolve(testCeiling)
-		require.Equal(t, [3]float64{sizingDefaultKp, 0.5, sizingDefaultKd}, [3]float64{r.kp, r.ki, r.kd})
-	})
+	tests := []struct {
+		name   string
+		sizing BulkSizing
+		env    map[string]string
+		want   [3]float64
+	}{
+		{
+			name: "each gain overrides on its own",
+			env:  map[string]string{envvars.BulkPIDKi: "0.5"},
+			want: [3]float64{sizingDefaultKp, 0.5, sizingDefaultKd},
+		},
+		{
+			name:   "they override programmatic gains",
+			sizing: BulkSizing{Kp: 1, Ki: 1, Kd: 1},
+			env:    map[string]string{envvars.BulkPIDKp: "3", envvars.BulkPIDKi: "4", envvars.BulkPIDKd: "5"},
+			want:   [3]float64{3, 4, 5},
+		},
+		{
+			name: "zero turns a term off",
+			env:  map[string]string{envvars.BulkPIDKi: "0", envvars.BulkPIDKd: "0"},
+			want: [3]float64{sizingDefaultKp, 0, 0},
+		},
+		{name: "text is ignored", env: map[string]string{envvars.BulkPIDKp: "abc"}, want: defaults},
+		{name: "a negative gain is ignored", env: map[string]string{envvars.BulkPIDKp: "-1"}, want: defaults},
+		{name: "NaN is ignored", env: map[string]string{envvars.BulkPIDKp: "NaN"}, want: defaults},
+		{name: "infinity is ignored", env: map[string]string{envvars.BulkPIDKp: "Inf"}, want: defaults},
+		{name: "positive infinity is ignored", env: map[string]string{envvars.BulkPIDKp: "+Inf"}, want: defaults},
+		{name: "empty is ignored", env: map[string]string{envvars.BulkPIDKp: ""}, want: defaults},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for name, value := range tt.env {
+				t.Setenv(name, value)
+			}
 
-	t.Run("they override programmatic gains", func(t *testing.T) {
-		t.Setenv(envvars.BulkPIDKp, "3")
-		t.Setenv(envvars.BulkPIDKi, "4")
-		t.Setenv(envvars.BulkPIDKd, "5")
-
-		r := BulkSizing{Kp: 1, Ki: 1, Kd: 1}.resolve(testCeiling)
-		require.Equal(t, [3]float64{3, 4, 5}, [3]float64{r.kp, r.ki, r.kd})
-	})
-
-	t.Run("zero turns a term off", func(t *testing.T) {
-		t.Setenv(envvars.BulkPIDKi, "0")
-		t.Setenv(envvars.BulkPIDKd, "0")
-
-		r := BulkSizing{}.resolve(testCeiling)
-		require.Equal(t, [3]float64{sizingDefaultKp, 0, 0}, [3]float64{r.kp, r.ki, r.kd})
-	})
-
-	for _, bad := range []string{"abc", "-1", "NaN", "Inf", "+Inf", ""} {
-		t.Run("ignores "+bad, func(t *testing.T) {
-			t.Setenv(envvars.BulkPIDKp, bad)
-
-			require.InDelta(t, sizingDefaultKp, BulkSizing{}.resolve(testCeiling).kp, 0)
+			r := tt.sizing.resolve(testCeiling)
+			want, got := tt.want, [3]float64{r.kp, r.ki, r.kd}
+			require.InDeltaSlice(t, want[:], got[:], 1e-9, "kp, ki, kd")
 		})
 	}
 }

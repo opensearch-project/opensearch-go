@@ -34,48 +34,67 @@ func newTestSizer(cfg BulkSizing) *sizer {
 	return newSizer(cfg.resolve(testCeiling))
 }
 
-func TestBulkSizingDefaults(t *testing.T) {
+func TestBulkSizingResolve(t *testing.T) {
 	t.Parallel()
 
-	r := BulkSizing{}.resolve(testCeiling)
+	// resolved is the part of a resolvedSizing the cases compare.
+	type resolved struct {
+		min, initial, max, step, headroom, backoff, kp, ki, kd float64
+	}
 
-	require.InDelta(t, testCeiling, r.max, 0)
-	require.InDelta(t, testCeiling/32, r.min, 0)
-	require.InDelta(t, testCeiling/4, r.initial, 0)
-	require.InDelta(t, testCeiling/16, r.step, 0)
-	require.InDelta(t, 0.25, r.headroom, 1e-9)
-	require.InDelta(t, 0.5, r.backoff, 1e-9)
-	require.InDelta(t, 1.0, r.kp, 1e-9)
+	tests := []struct {
+		name    string
+		sizing  BulkSizing
+		ceiling int
+		want    resolved
+	}{
+		{
+			name:    "the zero value selects the defaults",
+			ceiling: testCeiling,
+			want: resolved{
+				min: testCeiling / 32, initial: testCeiling / 4, max: testCeiling, step: testCeiling / 16,
+				headroom: 0.25, backoff: 0.5, kp: sizingDefaultKp, ki: sizingDefaultKi, kd: sizingDefaultKd,
+			},
+		},
+		{
+			name:    "explicit values win, and a gain set on its own leaves the others at what was asked",
+			sizing:  BulkSizing{MinBytes: 100, InitialBytes: 1000, StepBytes: 50, Headroom: 0.5, Backoff: 0.7, Kp: 2},
+			ceiling: testCeiling,
+			want: resolved{
+				min: 100, initial: 1000, max: testCeiling, step: 50,
+				headroom: 0.5, backoff: 0.7, kp: 2, ki: 0, kd: 0,
+			},
+		},
+		{
+			name:    "values are kept inside the ceiling",
+			sizing:  BulkSizing{MinBytes: testCeiling * 2, InitialBytes: testCeiling * 3},
+			ceiling: testCeiling,
+			want: resolved{
+				min: testCeiling, initial: testCeiling, max: testCeiling, step: testCeiling / 16,
+				headroom: 0.25, backoff: 0.5, kp: sizingDefaultKp, ki: sizingDefaultKi, kd: sizingDefaultKd,
+			},
+		},
+		{
+			name:    "a tiny ceiling still works",
+			ceiling: 1,
+			want: resolved{
+				min: 1, initial: 1, max: 1, step: 1.0 / 16,
+				headroom: 0.25, backoff: 0.5, kp: sizingDefaultKp, ki: sizingDefaultKi, kd: sizingDefaultKd,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("explicit values win", func(t *testing.T) {
-		t.Parallel()
-
-		r := BulkSizing{MinBytes: 100, InitialBytes: 1000, StepBytes: 50, Headroom: 0.5, Backoff: 0.7, Kp: 2}.resolve(testCeiling)
-		require.InDelta(t, 100, r.min, 0)
-		require.InDelta(t, 1000, r.initial, 0)
-		require.InDelta(t, 50, r.step, 0)
-		require.InDelta(t, 0.5, r.headroom, 1e-9)
-		require.InDelta(t, 0.7, r.backoff, 1e-9)
-		require.InDelta(t, 2.0, r.kp, 1e-9)
-		require.Zero(t, r.ki, "a gain set on its own leaves the others at what was asked")
-	})
-
-	t.Run("values are kept inside the ceiling", func(t *testing.T) {
-		t.Parallel()
-
-		r := BulkSizing{MinBytes: testCeiling * 2, InitialBytes: testCeiling * 3}.resolve(testCeiling)
-		require.InDelta(t, testCeiling, r.min, 0)
-		require.InDelta(t, testCeiling, r.initial, 0)
-	})
-
-	t.Run("a tiny ceiling still works", func(t *testing.T) {
-		t.Parallel()
-
-		r := BulkSizing{}.resolve(1)
-		require.InDelta(t, 1, r.min, 0)
-		require.InDelta(t, 1, r.initial, 0)
-		require.InDelta(t, 1, r.max, 0)
-	})
+			r := tt.sizing.resolve(tt.ceiling)
+			w := tt.want
+			require.InDeltaSlice(t,
+				[]float64{w.min, w.initial, w.max, w.step, w.headroom, w.backoff, w.kp, w.ki, w.kd},
+				[]float64{r.min, r.initial, r.max, r.step, r.headroom, r.backoff, r.kp, r.ki, r.kd},
+				1e-9)
+		})
+	}
 }
 
 func TestSizerFixed(t *testing.T) {
