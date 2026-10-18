@@ -38,8 +38,6 @@ func (bi *bulkIndexer) shardTargetOf(index string, shard int) (int64, bool) {
 
 // windowOf returns how many bytes the indexer currently allows outstanding to the
 // node, and false when it has not seen the node yet.
-//
-//nolint:unparam // The found flag is for tests that may need it.
 func (bi *bulkIndexer) windowOf(name string) (int64, bool) {
 	bi.sched.Lock()
 	defer bi.sched.Unlock()

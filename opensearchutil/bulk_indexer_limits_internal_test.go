@@ -18,8 +18,6 @@ import (
 )
 
 // idsOnShard returns n document IDs that land on the shard of the index.
-//
-//nolint:unparam // Every test here uses one index.
 func idsOnShard(t *testing.T, router ShardRouter, index string, shard, n int) []string {
 	t.Helper()
 

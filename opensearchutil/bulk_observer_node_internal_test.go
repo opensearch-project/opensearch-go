@@ -86,8 +86,9 @@ func TestBulkIndexerObserverEventsNameTheNode(t *testing.T) {
 	}
 	require.NoError(t, bi.Close(t.Context()))
 
-	var sentTo []string
-	for _, r := range server.requests() {
+	sent := server.requests()
+	sentTo := make([]string, 0, len(sent))
+	for _, r := range sent {
 		sentTo = append(sentTo, r.node)
 	}
 	slices.Sort(sentTo)
