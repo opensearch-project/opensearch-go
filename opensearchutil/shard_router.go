@@ -7,6 +7,7 @@
 package opensearchutil
 
 import (
+	"math"
 	"math/bits"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -143,7 +144,7 @@ func DefaultShardMap(primaryShards int) ShardMap {
 //	numShards * 2^max(1, 10 - ceil(log2(numShards)))
 //
 // so 32 shards give 1024 and 5 shards give 640. It returns 0 when numShards is
-// not positive.
+// not positive, and when the result would not fit in an int.
 //
 // The derivation holds only for an index that was never resized. A split,
 // shrink or clone keeps or rewrites routing_num_shards, so a value reported by
@@ -159,6 +160,9 @@ func DefaultRoutingNumShards(numShards int) int {
 	// bits.Len(n-1) is ceil(log2(n)) for n >= 1.
 	log2NumShards := bits.Len(uint(numShards - 1))
 	numSplits := max(1, maxDefaultRoutingShardsLog2-log2NumShards)
+	if numShards > math.MaxInt>>numSplits {
+		return 0
+	}
 
 	return numShards << numSplits
 }
