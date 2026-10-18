@@ -36,11 +36,11 @@ func (bi *bulkIndexer) shardTargetOf(index string, shard int) (int64, bool) {
 	return ss.sizer.bytes(), true
 }
 
-// nodeLimitOf returns how many bytes the indexer currently allows open for the
+// windowOf returns how many bytes the indexer currently allows outstanding to the
 // node, and false when it has not seen the node yet.
 //
 //nolint:unparam // The found flag is for tests that may need it.
-func (bi *bulkIndexer) nodeLimitOf(name string) (int64, bool) {
+func (bi *bulkIndexer) windowOf(name string) (int64, bool) {
 	bi.sched.Lock()
 	defer bi.sched.Unlock()
 
@@ -49,7 +49,7 @@ func (bi *bulkIndexer) nodeLimitOf(name string) (int64, bool) {
 		return 0, false
 	}
 
-	return ns.limit.bytes(), true
+	return int64(ns.win.size), true
 }
 
 // waitIdle blocks until every batch that has been sealed has completed, so the
@@ -220,21 +220,24 @@ func (h *sizingHarness) shardTarget(node string) int64 {
 	return 0
 }
 
-func (h *sizingHarness) nodeLimit(node string) int64 {
+// window is how many bytes the indexer allows outstanding to the node.
+func (h *sizingHarness) window(node string) int64 {
 	h.t.Helper()
 
-	limit, _ := h.bi.(*bulkIndexer).nodeLimitOf(node)
+	size, _ := h.bi.(*bulkIndexer).windowOf(node)
 
-	return limit
+	return size
 }
 
-// TestBulkIndexerNodeLimitHalvesOnARejection: a 429 is the node's, so it cuts the
-// limit on what is buffered for the node, and is held there for a few requests. It
-// says nothing about any one shard, so the shard's buffer is not cut.
-func TestBulkIndexerNodeLimitHalvesOnARejection(t *testing.T) {
+// TestBulkIndexerByteWindowIsCutByARejection: a 429 is the node's, so it cuts the
+// bytes the indexer allows outstanding to the node, from what was outstanding when it
+// arrived and not from the window, which started far above that. The cut is held for a
+// few requests. It says nothing about any one shard, so the shard's buffer is not cut.
+func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 200, 1, "n0")
+	bi := h.bi.(*bulkIndexer)
 	var reject atomic.Bool
 	h.server.respond = func(r sentRequest, _ string) (int, string) {
 		if reject.Load() {
@@ -247,7 +250,7 @@ func TestBulkIndexerNodeLimitHalvesOnARejection(t *testing.T) {
 		h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
 	}
 
-	// A healthy node: the shard's buffers and the node's limit both grow.
+	// A healthy node: the shard's buffers grow, and the window stays where it was.
 	sizes := make([]int, 0, 12)
 	for range 12 {
 		sizes = append(sizes, h.round("n0"))
@@ -257,30 +260,32 @@ func TestBulkIndexerNodeLimitHalvesOnARejection(t *testing.T) {
 	}
 	require.Greater(t, sizes[len(sizes)-1], sizes[0])
 
-	limitBefore, shardBefore := h.nodeLimit("n0"), h.shardTarget("n0")
+	windowBefore, shardBefore := h.window("n0"), h.shardTarget("n0")
+	require.GreaterOrEqual(t, windowBefore, int64(bi.window.start), "a healthy node does not shrink the window")
 
 	reject.Store(true)
 	h.round("n0")
 	reject.Store(false)
 
-	limitAfter, shardAfter := h.nodeLimit("n0"), h.shardTarget("n0")
-	require.InDelta(t, float64(limitBefore)/2, float64(limitAfter), float64(h.itemBytes)*2, "a rejection halves the node's limit")
-	require.GreaterOrEqual(t, shardAfter, shardBefore, "and leaves the shard's buffer alone")
+	windowAfter, shardAfter := h.window("n0"), h.shardTarget("n0")
+	require.Equal(t, int64(bi.window.floor), windowAfter,
+		"the window falls to half of the one request that was out, which is under the floor of one full buffer, "+
+			"where half of the window would be %d", windowBefore/2)
+	require.GreaterOrEqual(t, shardAfter, shardBefore, "and the shard's buffer is left alone")
 
-	// The node's limit is held for a few requests before it may grow again.
+	// The window is held for a few requests before it may grow again.
 	for range sizingHoldFlushes {
 		h.round("n0")
-		require.LessOrEqual(t, h.nodeLimit("n0"), limitAfter, "no growth while the hold lasts")
+		require.LessOrEqual(t, h.window("n0"), windowAfter, "no growth while the hold lasts")
 	}
 	h.round("n0")
-	require.Greater(t, h.nodeLimit("n0"), limitAfter, "growth resumes after the hold")
+	require.Greater(t, h.window("n0"), windowAfter, "growth resumes after the hold")
 }
 
 // TestBulkIndexerBacksOffAsANodeSlowsDown is the bulk indexer giving way before
 // anything is rejected: the node only gets slower, as when it is busy with other
 // requests, and its shards' buffers shrink, then grow back when it recovers. The
-// node's limit does not move: it is the ceiling above the buffers, and only a
-// rejection cuts it.
+// node's window does not shrink: only a rejection cuts it.
 func TestBulkIndexerBacksOffAsANodeSlowsDown(t *testing.T) {
 	t.Parallel()
 
@@ -298,23 +303,22 @@ func TestBulkIndexerBacksOffAsANodeSlowsDown(t *testing.T) {
 	for range 80 {
 		h.round("n0")
 	}
-	shardHealthy, limitHealthy := h.shardTarget("n0"), h.nodeLimit("n0")
+	shardHealthy, windowHealthy := h.shardTarget("n0"), h.window("n0")
 	require.Equal(t, int64(h.bi.(*bulkIndexer).sizing.max), shardHealthy, "a healthy shard ends up at the ceiling")
-	require.Equal(t, int64(h.bi.(*bulkIndexer).nodeSizing.max), limitHealthy, "and so does the node's limit")
 
 	setRate(20e6) // Five times slower. Nothing is rejected.
 	for range 6 {
 		h.round("n0")
 	}
 	require.Less(t, h.shardTarget("n0"), shardHealthy/2, "buffers must shrink well before the node rejects anything")
-	require.Equal(t, limitHealthy, h.nodeLimit("n0"), "a slow node is not a rejecting one, so its limit stands")
+	require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "a slow node is not a rejecting one, so its window is not cut")
 
 	setRate(100e6)
 	for range 120 {
 		h.round("n0")
 	}
 	require.Equal(t, shardHealthy, h.shardTarget("n0"), "and grow back when it recovers")
-	require.Equal(t, limitHealthy, h.nodeLimit("n0"))
+	require.GreaterOrEqual(t, h.window("n0"), windowHealthy)
 }
 
 // TestBulkIndexerSlowShardShrinksAlone: a shard that is slow, as a hot one is,
@@ -364,7 +368,7 @@ func TestBulkIndexerSlowShardShrinksAlone(t *testing.T) {
 }
 
 // TestBulkIndexerSizesEachNodeOnItsOwn: a node that rejects does not shrink the
-// limit, or the shards' buffers, of a node that does not.
+// window, or the shards' buffers, of a node that does not.
 func TestBulkIndexerSizesEachNodeOnItsOwn(t *testing.T) {
 	t.Parallel()
 
@@ -388,8 +392,8 @@ func TestBulkIndexerSizesEachNodeOnItsOwn(t *testing.T) {
 	}
 
 	bi := h.bi.(*bulkIndexer)
-	require.Equal(t, int64(bi.nodeSizing.min), h.nodeLimit("n0"), "the node that keeps rejecting is allowed the least")
-	require.Greater(t, h.nodeLimit("n1"), int64(bi.nodeSizing.initial), "the other node is not held back by it")
+	require.Equal(t, int64(bi.window.floor), h.window("n0"), "the node that keeps rejecting is allowed the least")
+	require.GreaterOrEqual(t, h.window("n1"), int64(bi.window.start), "the other node is not held back by it")
 	require.Greater(t, h.shardTarget("n1"), int64(bi.sizing.initial))
 }
 
@@ -421,11 +425,11 @@ func TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode(t *testing.T) {
 		require.GreaterOrEqual(t, sizes[i], sizes[i-1], "conflicts must not shrink the buffers: %v", sizes)
 	}
 	require.Greater(t, sizes[len(sizes)-1], sizes[0])
-	require.Greater(t, h.nodeLimit("n0"), int64(h.bi.(*bulkIndexer).nodeSizing.initial))
+	require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkIndexer).window.start))
 }
 
-// TestBulkIndexerBacksOffWhenARequestFails: a request that does not complete is
-// a milder reason to back off than a rejection, but a reason.
+// TestBulkIndexerBacksOffWhenARequestFails: a request that does not complete cuts
+// the shard's buffer, gently, and leaves the node's window alone: only a 429 cuts that.
 func TestBulkIndexerBacksOffWhenARequestFails(t *testing.T) {
 	t.Parallel()
 
@@ -445,22 +449,16 @@ func TestBulkIndexerBacksOffWhenARequestFails(t *testing.T) {
 	for range 10 {
 		h.round("n0")
 	}
-	shardBefore, limitBefore := h.shardTarget("n0"), h.nodeLimit("n0")
+	shardBefore, windowBefore := h.shardTarget("n0"), h.window("n0")
 
 	fail.Store(true)
 	h.round("n0")
 	fail.Store(false)
 
-	for _, c := range []struct {
-		name          string
-		before, after int64
-	}{
-		{"shard", shardBefore, h.shardTarget("n0")},
-		{"node", limitBefore, h.nodeLimit("n0")},
-	} {
-		require.Less(t, c.after, c.before, c.name)
-		require.Greater(t, c.after, c.before/2, "%s: milder than the halving a rejection gets", c.name)
-	}
+	shardAfter := h.shardTarget("n0")
+	require.Less(t, shardAfter, shardBefore, "the shard's buffer is cut")
+	require.Greater(t, shardAfter, shardBefore/2, "but milder than the halving a rejection gets")
+	require.GreaterOrEqual(t, h.window("n0"), windowBefore, "a failed request is not a 429, so the window is not cut")
 }
 
 // TestBulkIndexerNewShardStartsFromTheNodesBaseline: a shard that starts on a node
@@ -497,7 +495,7 @@ func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
 
 // TestBulkIndexerRejectedRequestsDoNotTeachTheShardController answers every request
 // with a rejection, far faster than the node serves real work, as a node does, and
-// checks that the node's limit is cut and the shard's buffer is left where it was,
+// checks that the node's window is cut and the shard's buffer is left where it was,
 // where a shard controller that took the quick answer for a fast flush would grow it.
 func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
 	t.Parallel()
@@ -543,7 +541,7 @@ func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
 			for range 10 {
 				h.round("n0")
 			}
-			shardBefore, limitBefore := h.shardTarget("n0"), h.nodeLimit("n0")
+			shardBefore, windowBefore := h.shardTarget("n0"), h.window("n0")
 
 			reject.Store(true)
 			rate.Store(uint64(1e9)) // The rejection comes back ten times faster than the work takes.
@@ -553,7 +551,7 @@ func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
 			waitIdle(t, h.bi)
 
 			require.Equal(t, shardBefore, h.shardTarget("n0"), "the shard's buffer is not grown by rejections")
-			require.Less(t, h.nodeLimit("n0"), limitBefore/4, "while the node's limit is cut")
+			require.Less(t, h.window("n0"), windowBefore/4, "while the node's window is cut")
 		})
 	}
 }

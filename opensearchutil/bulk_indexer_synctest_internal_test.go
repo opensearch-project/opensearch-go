@@ -42,23 +42,22 @@ func TestBulkIndexerBacksOffAsANodeSlowsDownInABubble(t *testing.T) {
 		for range 80 {
 			h.round("n0")
 		}
-		shardHealthy, limitHealthy := h.shardTarget("n0"), h.nodeLimit("n0")
+		shardHealthy, windowHealthy := h.shardTarget("n0"), h.window("n0")
 		require.Equal(t, int64(bi.sizing.max), shardHealthy, "a healthy shard ends up at the ceiling")
-		require.Equal(t, int64(bi.nodeSizing.max), limitHealthy, "and so does the node's limit")
 
 		setRate(20e6) // Five times slower. Nothing is rejected.
 		for range 6 {
 			h.round("n0")
 		}
 		require.Less(t, h.shardTarget("n0"), shardHealthy/2, "buffers must shrink well before the node rejects anything")
-		require.Equal(t, limitHealthy, h.nodeLimit("n0"), "a slow node is not a rejecting one, so its limit stands")
+		require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "a slow node is not a rejecting one, so its window is not cut")
 
 		setRate(100e6)
 		for range 120 {
 			h.round("n0")
 		}
 		require.Equal(t, shardHealthy, h.shardTarget("n0"), "and grow back when it recovers")
-		require.Equal(t, limitHealthy, h.nodeLimit("n0"))
+		require.GreaterOrEqual(t, h.window("n0"), windowHealthy)
 
 		// A bubble ends only when every goroutine in it has, so the indexer is closed
 		// here and not left to a cleanup.

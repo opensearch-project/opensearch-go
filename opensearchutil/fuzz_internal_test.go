@@ -235,7 +235,6 @@ func FuzzSizer(f *testing.F) {
 	f.Fuzz(func(t *testing.T, kind uint8, program []byte) {
 		cfg := BulkSizing{Fixed: kind&4 != 0, AIMD: kind&1 != 0}
 		resolved := cfg.resolve(testCeiling)
-		resolved.limit = kind&2 != 0
 		s := newSizer(resolved)
 		start := s.bytes()
 
@@ -248,7 +247,6 @@ func FuzzSizer(f *testing.F) {
 				rejected:   flags&1 != 0,
 				failed:     flags&2 != 0,
 				overloaded: flags&4 != 0,
-				crowded:    flags&8 != 0,
 			})
 
 			require.False(t, math.IsNaN(s.target) || math.IsInf(s.target, 0), "target %v", s.target)

@@ -51,13 +51,14 @@ without being sent to the cluster.
 
 # Batch sizing
 
-Unless told otherwise, the indexer treats FlushBytes as a ceiling and sizes the batches sent to each
-shard by what the node can take: a rejection cuts the size at once, and a node that slows past its
-headroom is given smaller batches before it rejects. A PID controller sets how hard each step is.
-Above the shards' batches sits each node's limit, a ceiling that is learned from rejections alone:
-it grows by a step while the node accepts what it is sent and is cut when the node answers 429.
-[BulkSizing] selects fixed or adaptive sizing, plain additive-increase, multiplicative-decrease
-(AIMD) in place of the PID controller for the batches, and the PID gains.
+Unless told otherwise, the indexer treats FlushBytes as a ceiling and sizes the buffer of each shard
+by how fast the node serves it: a node that slows past its headroom is given smaller batches before
+it rejects anything, by a PID controller. Separately, each node has a window, the number of bytes the
+indexer will have out to it at once, which starts wide open and is cut when the node answers 429: to
+half of what was out when the 429 arrived, and then it grows back slowly. A buffer that would take a
+node past its window waits for the requests out to be answered. [BulkSizing] selects fixed or adaptive
+sizing, plain additive-increase, multiplicative-decrease (AIMD) in place of the PID controller for the
+batches, and the PID gains.
 
 An operator can override those settings without a code change, through environment variables read
 when the indexer is built. A variable that is set and valid wins over the code:

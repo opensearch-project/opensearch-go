@@ -485,37 +485,6 @@ func TestDefaultMaxMemoryBytesCoversAGp3Volume(t *testing.T) {
 	require.Greater(t, need, 100*wire)
 }
 
-func TestDefaultNodeBytes(t *testing.T) {
-	t.Parallel()
-
-	const memory, flush = 300 << 20, 5 << 20
-
-	tests := []struct {
-		name  string
-		nodes int
-		want  int
-	}{
-		{name: "no node known: the whole job", nodes: 0, want: memory},
-		{name: "one node: the whole job", nodes: 1, want: memory},
-		{name: "three nodes: a third each", nodes: 3, want: memory / 3},
-		{name: "never less than a full shard buffer", nodes: 1000, want: flush},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			names := make([]string, tt.nodes)
-			for i := range names {
-				names[i] = fmt.Sprint("n", i)
-			}
-
-			cfg := BulkIndexerConfig{MaxMemoryBytes: memory, FlushBytes: flush}
-			require.Equal(t, tt.want, defaultNodeBytes(cfg, newFakeCluster(nil, names...)))
-		})
-	}
-}
-
 // TestBulkIndexerNumWorkersCapsRequests: NumWorkers is a cap and not a default
 // concurrency; at 1 requests go one at a time even to a node that would take many.
 func TestBulkIndexerNumWorkersCapsRequests(t *testing.T) {

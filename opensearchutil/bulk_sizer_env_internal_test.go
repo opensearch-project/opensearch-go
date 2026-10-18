@@ -182,39 +182,39 @@ func TestSizerAIMDHoldsAfterARejection(t *testing.T) {
 	require.Greater(t, s.bytes(), cut, "growth resumes after the hold")
 }
 
-func TestBulkIndexerEnvFixedModeFixesTheNodeLimit(t *testing.T) {
-	t.Setenv(envvars.BulkMode, "fixed")
+func TestBulkIndexerByteWindowStart(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		// nodeBytes is NodeBytes in the config, 0 for unset.
+		nodeBytes int
+		// wantCeiling is where the window starts and the most it grows to, wantFixed
+		// whether it can move.
+		wantCeiling float64
+		wantFixed   bool
+	}{
+		{name: "an unset NodeBytes leaves the window as wide as the job", wantCeiling: 64 << 20},
+		{name: "NodeBytes caps the window", nodeBytes: 8 << 20, wantCeiling: 8 << 20},
+		{name: "NodeBytes is held to the job", nodeBytes: 1 << 40, wantCeiling: 64 << 20},
+		{
+			name: "fixed mode holds the window where it started", env: map[string]string{envvars.BulkMode: "fixed"},
+			nodeBytes: 8 << 20, wantCeiling: 8 << 20, wantFixed: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for name, value := range tt.env {
+				t.Setenv(name, value)
+			}
 
-	bi := newSizingHarness(t, 400, 1, "n0").bi.(*bulkIndexer)
+			cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
+			bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
+				NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, NodeBytes: tt.nodeBytes, FlushInterval: time.Hour,
+			}).(*bulkIndexer)
 
-	require.True(t, bi.sizing.fixed)
-	require.True(t, bi.nodeSizing.fixed)
-	require.Less(t, bi.config.NodeBytes, bi.config.MaxMemoryBytes, "the share must differ from the whole job for this test to tell")
-	share := float64(bi.config.NodeBytes)
-	require.Equal(t, [3]float64{share, share, share},
-		[3]float64{bi.nodeSizing.min, bi.nodeSizing.initial, bi.nodeSizing.max},
-		"a fixed node limit is the even share, not the whole job")
-}
-
-func TestBulkIndexerNodeLimitStartsWideOpen(t *testing.T) {
-	t.Parallel()
-
-	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
-	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
-		NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, FlushInterval: time.Hour,
-	}).(*bulkIndexer)
-
-	require.InDelta(t, float64(64<<20), bi.nodeSizing.initial, 0, "an unset NodeBytes starts the limit at the whole job")
-	require.Less(t, bi.config.NodeBytes, bi.config.MaxMemoryBytes, "while the even share is still what a fixed limit uses")
-}
-
-func TestBulkIndexerNodeLimitStartsWhereTheCallerSays(t *testing.T) {
-	t.Parallel()
-
-	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
-	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
-		NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, NodeBytes: 8 << 20, FlushInterval: time.Hour,
-	}).(*bulkIndexer)
-
-	require.InDelta(t, float64(8<<20), bi.nodeSizing.initial, 0)
+			require.InDelta(t, tt.wantCeiling, bi.window.start, 0, "it starts wide open")
+			require.InDelta(t, tt.wantCeiling, bi.window.ceiling, 0)
+			require.Equal(t, tt.wantFixed, bi.window.fixed)
+		})
+	}
 }

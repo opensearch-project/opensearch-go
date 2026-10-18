@@ -302,13 +302,11 @@ type BulkIndexerConfig struct {
 	// off.
 	ShardRouter ShardRouter
 
-	// Sizing tunes how the size of a shard's buffer follows how quickly the shard's
-	// requests are served. A node's limit, the ceiling above its shards' buffers,
-	// is not tuned by it but by what the node rejects: it grows by a step while the
-	// node accepts what it is sent and is cut when the node answers 429. The byte
-	// fields (MinBytes, InitialBytes, StepBytes) apply to shard buffers; a node's
-	// limit takes its own from MaxNodeBytes. The zero value selects defaults
-	// derived from FlushBytes.
+	// Sizing tunes how a shard's buffer follows how quickly the shard's requests
+	// are served, and how a node's window of bytes out at once answers a 429. The
+	// byte fields (MinBytes, InitialBytes, StepBytes) apply to shard buffers; the
+	// window is bounded by NodeBytes. The zero value selects defaults derived from
+	// FlushBytes.
 	//
 	// The OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and
 	// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD environment variables override the
@@ -336,20 +334,17 @@ type BulkIndexerConfig struct {
 	// BlockedAddDuration, and by OnAddBlocked.
 	MaxMemoryBytes int
 
-	// NodeBytes is where a node's limit on the job's memory, for documents bound
-	// for it in open shard buffers, starts. It is a starting point, and not a limit
-	// or a floor. Left unset, a node starts wide open, with the whole of
-	// MaxMemoryBytes, and a 429 from the node cuts the limit until it settles where
-	// the server accepts what it is sent; the limit then climbs again by a step per
-	// request the node accepts, so it keeps learning if the node's capacity
-	// changes. Set it to start a node lower. The other nodes can take a node
-	// back down to its even share of MaxMemoryBytes but not below it, and a node
-	// that rejects a request or is given more than it takes is allowed less than
-	// that, though never less than one shard buffer, FlushBytes. When the open
-	// buffers for a node outgrow what it is allowed, its fullest is sent; an item
-	// that crosses the line is still accepted. With BulkSizing.Fixed a node's limit
-	// is NodeBytes, which defaults to MaxMemoryBytes divided among the nodes the
-	// router knows, and at least FlushBytes.
+	// NodeBytes is the most bytes the indexer will have out to one node at once, in
+	// requests that have been sent and not yet answered, and the window it starts at.
+	// Left unset it is MaxMemoryBytes: wide open, so that it is a 429 that teaches the
+	// indexer where the node's limit is. A 429 cuts the window below it, to half of
+	// what was out when the 429 arrived, and it grows back slowly; set NodeBytes to
+	// keep a node under a figure of your own whatever it accepts. A sealed buffer that
+	// would take the node past its window waits, still counting against
+	// MaxMemoryBytes, until the requests out are answered; when nothing is out, one
+	// is sent whatever its size. With BulkSizing.Fixed the window stays at NodeBytes.
+	// It does not change the size of any buffer, and it is separate from the number of
+	// requests out at once, which the client's transport limits.
 	NodeBytes int
 }
 
@@ -408,11 +403,12 @@ type BulkIndexerStats struct {
 	// NumNodes is the number of nodes the indexer has written to. The three readings
 	// below are taken across them.
 	NumNodes uint64
-	// NodeLimit is how far the indexer holds back its writes to a node, from 0 to 1: 1
-	// while the node takes what it is sent, falling when it rejects writes and rising
-	// again as it takes them. A node that is merely slow does not move it; Slowdown and
-	// BufferSize show that. Before any node has been used every field is 1.
-	NodeLimit NodeSpread
+	// NodeWindow is how many bytes the indexer will have out to a node at once, as a
+	// fraction of the most it would allow (NodeBytes): 1 while the node takes what it
+	// is sent, cut to half of what was out each time it answers 429, and rising slowly
+	// as it takes writes again. A node that is merely slow does not move it; Slowdown
+	// and BufferSize show that. Before any node has been used every field is 1.
+	NodeWindow NodeSpread
 	// BufferSize is how large the indexer's buffers for a node are, as a fraction of
 	// FlushBytes, averaged over the node's shards and smoothed over its last few
 	// requests. The indexer makes them smaller as a node serves its requests more
@@ -630,8 +626,10 @@ type bulkIndexer struct {
 	sched *scheduler
 	// router maps documents to shards and nodes; never nil.
 	router ShardRouter
-	// sizing sizes a shard's buffers, and nodeSizing a node's limit.
-	sizing, nodeSizing resolvedSizing
+	// sizing sizes a shard's buffers, and window is what each node's byte window
+	// starts from.
+	sizing resolvedSizing
+	window windowConfig
 	// slots, when the config caps NumWorkers, holds a token for each request that
 	// is out.
 	slots chan struct{}
@@ -713,9 +711,9 @@ type bulkIndexerStats struct {
 
 	numRejections atomic.Uint64
 	numNodes      atomic.Uint64
-	// nodeLimit, bufferSize and slowdown are the spreads across the nodes that the
+	// nodeWindow, bufferSize and slowdown are the spreads across the nodes that the
 	// scheduler publishes whenever a request completes.
-	nodeLimit, bufferSize, slowdown spreadBits
+	nodeWindow, bufferSize, slowdown spreadBits
 }
 
 // NewBulkIndexer creates a new bulk indexer.
@@ -753,51 +751,29 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		cfg.MaxMemoryBytes = int(min(defaultMemoryLimit(), math.MaxInt))
 	}
 
-	// A node's limit starts wide open, at the whole job, unless the caller chose
-	// where it starts. Rejections teach it where the server's limit is.
-	nodeBytesChosen := cfg.NodeBytes != 0
-	if !nodeBytesChosen {
-		cfg.NodeBytes = defaultNodeBytes(cfg, router)
+	// A node's byte window starts wide open, at the whole job's memory, unless the
+	// caller capped it with NodeBytes. Rejections teach it where the server's limit is.
+	sizing := cfg.Sizing.resolve(cfg.FlushBytes)
+	window := windowConfig{
+		start:   float64(cfg.MaxMemoryBytes),
+		ceiling: float64(cfg.MaxMemoryBytes),
+		floor:   float64(cfg.FlushBytes),
+		unit:    float64(cfg.FlushBytes),
+		backoff: sizing.backoff,
+		fixed:   sizing.fixed,
 	}
-
-	// A node's limit is the ceiling above its shards' buffers. It is steered by
-	// additive increase and multiplicative decrease on what the node rejects, over
-	// the node's requests as a whole, and not by how fast the node is: that is left
-	// to the shards' buffers beneath it. It starts at the node's even share, never
-	// goes below one full shard buffer, and is bounded above by the job's memory.
-	nodeSizing := BulkSizing{
-		Fixed:        cfg.Sizing.Fixed,
-		AIMD:         cfg.Sizing.AIMD,
-		Headroom:     cfg.Sizing.Headroom,
-		Backoff:      cfg.Sizing.Backoff,
-		Kp:           cfg.Sizing.Kp,
-		Ki:           cfg.Sizing.Ki,
-		Kd:           cfg.Sizing.Kd,
-		MinBytes:     cfg.FlushBytes,
-		InitialBytes: cfg.MaxMemoryBytes,
+	if cfg.NodeBytes > 0 {
+		window.ceiling = float64(min(cfg.NodeBytes, cfg.MaxMemoryBytes))
+		window.start = window.ceiling
 	}
-	if nodeBytesChosen {
-		nodeSizing.InitialBytes = min(cfg.NodeBytes, cfg.MaxMemoryBytes)
-	}
-
-	nodeResolved := nodeSizing.resolve(cfg.MaxMemoryBytes)
-	nodeResolved.limit = true
-	if nodeResolved.fixed {
-		// A fixed node limit is the even share, not the whole job.
-		share := float64(min(cfg.NodeBytes, cfg.MaxMemoryBytes))
-		nodeResolved.min, nodeResolved.initial, nodeResolved.max = share, share, share
-	}
-	// Any request that fills a quarter of a shard buffer says as much about a node
-	// as it can.
-	nodeResolved.sampleFloor = float64(cfg.FlushBytes) * sizingMinSampleFraction
 
 	bi := bulkIndexer{
 		config:           cfg,
 		stats:            &bulkIndexerStats{},
 		router:           router,
 		now:              time.Now,
-		sizing:           cfg.Sizing.resolve(cfg.FlushBytes),
-		nodeSizing:       nodeResolved,
+		sizing:           sizing,
+		window:           window,
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
 		implicitClient:   implicitClient,
 		metaPool:         sync.Pool{New: newMetaEncoder},
@@ -852,14 +828,6 @@ func defaultMemoryLimit() int64 {
 	}
 
 	return DefaultMaxMemoryBytes
-}
-
-// defaultNodeBytes divides the job's memory among the nodes the router knows, so
-// that one node cannot hold all of it. It is never less than a full shard buffer.
-func defaultNodeBytes(cfg BulkIndexerConfig, router ShardRouter) int {
-	nodes := max(len(router.WriteNodes()), 1)
-
-	return max(cfg.MaxMemoryBytes/nodes, cfg.FlushBytes)
 }
 
 // Add adds an item to the indexer.
@@ -1341,7 +1309,7 @@ func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 		MaxMemoryBytes: uint64(max(bi.config.MaxMemoryBytes, 0)),
 		NumRejections:  bi.stats.numRejections.Load(),
 		NumNodes:       bi.stats.numNodes.Load(),
-		NodeLimit:      bi.stats.nodeLimit.load(),
+		NodeWindow:     bi.stats.nodeWindow.load(),
 		BufferSize:     bi.stats.bufferSize.load(),
 		Slowdown:       bi.stats.slowdown.load(),
 	}
@@ -1381,7 +1349,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 	}
 
 	wideOpen := NodeSpread{Min: 1, Median: 1, Mean: 1, Max: 1}
-	bi.stats.nodeLimit.store(wideOpen)
+	bi.stats.nodeWindow.store(wideOpen)
 	initial := bi.sizing.initial / bi.sizing.max
 	bi.stats.bufferSize.store(NodeSpread{Min: initial, Median: initial, Mean: initial, Max: initial})
 

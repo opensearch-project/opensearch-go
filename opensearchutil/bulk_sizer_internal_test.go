@@ -327,149 +327,11 @@ func TestSizerStaysInBounds(t *testing.T) {
 	}
 }
 
-// TestSizerCrowdedCutsGently: a node that is given more than it takes is told so
-// with a cut well short of a rejection's, and keeps being told while it stays so.
-func TestSizerCrowdedCutsGently(t *testing.T) {
-	t.Parallel()
-
-	crowded, rejected := newTestSizer(BulkSizing{}), newTestSizer(BulkSizing{})
-	for range 40 {
-		crowded.observe(flushOf(crowded.bytes(), 100e6))
-		rejected.observe(flushOf(rejected.bytes(), 100e6))
-	}
-	require.EqualValues(t, testCeiling, crowded.bytes())
-
-	crowded.observe(flushSample{bytes: 1 << 20, crowded: true})
-	rejected.observe(flushSample{bytes: 1 << 20, rejected: true})
-
-	want := float64(testCeiling) * math.Pow(0.5, sizingCrowdedExponent)
-	require.InDelta(t, want, float64(crowded.bytes()), 2)
-	require.Greater(t, crowded.bytes(), rejected.bytes(), "milder than a rejection")
-	require.Less(t, crowded.bytes(), int64(testCeiling))
-
-	before := crowded.bytes()
-	crowded.observe(flushSample{bytes: 1 << 20, crowded: true})
-	require.Less(t, crowded.bytes(), before, "and again while it stays crowded")
-
-	for range 200 {
-		crowded.observe(flushSample{bytes: 1 << 20, crowded: true})
-	}
-	require.EqualValues(t, testCeiling/32, crowded.bytes(), "but never below the floor")
-}
-
-// newTestLimit is the sizer of a node's limit: it starts at the initial size and
-// is steered by rejections alone.
-func newTestLimit() *sizer {
-	r := BulkSizing{}.resolve(testCeiling)
-	r.limit = true
-
-	return newSizer(r)
-}
-
-func TestLimitIgnoresHowSlowTheNodeIs(t *testing.T) {
-	t.Parallel()
-
-	s := newTestLimit()
-	step := int64(s.cfg.step)
-
-	// A node five times slower than its best would cut a shard buffer. It does not
-	// cut the limit, which grows by a step per flush the node did not reject.
-	s.observe(flushOf(s.bytes(), 100e6))
-	for range 5 {
-		before := s.bytes()
-		s.observe(flushOf(s.bytes(), 20e6))
-		require.Equal(t, before+step, s.bytes())
-	}
-}
-
-func TestLimitGrowsByAFixedStepUpToTheCeiling(t *testing.T) {
-	t.Parallel()
-
-	s := newTestLimit()
-	step := int64(s.cfg.step)
-
-	before := s.bytes()
-	s.observe(flushOf(s.bytes(), 100e6))
-	require.Equal(t, before+step, s.bytes())
-
-	for range 100 {
-		s.observe(flushOf(s.bytes(), 100e6))
-	}
-	require.EqualValues(t, testCeiling, s.bytes())
-}
-
-func TestLimitHalvesOnARejectionAndHolds(t *testing.T) {
-	t.Parallel()
-
-	s := newTestLimit()
-	for range 100 {
-		s.observe(flushOf(s.bytes(), 100e6))
-	}
-
-	s.observe(rejectedFlush())
-	cut := s.bytes()
-	require.EqualValues(t, testCeiling/2, cut)
-
-	for range sizingHoldFlushes {
-		s.observe(flushOf(s.bytes(), 100e6))
-		require.Equal(t, cut, s.bytes(), "no growth while the hold lasts")
-	}
-	s.observe(flushOf(s.bytes(), 100e6))
-	require.Greater(t, s.bytes(), cut, "growth resumes after the hold")
-}
-
-func TestLimitHoldsOnAnOverloadedPool(t *testing.T) {
-	t.Parallel()
-
-	s := newTestLimit()
-	before := s.bytes()
-
-	f := flushOf(s.bytes(), 100e6)
-	f.overloaded = true
-	s.observe(f)
-	require.Equal(t, before, s.bytes())
-}
-
-func TestLimitStillGivesWayWhenCrowdedOrFailed(t *testing.T) {
-	t.Parallel()
-
-	s := newTestLimit()
-	for range 100 {
-		s.observe(flushOf(s.bytes(), 100e6))
-	}
-	full := s.bytes()
-
-	f := flushOf(s.bytes(), 100e6)
-	f.crowded = true
-	s.observe(f)
-	require.Less(t, s.bytes(), full, "a crowded node is told so")
-
-	s.observe(flushSample{bytes: 1 << 20, failed: true})
-	require.Less(t, s.bytes(), full)
-}
-
-func TestLimitLearnsTheNodesBestRate(t *testing.T) {
-	t.Parallel()
-
-	s := newTestLimit()
-	require.Zero(t, s.baseRate)
-
-	s.observe(flushOf(s.bytes(), 100e6))
-	best := s.baseRate
-	require.Positive(t, best)
-
-	s.observe(flushOf(s.bytes(), 20e6))
-	require.Greater(t, s.baseRate, best*0.99, "a slow flush does not lower the best rate, which only fades slowly")
-
-	s.observe(flushSample{bytes: 1 << 20, rejected: true})
-	require.Greater(t, s.baseRate, best*0.99, "a rejection says nothing about the rate")
-}
-
 func TestSizerSeededFromTheNodeSeesASlowNodeOnItsFirstFlush(t *testing.T) {
 	t.Parallel()
 
-	node := newTestLimit()
-	node.observe(flushOf(node.bytes(), 100e6))
+	node := rateTracker{floor: 1}
+	node.learn(flushOf(testCeiling/4, 100e6))
 
 	fresh := newTestSizer(BulkSizing{})
 	start := fresh.bytes()
@@ -477,7 +339,7 @@ func TestSizerSeededFromTheNodeSeesASlowNodeOnItsFirstFlush(t *testing.T) {
 	require.Greater(t, fresh.bytes(), start, "unseeded, a first flush is the best the node has done")
 
 	seeded := newTestSizer(BulkSizing{})
-	seeded.seed(node.baseRate)
+	seeded.seed(node.base)
 	seeded.observe(flushOf(seeded.bytes(), 20e6))
 	require.Less(t, seeded.bytes(), start, "seeded, the same flush is a node that has slowed down")
 }

@@ -157,164 +157,68 @@ func TestBulkIndexerJobLimitSendsTheFullestShardFirst(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 }
 
-// nodeLimitFixture is an indexer whose one node may have six documents open, with
-// the four shards of "idx" all on it, and a shard buffer that no test below fills
-// by size.
-//
-//nolint:unparam // The held size is what some tests would compute from.
-func nodeLimitFixture(t *testing.T) (BulkIndexer, *fakeServer, *fakeCluster, int64) {
-	t.Helper()
-
-	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(4)}, "n0")
-	cluster.setWindow(8, false)
-	server := newFakeServer(cluster)
+// TestBulkIndexerByteWindowHoldsBackWhatDoesNotFit: a node is sent only as many bytes
+// as its window allows to be outstanding at once. A buffer that does not fit waits,
+// sealed, until the requests out have been answered, and then goes; one that is the only
+// request out is sent whatever its size.
+func TestBulkIndexerByteWindowHoldsBackWhatDoesNotFit(t *testing.T) {
+	t.Parallel()
 
 	one := BulkIndexerItem{Action: actionIndex, Index: "idx", DocumentID: "doc-00000", Body: seqBody(1000)}
-	held := estimateItemBytes(one) + itemStructBytes
-
-	// A shard buffer may be 3 documents' worth of request body, the least a node's
-	// limit can come to.
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
-		FlushBytes:    int(held) * 3,
-		NodeBytes:     int(held) * 6,
-		FlushInterval: time.Hour,
-		// Shard buffers start at their ceiling, so only the node's limit seals them.
-		Sizing: BulkSizing{InitialBytes: int(held) * 3},
-	})
-
-	return bi, server, cluster, held
-}
-
-// TestBulkIndexerShardsShareTheirNodesLimit: the shards being filled for a node
-// divide what the node may have open among them, so together they stay inside it
-// instead of each filling alone. A buffer is sent no later than when it holds its
-// slice, which is the limit over the shards open at the time; as shards are sent
-// the rest are allowed more.
-func TestBulkIndexerShardsShareTheirNodesLimit(t *testing.T) {
-	t.Parallel()
-
-	bi, server, cluster, _ := nodeLimitFixture(t)
-	indexer := bi.(*bulkIndexer)
-
-	ids := map[int][]string{}
-	for shard := 1; shard <= 3; shard++ {
-		ids[shard] = idsOnShard(t, cluster, "idx", shard, 3)
-	}
-
-	seq := 0
-	step := func(shard, doc int) {
-		seq++
-		addDoc(t, bi, "idx", ids[shard][doc], 1000+seq)
-
-		indexer.sched.Lock()
-		defer indexer.sched.Unlock()
-		ns := indexer.sched.nodes["n0"]
-		require.LessOrEqual(t, ns.openHeld.Load(), indexer.sched.nodeLimit(ns),
-			"the open buffers together must stay inside the node's limit after shard %d doc %d", shard, doc)
-	}
-
-	// One document each opens three buffers. The node may have six open, so each
-	// buffer's slice is a third of that: two documents.
-	for shard := 1; shard <= 3; shard++ {
-		step(shard, 0)
-	}
-	require.Empty(t, server.requests())
-
-	step(1, 1) // Shard 1 holds its slice, two documents, and is sent.
-	require.Eventually(t, func() bool { return len(server.requests()) == 1 }, 10*time.Second, time.Millisecond)
-	require.Len(t, server.requests()[0].actions, 2)
-
-	// Two shards are open now, so each may hold three.
-	step(2, 1)
-	step(3, 1)
-	require.Len(t, server.requests(), 1, "two documents is under a slice of three")
-	step(2, 2) // Shard 2 holds three.
-	require.Eventually(t, func() bool { return len(server.requests()) == 2 }, 10*time.Second, time.Millisecond)
-
-	byShard := map[int]int{}
-	for _, r := range server.requests() {
-		for key := range r.shards {
-			byShard[key.shard] = len(r.actions)
-		}
-	}
-	require.Equal(t, map[int]int{1: 2, 2: 3}, byShard, "alone, a shard's buffer would have held many more")
-
-	require.NoError(t, bi.Close(t.Context()))
-	require.Len(t, server.requests(), 3)
-}
-
-// TestBulkIndexerNodeLimitSendsThatNodesFullestBuffer is the backstop behind the
-// slices: buffers started when fewer shards were open were sized for a larger
-// slice, and together with the shards that have opened since they can outgrow the
-// node's limit. The fullest is sent, the item that crossed the line was accepted,
-// and the node is told it was crowded, so its limit comes down.
-func TestBulkIndexerNodeLimitSendsThatNodesFullestBuffer(t *testing.T) {
-	t.Parallel()
-
-	bi, server, cluster, _ := nodeLimitFixture(t)
-	indexer := bi.(*bulkIndexer)
-
-	seq := 0
-	add := func(shard, n int) {
-		for _, id := range idsOnShard(t, cluster, "idx", shard, n) {
-			seq++
-			addDoc(t, bi, "idx", id, 1000+seq)
-		}
-	}
-
-	add(0, 4) // Alone, so its slice is the whole limit: it may hold more than a third.
-	add(1, 1)
-	add(2, 1)
-	require.Empty(t, server.requests(), "6 documents open is at the limit, not over it")
-
-	before := func() int64 { n, _ := indexer.nodeLimitOf("n0"); return n }()
-
-	add(3, 1) // 7 open: over.
-
-	require.Eventually(t, func() bool { return len(server.requests()) >= 1 }, 10*time.Second, time.Millisecond)
-	sent := server.requests()
-	require.Len(t, sent, 1, "one buffer was enough to bring the node back under its limit")
-	require.Contains(t, sent[0].shards, shardKey{index: "idx", shard: 0}, "the fullest of the node's buffers")
-	require.Len(t, sent[0].actions, 4)
-
-	waitIdle(t, bi)
-	after, _ := indexer.nodeLimitOf("n0")
-	require.Less(t, after, before, "a node that was given more than it allows is allowed less")
-	require.Greater(t, after, before/2, "gently")
-
-	require.NoError(t, bi.Close(t.Context()))
-	require.Len(t, server.requests(), 4, "and the rest went when Close asked")
-}
-
-// TestNodeLimitFor pins the arithmetic of a node's limit.
-func TestNodeLimitFor(t *testing.T) {
-	t.Parallel()
-
-	const (
-		job   = 900
-		shard = 50
-	)
+	size := estimateItemBytes(one)
 
 	tests := []struct {
 		name string
-		// fair is the node's even share of the nodes in use.
-		fair, control, others int64
-		want                  int64
+		// windowBuffers is the window, in buffers of three documents.
+		windowBuffers float64
+		// wantOut is how many of the two sealed buffers are sent at once.
+		wantOut int
 	}{
-		{name: "the node's controller, when nothing else limits it", fair: 300, control: 400, others: 0, want: 400},
-		{name: "a node fixed on alone may have the whole job", fair: 900, control: job, others: 0, want: job},
-		{name: "never more than the other nodes leave", fair: 300, control: job, others: 500, want: 400},
-		{name: "others cannot squeeze it below its even share", fair: 300, control: job, others: 850, want: 300},
-		{name: "its own signals can take it below its even share", fair: 300, control: 120, others: 0, want: 120},
-		{name: "nothing takes it below one shard buffer", fair: 300, control: 10, others: 0, want: shard},
-		{name: "a node short on everything still gets one shard buffer", fair: 20, control: job, others: 900, want: shard},
+		{name: "room for both", windowBuffers: 2, wantOut: 2},
+		{name: "room for one and a half, so only one", windowBuffers: 1.5, wantOut: 1},
+		{name: "less than one buffer, so one still goes", windowBuffers: 0.5, wantOut: 1},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			require.Equal(t, tt.want, nodeLimitFor(job, shard, tt.fair, tt.control, tt.others))
+			cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0")
+			cluster.setWindow(8, false) // The transport allows eight requests; only the byte window holds this back.
+			server := newFakeServer(cluster)
+			server.gate = make(chan struct{})
+			server.entered = make(chan string, 8)
+
+			bi := newClusterIndexer(t, server, BulkIndexerConfig{
+				FlushBytes:    int(size) * 3,
+				NodeBytes:     int(float64(size) * 3 * tt.windowBuffers),
+				FlushInterval: time.Hour,
+				Sizing:        BulkSizing{InitialBytes: int(size) * 3},
+			})
+			indexer := bi.(*bulkIndexer)
+
+			seq := 0
+			for shard := range 2 {
+				for _, id := range idsOnShard(t, cluster, "idx", shard, 3) {
+					seq++
+					addDoc(t, bi, "idx", id, 1000+seq)
+				}
+			}
+
+			// Both buffers are sealed by size. Wait for the ones that may go.
+			for range tt.wantOut {
+				receive(t, server.entered)
+			}
+			require.Eventually(t, func() bool {
+				indexer.sched.Lock()
+				defer indexer.sched.Unlock()
+				ns := indexer.sched.nodes["n0"]
+
+				return ns.inflight == tt.wantOut && ns.queued == 2-tt.wantOut
+			}, 10*time.Second, time.Millisecond, "requests out, and buffers held back")
+
+			close(server.gate)
+			require.NoError(t, bi.Close(t.Context()))
+			require.Len(t, server.requests(), 2, "what was held back is sent once the window has room")
 		})
 	}
 }

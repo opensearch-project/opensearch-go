@@ -38,15 +38,15 @@ Creating an indexer per job throws away what the controllers learned about the n
 | **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. It reaches a final state exactly once: `OnSuccess` or `OnFailure`. |
 | **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
-| **Node limit** | How many bytes may be buffered for a node, across all the shard buffers it hosts. It bounds memory and is the indexer's answer to a node that rejects writes. |
-| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-limit controller_ sets the node limit from the node's 429 responses (AIMD). See [Sizing batches](#sizing-batches). |
+| **Node window** | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it. |
+| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ sets the node window from the node's 429 responses (AIMD). See [Sizing batches](#sizing-batches). |
 | **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items). |
 
 The indexer owns them in this shape:
 
 ```
 BulkIndexer
-├── node A                  node limit: bytes buffered for the node         (AIMD on 429s)
+├── node A                  node window: bytes out to the node at once      (AIMD on 429s)
 │   ├── shard 0 buffer      sent when full; one request in flight per shard (PID on latency, or fixed)
 │   └── shard 3 buffer
 ├── node B
@@ -57,7 +57,7 @@ BulkIndexer
 An item travels through it like this:
 
 1. `Add` places the item in the buffer for its shard. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory frees up.
-2. A buffer is sent as one bulk request, to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` passes, or when you call `Flush` or `Close`.
+2. A buffer is sent as one bulk request, to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` passes, or when you call `Flush` or `Close`. If sending it would put more bytes out to that node than its window allows, it waits, still counted against `MaxMemoryBytes`, until requests come back.
 3. The response is read **item by item**. A bulk request is not all-or-nothing: a `200` can carry items the cluster rejected, and that is partial success, not an error. An item the cluster accepted gets `OnSuccess`.
 4. An item that was rejected, or whose whole request failed, is classified by scope and kind (see [Retrying failed items](#retrying-failed-items)). With a retry policy that asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnFailure`. See [Three kinds of failure](#three-kinds-of-failure) for how to read its arguments.
 5. Every completed request also teaches the controllers: the latency of the request feeds the shard's controller, and a 429 feeds the node's.
@@ -259,7 +259,12 @@ What makes this safe is that the flush comes first and the position is read afte
 
 ## Sizing batches
 
-By default the indexer does not send every buffer at `FlushBytes`. It treats `FlushBytes` as a ceiling and steers the size of the batches sent for each shard, and the limit on what is buffered for each node, by what the node can take. `BulkIndexerConfig.Sizing` tunes this; the zero value selects defaults derived from `FlushBytes`.
+By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` is the most a shard's buffer collects, and two controllers work beneath it, each on one thing and each from one signal. `BulkIndexerConfig.Sizing` tunes them; the zero value selects defaults derived from `FlushBytes`.
+
+| | Controls | From | Answers |
+| --- | --- | --- | --- |
+| **Shard-buffer controller** (PID on latency) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests | a node that is slowing down: smaller buffers, before it rejects anything |
+| **Node-window controller** (AIMD on 429s) | how many bytes of requests may be out to a node at once | whether the node answered a request with a 429 | a node that is full: less in flight, then a slow climb back |
 
 ### Why it is adaptive
 
@@ -270,14 +275,32 @@ A single indexer cannot know how much a cluster can take. The cluster is shared 
 
 Together they aim to keep a node busy without queueing it into rejections, and since every client in the fleet makes the same adjustments from the same signals, the load they add together stays near what the cluster can take.
 
-Two controllers work at two levels. A **shard's buffer** follows how quickly that shard's requests are served, with the PID controller below. A **node's limit**, the ceiling above the buffers of the shards it hosts, is learned from rejections alone and ignores how fast the node is. Two signals steer a shard's buffer:
+#### The shard-buffer controller
 
-- **A rejection** (a 429 from the node's write thread pool) cuts the size by `Backoff` at once, and holds it there for a few flushes. A request that fails for another reason cuts it by the square root of `Backoff`.
-- **The node's service rate**, in bytes sent per second of time on the node (the round trip less the network distance), is compared with the best rate seen recently. While the rate stays within `Headroom` of that best, the size grows by `StepBytes` per flush. When the node slows by more than that, the size is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
+It reads, for each request that the node answered, the service rate: bytes sent per second of time on the node, which is the round trip less the network distance. It compares that with the best rate seen recently.
+
+- While the rate stays within `Headroom` of that best, the buffer grows by `StepBytes` per flush.
+- When the node slows by more than that, the buffer is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
+- A request that fails without an answer cuts the buffer by the square root of `Backoff` and holds it there for a few flushes.
+- A request the node rejected is not read at all. A node answers a rejection at once, because it did no work, and a controller that took that for a fast flush would grow the buffer while the node says it is full.
 
 How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). If you have not met a PID controller before, [How the PID controller works](#how-the-pid-controller-works) explains it.
 
-The node's limit starts wide open, with the whole of the job's memory unless you set `NodeBytes` to start it lower, and the other nodes can only take it back down to its even share. A rejection cuts it by `Backoff` and holds it there for a few flushes, after which it grows again by a step per flush the node accepted, up to what the other nodes leave of the job. It does not remember where the last rejection was: a 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the limit keeps probing and settles into a sawtooth around whatever the server accepts now. A request that fails for another reason cuts it by the square root of `Backoff`, and it is also cut gently when more was buffered for the node than it was allowed. It never goes below one full shard buffer. So a node that slows down without rejecting gets smaller buffers from its shards and keeps its limit, and a node that rejects has the memory held for it cut, whatever its speed.
+#### The node-window controller
+
+The window is a number of bytes: the sum of the sizes of the requests the indexer has sent to a node and not yet had answered. A sealed buffer that would take the node past the window waits for requests to come back, and goes when it fits. When nothing is out to the node, one buffer is sent whatever its size, so a node is never starved. A waiting buffer still counts against `MaxMemoryBytes`, which is what makes `Add` wait. The window is about how much is in flight, not about how large any buffer is, and it is separate from how many requests are out at once, which the client's transport limits.
+
+The only signal is a 429: an answer in which the node rejected the request, or any item in it.
+
+- **It starts wide open**, at `MaxMemoryBytes`, or at `NodeBytes` if you set one.
+- **A 429 halves what was out.** The window becomes `Backoff` (half) times the smaller of itself and the bytes that were out to the node when the answer arrived, the rejected request's among them. Cutting from what was out, and not from the window, makes the first 429 count: a window that starts at the whole job's memory is far above what is ever out, and half of it would change nothing. Rejections of requests that were sent before the cut are the same event and do not cut it again. It never falls below one full buffer.
+- **It grows back slowly.** The window grows by one `FlushBytes` for each window's worth of bytes the node answers, after a hold of a few answers, and not while the node's write pool is overloaded. A window that was cut recovers over many requests, and one that has not been cut barely moves.
+- **It does not remember where the last 429 was.** A 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the window keeps probing and settles into a sawtooth around whatever the server accepts now.
+- **A request that fails with no answer is not a 429**, and does not cut it.
+
+So a node that slows down without rejecting gets smaller buffers and keeps its window, and a node that rejects has less in flight, whatever its speed.
+
+#### Starting a shard
 
 A shard's buffer is compared with the best rate the node has shown, and the node keeps that best rate for all its shards. A shard that starts on a node, such as the first document for a new index, therefore starts from what the node has done and not from its own first flush, so a shard that starts while the node is busy does not take the busy rate for the best it can do. The first shard on a node to send anything has no such history and learns its own.
 
@@ -338,8 +361,8 @@ A gain of `0` turns that term off. The operator overrides are listed in [Changin
 | Mode | Set with | Behavior |
 | --- | --- | --- |
 | Adaptive, PID (default) | nothing | The size follows the node; each step is shaped by the PID controller. |
-| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | Plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. The PID gains are ignored. |
-| Fixed | `Sizing.Fixed`, or `OPENSEARCH_GO_BULK_MODE=fixed` | The controller is off: every batch is `FlushBytes`, and a node's limit is its even share (`NodeBytes`). |
+| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | A shard's buffer takes plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. The PID gains are ignored. The node window is unchanged. |
+| Fixed | `Sizing.Fixed`, or `OPENSEARCH_GO_BULK_MODE=fixed` | The controllers are off: every batch is `FlushBytes`, and a node's window stays where it started (`NodeBytes`, or `MaxMemoryBytes`). |
 
 To soften the PID controller without dropping it, set a gain to `0`: `Ki` and `Kd` at `0` leave a proportional controller. Setting all three to `0` makes every PID step zero, so the size then changes only on a rejection or a failure; to drop the PID controller, use AIMD instead.
 
@@ -353,13 +376,13 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 ### How AIMD and the PID controller relate
 
-They are two ways of taking the same step for a shard's buffer, and a flush uses one or the other, never both. The node's limit above the buffers is not affected by the choice: it is always additive increase and multiplicative decrease on rejections. Everything around the step is shared:
+They are two ways of taking the same step for a shard's buffer, and a flush uses one or the other, never both. The node window is not affected by the choice: it is always additive increase and multiplicative decrease on 429s. Everything around the step is shared:
 
-- A rejection cuts the size by `Backoff` and holds it for a few flushes. A failed request cuts it by the square root of `Backoff`, and a node that was given more than it takes is cut gently. None of these depends on the mode.
+- A request that fails without an answer cuts the buffer by the square root of `Backoff` and holds it for a few flushes. This does not depend on the mode.
 - Both read the same signal: the node's rate against the best recent rate, as a slowdown measured against `Headroom`. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
-- Both grow nothing during the hold after a rejection, and both keep the size between `MinBytes` and the ceiling.
+- Both grow nothing during the hold after a failure, and both keep the size between `MinBytes` and the ceiling.
 
-What differs is the size of the step for a flush that completed without a rejection:
+What differs is the size of the step for a flush that completed:
 
 |                            | PID (default)                                                                                                           | AIMD (`Sizing.AIMD`)                                                                                                 |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -418,11 +441,11 @@ pushedBack := stats.NumRejections   // only grows: compare with the last reading
 | --------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `BudgetFill()`  | the indexer holds more than the cluster takes                  | slow down smoothly, well before `Add` blocks                                                    |
 | `NumRejections` | a node answers 429                                             | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
-| `NodeLimit`     | a node rejects writes (down) or takes them again (up)          | tell congestion from relief: 1 is clear                                                         |
+| `NodeWindow`    | a node answers 429 (down) or takes writes again (up)           | tell congestion from relief: 1 is clear                                                         |
 | `Slowdown`      | a node serves requests more slowly than it did at its best     | read slowness directly, before any node rejects anything: 0 is at its best, 1 is twice as slow  |
 | `BufferSize`    | the indexer finds a node slow (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches                                   |
 
-`NodeLimit`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
+`NodeWindow`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
 
 The other number to bound is your own: how many records you have read and not yet made safe to commit. With a [`SequenceTracker`](#committing-a-stream-position) that is the offset you have read minus `Safe`, and it is exactly what a crash would replay. A simple consumer keeps it under a limit, pauses its partitions when `BudgetFill` passes a high mark or `NumRejections` rises, shrinks its read buffer as `Slowdown.Median` or `Slowdown.Mean` grows, and resumes below a low mark. The marks are yours: a wider gap between them pauses less often.
 

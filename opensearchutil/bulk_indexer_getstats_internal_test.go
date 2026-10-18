@@ -22,7 +22,7 @@ import (
 // and not what the indexer counted, for a test that compares the counters alone.
 func withoutLoad(s BulkIndexerStats) BulkIndexerStats {
 	s.MaxMemoryBytes, s.NumRejections, s.NumNodes = 0, 0, 0
-	s.NodeLimit, s.BufferSize, s.Slowdown = NodeSpread{}, NodeSpread{}, NodeSpread{}
+	s.NodeWindow, s.BufferSize, s.Slowdown = NodeSpread{}, NodeSpread{}, NodeSpread{}
 
 	return s
 }
@@ -47,7 +47,7 @@ func TestBulkIndexerGetStatsFillsTheCallersStruct(t *testing.T) {
 		{
 			name: "a used struct is replaced entirely, not added to",
 			dirty: BulkIndexerStats{
-				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeLimit: NodeSpread{Min: 0.25},
+				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeWindow: NodeSpread{Min: 0.25},
 				NumRetries: [numFailureKinds]uint64{1, 2, 3, 4},
 			},
 		},
@@ -120,7 +120,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 			var stats BulkIndexerStats
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.InDelta(t, 1.0, stats.NodeLimit.Min, 0, "before any node is used the limit is wide open")
+			require.InDelta(t, 1.0, stats.NodeWindow.Min, 0, "before any node is used the window is wide open")
 			require.Zero(t, stats.NumRejections)
 			require.Zero(t, stats.NumNodes)
 
@@ -137,7 +137,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 			require.NoError(t, h.bi.GetStats(&stats))
 			require.Equal(t, tt.wantReject, stats.NumRejections > 0, "rejections counted: %d", stats.NumRejections)
-			require.Equal(t, tt.wantCut, stats.NodeLimit.Min < 1, "node limit %+v", stats.NodeLimit)
+			require.Equal(t, tt.wantCut, stats.NodeWindow.Min < 1, "node window %+v", stats.NodeWindow)
 			require.EqualValues(t, 1, stats.NumNodes)
 			require.Equal(t, tt.wantSlow, stats.Slowdown.Max > 0.5, "slowdown %+v", stats.Slowdown)
 			if !tt.wantReject {
@@ -158,7 +158,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			waitIdle(t, h.bi)
 
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.InDelta(t, 1.0, stats.NodeLimit.Min, 1e-9, "relief: the limit is back to wide open")
+			require.InDelta(t, 1.0, stats.NodeWindow.Min, 1e-9, "relief: the limit is back to wide open")
 			require.Equal(t, counted, stats.NumRejections, "the count only grows")
 		})
 	}
@@ -237,11 +237,11 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 			check: func(t *testing.T, stats BulkIndexerStats) {
 				t.Helper()
 
-				require.Less(t, stats.NodeLimit.Min, 1.0, "the outlier is the minimum")
-				require.InDelta(t, 1.0, stats.NodeLimit.Median, 1e-9, "the median is the other four")
-				require.InDelta(t, 1.0, stats.NodeLimit.Max, 1e-9)
-				require.Greater(t, stats.NodeLimit.Mean, stats.NodeLimit.Min)
-				require.LessOrEqual(t, stats.NodeLimit.Mean, stats.NodeLimit.Median)
+				require.Less(t, stats.NodeWindow.Min, 1.0, "the outlier is the minimum")
+				require.InDelta(t, 1.0, stats.NodeWindow.Median, 1e-9, "the median is the other four")
+				require.InDelta(t, 1.0, stats.NodeWindow.Max, 1e-9)
+				require.Greater(t, stats.NodeWindow.Mean, stats.NodeWindow.Min)
+				require.LessOrEqual(t, stats.NodeWindow.Mean, stats.NodeWindow.Median)
 				require.Positive(t, stats.NumRejections)
 			},
 		},
@@ -254,7 +254,7 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 				require.Greater(t, stats.Slowdown.Max, 0.5, "the outlier is the maximum")
 				require.Less(t, stats.Slowdown.Median, 0.1, "the median is the other four")
 				require.Less(t, stats.BufferSize.Min, stats.BufferSize.Median, "its buffers are the smallest")
-				require.InDelta(t, 1.0, stats.NodeLimit.Min, 1e-9, "a slow node is not a rejecting one")
+				require.InDelta(t, 1.0, stats.NodeWindow.Min, 1e-9, "a slow node is not a rejecting one")
 				require.Zero(t, stats.NumRejections)
 			},
 		},

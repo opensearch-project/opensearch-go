@@ -101,7 +101,6 @@ func (bi *bulkIndexer) failStranded(ctx context.Context) {
 		}
 		delete(s.live, b)
 		delete(b.node.opens, b)
-		b.node.openHeld.Add(-b.held)
 		if b.shard.open == b {
 			b.shard.open = nil
 		}

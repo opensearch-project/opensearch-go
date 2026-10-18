@@ -16,47 +16,50 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
-// BulkSizing tunes how the size of the batches sent to a node follows what the
-// node can take. Every field is optional; the zero value selects the defaults
-// below, which are all derived from BulkIndexerConfig.FlushBytes.
+// BulkSizing tunes how the indexer follows what a node can take. Every field is
+// optional; the zero value selects the defaults below, which are all derived from
+// BulkIndexerConfig.FlushBytes.
 //
-// The size is steered by two signals from the flushes the indexer sends to a node.
+// Two controllers work, each on one thing and each on one signal.
 //
-//   - A rejection, a 429 from the node's write thread pool, cuts the size by
-//     Backoff at once and holds it there for a few flushes.
-//   - The node's service rate, bytes sent per second of time on the node
-//     (the round trip less the network distance), is compared with the best rate
-//     seen recently. While the rate stays within Headroom of that best, the size
-//     grows by StepBytes per flush. When the node slows by more than that, the
-//     size is cut in proportion to how far past Headroom it is, long before the
-//     node starts rejecting, so that bulk traffic gives way to the other requests
-//     a node is serving. A PID controller (Kp, Ki, Kd) on the normalized slowdown
-//     sets how hard each step is, unless AIMD is set, which takes a fixed step up
-//     and a fixed cut down instead.
+// The size of a shard's buffer, the bytes it collects before it is sent, follows how
+// fast the node serves that shard's requests. The service rate, bytes sent per second
+// of time on the node (the round trip less the network distance), is compared with the
+// best rate seen recently. While the rate stays within Headroom of that best, the size
+// grows by StepBytes per flush. When the node slows by more than that, the size is cut
+// in proportion to how far past Headroom it is, long before the node starts rejecting,
+// so that bulk traffic gives way to the other requests a node is serving. A PID
+// controller (Kp, Ki, Kd) on the normalized slowdown sets how hard each step is,
+// unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
+// request that fails without an answer cuts the buffer by the square root of Backoff
+// and holds it there for a few flushes. A shard that starts on a node is seeded with
+// the node's best rate, so that its first flush is not taken for the best the node can
+// do. A request the node rejected is not read for its rate at all: it was answered
+// quickly because no work was done.
 //
-// That is how a shard's buffer is sized, against the best rate the shards of its
-// node have shown: a shard that starts on a node is seeded with the node's best
-// rate, so that its first flush is not taken for the best the node can do.
+// How many bytes may be out to a node at once is the node's window, and a 429 is the
+// only thing that moves it. When a request is answered with a 429, for the request
+// or for any item in it, the window becomes Backoff times the smaller of itself and
+// the bytes that were out to the node when the answer arrived, so that the first
+// rejection counts even though the window starts wide open. Rejections of requests
+// sent before that cut are the same event and do not cut again. The window then grows
+// by FlushBytes for each window's worth of bytes the node answers, held for a few
+// answers after a rejection and while the node's write pool is overloaded. A sealed
+// buffer that would take the node past its window waits until the requests out are
+// answered; when nothing is out, one is sent whatever its size. The window does not
+// change the size of any buffer. It starts at NodeBytes, or at MaxMemoryBytes when
+// that is not set.
 //
-// The node's limit, the ceiling above the buffers of the shards it hosts, is a
-// controller of its own: it grows by a step while the node accepts what it is sent, and is cut by Backoff when the node
-// answers 429, by the square root of Backoff when a request fails, and gently
-// when more was buffered for the node than it was allowed. How fast the node is
-// does not move it, so a slow node that is not rejecting gets smaller buffers
-// and keeps its limit. Rejections teach the ceiling, and the PID controller, or
-// AIMD, works beneath it.
-//
-// AIMD and the PID controller are two ways to take the same step, and a flush
-// uses one or the other. Rejections, failures, a crowded node, the hold after a
-// rejection and the bounds are the same in both. For a flush that completed
-// without a rejection, the PID controller scales the step by how far the node is
-// from Headroom, with memory of recent flushes (Ki) and of the trend (Kd), so a
-// marginal slowdown costs little and a severe one up to half the size. AIMD
-// grows by exactly StepBytes while the node is within Headroom, holds the size at
-// Headroom or while the node's write pool is rejecting, and cuts by the square
-// root of Backoff once the node is past it, however far past, with no memory: it
-// is easier to predict and settles into a sawtooth around Headroom. This AIMD is
-// not the congestion window the transport keeps for connection scoring.
+// AIMD and the PID controller are two ways to take the same step for a shard's buffer,
+// and a flush uses one or the other. A failed request, the hold after it and the bounds
+// are the same in both. For a flush that completed, the PID controller scales the step
+// by how far the node is from Headroom, with memory of recent flushes (Ki) and of the
+// trend (Kd), so a marginal slowdown costs little and a severe one up to half the size.
+// AIMD grows by exactly StepBytes while the node is within Headroom, holds the size at
+// Headroom or while the node's write pool is rejecting, and cuts by the square root of
+// Backoff once the node is past it, however far past, with no memory: it is easier to
+// predict and settles into a sawtooth around Headroom. The node's window is always
+// additive increase and multiplicative decrease on 429s, whichever is chosen here.
 //
 // An operator can override Fixed, AIMD, Kp, Ki and Kd without a code change through
 // OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and OPENSEARCH_GO_BULK_PID_KP,
@@ -117,9 +120,6 @@ const (
 	sizingIntegralLimit = 2.0
 	// sizingMaxCut is the largest fraction a single non-rejecting flush removes.
 	sizingMaxCut = 0.5
-	// sizingCrowdedExponent sets how far a crowded node's limit is cut: the backoff
-	// to this power, so a quarter of the way in the log from 1 to the backoff.
-	sizingCrowdedExponent = 0.25
 	// sizingHoldFlushes is how many healthy flushes after a rejection pass before
 	// the size may grow again.
 	sizingHoldFlushes = 3
@@ -144,25 +144,14 @@ const (
 
 // resolvedSizing is BulkSizing with its defaults applied.
 type resolvedSizing struct {
-	fixed bool
-	aimd  bool
-	// limit marks the sizer of a node's limit. Where a shard's buffer follows how
-	// quickly its requests are served, the limit is the ceiling above that: it
-	// takes a fixed step up while the node is clean and is cut only by what the
-	// node refuses, so it learns what the node accepts from rejections and leaves
-	// the node's speed to the shard buffers beneath it.
-	limit    bool
-	min, max float64
-	initial  float64
-	step     float64
-	// sampleFloor, when set, is the smallest request that tells the controller
-	// anything. Unset, a request must carry a quarter of the current size, which
-	// suits a size that follows the requests themselves; a node's limit is a
-	// multiple of any one request, so it is given a floor of its own.
-	sampleFloor float64
-	headroom    float64
-	backoff     float64
-	kp, ki, kd  float64
+	fixed      bool
+	aimd       bool
+	min, max   float64
+	initial    float64
+	step       float64
+	headroom   float64
+	backoff    float64
+	kp, ki, kd float64
 }
 
 // resolve applies the defaults for a ceiling of flushBytes.
@@ -270,9 +259,6 @@ type flushSample struct {
 	failed bool
 	// overloaded is set when the transport sees the node's write pool rejecting.
 	overloaded bool
-	// crowded is set when what was buffered for the node outgrew its limit, so the
-	// node is not taking what it is given as fast as it is given it.
-	crowded bool
 }
 
 // sizer decides how large a batch for one node should be. It is not safe for
@@ -293,10 +279,6 @@ func newSizer(cfg resolvedSizing) *sizer {
 
 // sampleFloor is the smallest request, in bytes, whose rate means anything.
 func (s *sizer) sampleFloor() float64 {
-	if s.cfg.sampleFloor > 0 {
-		return s.cfg.sampleFloor
-	}
-
 	return s.target * sizingMinSampleFraction
 }
 
@@ -325,30 +307,14 @@ func (s *sizer) observe(f flushSample) {
 		s.target *= math.Sqrt(s.cfg.backoff)
 		s.integral = 0
 		s.hold = sizingHoldFlushes
-	case f.crowded:
-		// A quarter of the way, in the log, to a rejection's cut: a node that is
-		// being given more than it takes is told so gently and often.
-		s.target *= math.Pow(s.cfg.backoff, sizingCrowdedExponent)
 	case float64(f.bytes) < s.sampleFloor():
 		// Too small to tell anything about the node.
 		return
-	case s.cfg.limit:
-		s.learn(f)
-		s.climb(f)
 	default:
 		s.steer(f)
 	}
 
 	s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
-}
-
-// learn folds a flush into the best rate seen, which a shard that starts on the
-// node is seeded with, so that it does not take the node's rate while it is
-// degraded for the best it can do.
-func (s *sizer) learn(f flushSample) {
-	if rate, ok := f.rate(); ok {
-		s.baseRate = math.Max(rate, s.baseRate*sizingBaseDecay)
-	}
 }
 
 // seed gives a sizer that has seen nothing the best rate its node has shown, so
@@ -373,20 +339,6 @@ func (f flushSample) rate() (float64, bool) {
 	}
 
 	return float64(f.bytes) / float64(service), true
-}
-
-// climb is the step of a node's limit for a flush that completed without a
-// rejection: additive increase, held while the node's write pool is rejecting
-// and for a few flushes after a rejection. It does not look at how fast the
-// node served the flush.
-func (s *sizer) climb(f flushSample) {
-	switch {
-	case f.overloaded:
-	case s.hold > 0:
-		s.hold--
-	default:
-		s.target += s.cfg.step
-	}
 }
 
 // steer applies the PID-modulated step for a flush that completed.
@@ -459,21 +411,4 @@ func (s *sizer) fraction() float64 {
 	}
 
 	return s.target / s.cfg.max
-}
-
-// slowdown is how much slower than its best rate the flush shows the node to be: 0 at
-// the best, 1 when it took twice as long for the same bytes. It is false for a flush that
-// says nothing about the rate: one that was rejected or failed, one too small, or when
-// no best rate is known yet.
-func (s *sizer) slowdown(f flushSample) (float64, bool) {
-	if f.rejected || f.failed || float64(f.bytes) < s.sampleFloor() || s.baseRate <= 0 {
-		return 0, false
-	}
-
-	rate, ok := f.rate()
-	if !ok || rate <= 0 {
-		return 0, false
-	}
-
-	return max(s.baseRate/rate-1, 0), true
 }

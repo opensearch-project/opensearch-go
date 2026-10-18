@@ -64,6 +64,9 @@ type buffer struct {
 
 	sealed     bool
 	dispatched bool
+	// sentAt is how many times the node's byte window had been cut when the buffer
+	// was sent, so that a rejection of a request sent before a cut is not cut again.
+	sentAt uint64
 	// ctx is the context the bulk request runs on.
 	ctx context.Context //nolint:containedctx // A buffer carries the context of the flush that sends it.
 
@@ -101,32 +104,29 @@ func (ss *shardState) blocked() bool {
 }
 
 // nodeState is the indexer's view of one node: what is buffered for it and what is
-// out to it, and how much it may have buffered.
+// out to it, and how many bytes it may have out.
 type nodeState struct {
 	name string
 	node Node
 	// opens are the node's open buffers.
 	opens map[*buffer]struct{}
 	// held is everything held for the node, in open buffers, queued, and in
-	// requests out, and openHeld the part in open buffers. They are atomic so that
-	// the share of the job's memory the other nodes leave a node can be worked out
-	// without visiting them.
-	held, openHeld atomic.Int64
-	// crowded is set when the node's open buffers outgrew its limit since its last
-	// request completed.
-	crowded bool
-	// queued counts the node's sealed buffers not yet sent, and inflight its
 	// requests out.
+	held atomic.Int64
+	// queued counts the node's sealed buffers not yet sent, and inflight its
+	// requests out. flightBytes is the size of those requests, which win bounds.
 	queued, inflight int
+	flightBytes      int64
 	// bufferFrac and slowdown are smoothed readings of the node for the statistics:
 	// the size of its shards' buffers as a fraction of the most they get, and how much
 	// slower than its best the node is serving. Guarded by the scheduler's lock.
 	bufferFrac, slowdown float64
-	// limit is the controller behind how much the node may have open. It starts
-	// wide open and follows what the node rejects, and is read through nodeLimit,
-	// which bounds it by the rest of the job. It also keeps the best service rate
-	// the node has shown, which seeds the shards that start on it.
-	limit *sizer
+	// win is how many bytes may be out to the node at once. It starts wide open and
+	// is cut by a 429; see byteWindow.
+	win *byteWindow
+	// rate keeps the best service rate the node has shown, which seeds the shards that
+	// start on it.
+	rate rateTracker
 	// sink serves documents that belong to no shard.
 	sink *shardState
 }
@@ -155,13 +155,15 @@ func (ns *nodeState) hasRoom() bool {
 // moment its request completes. One lock guards it; the work done under the lock is
 // bookkeeping, and serializing and sending a buffer happen outside it.
 //
-// Three limits keep memory bounded, each acting on a different level:
+// Three limits keep memory and load bounded, each acting on a different level:
 //
 //   - the job's memory, a hard limit: when it is spent Add waits, and the fullest
 //     buffer is sent at once so that waiting does not last;
-//   - a node's buffer, which follows the node: when the open buffers bound for it
-//     outgrow it, the fullest is sent;
-//   - a shard's buffer, which follows the shard: a buffer that reaches it is sent.
+//   - a node's window, which a 429 cuts: the bytes that may be out to the node at
+//     once. A sealed buffer that would take the node past it waits, and still counts
+//     against the job's memory;
+//   - a shard's buffer, which follows how fast the shard is served: a buffer that
+//     reaches it is sealed and sent.
 //
 // Ordering. The server applies the documents of one request to a shard in order,
 // but applies two requests in whatever order they arrive, and nothing else orders
@@ -192,10 +194,6 @@ type scheduler struct {
 	// sink is the node unrouted documents are being filled into.
 	sink *nodeState
 	pass uint64
-	// heldTotal is everything the job holds, and activeNodes the number of nodes
-	// something is held for.
-	heldTotal   atomic.Int64
-	activeNodes int
 
 	closed, stopped bool
 }
@@ -225,7 +223,8 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 		name:  node.Name,
 		node:  node,
 		opens: make(map[*buffer]struct{}),
-		limit: newSizer(s.bi.nodeSizing),
+		win:   newByteWindow(s.bi.window),
+		rate:  rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
 		bufferFrac: s.bi.sizing.initial / s.bi.sizing.max,
 	}
@@ -329,17 +328,6 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 	ss.idleSince = s.bi.now()
 
 	s.sealIfFull(b)
-
-	// The node's limit is soft: the item that crossed it has been accepted. What
-	// follows is that the node's fullest buffers are sent until it is back under,
-	// and that the node is told it was crowded, so its limit comes down.
-	limit := s.nodeLimit(ns)
-	for ns.openHeld.Load() > limit {
-		if !s.sealFullest(ns, flushPressure) {
-			break
-		}
-		ns.crowded = true
-	}
 }
 
 // orderAfterEarlier makes buffer b of documents that belong to no shard wait for
@@ -373,58 +361,12 @@ func (b *buffer) ready() bool {
 
 // hold records that n more bytes are held for the node, in an open buffer.
 func (s *scheduler) hold(ns *nodeState, n int64) {
-	if ns.held.Add(n) == n {
-		s.activeNodes++
-	}
-	ns.openHeld.Add(n)
-	s.heldTotal.Add(n)
+	ns.held.Add(n)
 }
 
 // release records that a buffer's n bytes are no longer held for the node.
 func (s *scheduler) release(ns *nodeState, n int64) {
-	if ns.held.Add(-n) == 0 {
-		s.activeNodes--
-	}
-	s.heldTotal.Add(-n)
-}
-
-// nodeLimit is how much the node may have open now. The node's controller starts
-// at its even share of the job and moves with the node, and the other nodes bound
-// the result; see [nodeLimitFor].
-func (s *scheduler) nodeLimit(ns *nodeState) int64 {
-	job := int64(s.bi.config.MaxMemoryBytes)
-	fair := job / int64(max(s.activeNodes, 1))
-	others := s.heldTotal.Load() - ns.held.Load()
-
-	return nodeLimitFor(job, int64(s.bi.config.FlushBytes), fair, ns.limit.bytes(), others)
-}
-
-// nodeLimitFor works out a node's limit from what the job may hold (job), the size
-// of a full shard buffer (shard), the node's even share of the nodes in use (fair),
-// the node's own controller (control, which is cut when the node rejects, slows or
-// is crowded and grows when it keeps up and is asked for more), and what the other
-// nodes hold (others).
-//
-// The controller is the limit, except that the other nodes can only take it down to
-// the node's even share: a node that has the traffic to itself is given up to the
-// whole job, and is cut back as others start to hold some, but is never squeezed
-// below its share by them. Only the node's own signals can take it below its share,
-// and nothing takes it below one full shard buffer.
-func nodeLimitFor(job, shard, fair, control, others int64) int64 {
-	ceiling := max(job-others, fair)
-
-	return max(min(control, ceiling), shard)
-}
-
-// sealThreshold is the size at which an open buffer is sent: the size its shard
-// asks for, and no more than the shard's slice of what the node may have open. As
-// more shards of a node are being filled each is given less, so the node's
-// buffers together stay within its limit instead of each filling alone.
-func (s *scheduler) sealThreshold(b *buffer) (int64, int64) {
-	ns := b.node
-	slice := s.nodeLimit(ns) / int64(max(len(ns.opens), 1))
-
-	return b.shard.sizer.bytes(), max(slice, int64(b.shard.sizer.cfg.min))
+	ns.held.Add(-n)
 }
 
 // sealIfFull seals an open buffer that has reached the size chosen for its shard.
@@ -438,14 +380,11 @@ func (s *scheduler) sealIfFull(b *buffer) {
 	}
 
 	sz := b.shard.sizer
-	target, slice := s.sealThreshold(b)
 
 	switch {
 	case b.bytes >= sz.ceiling():
 		s.seal(b, flushSize, s.bi.config.Context)
-	case b.held >= slice && !b.shard.blocked():
-		s.seal(b, flushPressure, s.bi.config.Context)
-	case b.bytes >= target && !b.shard.blocked():
+	case b.bytes >= sz.bytes() && !b.shard.blocked():
 		s.seal(b, flushSize, s.bi.config.Context)
 	}
 }
@@ -465,7 +404,6 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 		ss.open = nil
 	}
 	delete(ns.opens, b)
-	ns.openHeld.Add(-b.held)
 	ns.queued++
 	ss.pending++
 	s.sealed = append(s.sealed, b)
@@ -482,12 +420,11 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	s.pump()
 }
 
-// sealFullest seals the fullest open buffer bound for the node, or the fullest of
-// all when ns is nil, and reports whether there was one.
-func (s *scheduler) sealFullest(ns *nodeState, trigger flushTrigger) bool {
+// sealFullest seals the fullest open buffer of any node, if there is one.
+func (s *scheduler) sealFullest(trigger flushTrigger) {
 	var fullest *buffer
 
-	consider := func(n *nodeState) {
+	for _, n := range s.nodes {
 		for b := range n.opens {
 			if fullest == nil || b.bytes > fullest.bytes {
 				fullest = b
@@ -495,21 +432,9 @@ func (s *scheduler) sealFullest(ns *nodeState, trigger flushTrigger) bool {
 		}
 	}
 
-	if ns != nil {
-		consider(ns)
-	} else {
-		for _, n := range s.nodes {
-			consider(n)
-		}
+	if fullest != nil {
+		s.seal(fullest, trigger, s.bi.config.Context)
 	}
-
-	if fullest == nil {
-		return false
-	}
-
-	s.seal(fullest, trigger, s.bi.config.Context)
-
-	return true
 }
 
 // sealAllOpen seals every open buffer.
@@ -535,7 +460,8 @@ func (s *scheduler) pump() {
 	for _, b := range s.sealed {
 		ss, ns := b.shard, b.node
 
-		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window() {
+		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window() ||
+			!ns.win.allows(ns.flightBytes, b.bytes) {
 			ss.skipped = s.pass
 			remaining = append(remaining, b)
 
@@ -553,6 +479,8 @@ func (s *scheduler) pump() {
 
 		ns.queued--
 		ns.inflight++
+		ns.flightBytes += b.bytes
+		b.sentAt = ns.win.cuts
 		ss.inflight++
 		b.dispatched = true
 		b.dest = ns.node
@@ -578,33 +506,32 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	ss.pending--
 	ns.inflight--
 
-	// A node's rate is the sum of its shards', and what a node rejects is the node's.
-	// A shard is told how its own requests fared, but not about a rejection, which
-	// says nothing about the shard in particular.
-	//
-	// The node's limit is also told whether it was crowded since the last request
-	// finished: whether more was buffered for it than it was allowed.
-	node := sample
-	shard := sample
-	shard.rejected = false
-	node.crowded, ns.crowded = ns.crowded, false
-	// A shard's first flush is measured against the best the node has shown, which
-	// it learns before this flush is folded in, so that a shard that starts while
-	// the node is degraded does not take that for the best it can do.
-	ss.sizer.seed(ns.limit.baseRate)
-	ns.limit.observe(node)
-	// A request the node rejected says nothing about how fast it serves: it is
-	// answered quickly because no work was done, and a shard controller that read it
-	// as a healthy flush would grow the shard's buffer and raise its best rate while
-	// the node is saying it is full. The node's limit has taken it; the shard's
-	// controller does not see it at all.
-	if !sample.rejected {
-		ss.sizer.observe(shard)
+	// Two controllers, each told what it can use. The node's byte window is told only
+	// whether the node rejected the request, which is the one thing a 429 says: it is
+	// cut from the bytes that were out to the node when the rejection arrived, the
+	// rejected request's among them. The shard's controller is told how long the
+	// request took, but not for a request the node rejected, which was answered quickly
+	// because no work was done and would read as a fast flush, and not for one that
+	// carries no 429 but failed, which only cuts the buffer.
+	if sample.rejected {
+		ns.win.reject(ns.flightBytes, b.sentAt)
+	} else {
+		ns.win.complete(b.bytes, sample.overloaded)
 	}
-	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
-	if slow, ok := ns.limit.slowdown(node); ok {
+	ns.flightBytes -= b.bytes
+
+	// A shard's first flush is measured against the best the node has shown, which
+	// the node learns after this flush is folded in, so that a shard that starts while
+	// the node is degraded does not take that for the best it can do.
+	ss.sizer.seed(ns.rate.base)
+	if slow, ok := ns.rate.slowdown(sample); ok {
 		ns.slowdown = smooth(ns.slowdown, slow)
 	}
+	ns.rate.learn(sample)
+	if !sample.rejected {
+		ss.sizer.observe(sample)
+	}
+	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
 	s.publishLoad(sample)
 	ss.idleSince = s.bi.now()
 
@@ -634,7 +561,7 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// If Add is still waiting for memory this request did not free enough, send the
 	// next fullest buffer.
 	if s.bi.budget.waiting() > 0 {
-		s.sealFullest(nil, flushPressure)
+		s.sealFullest(flushPressure)
 	}
 
 	s.pump()
@@ -655,7 +582,7 @@ func (s *scheduler) relieve() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.sealFullest(nil, flushPressure)
+	s.sealFullest(flushPressure)
 }
 
 // drain seals every open buffer and waits for every buffer that exists to
@@ -798,17 +725,17 @@ func (s *scheduler) publishLoad(sample flushSample) {
 	}
 
 	w := &s.work
-	w.limit, w.buffer, w.slow, w.weight = w.limit[:0], w.buffer[:0], w.slow[:0], w.weight[:0]
+	w.window, w.buffer, w.slow, w.weight = w.window[:0], w.buffer[:0], w.slow[:0], w.weight[:0]
 	for _, ns := range s.nodes {
-		w.limit = append(w.limit, ns.limit.fraction())
+		w.window = append(w.window, ns.win.fraction())
 		w.buffer = append(w.buffer, ns.bufferFrac)
 		w.slow = append(w.slow, ns.slowdown)
 		w.weight = append(w.weight, float64(ns.held.Load()))
 	}
 
 	st := s.bi.stats
-	st.numNodes.Store(uint64(len(w.limit)))
-	st.nodeLimit.store(summarize(w.limit, w.weight, w.tmp))
+	st.numNodes.Store(uint64(len(w.window)))
+	st.nodeWindow.store(summarize(w.window, w.weight, w.tmp))
 	st.bufferSize.store(summarize(w.buffer, w.weight, w.tmp))
 	st.slowdown.store(summarize(w.slow, w.weight, w.tmp))
 }
@@ -816,5 +743,5 @@ func (s *scheduler) publishLoad(sample flushSample) {
 // loadWork is the workspace publishLoad reuses, so that it allocates nothing once it
 // has seen every node.
 type loadWork struct {
-	limit, buffer, slow, weight, tmp []float64
+	window, buffer, slow, weight, tmp []float64
 }
