@@ -405,11 +405,11 @@ type BulkIndexerStats struct {
 	// It only grows, so a caller that samples it sees that the cluster pushed back
 	// since it last looked, however briefly, and can compare two readings for a rate.
 	NumRejections uint64
-	// WorstNodeLimit is the smallest limit on what is buffered for a node, as a
-	// fraction of the most the indexer would allow it: 1 while every node is wide
-	// open, falling as a node rejects writes and rising again as it takes them. It is
-	// 1 before any node has been used. It is the AIMD controller's state, so it
-	// moves only when a node pushes back, and not when a node merely slows down.
+	// WorstNodeLimit is how far the indexer has held back its writes to the node it
+	// holds back most, from 0 to 1: 1 while every node takes what it is sent, falling
+	// when a node rejects writes and rising again as it takes them. It is 1 before any
+	// node has been used. A node that is merely slow does not move it; BudgetFill
+	// shows that as the indexer's memory fills.
 	WorstNodeLimit float64
 }
 
