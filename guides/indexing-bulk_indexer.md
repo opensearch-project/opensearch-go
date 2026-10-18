@@ -236,12 +236,12 @@ They are two ways of taking the same step for a shard's buffer, and a flush uses
 
 What differs is the size of the step for a flush that completed without a rejection:
 
-| | PID (default) | AIMD (`Sizing.AIMD`) |
-| --- | --- | --- |
-| Healthy flush | Grows by `StepBytes` scaled by `min(u, 1)`, so a node only just within `Headroom` grows by a fraction of a step | Grows by exactly `StepBytes`; holds the size at exactly `Headroom` or while the node's write pool is rejecting |
-| Slow flush | Multiplies the size by `1 + max(u, -0.5)`: a node barely past `Headroom` loses little, one far past it loses up to half | Multiplies the size by the square root of `Backoff` (about 0.71 by default), however far past `Headroom` the node is |
-| Where growth turns to cuts | Can sit on either side of `Headroom`, since the integral and derivative terms add to `u` | At `Headroom` |
-| Memory | The integral term remembers recent flushes; the derivative term remembers the last one | None: each flush is judged alone |
+|                            | PID (default)                                                                                                           | AIMD (`Sizing.AIMD`)                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Healthy flush              | Grows by `StepBytes` scaled by `min(u, 1)`, so a node only just within `Headroom` grows by a fraction of a step         | Grows by exactly `StepBytes`; holds the size at exactly `Headroom` or while the node's write pool is rejecting       |
+| Slow flush                 | Multiplies the size by `1 + max(u, -0.5)`: a node barely past `Headroom` loses little, one far past it loses up to half | Multiplies the size by the square root of `Backoff` (about 0.71 by default), however far past `Headroom` the node is |
+| Where growth turns to cuts | Can sit on either side of `Headroom`, since the integral and derivative terms add to `u`                                | At `Headroom`                                                                                                        |
+| Memory                     | The integral term remembers recent flushes; the derivative term remembers the last one                                  | None: each flush is judged alone                                                                                     |
 
 So AIMD is the PID controller with the shaping taken out. It is simpler to reason about and easier to predict, but it treats a marginal slowdown like a severe one, and it settles into a sawtooth around `Headroom` instead of easing toward it. The PID controller damps that sawtooth, at the cost of three gains to tune. Reach for AIMD when the PID controller's behavior is hard to account for in production, and for the gains when it is close and wants adjusting.
 
@@ -251,10 +251,10 @@ This AIMD is unrelated to the AIMD congestion windows the transport keeps for co
 
 An operator can override these settings from the environment, which is how to back off the controller on a deployment you cannot rebuild:
 
-| Variable | Overrides | Values |
-| --- | --- | --- |
-| `OPENSEARCH_GO_BULK_MODE` | `Sizing.Fixed` | `fixed`, `adaptive` |
-| `OPENSEARCH_GO_BULK_AIMD` | `Sizing.AIMD` | `on`, `off` |
+| Variable                                  | Overrides               | Values                                      |
+| ----------------------------------------- | ----------------------- | ------------------------------------------- |
+| `OPENSEARCH_GO_BULK_MODE`                 | `Sizing.Fixed`          | `fixed`, `adaptive`                         |
+| `OPENSEARCH_GO_BULK_AIMD`                 | `Sizing.AIMD`           | `on`, `off`                                 |
 | `OPENSEARCH_GO_BULK_PID_KP`, `_KI`, `_KD` | `Sizing.Kp`, `Ki`, `Kd` | non-negative number; `0` turns the term off |
 
 They are read once, when `NewBulkIndexer` builds the indexer, and a variable that is set and valid wins over the code. An empty, unset, or unrecognized value leaves the code's setting in place. The common cases:

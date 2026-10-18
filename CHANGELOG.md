@@ -41,6 +41,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - `opensearchtransport.Transport` closes the body of a request that fails before it is sent, because the route fails or the request cannot be signed, as an `http.RoundTripper` does. A body that lends memory, such as a `BulkIndexer` buffer or an `AddZeroCopy` item, was never released
 - `BulkIndexer.Flush` whose context ended no longer swallows the error of the buffer it was waiting for: the buffer reports it to `OnError`, as it does when nobody waits
+
 ### Security
 
 ### Dependencies
