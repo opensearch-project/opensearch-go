@@ -31,11 +31,12 @@ import (
 // so that bulk traffic gives way to the other requests a node is serving. A PID
 // controller (Kp, Ki, Kd) on the normalized slowdown sets how hard each step is,
 // unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
-// request that fails without an answer cuts the buffer by the square root of Backoff
-// and holds it there for a few flushes. A shard that starts on a node is seeded with
-// the node's best rate, so that its first flush is not taken for the best the node can
-// do. A request the node rejected is not read for its rate at all: it was answered
-// quickly because no work was done.
+// shard's buffer reads nothing else: not a request the node rejected with a 429, which
+// was answered quickly because no work was done, not a request that failed without an
+// answer, and not one in which no item was indexed. A shard that starts on a node is
+// seeded with the node's best rate, so that its first flush is not taken for the best
+// the node can do. A 413, a request refused for being too large, is the one failure
+// that changes a buffer: no buffer is made larger than half the size that was refused.
 //
 // How many bytes may be out to a node at once is the node's window, and a 429 is the
 // only thing that moves it. When a request is answered with a 429, for the request
@@ -51,8 +52,8 @@ import (
 // that is not set.
 //
 // AIMD and the PID controller are two ways to take the same step for a shard's buffer,
-// and a flush uses one or the other. A failed request, the hold after it and the bounds
-// are the same in both. For a flush that completed, the PID controller scales the step
+// and a flush uses one or the other; the bounds are the same in both. For a flush that
+// indexed something, the PID controller scales the step
 // by how far the node is from Headroom, with memory of recent flushes (Ki) and of the
 // trend (Kd), so a marginal slowdown costs little and a severe one up to half the size.
 // AIMD grows by exactly StepBytes while the node is within Headroom, holds the size at
@@ -253,12 +254,26 @@ type flushSample struct {
 	// distance is the node's round trip time on an idle connection, which is not
 	// the node's doing; 0 when unknown.
 	distance time.Duration
+	// served is set when the node indexed at least one item of the request. A request
+	// in which every item failed did no indexing, so how long it took says nothing
+	// about how fast the node indexes.
+	served bool
 	// rejected is set when the node answered 429 to the request or to any item.
 	rejected bool
 	// failed is set when the request did not complete for another reason.
 	failed bool
+	// tooLarge is the size of a request the node refused for being too large (413),
+	// or 0.
+	tooLarge int64
 	// overloaded is set when the transport sees the node's write pool rejecting.
 	overloaded bool
+}
+
+// timed reports whether the flush's duration measures how fast the node indexes:
+// it indexed something, and the node did not reject it with a 429, which is
+// answered at once because no work was done, nor fail it without an answer.
+func (f flushSample) timed() bool {
+	return f.served && !f.rejected && !f.failed
 }
 
 // sizer decides how large a batch for one node should be. It is not safe for
@@ -270,7 +285,6 @@ type sizer struct {
 	baseRate float64 // best recent bytes per nanosecond
 	integral float64
 	prevErr  float64
-	hold     int
 }
 
 func newSizer(cfg resolvedSizing) *sizer {
@@ -293,26 +307,19 @@ func (s *sizer) bytes() int64 {
 }
 
 // observe feeds the outcome of a flush to the controller.
+//
+// The only input is the duration of a flush that indexed something, as a rate. A
+// flush the node rejected with a 429, one that failed without an answer, one in which
+// every item failed, and one too small to say anything are not read: none of them
+// measures how fast the node indexes this shard's documents, and a controller that
+// took a quick refusal for a fast flush would grow the buffer while the node says it
+// is full.
 func (s *sizer) observe(f flushSample) {
-	if s.cfg.fixed {
+	if s.cfg.fixed || !f.timed() || float64(f.bytes) < s.sampleFloor() {
 		return
 	}
 
-	switch {
-	case f.rejected:
-		s.target *= s.cfg.backoff
-		s.integral = 0
-		s.hold = sizingHoldFlushes
-	case f.failed:
-		s.target *= math.Sqrt(s.cfg.backoff)
-		s.integral = 0
-		s.hold = sizingHoldFlushes
-	case float64(f.bytes) < s.sampleFloor():
-		// Too small to tell anything about the node.
-		return
-	default:
-		s.steer(f)
-	}
+	s.steer(f)
 
 	s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
 }
@@ -378,8 +385,6 @@ func (s *sizer) steer(f flushSample) {
 	u := s.cfg.kp*e + s.cfg.ki*s.integral + s.cfg.kd*derivative
 
 	switch {
-	case u >= 0 && s.hold > 0:
-		s.hold--
 	case u >= 0:
 		s.target += s.cfg.step * math.Min(u, 1)
 	default:
@@ -395,8 +400,6 @@ func (s *sizer) aimd(e float64) {
 	switch {
 	case e == 0:
 		// At the headroom, or an overloaded pool: neither grow nor cut.
-	case e > 0 && s.hold > 0:
-		s.hold--
 	case e > 0:
 		s.target += s.cfg.step
 	default:

@@ -277,12 +277,14 @@ Together they aim to keep a node busy without queueing it into rejections, and s
 
 #### The shard-buffer controller
 
-It reads, for each request that the node answered, the service rate: bytes sent per second of time on the node, which is the round trip less the network distance. It compares that with the best rate seen recently.
+Its one input is how long a request took, as a service rate: bytes sent per second of time on the node, which is the round trip less the network distance. A request carries one shard, so this is that shard's own speed. It compares the rate with the best rate seen recently.
 
 - While the rate stays within `Headroom` of that best, the buffer grows by `StepBytes` per flush.
 - When the node slows by more than that, the buffer is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
-- A request that fails without an answer cuts the buffer by the square root of `Backoff` and holds it there for a few flushes.
-- A request the node rejected is not read at all. A node answers a rejection at once, because it did no work, and a controller that took that for a fast flush would grow the buffer while the node says it is full.
+
+It reads a request only if the node indexed at least one of its items. It does not read the duration of anything else, because none of it measures how fast the node indexes: a 429, which a node answers at once because it did no work; a request that failed without an answer, or with a 5xx or a 4xx that says nothing about this shard; and a request in which every item failed, such as a shard whose primary is not active, which fails only after waiting out the bulk `timeout`. A controller that took those for a slow or fast flush would shrink or grow the buffer for a reason the buffer cannot fix. Items refused for their own sake, a version conflict or a mapping error, do not stop a request being read, as long as some other item was indexed.
+
+One failure does change a buffer. A **413**, a request refused for being larger than the cluster accepts (`http.max_content_length`), is a fact about the cluster's settings and not about its load. The indexer learns from it that no later request should be larger than half of what was refused, and never raises that limit, so it stops sending what cannot be accepted and does not grow its buffers back to the same size.
 
 How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). If you have not met a PID controller before, [How the PID controller works](#how-the-pid-controller-works) explains it.
 
@@ -378,11 +380,10 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 They are two ways of taking the same step for a shard's buffer, and a flush uses one or the other, never both. The node window is not affected by the choice: it is always additive increase and multiplicative decrease on 429s. Everything around the step is shared:
 
-- A request that fails without an answer cuts the buffer by the square root of `Backoff` and holds it for a few flushes. This does not depend on the mode.
-- Both read the same signal: the node's rate against the best recent rate, as a slowdown measured against `Headroom`. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
-- Both grow nothing during the hold after a failure, and both keep the size between `MinBytes` and the ceiling.
+- Both read the same signal, from the same requests: the node's rate against the best recent rate, as a slowdown measured against `Headroom`. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
+- Neither reads a 429, a failed request or a request in which no item was indexed, and both keep the size between `MinBytes` and the ceiling.
 
-What differs is the size of the step for a flush that completed:
+What differs is the size of the step for a flush that was read:
 
 |                            | PID (default)                                                                                                           | AIMD (`Sizing.AIMD`)                                                                                                 |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |

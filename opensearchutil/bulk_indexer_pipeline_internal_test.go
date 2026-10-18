@@ -530,12 +530,12 @@ func TestBulkIndexerRetriedRequestKeepsItsBody(t *testing.T) {
 	server := newFakeServer(cluster)
 
 	var calls atomic.Int64
-	server.respond = func(_ sentRequest, _ string) (int, string) {
+	server.respond = func(r sentRequest, _ string) (int, string) {
 		if calls.Add(1) == 1 {
 			return http.StatusServiceUnavailable, `{"error":"unavailable"}`
 		}
 
-		return http.StatusOK, `{"took":1,"errors":false,"items":[]}`
+		return http.StatusOK, okResponse(len(r.actions))
 	}
 
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Hour})

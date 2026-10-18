@@ -240,17 +240,21 @@ func TestRateTracker(t *testing.T) {
 			probe: slow, wantKnown: true, wantSlowdown: 1,
 		},
 		{
-			name: "a rejected flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, rejected: true}},
+			name: "a rejected flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, rejected: true}},
 			probe: fast,
 		},
 		{
-			name: "a failed flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, failed: true}},
+			name: "a failed flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, failed: true}},
+			probe: fast,
+		},
+		{
+			name: "a flush that indexed nothing is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond}},
 			probe: fast,
 		},
 		{name: "a flush too small to tell is not learned", learn: []flushSample{flushOf(floor/4, 1e12)}, probe: fast},
 		{
 			name: "a rejected flush is not measured", learn: []flushSample{fast},
-			probe: flushSample{bytes: floor, latency: time.Second, rejected: true},
+			probe: flushSample{bytes: floor, latency: time.Second, served: true, rejected: true},
 		},
 	}
 	for _, tt := range tests {

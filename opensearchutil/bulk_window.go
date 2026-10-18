@@ -118,10 +118,10 @@ type rateTracker struct {
 	floor float64
 }
 
-// learn folds a flush into the best rate. A flush that was rejected or failed, or is too
-// small to tell anything, says nothing about how fast the node serves.
+// learn folds a flush into the best rate. A flush that was rejected, failed or indexed
+// nothing, or is too small to tell anything, says nothing about how fast the node serves.
 func (r *rateTracker) learn(f flushSample) {
-	if f.rejected || f.failed || float64(f.bytes) < r.floor {
+	if !f.timed() || float64(f.bytes) < r.floor {
 		return
 	}
 
@@ -134,7 +134,7 @@ func (r *rateTracker) learn(f flushSample) {
 // the best, 1 when it took twice as long for the same bytes. It is false for a flush that
 // says nothing about the rate, or when no best rate is known yet.
 func (r *rateTracker) slowdown(f flushSample) (float64, bool) {
-	if f.rejected || f.failed || float64(f.bytes) < r.floor || r.base <= 0 {
+	if !f.timed() || float64(f.bytes) < r.floor || r.base <= 0 {
 		return 0, false
 	}
 

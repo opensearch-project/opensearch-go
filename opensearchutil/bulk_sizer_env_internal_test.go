@@ -166,22 +166,6 @@ func TestSizerAIMDHoldsOnAnOverloadedPool(t *testing.T) {
 	require.Equal(t, before, s.bytes(), "an overloaded pool neither grows nor cuts the size")
 }
 
-func TestSizerAIMDHoldsAfterARejection(t *testing.T) {
-	s := newTestSizer(BulkSizing{AIMD: true})
-	for range 40 {
-		s.observe(flushOf(s.bytes(), 100e6))
-	}
-
-	s.observe(rejectedFlush())
-	cut := s.bytes()
-	for range sizingHoldFlushes {
-		s.observe(flushOf(s.bytes(), 100e6))
-		require.Equal(t, cut, s.bytes(), "no growth while the hold lasts")
-	}
-	s.observe(flushOf(s.bytes(), 100e6))
-	require.Greater(t, s.bytes(), cut, "growth resumes after the hold")
-}
-
 func TestBulkIndexerByteWindowStart(t *testing.T) {
 	tests := []struct {
 		name string

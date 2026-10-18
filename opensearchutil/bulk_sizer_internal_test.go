@@ -27,7 +27,7 @@ const (
 func flushOf(bytes int64, rate float64) flushSample {
 	service := time.Duration(float64(bytes) / rate * float64(time.Second))
 
-	return flushSample{bytes: bytes, latency: service + testDistance, distance: testDistance}
+	return flushSample{bytes: bytes, latency: service + testDistance, distance: testDistance, served: true}
 }
 
 func newTestSizer(cfg BulkSizing) *sizer {
@@ -103,12 +103,9 @@ func TestSizerFixed(t *testing.T) {
 	s := newTestSizer(BulkSizing{Fixed: true})
 	require.EqualValues(t, testCeiling, s.bytes())
 
-	s.observe(rejectedFlush())
 	s.observe(flushOf(testCeiling, 1e6))
 	require.EqualValues(t, testCeiling, s.bytes(), "a fixed size ignores every signal")
 }
-
-func rejectedFlush() flushSample { return flushSample{bytes: 1 << 20, rejected: true} }
 
 func TestSizerGrowsWhileTheNodeKeepsUp(t *testing.T) {
 	t.Parallel()
@@ -127,48 +124,46 @@ func TestSizerGrowsWhileTheNodeKeepsUp(t *testing.T) {
 	require.EqualValues(t, testCeiling, last, "and it reaches the ceiling")
 }
 
-func TestSizerBacksOffOnRejection(t *testing.T) {
+// TestSizerReadsOnlyWhatMeasuresIndexing: a flush's duration is read only when the node
+// indexed something and did not refuse it with a 429 or fail it without an answer. The
+// others are answered quickly, or not at all, and would read as a fast node.
+func TestSizerReadsOnlyWhatMeasuresIndexing(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
-	for range 200 {
-		s.observe(flushOf(s.bytes(), 100e6))
+	healthy := func(f *flushSample) {}
+	tests := []struct {
+		name string
+		// shape turns a healthy, fast flush into the kind under test.
+		shape    func(f *flushSample)
+		wantRead bool
+	}{
+		{name: "a healthy flush", shape: healthy, wantRead: true},
+		{name: "a flush the node rejected with a 429", shape: func(f *flushSample) { f.rejected = true }},
+		{name: "a request that failed without an answer", shape: func(f *flushSample) { f.failed = true }},
+		{name: "a request in which no item was indexed", shape: func(f *flushSample) { f.served = false }},
+		{name: "a request the node refused as too large", shape: func(f *flushSample) { f.failed, f.served, f.tooLarge = true, false, 1<<20 }},
+		{name: "a flush too small to say anything", shape: func(f *flushSample) { f.bytes = 1 }},
 	}
-	require.EqualValues(t, testCeiling, s.bytes())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	s.observe(flushSample{bytes: s.bytes(), rejected: true})
-	require.EqualValues(t, testCeiling/2, s.bytes(), "a 429 halves the size at once")
+			s := newTestSizer(BulkSizing{})
+			start := s.bytes()
 
-	// The size is held for a few healthy flushes, then grows again.
-	held := s.bytes()
-	for range sizingHoldFlushes {
-		s.observe(flushOf(s.bytes(), 100e6))
-		require.Equal(t, held, s.bytes(), "no growth while the hold lasts")
+			f := flushOf(s.bytes(), 100e6)
+			tt.shape(&f)
+			s.observe(f)
+
+			if tt.wantRead {
+				require.Greater(t, s.bytes(), start, "a fast flush grows the buffer")
+
+				return
+			}
+			require.Equal(t, start, s.bytes(), "the buffer is not moved by it")
+			require.Zero(t, s.baseRate, "and no best rate is learned from it")
+		})
 	}
-	s.observe(flushOf(s.bytes(), 100e6))
-	require.Greater(t, s.bytes(), held, "growth resumes after the hold")
-}
-
-func TestSizerRejectionNeverGoesBelowTheFloor(t *testing.T) {
-	t.Parallel()
-
-	s := newTestSizer(BulkSizing{})
-	for range 50 {
-		s.observe(flushSample{bytes: s.bytes(), rejected: true})
-	}
-
-	require.EqualValues(t, testCeiling/32, s.bytes())
-}
-
-func TestSizerFailureBacksOffLessThanRejection(t *testing.T) {
-	t.Parallel()
-
-	rejected, failed := newTestSizer(BulkSizing{}), newTestSizer(BulkSizing{})
-	rejected.observe(flushSample{bytes: 1 << 20, rejected: true})
-	failed.observe(flushSample{bytes: 1 << 20, failed: true})
-
-	require.Less(t, rejected.bytes(), failed.bytes())
-	require.Less(t, failed.bytes(), int64(testCeiling/4))
 }
 
 func TestSizerBacksOffBeforeTheNodeRejects(t *testing.T) {

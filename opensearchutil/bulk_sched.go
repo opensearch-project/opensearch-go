@@ -182,6 +182,10 @@ type scheduler struct {
 
 	// work is the workspace publishLoad reuses.
 	work loadWork
+	// maxRequest is the largest request the nodes have been found to accept, learned
+	// from a 413, or 0 while none has refused one. Never raised: it is a setting of
+	// the cluster and not a load.
+	maxRequest int64
 	// sealed are the buffers waiting to be sent, in the order they were sealed.
 	sealed []*buffer
 	// live holds every buffer that is not complete.
@@ -382,9 +386,9 @@ func (s *scheduler) sealIfFull(b *buffer) {
 	sz := b.shard.sizer
 
 	switch {
-	case b.bytes >= sz.ceiling():
+	case b.bytes >= s.capped(sz.ceiling()):
 		s.seal(b, flushSize, s.bi.config.Context)
-	case b.bytes >= sz.bytes() && !b.shard.blocked():
+	case b.bytes >= s.capped(sz.bytes()) && !b.shard.blocked():
 		s.seal(b, flushSize, s.bi.config.Context)
 	}
 }
@@ -528,8 +532,9 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 		ns.slowdown = smooth(ns.slowdown, slow)
 	}
 	ns.rate.learn(sample)
-	if !sample.rejected {
-		ss.sizer.observe(sample)
+	ss.sizer.observe(sample)
+	if sample.tooLarge > 0 {
+		s.capRequests(sample.tooLarge)
 	}
 	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
 	s.publishLoad(sample)
@@ -697,12 +702,14 @@ func (s *scheduler) close() {
 }
 
 // observeSample builds the controllers' input for a finished flush.
-func observeSample(node Node, bytes int64, latency time.Duration, throttled, failed bool) flushSample {
+func observeSample(node Node, bytes int64, latency time.Duration, w *worker) flushSample {
 	f := flushSample{
 		bytes:      bytes,
 		latency:    latency,
-		rejected:   throttled,
-		failed:     failed,
+		served:     w.served,
+		rejected:   w.throttled,
+		failed:     w.failed,
+		tooLarge:   w.tooLarge,
 		overloaded: node.pool().Overloaded,
 	}
 
@@ -744,4 +751,23 @@ func (s *scheduler) publishLoad(sample flushSample) {
 // has seen every node.
 type loadWork struct {
 	window, buffer, slow, weight, tmp []float64
+}
+
+// capRequests learns from a request of refused bytes that a node refused for its size
+// that no request should be larger than half of it, and no smaller than the least a
+// shard's buffer gets. Guarded by the scheduler's lock.
+func (s *scheduler) capRequests(refused int64) {
+	limit := max(int64(float64(refused)*s.bi.sizing.backoff), int64(s.bi.sizing.min))
+	if s.maxRequest == 0 || limit < s.maxRequest {
+		s.maxRequest = limit
+	}
+}
+
+// capped returns size, held to the largest request the nodes accept.
+func (s *scheduler) capped(size int64) int64 {
+	if s.maxRequest > 0 {
+		return min(size, s.maxRequest)
+	}
+
+	return size
 }

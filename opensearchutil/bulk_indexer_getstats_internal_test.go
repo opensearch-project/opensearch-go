@@ -112,7 +112,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 					return 200, rejectingResponse(len(r.actions))
 				}
 
-				return 200, `{"took":1,"errors":false,"items":[]}`
+				return 200, okResponse(len(r.actions))
 			}
 			h.server.advance = func(r sentRequest) {
 				h.clock.advance(time.Duration(float64(r.bytes) / float64(rate.Load()) * float64(time.Second)))
@@ -271,7 +271,7 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 					return 200, rejectingResponse(len(r.actions))
 				}
 
-				return 200, `{"took":1,"errors":false,"items":[]}`
+				return 200, okResponse(len(r.actions))
 			}
 			h.server.advance = func(r sentRequest) {
 				rate := 100e6

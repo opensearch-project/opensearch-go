@@ -244,6 +244,7 @@ func FuzzSizer(f *testing.F) {
 				bytes:      int64(program[i]) << 14,
 				latency:    time.Duration(program[i+1]) * time.Millisecond,
 				distance:   time.Duration(program[i+2]) * time.Millisecond,
+				served:     flags&8 == 0,
 				rejected:   flags&1 != 0,
 				failed:     flags&2 != 0,
 				overloaded: flags&4 != 0,

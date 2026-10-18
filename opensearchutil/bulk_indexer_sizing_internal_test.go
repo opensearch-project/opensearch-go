@@ -66,6 +66,16 @@ func waitIdle(t *testing.T, bi BulkIndexer) {
 	}, 10*time.Second, time.Millisecond)
 }
 
+// okResponse is a 200 answer in which the node indexed every item.
+func okResponse(actions int) string {
+	items := make([]string, actions)
+	for i := range items {
+		items[i] = `{"index":{"_id":"x","status":201,"result":"created"}}`
+	}
+
+	return fmt.Sprintf(`{"took":1,"errors":false,"items":[%s]}`, strings.Join(items, ","))
+}
+
 // rejectingResponse is a 200 answer in which the node rejected every item.
 func rejectingResponse(actions int) string {
 	items := make([]string, actions)
@@ -244,7 +254,7 @@ func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 			return 200, rejectingResponse(len(r.actions))
 		}
 
-		return 200, `{"took":1,"errors":false,"items":[]}`
+		return 200, okResponse(len(r.actions))
 	}
 	h.server.advance = func(r sentRequest) {
 		h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
@@ -380,7 +390,7 @@ func TestBulkIndexerSizesEachNodeOnItsOwn(t *testing.T) {
 			return 200, rejectingResponse(len(r.actions))
 		}
 
-		return 200, `{"took":1,"errors":false,"items":[]}`
+		return 200, okResponse(len(r.actions))
 	}
 	h.server.advance = func(r sentRequest) {
 		h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
@@ -397,68 +407,156 @@ func TestBulkIndexerSizesEachNodeOnItsOwn(t *testing.T) {
 	require.Greater(t, h.shardTarget("n1"), int64(bi.sizing.initial))
 }
 
-// TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode: items the cluster
-// refuses for their own sake, a version conflict for instance, are not a reason to
-// send a node smaller buffers.
+// TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode: items the cluster refuses for
+// their own sake, a version conflict for instance, are not a reason to send a node
+// smaller buffers. Where some items were indexed the request is read as any other and
+// the buffers grow; where none were, nothing was indexed, so the duration says nothing
+// about the node and the buffers stay where they are.
 func TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode(t *testing.T) {
 	t.Parallel()
 
-	h := newSizingHarness(t, 200, 1, "n0")
-	h.server.respond = func(r sentRequest, _ string) (int, string) {
-		items := make([]string, len(r.actions))
-		for i := range items {
-			items[i] = `{"index":{"_id":"x","status":409,"error":{"type":"version_conflict_engine_exception","reason":"conflict"}}}`
-		}
+	tests := []struct {
+		name string
+		// conflicting says whether item i of a request is refused with a 409.
+		conflicting func(i int) bool
+		wantGrowth  bool
+	}{
+		{name: "some items conflict and the rest are indexed", conflicting: func(i int) bool { return i%2 == 0 }, wantGrowth: true},
+		{name: "every item conflicts, so nothing is indexed", conflicting: func(int) bool { return true }, wantGrowth: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-		return 200, fmt.Sprintf(`{"took":1,"errors":true,"items":[%s]}`, strings.Join(items, ","))
-	}
-	h.server.advance = func(r sentRequest) {
-		h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
-	}
+			h := newSizingHarness(t, 200, 1, "n0")
+			h.server.respond = func(r sentRequest, _ string) (int, string) {
+				items := make([]string, len(r.actions))
+				for i := range items {
+					if tt.conflicting(i) {
+						items[i] = `{"index":{"_id":"x","status":409,"error":{"type":"version_conflict_engine_exception","reason":"conflict"}}}`
+					} else {
+						items[i] = `{"index":{"_id":"x","status":201,"result":"created"}}`
+					}
+				}
 
-	sizes := make([]int, 0, 12)
-	for range 12 {
-		sizes = append(sizes, h.round("n0"))
-	}
+				return 200, fmt.Sprintf(`{"took":1,"errors":true,"items":[%s]}`, strings.Join(items, ","))
+			}
+			h.server.advance = func(r sentRequest) {
+				h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
+			}
 
-	for i := 1; i < len(sizes); i++ {
-		require.GreaterOrEqual(t, sizes[i], sizes[i-1], "conflicts must not shrink the buffers: %v", sizes)
+			sizes := make([]int, 0, 12)
+			for range 12 {
+				sizes = append(sizes, h.round("n0"))
+			}
+
+			for i := 1; i < len(sizes); i++ {
+				require.GreaterOrEqual(t, sizes[i], sizes[i-1], "conflicts must not shrink the buffers: %v", sizes)
+			}
+			if tt.wantGrowth {
+				require.Greater(t, sizes[len(sizes)-1], sizes[0])
+			} else {
+				require.Equal(t, sizes[0], sizes[len(sizes)-1], "nothing was indexed, so the buffers are not moved: %v", sizes)
+			}
+			require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkIndexer).window.start))
+		})
 	}
-	require.Greater(t, sizes[len(sizes)-1], sizes[0])
-	require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkIndexer).window.start))
 }
 
-// TestBulkIndexerBacksOffWhenARequestFails: a request that does not complete cuts
-// the shard's buffer, gently, and leaves the node's window alone: only a 429 cuts that.
-func TestBulkIndexerBacksOffWhenARequestFails(t *testing.T) {
+// TestBulkIndexerRequestErrorsDoNotMoveTheControllers: an error that is not a 429 and not
+// about one shard, a 5xx, a 4xx, a refusal to answer, is read by neither controller: the
+// shard's buffer is not cut or grown, no rate is learned from it, and the node's window
+// is not cut, since only a 429 does that.
+func TestBulkIndexerRequestErrorsDoNotMoveTheControllers(t *testing.T) {
 	t.Parallel()
 
-	h := newSizingHarness(t, 200, 1, "n0")
-	var fail atomic.Bool
-	h.server.respond = func(_ sentRequest, _ string) (int, string) {
-		if fail.Load() {
-			return http.StatusBadGateway, `{"error":"bad gateway"}`
+	tests := []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{name: "a bad gateway", status: http.StatusBadGateway, body: `{"error":"bad gateway"}`},
+		{name: "a service unavailable", status: http.StatusServiceUnavailable, body: `{"error":"no master"}`},
+		{name: "an internal error", status: http.StatusInternalServerError, body: `{"error":"boom"}`},
+		{name: "a bad request", status: http.StatusBadRequest, body: `{"error":{"type":"illegal_argument_exception"},"status":400}`},
+		{name: "a forbidden request", status: http.StatusForbidden, body: `{"error":{"type":"security_exception"},"status":403}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			h := newSizingHarness(t, 200, 1, "n0")
+			var fail atomic.Bool
+			h.server.respond = func(r sentRequest, _ string) (int, string) {
+				if fail.Load() {
+					return tt.status, tt.body
+				}
+
+				return http.StatusOK, okResponse(len(r.actions))
+			}
+			h.server.advance = func(r sentRequest) {
+				h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
+			}
+
+			for range 10 {
+				h.round("n0")
+			}
+			shardBefore, windowBefore := h.shardTarget("n0"), h.window("n0")
+
+			fail.Store(true)
+			h.round("n0")
+			fail.Store(false)
+
+			require.Equal(t, shardBefore, h.shardTarget("n0"), "the shard's buffer is neither cut nor grown")
+			require.GreaterOrEqual(t, h.window("n0"), windowBefore, "and the window is not cut")
+		})
+	}
+}
+
+// TestBulkIndexerLearnsTheLargestRequestANodeAccepts: a 413 says a request was too large,
+// which is a fact about the cluster's settings and not about its load. No later request
+// is larger than half of what was refused, so the indexer stops sending what cannot be
+// accepted instead of growing its buffers back to the same size.
+func TestBulkIndexerLearnsTheLargestRequestANodeAccepts(t *testing.T) {
+	t.Parallel()
+
+	h := newSizingHarness(t, 400, 1, "n0")
+	bi := h.bi.(*bulkIndexer)
+
+	const accepts = 6_000
+	var refused atomic.Int64
+	h.server.respond = func(r sentRequest, _ string) (int, string) {
+		if r.bytes > accepts {
+			refused.Add(1)
+
+			return http.StatusRequestEntityTooLarge, `{"error":"Request Entity Too Large"}`
 		}
 
-		return 200, `{"took":1,"errors":false,"items":[]}`
+		return http.StatusOK, okResponse(len(r.actions))
 	}
 	h.server.advance = func(r sentRequest) {
 		h.clock.advance(time.Duration(float64(r.bytes) / 100e6 * float64(time.Second)))
 	}
 
-	for range 10 {
+	for range 12 {
 		h.round("n0")
 	}
-	shardBefore, windowBefore := h.shardTarget("n0"), h.window("n0")
+	waitIdle(t, h.bi)
 
-	fail.Store(true)
-	h.round("n0")
-	fail.Store(false)
+	require.Positive(t, refused.Load(), "the first buffers were over what the node accepts")
 
-	shardAfter := h.shardTarget("n0")
-	require.Less(t, shardAfter, shardBefore, "the shard's buffer is cut")
-	require.Greater(t, shardAfter, shardBefore/2, "but milder than the halving a rejection gets")
-	require.GreaterOrEqual(t, h.window("n0"), windowBefore, "a failed request is not a 429, so the window is not cut")
+	bi.sched.Lock()
+	limit := bi.sched.maxRequest
+	bi.sched.Unlock()
+	require.NotZero(t, limit, "a limit was learned")
+	require.LessOrEqual(t, limit, int64(accepts))
+
+	before := refused.Load()
+	for range 12 {
+		h.round("n0")
+	}
+	waitIdle(t, h.bi)
+	require.Equal(t, before, refused.Load(), "nothing larger than the node accepts is sent once the limit is learned")
 }
 
 // TestBulkIndexerNewShardStartsFromTheNodesBaseline: a shard that starts on a node
@@ -532,7 +630,7 @@ func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
 					return tt.respond(r)
 				}
 
-				return http.StatusOK, `{"took":1,"errors":false,"items":[]}`
+				return http.StatusOK, okResponse(len(r.actions))
 			}
 			h.server.advance = func(r sentRequest) {
 				h.clock.advance(time.Duration(float64(r.bytes) / float64(rate.Load()) * float64(time.Second)))

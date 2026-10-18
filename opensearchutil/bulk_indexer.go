@@ -1451,6 +1451,10 @@ type worker struct {
 	// neither: they say nothing about the node. Either is set when any attempt at
 	// the buffer drew it.
 	throttled, failed bool
+	// served is set when any attempt had an item the node indexed, and tooLarge is
+	// the size of the last request the node refused for being too large, or 0.
+	served   bool
+	tooLarge int64
 	// sent and busy total the bytes of the requests made for the buffer, retries
 	// included, and the time they took, which is what the controllers read the
 	// node's rate from.
@@ -1460,10 +1464,15 @@ type worker struct {
 
 // observeResponse records what the response to a bulk request says about the
 // node, before the items are dealt with.
-func (w *worker) observeResponse(blk *opensearchapi.BulkResp, err error) {
+func (w *worker) observeResponse(blk *opensearchapi.BulkResp, err error, size int) {
 	throttled := isThrottled(blk, err)
 	w.throttled = w.throttled || throttled
 	w.failed = w.failed || (!throttled && isTransportFailure(err))
+	w.served = w.served || isServed(blk)
+
+	if isTooLarge(blk, err) {
+		w.tooLarge = int64(size)
+	}
 }
 
 // sendBuffer serializes and sends one buffer, retrying what the policy asks to,
@@ -1477,7 +1486,7 @@ func (w *worker) sendBuffer(b *buffer) {
 	w.buf.small = bi.pieces
 	w.items = w.items[:0]
 	w.node = b.dest
-	w.throttled, w.failed = false, false
+	w.throttled, w.failed, w.served, w.tooLarge = false, false, false, 0
 	w.sent, w.busy = 0, 0
 	w.retired = nil
 
@@ -1515,7 +1524,7 @@ func (w *worker) sendBuffer(b *buffer) {
 	buf.whenIdle(buf.Reset)
 	whenAllIdle(bufs, func() { releaseLentBodies(lent) })
 
-	bi.sched.complete(b, observeSample(w.node, w.sent, w.busy, w.throttled, w.failed), err)
+	bi.sched.complete(b, observeSample(w.node, w.sent, w.busy, w), err)
 }
 
 // releaseLent returns the documents lent to the indexer to their owners.
@@ -1592,6 +1601,12 @@ func (w *worker) toNode(ctx context.Context) context.Context {
 // isThrottled reports whether the node rejected a bulk request, or any item in
 // it, for want of room in its write queue.
 func isThrottled(blk *opensearchapi.BulkResp, err error) bool {
+	// The status of the response itself: the error the client builds takes its
+	// status from the body, which a refusal does not always have.
+	if batchStatus(blk) == http.StatusTooManyRequests {
+		return true
+	}
+
 	if se, ok := errors.AsType[*opensearch.StructError](err); ok && se.Status == http.StatusTooManyRequests {
 		return true
 	}
@@ -1615,6 +1630,43 @@ func isThrottled(blk *opensearchapi.BulkResp, err error) bool {
 	}
 
 	return false
+}
+
+// isServed reports whether the node indexed at least one item of the response, so that
+// how long the request took measures how fast it indexes.
+func isServed(blk *opensearchapi.BulkResp) bool {
+	if blk == nil {
+		return false
+	}
+
+	for i := range blk.Items {
+		item := &blk.Items[i]
+
+		for _, r := range []*opensearchapi.BulkRespItem{item.Index, item.Create, item.Update, item.Delete} {
+			if r != nil && r.Status >= http.StatusOK && r.Status < http.StatusMultipleChoices {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// isTooLarge reports whether the node refused the request for its size: a 413,
+// which is the node's http.max_content_length. The status of the response is read as
+// well as the error, since the error takes its status from the body.
+func isTooLarge(blk *opensearchapi.BulkResp, err error) bool {
+	if batchStatus(blk) == http.StatusRequestEntityTooLarge {
+		return true
+	}
+
+	if se, ok := errors.AsType[*opensearch.StructError](err); ok && se.Status == http.StatusRequestEntityTooLarge {
+		return true
+	}
+
+	se, ok := errors.AsType[*opensearch.StringError](err)
+
+	return ok && se.Status == http.StatusRequestEntityTooLarge
 }
 
 // isTransportFailure reports whether err, the error of the bulk call itself,
@@ -1872,7 +1924,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 	// the time spent waiting between attempts is left out.
 	w.sent += int64(size)
 	w.busy += elapsed
-	w.observeResponse(blk, err)
+	w.observeResponse(blk, err, size)
 
 	if obs := w.bi.config.Observer; obs != nil {
 		ev := BulkRequestEvent{
