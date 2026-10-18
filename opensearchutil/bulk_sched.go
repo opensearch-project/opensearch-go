@@ -9,7 +9,6 @@ package opensearchutil
 import (
 	"context"
 	"errors"
-	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -119,6 +118,10 @@ type nodeState struct {
 	// queued counts the node's sealed buffers not yet sent, and inflight its
 	// requests out.
 	queued, inflight int
+	// bufferFrac and slowdown are smoothed readings of the node for the statistics:
+	// the size of its shards' buffers as a fraction of the most they get, and how much
+	// slower than its best the node is serving. Guarded by the scheduler's lock.
+	bufferFrac, slowdown float64
 	// limit is the controller behind how much the node may have open. It starts
 	// wide open and follows what the node rejects, and is read through nodeLimit,
 	// which bounds it by the rest of the job. It also keeps the best service rate
@@ -174,6 +177,9 @@ type scheduler struct {
 
 	shards map[shardKey]*shardState
 	nodes  map[string]*nodeState
+
+	// work is the workspace publishLoad reuses.
+	work loadWork
 	// sealed are the buffers waiting to be sent, in the order they were sealed.
 	sealed []*buffer
 	// live holds every buffer that is not complete.
@@ -220,6 +226,8 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 		node:  node,
 		opens: make(map[*buffer]struct{}),
 		limit: newSizer(s.bi.nodeSizing),
+
+		bufferFrac: s.bi.sizing.initial / s.bi.sizing.max,
 	}
 	ns.sink = &shardState{key: shardKey{shard: -1}, sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
@@ -586,6 +594,10 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	ss.sizer.seed(ns.limit.baseRate)
 	ns.limit.observe(node)
 	ss.sizer.observe(shard)
+	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
+	if slow, ok := ns.limit.slowdown(node); ok {
+		ns.slowdown = smooth(ns.slowdown, slow)
+	}
 	s.publishLoad(sample)
 	ss.idleSince = s.bi.now()
 
@@ -770,18 +782,32 @@ func observeSample(node Node, bytes int64, latency time.Duration, throttled, fai
 }
 
 // publishLoad stores what the controllers now know where a caller can read it
-// without a lock: a rejection is counted, and the smallest node limit is worked out
-// again. It runs once per completed request, with the scheduler's lock held.
+// without a lock: a rejection is counted, and the spread of each reading across the
+// nodes is worked out again. It runs once per completed request, with the scheduler's
+// lock held.
 func (s *scheduler) publishLoad(sample flushSample) {
 	if sample.rejected {
 		s.bi.stats.numRejections.Add(1)
 	}
 
-	worst := 1.0
+	w := &s.work
+	w.limit, w.buffer, w.slow, w.weight = w.limit[:0], w.buffer[:0], w.slow[:0], w.weight[:0]
 	for _, ns := range s.nodes {
-		if ceiling := ns.limit.cfg.max; ceiling > 0 {
-			worst = min(worst, ns.limit.target/ceiling)
-		}
+		w.limit = append(w.limit, ns.limit.fraction())
+		w.buffer = append(w.buffer, ns.bufferFrac)
+		w.slow = append(w.slow, ns.slowdown)
+		w.weight = append(w.weight, float64(ns.held.Load()))
 	}
-	s.bi.stats.worstNodeLimit.Store(math.Float64bits(worst))
+
+	st := s.bi.stats
+	st.numNodes.Store(uint64(len(w.limit)))
+	st.nodeLimit.store(summarize(w.limit, w.weight, w.tmp))
+	st.bufferSize.store(summarize(w.buffer, w.weight, w.tmp))
+	st.slowdown.store(summarize(w.slow, w.weight, w.tmp))
+}
+
+// loadWork is the workspace publishLoad reuses, so that it allocates nothing once it
+// has seen every node.
+type loadWork struct {
+	limit, buffer, slow, weight, tmp []float64
 }

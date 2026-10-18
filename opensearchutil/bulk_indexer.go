@@ -405,12 +405,24 @@ type BulkIndexerStats struct {
 	// It only grows, so a caller that samples it sees that the cluster pushed back
 	// since it last looked, however briefly, and can compare two readings for a rate.
 	NumRejections uint64
-	// WorstNodeLimit is how far the indexer has held back its writes to the node it
-	// holds back most, from 0 to 1: 1 while every node takes what it is sent, falling
-	// when a node rejects writes and rising again as it takes them. It is 1 before any
-	// node has been used. A node that is merely slow does not move it; BudgetFill
-	// shows that as the indexer's memory fills.
-	WorstNodeLimit float64
+	// NumNodes is the number of nodes the indexer has written to. The three readings
+	// below are taken across them.
+	NumNodes uint64
+	// NodeLimit is how far the indexer holds back its writes to a node, from 0 to 1: 1
+	// while the node takes what it is sent, falling when it rejects writes and rising
+	// again as it takes them. A node that is merely slow does not move it; Slowdown and
+	// BufferSize show that. Before any node has been used every field is 1.
+	NodeLimit NodeSpread
+	// BufferSize is how large the indexer's buffers for a node are, as a fraction of
+	// FlushBytes, averaged over the node's shards and smoothed over its last few
+	// requests. The indexer makes them smaller as a node serves its requests more
+	// slowly and larger while it keeps up. Before any node has been used every field
+	// is the size buffers start at.
+	BufferSize NodeSpread
+	// Slowdown is how much slower a node is serving requests than it has at its best,
+	// smoothed over its last few requests: 0 at its best, 1 when it takes twice as
+	// long for the same bytes. It is 0 before any node has been used.
+	Slowdown NodeSpread
 }
 
 // BudgetFill returns how full the indexer's memory is, from 0 to 1: the bytes it
@@ -700,9 +712,10 @@ type bulkIndexerStats struct {
 	numRetries        [numFailureKinds]atomic.Uint64
 
 	numRejections atomic.Uint64
-	// worstNodeLimit is the smallest node limit as a fraction of its ceiling, as the
-	// bits of a float64.
-	worstNodeLimit atomic.Uint64
+	numNodes      atomic.Uint64
+	// nodeLimit, bufferSize and slowdown are the spreads across the nodes that the
+	// scheduler publishes whenever a request completes.
+	nodeLimit, bufferSize, slowdown spreadBits
 }
 
 // NewBulkIndexer creates a new bulk indexer.
@@ -1327,7 +1340,10 @@ func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 
 		MaxMemoryBytes: uint64(max(bi.config.MaxMemoryBytes, 0)),
 		NumRejections:  bi.stats.numRejections.Load(),
-		WorstNodeLimit: math.Float64frombits(bi.stats.worstNodeLimit.Load()),
+		NumNodes:       bi.stats.numNodes.Load(),
+		NodeLimit:      bi.stats.nodeLimit.load(),
+		BufferSize:     bi.stats.bufferSize.load(),
+		Slowdown:       bi.stats.slowdown.load(),
 	}
 	for i := range bi.stats.numRetries {
 		dst.NumRetries[i] = bi.stats.numRetries[i].Load()
@@ -1364,7 +1380,10 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 		bi.slots = make(chan struct{}, bi.config.NumWorkers)
 	}
 
-	bi.stats.worstNodeLimit.Store(math.Float64bits(1))
+	wideOpen := NodeSpread{Min: 1, Median: 1, Mean: 1, Max: 1}
+	bi.stats.nodeLimit.store(wideOpen)
+	initial := bi.sizing.initial / bi.sizing.max
+	bi.stats.bufferSize.store(NodeSpread{Min: initial, Median: initial, Mean: initial, Max: initial})
 
 	bi.itemPool.New = func() any { return new([]BulkIndexerItem) }
 	bi.workerPool.New = func() any { return &worker{bi: bi} }

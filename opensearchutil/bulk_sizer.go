@@ -451,3 +451,29 @@ func (s *sizer) aimd(e float64) {
 		s.target *= math.Sqrt(s.cfg.backoff)
 	}
 }
+
+// fraction is the target as a part of the most the sizer would ask for.
+func (s *sizer) fraction() float64 {
+	if s.cfg.max <= 0 {
+		return 0
+	}
+
+	return s.target / s.cfg.max
+}
+
+// slowdown is how much slower than its best rate the flush shows the node to be: 0 at
+// the best, 1 when it took twice as long for the same bytes. It is false for a flush that
+// says nothing about the rate: one that was rejected or failed, one too small, or when
+// no best rate is known yet.
+func (s *sizer) slowdown(f flushSample) (float64, bool) {
+	if f.rejected || f.failed || float64(f.bytes) < s.sampleFloor() || s.baseRate <= 0 {
+		return 0, false
+	}
+
+	rate, ok := f.rate()
+	if !ok || rate <= 0 {
+		return 0, false
+	}
+
+	return max(s.baseRate/rate-1, 0), true
+}

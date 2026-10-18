@@ -9,6 +9,7 @@
 package opensearchutil
 
 import (
+	"math"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -20,7 +21,8 @@ import (
 // withoutLoad clears the fields of the stats that describe the load on the cluster
 // and not what the indexer counted, for a test that compares the counters alone.
 func withoutLoad(s BulkIndexerStats) BulkIndexerStats {
-	s.MaxMemoryBytes, s.NumRejections, s.WorstNodeLimit = 0, 0, 0
+	s.MaxMemoryBytes, s.NumRejections, s.NumNodes = 0, 0, 0
+	s.NodeLimit, s.BufferSize, s.Slowdown = NodeSpread{}, NodeSpread{}, NodeSpread{}
 
 	return s
 }
@@ -45,7 +47,7 @@ func TestBulkIndexerGetStatsFillsTheCallersStruct(t *testing.T) {
 		{
 			name: "a used struct is replaced entirely, not added to",
 			dirty: BulkIndexerStats{
-				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, WorstNodeLimit: 0.25,
+				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeLimit: NodeSpread{Min: 0.25},
 				NumRetries: [numFailureKinds]uint64{1, 2, 3, 4},
 			},
 		},
@@ -87,9 +89,13 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 		reject     bool
 		wantReject bool
 		wantCut    bool
+		wantSlow   bool
 	}{
 		{name: "a healthy node", rate: 100e6},
-		{name: "a node five times slower than it was is not a rejecting one", rate: 20e6},
+		{
+			name: "a node five times slower than it was is slow, and is not a rejecting one",
+			rate: 20e6, wantSlow: true,
+		},
 		{name: "a node that rejects", rate: 100e6, reject: true, wantReject: true, wantCut: true},
 	}
 	for _, tt := range tests {
@@ -114,8 +120,9 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 			var stats BulkIndexerStats
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.InDelta(t, 1.0, stats.WorstNodeLimit, 0, "before any node is used the limit is wide open")
+			require.InDelta(t, 1.0, stats.NodeLimit.Min, 0, "before any node is used the limit is wide open")
 			require.Zero(t, stats.NumRejections)
+			require.Zero(t, stats.NumNodes)
 
 			for range 20 {
 				h.round("n0")
@@ -130,7 +137,13 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 			require.NoError(t, h.bi.GetStats(&stats))
 			require.Equal(t, tt.wantReject, stats.NumRejections > 0, "rejections counted: %d", stats.NumRejections)
-			require.Equal(t, tt.wantCut, stats.WorstNodeLimit < 1, "worst node limit %v", stats.WorstNodeLimit)
+			require.Equal(t, tt.wantCut, stats.NodeLimit.Min < 1, "node limit %+v", stats.NodeLimit)
+			require.EqualValues(t, 1, stats.NumNodes)
+			require.Equal(t, tt.wantSlow, stats.Slowdown.Max > 0.5, "slowdown %+v", stats.Slowdown)
+			if !tt.wantReject {
+				// With one node every point of the spread is that node.
+				require.InDelta(t, stats.Slowdown.Min, stats.Slowdown.Max, 1e-9)
+			}
 
 			if !tt.wantCut {
 				return
@@ -145,7 +158,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			waitIdle(t, h.bi)
 
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.InDelta(t, 1.0, stats.WorstNodeLimit, 1e-9, "relief: the limit is back to wide open")
+			require.InDelta(t, 1.0, stats.NodeLimit.Min, 1e-9, "relief: the limit is back to wide open")
 			require.Equal(t, counted, stats.NumRejections, "the count only grows")
 		})
 	}
@@ -199,6 +212,153 @@ func TestBulkIndexerStatsBudgetFill(t *testing.T) {
 			t.Parallel()
 
 			require.InDelta(t, tt.want, tt.stats.BudgetFill(), 1e-9)
+		})
+	}
+}
+
+// TestBulkIndexerGetStatsSpread has one node of five misbehave and checks that the
+// spread tells it from the cluster: the outlier is at the end of the reading it
+// disturbs, and the median, which is what a consumer steers by, stays with the
+// other four.
+func TestBulkIndexerGetStatsSpread(t *testing.T) {
+	t.Parallel()
+
+	nodes := []string{"n0", "n1", "n2", "n3", "n4"}
+
+	tests := []struct {
+		name string
+		// reject makes n0 answer 429; slow makes it serve at a fifth of the rate.
+		reject, slow bool
+		check        func(t *testing.T, stats BulkIndexerStats)
+	}{
+		{
+			name:   "one node rejecting",
+			reject: true,
+			check: func(t *testing.T, stats BulkIndexerStats) {
+				t.Helper()
+
+				require.Less(t, stats.NodeLimit.Min, 1.0, "the outlier is the minimum")
+				require.InDelta(t, 1.0, stats.NodeLimit.Median, 1e-9, "the median is the other four")
+				require.InDelta(t, 1.0, stats.NodeLimit.Max, 1e-9)
+				require.Greater(t, stats.NodeLimit.Mean, stats.NodeLimit.Min)
+				require.LessOrEqual(t, stats.NodeLimit.Mean, stats.NodeLimit.Median)
+				require.Positive(t, stats.NumRejections)
+			},
+		},
+		{
+			name: "one node slow",
+			slow: true,
+			check: func(t *testing.T, stats BulkIndexerStats) {
+				t.Helper()
+
+				require.Greater(t, stats.Slowdown.Max, 0.5, "the outlier is the maximum")
+				require.Less(t, stats.Slowdown.Median, 0.1, "the median is the other four")
+				require.Less(t, stats.BufferSize.Min, stats.BufferSize.Median, "its buffers are the smallest")
+				require.InDelta(t, 1.0, stats.NodeLimit.Min, 1e-9, "a slow node is not a rejecting one")
+				require.Zero(t, stats.NumRejections)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			h := newSizingHarness(t, 200, 1, nodes...)
+
+			var bad atomic.Bool
+			h.server.respond = func(r sentRequest, _ string) (int, string) {
+				if tt.reject && bad.Load() && r.node == "n0" {
+					return 200, rejectingResponse(len(r.actions))
+				}
+
+				return 200, `{"took":1,"errors":false,"items":[]}`
+			}
+			h.server.advance = func(r sentRequest) {
+				rate := 100e6
+				if tt.slow && bad.Load() && r.node == "n0" {
+					rate = 20e6
+				}
+				h.clock.advance(time.Duration(float64(r.bytes) / rate * float64(time.Second)))
+			}
+
+			for range 20 {
+				for _, node := range nodes {
+					h.round(node)
+				}
+			}
+			bad.Store(true)
+			for range 4 {
+				for _, node := range nodes {
+					h.round(node)
+				}
+			}
+			waitIdle(t, h.bi)
+
+			var stats BulkIndexerStats
+			require.NoError(t, h.bi.GetStats(&stats))
+			require.EqualValues(t, len(nodes), stats.NumNodes)
+			tt.check(t, stats)
+		})
+	}
+}
+
+func TestSummarize(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		values  []float64
+		weights []float64
+		want    NodeSpread
+	}{
+		{name: "no nodes", want: NodeSpread{}},
+		{name: "one node", values: []float64{0.4}, weights: []float64{10}, want: NodeSpread{Min: 0.4, Median: 0.4, Mean: 0.4, Max: 0.4}},
+		{
+			name: "an odd count has a middle node", values: []float64{1, 0.2, 0.6}, weights: []float64{1, 1, 1},
+			want: NodeSpread{Min: 0.2, Median: 0.6, Mean: 0.6, Max: 1},
+		},
+		{
+			name: "an even count takes the middle two", values: []float64{1, 0.2, 0.6, 0.4}, weights: []float64{1, 1, 1, 1},
+			want: NodeSpread{Min: 0.2, Median: 0.5, Mean: 0.55, Max: 1},
+		},
+		{
+			name:   "one bad node among ten moves the minimum and not the median",
+			values: []float64{0.05, 1, 1, 1, 1, 1, 1, 1, 1, 1}, weights: []float64{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+			want: NodeSpread{Min: 0.05, Median: 1, Mean: 0.905, Max: 1},
+		},
+		{
+			name:   "a node with little work waiting counts for little in the mean",
+			values: []float64{0.1, 1}, weights: []float64{1, 99},
+			want: NodeSpread{Min: 0.1, Median: 0.55, Mean: 0.991, Max: 1},
+		},
+		{
+			name:   "no weights counts each node the same",
+			values: []float64{0, 1}, weights: []float64{0, 0},
+			want: NodeSpread{Min: 0, Median: 0.5, Mean: 0.5, Max: 1},
+		},
+		{
+			name:   "an unusable weight counts as none",
+			values: []float64{0, 1, 1}, weights: []float64{-5, math.Inf(1), 2},
+			want: NodeSpread{Min: 0, Median: 1, Mean: 1, Max: 1},
+		},
+		{
+			name:   "missing weights count each node the same",
+			values: []float64{0.2, 0.4},
+			want:   NodeSpread{Min: 0.2, Median: 0.3, Mean: 0.3, Max: 0.4},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			before := append([]float64(nil), tt.values...)
+			got := summarize(tt.values, tt.weights, nil)
+
+			require.InDelta(t, tt.want.Min, got.Min, 1e-9, "min")
+			require.InDelta(t, tt.want.Median, got.Median, 1e-9, "median")
+			require.InDelta(t, tt.want.Mean, got.Mean, 1e-9, "mean")
+			require.InDelta(t, tt.want.Max, got.Max, 1e-9, "max")
+			require.Equal(t, before, append([]float64(nil), tt.values...), "the caller's values are left as they were")
 		})
 	}
 }

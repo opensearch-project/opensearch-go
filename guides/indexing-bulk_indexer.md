@@ -401,7 +401,7 @@ The [environment variable reference](config-envvars.md#bulk-indexer) lists every
 
 If your service reads from a stream such as Kafka and writes to OpenSearch, it should read less when OpenSearch is slow. Reading too much and then crashing makes recovery longer, because everything read and not yet committed is replayed. `Add` alone is a poor signal for this: it blocks only once the whole `MaxMemoryBytes` is spent, and a blocked `Add` stalls your poll loop, which can pass the stream's poll timeout and trigger a rebalance.
 
-`GetStats` gives a better one. It loads the indexer's statistics into a struct you own and reuse, so it allocates nothing and cannot change the indexer, and it takes no lock, so you can call it as often as you like while other goroutines call `Add`:
+`GetStats` gives better ones. It loads the indexer's statistics into a struct you own and reuse, so it allocates nothing and cannot change the indexer, and it takes no lock, so you can call it as often as you like while other goroutines call `Add`:
 
 ```go
 var stats opensearchutil.BulkIndexerStats // reused: GetStats replaces everything in it
@@ -409,22 +409,24 @@ if err := indexer.GetStats(&stats); err != nil {
 	return err
 }
 
-fill := stats.BudgetFill()     // 0 to 1: how much of MaxMemoryBytes is held
-worst := stats.WorstNodeLimit  // 1 while every node is wide open, lower as a node rejects writes
-pushedBack := stats.NumRejections // only grows: compare with the last reading
+fill := stats.BudgetFill()          // 0 to 1: how much of MaxMemoryBytes is held
+typical := stats.Slowdown.Median    // how much slower than its best the typical node is
+pushedBack := stats.NumRejections   // only grows: compare with the last reading
 ```
-
-Three readings describe how the cluster is taking your writes:
 
 | Reading | Moves when | Use it to |
 | --- | --- | --- |
 | `BudgetFill()` | the indexer holds more than the cluster takes | slow down smoothly, well before `Add` blocks |
 | `NumRejections` | a node answers 429 | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
-| `WorstNodeLimit` | a node rejects writes (down) or accepts them again (up) | tell congestion from relief: below 1 the indexer is holding back, and a return to 1 says it is clear |
+| `NodeLimit` | a node rejects writes (down) or takes them again (up) | tell congestion from relief: 1 is clear |
+| `Slowdown` | a node serves requests more slowly than it did at its best | read slowness directly, before any node rejects anything: 0 is at its best, 1 is twice as slow |
+| `BufferSize` | the indexer finds a node slow (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches |
 
-The second number to bound is your own: how many records you have read and not yet made safe to commit. With a [`SequenceTracker`](#committing-a-stream-position) that is the offset you have read minus `Safe`, and it is exactly what a crash would replay. A simple consumer keeps it under a limit, pauses its partitions when `BudgetFill` passes a high mark or `NumRejections` rises, and resumes below a low mark. The marks are yours: a wider gap between them pauses less often.
+`NodeLimit`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
 
-These readings follow the cluster and do not change the indexer's controllers, which go on adapting to the same signals without your help. A consumer that adapts by them is a second loop over the same resource, so give it a gentler time constant than the indexer's, or it and the indexer will chase each other.
+The other number to bound is your own: how many records you have read and not yet made safe to commit. With a [`SequenceTracker`](#committing-a-stream-position) that is the offset you have read minus `Safe`, and it is exactly what a crash would replay. A simple consumer keeps it under a limit, pauses its partitions when `BudgetFill` passes a high mark or `NumRejections` rises, shrinks its read buffer as `Slowdown.Median` or `Slowdown.Mean` grows, and resumes below a low mark. The marks are yours: a wider gap between them pauses less often.
+
+These readings follow the cluster and do not change what the indexer does; it goes on adapting to the same signals without your help. A consumer that adapts by them is a second loop over the same resource, so give it a gentler time constant than the indexer's, or the two will chase each other. Each value is smoothed over a node's last few requests.
 
 ## Observing the indexer
 
