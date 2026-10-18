@@ -33,6 +33,9 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle           |
 | [`OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`](#connection-pool-tuning)           | `3`                          | Health checks before promotion        |
 | [`OPENSEARCH_GO_DEFAULT_CLIENT_TTL`](#default-client-cache)                   | `16m`                        | Default-client cache idle eviction    |
+| [`OPENSEARCH_GO_BULK_MODE`](#bulk-indexer)                                    | programmatic (`adaptive`)    | Fixed or adaptive batch sizing        |
+| [`OPENSEARCH_GO_BULK_AIMD`](#bulk-indexer)                                    | programmatic (`off`)         | Plain AIMD instead of the PID step    |
+| [`OPENSEARCH_GO_BULK_PID_KP`](#bulk-indexer) / `_KI` / `_KD`                  | `1` / `0.1` / `0.25`         | PID gains for batch sizing            |
 | [`OPENSEARCH_GO_LOG`](#debug-and-diagnostics)                                 | unset                        | Internal log level                    |
 | [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging (superseded by `_LOG`)  |
 | [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask         |
@@ -127,6 +130,18 @@ A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driv
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
 | `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` | Duration or seconds | `16m` | Idle eviction window for the process-wide cache of implicitly-created default clients (`opensearch.NewDefaultClient`, `opensearchapi.NewDefaultClient`, and the client `opensearchutil.NewBulkIndexer` builds when none is supplied). Accepts a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`). Identical default clients share one cached transport, keyed by config hash, until every holder is closed and the entry sits idle for a full window. `0` = never evict (entries live until process exit); a negative value (`-1`, `-1s`) disables caching, so every call builds a fresh client; positive = explicit window. The `16m` default is the 15m AWS Lambda max timeout plus a 1m buffer, so a default client is not evicted mid-invocation across the longest possible Lambda run. Has no `opensearch.Config` equivalent — user-built `opensearch.NewClient`/`opensearchapi.NewClient` clients never enter the cache. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
+
+## Bulk indexer
+
+Read once, when `opensearchutil.NewBulkIndexer` builds the indexer, into plain settings the sizing controller tests from then on. A variable that is set and valid overrides the matching [`BulkSizing`](indexing-bulk_indexer.md) field; unset, empty, or unparseable values leave the programmatic value (or default) in place.
+
+| Variable | Accepted values | Default | Meaning | See also |
+| --- | --- | --- | --- | --- |
+| `OPENSEARCH_GO_BULK_MODE` | `fixed`, `adaptive` (case-insensitive) | programmatic `BulkSizing.Fixed` (`adaptive`) | `fixed` turns the sizing controller off: every batch is `FlushBytes`, and each node's limit is its even share. `adaptive` lets the controller size batches from what each node can take, even if the code asked for `Fixed`. Overrides `BulkSizing.Fixed`. | [Bulk Indexer](indexing-bulk_indexer.md) |
+| `OPENSEARCH_GO_BULK_AIMD` | `on`, `off` (also any [boolean](#parsing-rules)) | programmatic `BulkSizing.AIMD` (`off`) | `on` steers by plain additive-increase, multiplicative-decrease and bypasses the PID controller: `StepBytes` more after a healthy flush, the size times the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. The `_PID_*` gains have no effect while it is on. `off` keeps the PID-modulated step. Rejections and failures are cut the same either way. Overrides `BulkSizing.AIMD`. | [Bulk Indexer](indexing-bulk_indexer.md) |
+| `OPENSEARCH_GO_BULK_PID_KP`, `OPENSEARCH_GO_BULK_PID_KI`, `OPENSEARCH_GO_BULK_PID_KD` | Non-negative float | `1`, `0.1`, `0.25` | The proportional, integral and derivative gains of the PID controller on the node's normalized slowdown. Each is read on its own, and `0` turns that term off. Negative, `NaN`, infinite, or unparseable values are ignored. Overrides `BulkSizing.Kp`, `Ki` and `Kd`. | [Bulk Indexer](indexing-bulk_indexer.md) |
+
+To stop adaptive sizing altogether, set `OPENSEARCH_GO_BULK_MODE=fixed`. To keep it but drop the PID controller, set `OPENSEARCH_GO_BULK_AIMD=on`.
 
 ## Debug and diagnostics
 

@@ -42,11 +42,28 @@ A [BulkIndexerConfig] can also set:
     whole request failed or one item did ([FailureScope]) and how ([FailureKind]). Retrying needs
     deterministic document ids, so an item without one fails with [ErrMissingDocumentID].
   - Fingerprinter, a [DocumentFingerprinter] that derives an id for an item that has none.
+  - Sizing, a [BulkSizing] that tunes how the size of the batches follows what each node can take.
   - Observer, a [BulkIndexerObserver] that receives an event for each request, each failure, and each
     item's final state, for statistics and metrics.
 
 [BulkIndexerItem].Metadata carries opaque data, such as a stream offset, back to the callbacks
 without being sent to the cluster.
+
+# Batch sizing
+
+Unless told otherwise, the indexer treats FlushBytes as a ceiling and sizes the batches sent to each
+node, and each node's limit, by what the node can take: a rejection cuts the size at once, and a
+node that slows past its headroom is given less before it rejects. A PID controller sets how hard
+each step is. [BulkSizing] selects fixed or adaptive sizing, plain additive-increase,
+multiplicative-decrease (AIMD) in place of the PID controller, and the PID gains.
+
+An operator can override those settings without a code change, through environment variables read
+when the indexer is built. A variable that is set and valid wins over the code:
+
+  - OPENSEARCH_GO_BULK_MODE, fixed or adaptive, overrides [BulkSizing].Fixed.
+  - OPENSEARCH_GO_BULK_AIMD, on or off, overrides [BulkSizing].AIMD.
+  - OPENSEARCH_GO_BULK_PID_KP, OPENSEARCH_GO_BULK_PID_KI and OPENSEARCH_GO_BULK_PID_KD override
+    [BulkSizing].Kp, Ki and Kd; a gain of 0 turns that term off.
 
 # Committing a stream position
 

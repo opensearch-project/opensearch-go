@@ -8,7 +8,12 @@ package opensearchutil
 
 import (
 	"math"
+	"os"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // BulkSizing tunes how the size of the batches sent to a node follows what the
@@ -26,10 +31,24 @@ import (
 //     size is cut in proportion to how far past Headroom it is, long before the
 //     node starts rejecting, so that bulk traffic gives way to the other requests
 //     a node is serving. A PID controller (Kp, Ki, Kd) on the normalized slowdown
-//     sets how hard each step is.
+//     sets how hard each step is, unless AIMD is set, which takes a fixed step up
+//     and a fixed cut down instead.
+//
+// An operator can override Fixed, AIMD, Kp, Ki and Kd without a code change through
+// OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and OPENSEARCH_GO_BULK_PID_KP,
+// _KI and _KD, read when the indexer is built. A variable that is set and valid
+// wins over the field it names; see guides/config-envvars.md.
 type BulkSizing struct {
 	// Fixed turns the controller off: every batch is FlushBytes.
+	// OPENSEARCH_GO_BULK_MODE=fixed|adaptive overrides it.
 	Fixed bool
+
+	// AIMD replaces the PID-modulated step with plain additive increase,
+	// multiplicative decrease: StepBytes more after a healthy flush, and the size
+	// multiplied by the square root of Backoff after a flush that shows the node
+	// slowing past Headroom. Kp, Ki and Kd are ignored. Rejections and failures are
+	// cut as they always are. OPENSEARCH_GO_BULK_AIMD=on|off overrides it.
+	AIMD bool
 
 	// MinBytes is the smallest batch the controller will ask for. Defaults to
 	// FlushBytes/32, and at least 1.
@@ -50,7 +69,8 @@ type BulkSizing struct {
 	Backoff float64
 
 	// Kp, Ki and Kd are the PID gains on the normalized slowdown. When all three
-	// are zero they default to 1, 0.1 and 0.25.
+	// are zero they default to 1, 0.1 and 0.25. OPENSEARCH_GO_BULK_PID_KP, _KI and
+	// _KD override them one by one, and a gain set to 0 there turns that term off.
 	Kp, Ki, Kd float64
 }
 
@@ -101,6 +121,7 @@ const (
 // resolvedSizing is BulkSizing with its defaults applied.
 type resolvedSizing struct {
 	fixed    bool
+	aimd     bool
 	min, max float64
 	initial  float64
 	step     float64
@@ -120,6 +141,7 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 
 	r := resolvedSizing{
 		fixed:    c.Fixed,
+		aimd:     c.AIMD,
 		max:      ceiling,
 		min:      pick(float64(c.MinBytes), ceiling/sizingMinDivisor),
 		initial:  pick(float64(c.InitialBytes), ceiling/sizingInitialDivisor),
@@ -135,6 +157,8 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 		r.kp, r.ki, r.kd = sizingDefaultKp, sizingDefaultKi, sizingDefaultKd
 	}
 
+	r.applyEnv()
+
 	r.min = max(math.Min(r.min, ceiling), 1)
 	r.initial = math.Min(math.Max(r.initial, r.min), ceiling)
 	r.backoff = math.Min(math.Max(r.backoff, 0.05), 0.95)
@@ -144,6 +168,52 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 	}
 
 	return r
+}
+
+// applyEnv applies the operator's overrides from the environment. It runs once,
+// as the indexer is built, so that the controller tests plain fields afterwards
+// and never looks at the environment again.
+func (r *resolvedSizing) applyEnv() {
+	if v, ok := lookupEnv(envvars.BulkMode); ok {
+		switch strings.ToLower(v) {
+		case "fixed":
+			r.fixed = true
+		case "adaptive":
+			r.fixed = false
+		}
+	}
+
+	if v, ok := lookupEnv(envvars.BulkAIMD); ok {
+		switch strings.ToLower(v) {
+		case "on":
+			r.aimd = true
+		case "off":
+			r.aimd = false
+		default:
+			if b, err := strconv.ParseBool(v); err == nil {
+				r.aimd = b
+			}
+		}
+	}
+
+	for _, g := range []struct {
+		name string
+		gain *float64
+	}{{envvars.BulkPIDKp, &r.kp}, {envvars.BulkPIDKi, &r.ki}, {envvars.BulkPIDKd, &r.kd}} {
+		if v, ok := lookupEnv(g.name); ok {
+			if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && !math.IsInf(f, 0) {
+				*g.gain = f
+			}
+		}
+	}
+}
+
+// lookupEnv returns the trimmed value of name, and whether it is set and not empty.
+func lookupEnv(name string) (string, bool) {
+	v, ok := os.LookupEnv(name)
+	v = strings.TrimSpace(v)
+
+	return v, ok && v != ""
 }
 
 // pick returns v, or def when v is not set.
@@ -272,6 +342,12 @@ func (s *sizer) steer(f flushSample) {
 	derivative := e - s.prevErr
 	s.prevErr = e
 
+	if s.cfg.aimd {
+		s.aimd(e)
+
+		return
+	}
+
 	u := s.cfg.kp*e + s.cfg.ki*s.integral + s.cfg.kd*derivative
 
 	switch {
@@ -281,5 +357,19 @@ func (s *sizer) steer(f flushSample) {
 		s.target += s.cfg.step * math.Min(u, 1)
 	default:
 		s.target *= 1 + math.Max(u, -sizingMaxCut)
+	}
+}
+
+// aimd steers by additive increase, multiplicative decrease alone: e is at or
+// above 0 while the node is within its headroom, and below it once the node has
+// slowed past it. It is the step steer takes when the PID controller is bypassed.
+func (s *sizer) aimd(e float64) {
+	switch {
+	case e >= 0 && s.hold > 0:
+		s.hold--
+	case e >= 0:
+		s.target += s.cfg.step
+	default:
+		s.target *= math.Sqrt(s.cfg.backoff)
 	}
 }

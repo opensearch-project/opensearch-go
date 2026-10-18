@@ -293,6 +293,12 @@ type BulkIndexerConfig struct {
 	// the node. The byte fields (MinBytes, InitialBytes, StepBytes) apply to shard
 	// buffers; a node's limit takes its own from MaxNodeBytes. The zero value selects
 	// defaults derived from FlushBytes.
+	//
+	// The OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and
+	// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD environment variables override the
+	// matching fields when they are set and valid, so an operator can switch
+	// the controller to fixed sizing or to AIMD alone, or retune the PID gains,
+	// without a code change. See [BulkSizing].
 	Sizing BulkSizing
 
 	// MaxMemoryBytes is the job's memory limit: the most the indexer holds from the
@@ -695,6 +701,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	// below one full shard buffer, and is bounded above by the job's memory.
 	nodeSizing := BulkSizing{
 		Fixed:        cfg.Sizing.Fixed,
+		AIMD:         cfg.Sizing.AIMD,
 		Headroom:     cfg.Sizing.Headroom,
 		Backoff:      cfg.Sizing.Backoff,
 		Kp:           cfg.Sizing.Kp,
@@ -705,7 +712,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	}
 
 	nodeResolved := nodeSizing.resolve(cfg.MaxMemoryBytes)
-	if cfg.Sizing.Fixed {
+	if nodeResolved.fixed {
 		// A fixed node limit is the even share, not the whole job.
 		share := float64(min(cfg.NodeBytes, cfg.MaxMemoryBytes))
 		nodeResolved.min, nodeResolved.initial, nodeResolved.max = share, share, share

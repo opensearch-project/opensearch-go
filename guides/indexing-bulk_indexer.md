@@ -4,7 +4,7 @@
 
 The [Bulk guide](indexing-bulk.md) sends one `bulk` request that you build and check yourself. `opensearchutil.BulkIndexer` sits on top of it for continuous ingestion: you hand it documents one at a time, and it keeps a buffer for each shard, sends each buffer to the node hosting the shard, and tells you what happened to each document through callbacks.
 
-The retry policy, observer, document-id enforcement, fingerprinter, `Metadata`, `Cancel`, and `SequenceTracker` described below are new in v5.1.0.
+The batch sizing controller, retry policy, observer, document-id enforcement, fingerprinter, `Metadata`, `Cancel`, and `SequenceTracker` described below are new in v5.1.0.
 
 ## Basic use
 
@@ -193,6 +193,60 @@ Before you give a stream up, for example when a partition is revoked in a rebala
 
 What makes this safe is that the flush comes first and the position is read after it. Once `Flush` has returned and you are no longer admitting records for the stream, nothing further completes, so `tracker.Safe` and `tracker.Forget` return the same position. Reading it with `Safe`, committing, and then calling `Forget` is equally safe, and keeps the stream tracked if the commit fails.
 
+## Sizing batches
+
+By default the indexer does not send every buffer at `FlushBytes`. It treats `FlushBytes` as a ceiling and steers the size of the batches sent to each node, and of each node's limit, by what the node can take. `BulkIndexerConfig.Sizing` tunes this; the zero value selects defaults derived from `FlushBytes`.
+
+Two signals steer the size:
+
+- **A rejection** (a 429 from the node's write thread pool) cuts the size by `Backoff` at once, and holds it there for a few flushes. A request that fails for another reason cuts it by the square root of `Backoff`.
+- **The node's service rate**, in bytes sent per second of time on the node (the round trip less the network distance), is compared with the best rate seen recently. While the rate stays within `Headroom` of that best, the size grows by `StepBytes` per flush. When the node slows by more than that, the size is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
+
+How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`).
+
+### Choosing a mode
+
+| Mode | Set with | Behavior |
+| --- | --- | --- |
+| Adaptive, PID (default) | nothing | The size follows the node; each step is shaped by the PID controller. |
+| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | Plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. The PID gains are ignored. |
+| Fixed | `Sizing.Fixed`, or `OPENSEARCH_GO_BULK_MODE=fixed` | The controller is off: every batch is `FlushBytes`, and a node's limit is its even share (`NodeBytes`). |
+
+To soften the PID controller without dropping it, set a gain to `0`: `Ki` and `Kd` at `0` leave a proportional controller. Setting all three to `0` makes every PID step zero, so the size then changes only on a rejection or a failure; to drop the PID controller, use AIMD instead.
+
+```go
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
+	Client:     client,
+	FlushBytes: 5 << 20,
+	Sizing:     opensearchutil.BulkSizing{AIMD: true},
+})
+```
+
+### Changing it without a code change
+
+An operator can override these settings from the environment, which is how to back off the controller on a deployment you cannot rebuild:
+
+| Variable | Overrides | Values |
+| --- | --- | --- |
+| `OPENSEARCH_GO_BULK_MODE` | `Sizing.Fixed` | `fixed`, `adaptive` |
+| `OPENSEARCH_GO_BULK_AIMD` | `Sizing.AIMD` | `on`, `off` |
+| `OPENSEARCH_GO_BULK_PID_KP`, `_KI`, `_KD` | `Sizing.Kp`, `Ki`, `Kd` | non-negative number; `0` turns the term off |
+
+They are read once, when `NewBulkIndexer` builds the indexer, and a variable that is set and valid wins over the code. An empty, unset, or unrecognized value leaves the code's setting in place. The common cases:
+
+```sh
+# Stop adaptive sizing altogether: every batch is FlushBytes.
+export OPENSEARCH_GO_BULK_MODE=fixed
+
+# Keep adaptive sizing, but drop the PID controller.
+export OPENSEARCH_GO_BULK_AIMD=on
+
+# Keep the PID controller, but with no integral or derivative term.
+export OPENSEARCH_GO_BULK_PID_KI=0 OPENSEARCH_GO_BULK_PID_KD=0
+```
+
+The [environment variable reference](config-envvars.md#bulk-indexer) lists every value.
+
 ## Observing the indexer
 
 `BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `FailureKind`. For a live stream of events instead, set `BulkIndexerConfig.Observer`, following the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the methods you need.
@@ -225,4 +279,5 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 - [Bulk](indexing-bulk.md) - the underlying `bulk` API, timeouts, and ingest-node routing.
 - [Error Handling and Partial Failures](usage-error_handling.md) - how partial failures surface from the typed API.
 - [Retry and Backoff](transport-retry_backoff.md) - the transport's own retries, beneath the indexer's.
+- [Environment Variables](config-envvars.md#bulk-indexer) - the `OPENSEARCH_GO_BULK_*` overrides for batch sizing.
 - [Observer-Based Metrics](transport-observer_metrics.md) - the transport observer model and the `osprom` and `osotel` modules.
