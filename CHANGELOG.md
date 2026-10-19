@@ -14,7 +14,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- Send `PUT` instead of `POST` for operations where the spec allows both, as v4 did. The spec lists methods alphabetically, so the generator picked `POST`, which is rejected with a 404 in OpenSearch Serverless. `cmd/osgen` now prefers `PUT`, and `Index` selects it from the `ID` path field. This affects Index, Create, Indices.PutMapping, Indices.Clone/Shrink/Split, Snapshot.Create, Snapshot.CreateRepository, PutScript, and the three template-creation calls (Cluster.PutComponentTemplate, Indices.PutIndexTemplate and Indices.PutTemplate). NDJSON `Bulk` operations are unchanged ([#1218](https://github.com/opensearch-project/opensearch-go/pull/1218))
+- Send `PUT` again for operations where the spec allows both `POST` and `PUT`, as v4 did. Since 5.0.0 the generated client sent `POST` for these, because the spec lists methods alphabetically and the generator took the first. OpenSearch Serverless returns 404 for `Index` with a document ID sent this way ([#1212](https://github.com/opensearch-project/opensearch-go/pull/1212)). The other calls change to match v4: the spec allows both methods for them, and no failure has been reported. `cmd/osgen` now prefers `PUT`, and `Index` sends `PUT` only when `ID` is set. This affects Index, Create, Indices.PutMapping, Indices.Clone/Shrink/Split, Snapshot.Create, Snapshot.CreateRepository, PutScript, and the three template-creation calls (Cluster.PutComponentTemplate, Indices.PutIndexTemplate and Indices.PutTemplate). NDJSON `Bulk` operations still send `POST` ([#1218](https://github.com/opensearch-project/opensearch-go/pull/1218))
 
 ### Security
 
