@@ -756,6 +756,51 @@ func TestByteBudgetWaiterGivesUp(t *testing.T) {
 	}
 }
 
+// TestByteBudgetGrantRacingCancellationLeaksNothing grants a waiter and cancels its
+// context at the same moment. The waiter's select sees both ready and picks either:
+// it is served, or it gives the granted bytes back. Either way the budget ends up
+// where it started once the caller is done, and repeating the race makes sure both
+// outcomes are met.
+func TestByteBudgetGrantRacingCancellationLeaksNothing(t *testing.T) {
+	t.Parallel()
+
+	var served, gaveUp int
+
+	for range 200 {
+		b := newByteBudget(testBudgetLimit)
+		_, err := b.acquire(t.Context(), nil, testBudgetKey, testBudgetLimit)
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		b.onBlock = func() {
+			// The waiter is queued and has not yet begun to select.
+			b.release(testBudgetKey, testBudgetLimit)
+			cancel()
+		}
+
+		n, err := b.acquire(ctx, nil, testBudgetKey, 50)
+		cancel()
+
+		if err != nil {
+			gaveUp++
+			require.ErrorIs(t, err, context.Canceled)
+			require.Zero(t, n)
+			require.Zero(t, b.inUse(), "the bytes granted to a caller that left must come back")
+
+			continue
+		}
+
+		served++
+		require.EqualValues(t, 50, n)
+		require.EqualValues(t, 50, b.inUse())
+		b.release(testBudgetKey, n)
+		require.Zero(t, b.inUse())
+	}
+
+	require.Positive(t, served, "the select must sometimes take the grant")
+	require.Positive(t, gaveUp, "the select must sometimes take the cancellation")
+}
+
 func TestByteBudgetCancelledHeadUnblocksTheNext(t *testing.T) {
 	t.Parallel()
 
