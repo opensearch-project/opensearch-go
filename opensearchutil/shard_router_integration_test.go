@@ -235,7 +235,10 @@ func TestShardRouterPlacesDocumentsOnTheirPrimary_Integration(t *testing.T) {
 		nodes[target.Node.Name] = true
 	}
 
-	require.Greater(t, len(nodes), 1, "six shards should land on more than one node of a multi-node cluster")
+	t.Run("shards spread across nodes", func(t *testing.T) {
+		transporttestutil.RequireMinNodes(t, ctx, 2)
+		require.Greater(t, len(nodes), 1, "six shards should land on more than one node of a multi-node cluster")
+	})
 }
 
 // TestShardRouterClusterWinsAfterSplit_Integration splits an index whose
@@ -577,6 +580,8 @@ func TestBulkIndexerSendsOneShardsBatchesToItsPrimary_Integration(t *testing.T) 
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
+
+	transporttestutil.RequireMinNodes(t, ctx, 2)
 
 	const (
 		numIndexes = 8

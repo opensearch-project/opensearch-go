@@ -44,6 +44,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - `opensearchtransport.Transport` closes the body of a request that fails before it is sent, because the route fails or the request cannot be signed, as an `http.RoundTripper` does. A body that lends memory, such as a `BulkIndexer` buffer or an `AddZeroCopy` item, was never released
 - `BulkIndexer.Flush` whose context ended no longer swallows the error of the buffer it was waiting for: the buffer reports it to `OnError`, as it does when nobody waits
+- `opensearchtransport.Transport` health-checks the node of a single-node cluster that discovery found, so the client can route to it. A discovered node is routed to only once it has been proven reachable, and the single-node pool has no resurrection to prove it, so every request went through the seed URL fallback and `LookupShard` and `WriteNodes` never named the node. A node whose publish address the client cannot reach stays unproven, and requests keep using the seed URL ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
 
 ### Security
 

@@ -483,7 +483,8 @@ func (tr *Transport) nodeDiscoveryAsyncStart(ctx context.Context, discovered []n
 //   - New pointer (replaced): the node is new or its identity changed (different ID,
 //     Name, or Roles). A fresh *Connection is created via createConnection() and placed
 //     on the dead list. The pool's scheduleResurrect -> performHealthCheck ->
-//     resurrectWithLock flow handles health checking and promotion.
+//     resurrectWithLock flow handles health checking and promotion; a
+//     singleServerPool has none, so updateConnectionPool probes its node instead.
 //
 // updateConnectionPool uses this contract: oldConn == newConn means unchanged,
 // oldConn != newConn means remove+add (regardless of role comparison).
@@ -786,6 +787,13 @@ func (tr *Transport) updateConnectionPool(
 		}
 	}
 
+	// A singleServerPool has no resurrection, so its node is health-checked here
+	// when it was never proven reachable; until then the pool serves nothing and
+	// every request goes through the seed fallback.
+	if pool, ok := newConnectionPool.(*singleServerPool); ok {
+		tr.probeUnprovenConnection(ctx, pool.connection)
+	}
+
 	// Schedule RTT probes for reused connections that have no RTT measurements.
 	// This handles connections reused by nodeDiscovery() that were never health-checked,
 	// which would otherwise leave rttRing at rttBucketUnknown and break connection scoring.
@@ -945,6 +953,37 @@ func (tr *Transport) findConnectionByURL(pool ConnectionPool, url string) *Conne
 	}
 
 	return nil
+}
+
+// probeUnprovenConnection health-checks conn in the background when it is
+// neither a seed nor proven reachable, one check at a time. A check that
+// succeeds marks it lcViable, after which a pool may serve it.
+func (tr *Transport) probeUnprovenConnection(ctx context.Context, conn *Connection) {
+	if conn == nil || conn.availableForRouting() {
+		return
+	}
+
+	conn.mu.Lock()
+	if !conn.mu.checkStartedAt.IsZero() {
+		conn.mu.Unlock()
+		return
+	}
+	conn.mu.checkStartedAt = time.Now().UTC()
+	conn.setLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
+	conn.mu.Unlock()
+
+	go func() {
+		defer func() {
+			conn.mu.Lock()
+			conn.mu.checkStartedAt = time.Time{}
+			conn.clearLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
+			conn.mu.Unlock()
+		}()
+
+		if !tr.healthCheckWithRetries(ctx, conn, tr.discoveryHealthCheckRetries) {
+			Debug().Str("conn", conn.URLString).Msg("probeUnprovenConnection: node not reachable; requests stay on the seed fallback")
+		}
+	}()
 }
 
 // createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
