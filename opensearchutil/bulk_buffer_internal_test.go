@@ -379,12 +379,15 @@ func receive[T any](t *testing.T, ch <-chan T) T {
 // testBudgetLimit is the limit of the budgets the tests below build.
 const testBudgetLimit = 100
 
+// testBudgetKey is the shard the tests below take bytes for when only one is needed.
+var testBudgetKey = shardKey{index: "idx", shard: 0}
+
 // budgetWith builds a budget whose blocking is observable: blocked receives once
 // each time an acquire begins to wait.
 func budgetWith() (*byteBudget, <-chan struct{}) {
 	b := newByteBudget(testBudgetLimit)
 	blocked := make(chan struct{}, 8)
-	b.onBlock = func() { blocked <- struct{}{} }
+	b.onBlock = func(shardKey) { blocked <- struct{}{} }
 
 	return b, blocked
 }
@@ -394,17 +397,17 @@ func TestByteBudgetAcquireAndRelease(t *testing.T) {
 
 	b, _ := budgetWith()
 
-	n, err := b.acquire(t.Context(), nil, 60)
+	n, err := b.acquire(t.Context(), nil, testBudgetKey, 60)
 	require.NoError(t, err)
 	require.EqualValues(t, 60, n)
 	require.EqualValues(t, 60, b.inUse())
 
-	n, err = b.acquire(t.Context(), nil, 40)
+	n, err = b.acquire(t.Context(), nil, testBudgetKey, 40)
 	require.NoError(t, err)
 	require.EqualValues(t, 40, n)
 	require.EqualValues(t, 100, b.inUse())
 
-	b.release(100)
+	b.release(testBudgetKey, 100)
 	require.Zero(t, b.inUse())
 
 	blocked, _ := b.blockedStats()
@@ -415,19 +418,19 @@ func TestByteBudgetBlocksUntilReleased(t *testing.T) {
 	t.Parallel()
 
 	b, blocked := budgetWith()
-	_, err := b.acquire(t.Context(), nil, 100)
+	_, err := b.acquire(t.Context(), nil, testBudgetKey, 100)
 	require.NoError(t, err)
 
 	done := make(chan error, 1)
 	go func() {
-		_, acquireErr := b.acquire(t.Context(), nil, 30)
+		_, acquireErr := b.acquire(t.Context(), nil, testBudgetKey, 30)
 		done <- acquireErr
 	}()
 
 	receive(t, blocked)
 	require.EqualValues(t, 100, b.inUse(), "the waiter must not hold bytes yet")
 
-	b.release(30)
+	b.release(testBudgetKey, 30)
 	require.NoError(t, receive(t, done))
 	require.EqualValues(t, 100, b.inUse())
 
@@ -439,24 +442,24 @@ func TestByteBudgetServesWaitersInOrder(t *testing.T) {
 	t.Parallel()
 
 	b, blocked := budgetWith()
-	_, err := b.acquire(t.Context(), nil, 100)
+	_, err := b.acquire(t.Context(), nil, testBudgetKey, 100)
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
 	for _, n := range []int64{60, 10} { // The large one arrives first.
 		wg.Go(func() {
-			_, acquireErr := b.acquire(t.Context(), nil, n)
+			_, acquireErr := b.acquire(t.Context(), nil, testBudgetKey, n)
 			require.NoError(t, acquireErr)
 		})
 		receive(t, blocked)
 	}
 
 	// 50 bytes free: the second waiter fits but must not pass the first.
-	b.release(50)
+	b.release(testBudgetKey, 50)
 	require.EqualValues(t, 50, b.inUse(), "a small waiter must not overtake a large one")
 
 	// 90 free: the first waiter takes 60, then the second takes 10.
-	b.release(40)
+	b.release(testBudgetKey, 40)
 	finished := make(chan struct{})
 	go func() {
 		wg.Wait()
@@ -495,7 +498,7 @@ func TestByteBudgetWaiterGivesUp(t *testing.T) {
 			t.Parallel()
 
 			b, blocked := budgetWith()
-			_, err := b.acquire(t.Context(), nil, 100)
+			_, err := b.acquire(t.Context(), nil, testBudgetKey, 100)
 			require.NoError(t, err)
 
 			ctx, cancel := context.WithCancel(t.Context())
@@ -503,7 +506,7 @@ func TestByteBudgetWaiterGivesUp(t *testing.T) {
 
 			done := make(chan error, 1)
 			go func() {
-				_, acquireErr := b.acquire(ctx, tt.stop, 50)
+				_, acquireErr := b.acquire(ctx, tt.stop, testBudgetKey, 50)
 				done <- acquireErr
 			}()
 
@@ -514,8 +517,8 @@ func TestByteBudgetWaiterGivesUp(t *testing.T) {
 			require.EqualValues(t, 100, b.inUse(), "a waiter that gave up must take nothing")
 
 			// The abandoned waiter left the queue, so the next caller is served.
-			b.release(100)
-			n, err := b.acquire(t.Context(), nil, 100)
+			b.release(testBudgetKey, 100)
+			n, err := b.acquire(t.Context(), nil, testBudgetKey, 100)
 			require.NoError(t, err)
 			require.EqualValues(t, 100, n)
 		})
@@ -526,20 +529,20 @@ func TestByteBudgetCancelledHeadUnblocksTheNext(t *testing.T) {
 	t.Parallel()
 
 	b, blocked := budgetWith()
-	_, err := b.acquire(t.Context(), nil, 80)
+	_, err := b.acquire(t.Context(), nil, testBudgetKey, 80)
 	require.NoError(t, err)
 
 	headCtx, cancelHead := context.WithCancel(t.Context())
 	headDone := make(chan error, 1)
 	go func() {
-		_, acquireErr := b.acquire(headCtx, nil, 90) // Cannot fit until 80 is released.
+		_, acquireErr := b.acquire(headCtx, nil, testBudgetKey, 90) // Cannot fit until 80 is released.
 		headDone <- acquireErr
 	}()
 	receive(t, blocked)
 
 	tailDone := make(chan error, 1)
 	go func() {
-		_, acquireErr := b.acquire(t.Context(), nil, 10) // Fits, but waits behind the head.
+		_, acquireErr := b.acquire(t.Context(), nil, testBudgetKey, 10) // Fits, but waits behind the head.
 		tailDone <- acquireErr
 	}()
 	receive(t, blocked)
@@ -555,18 +558,18 @@ func TestByteBudgetLetsAnOversizeItemThrough(t *testing.T) {
 
 	b, blocked := budgetWith()
 
-	n, err := b.acquire(t.Context(), nil, 10_000)
+	n, err := b.acquire(t.Context(), nil, testBudgetKey, 10_000)
 	require.NoError(t, err)
 	require.EqualValues(t, 100, n, "an item beyond the whole budget takes the whole budget")
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_, _ = b.acquire(t.Context(), nil, 1)
+		_, _ = b.acquire(t.Context(), nil, testBudgetKey, 1)
 	}()
 	<-blocked // It runs alone: everything else waits.
 
-	b.release(n)
+	b.release(testBudgetKey, n)
 	receive(t, done)
 }
 
@@ -586,16 +589,16 @@ func TestByteBudgetReportsBlockedTime(t *testing.T) {
 		return clock
 	}
 
-	_, err := b.acquire(t.Context(), nil, 100)
+	_, err := b.acquire(t.Context(), nil, testBudgetKey, 100)
 	require.NoError(t, err)
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_, _ = b.acquire(t.Context(), nil, 10)
+		_, _ = b.acquire(t.Context(), nil, testBudgetKey, 10)
 	}()
 	receive(t, blocked)
-	b.release(100)
+	b.release(testBudgetKey, 100)
 	receive(t, done)
 
 	count, total := b.blockedStats()
@@ -608,10 +611,10 @@ func TestNilByteBudgetImposesNoLimit(t *testing.T) {
 
 	var b *byteBudget
 
-	n, err := b.acquire(t.Context(), nil, 1<<40)
+	n, err := b.acquire(t.Context(), nil, testBudgetKey, 1<<40)
 	require.NoError(t, err)
 	require.Zero(t, n)
-	b.release(5)
+	b.release(testBudgetKey, 5)
 	require.Zero(t, b.inUse())
 	count, total := b.blockedStats()
 	require.Zero(t, count)
@@ -712,4 +715,65 @@ func TestChunkBufferLeaseCountsActiveReaders(t *testing.T) {
 		newTestChunkBuffer().whenIdle(func() { ran = true })
 		require.True(t, ran)
 	})
+}
+
+func TestByteBudgetLendsTheWholeLimitToALoneShard(t *testing.T) {
+	t.Parallel()
+
+	b, _ := budgetWith()
+
+	n, err := b.acquire(t.Context(), nil, testBudgetKey, testBudgetLimit)
+	require.NoError(t, err)
+	require.EqualValues(t, testBudgetLimit, n, "with nobody else waiting, one shard may use all of it")
+}
+
+func TestByteBudgetAlwaysLetsAShardThatHoldsNothingTakeOneItem(t *testing.T) {
+	t.Parallel()
+
+	b, _ := budgetWith()
+	stalled, other := shardKey{index: "idx", shard: 0}, shardKey{index: "idx", shard: 1}
+
+	_, err := b.acquire(t.Context(), nil, stalled, testBudgetLimit)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	n, err := b.acquire(ctx, nil, other, 30)
+	require.NoError(t, err, "a shard holding nothing must not wait on a limit another shard has spent")
+	require.EqualValues(t, 30, n)
+	require.EqualValues(t, testBudgetLimit+30, b.inUse(), "past the limit by that one item")
+}
+
+// TestByteBudgetServesOtherShardsPastOneHeldToItsShare: a shard over its share waits
+// while another shard is waiting, and the other is served past it. Once nobody else
+// wants room it may borrow again, without waiting for another release.
+func TestByteBudgetServesOtherShardsPastOneHeldToItsShare(t *testing.T) {
+	t.Parallel()
+
+	b, blocked := budgetWith()
+	big, small := shardKey{index: "idx", shard: 0}, shardKey{index: "idx", shard: 1}
+
+	_, err := b.acquire(t.Context(), nil, big, 70)
+	require.NoError(t, err)
+	_, err = b.acquire(t.Context(), nil, small, 20)
+	require.NoError(t, err)
+
+	bigDone, smallDone := make(chan error, 1), make(chan error, 1)
+	go func() {
+		_, acquireErr := b.acquire(t.Context(), nil, big, 20) // Past the limit: waits.
+		bigDone <- acquireErr
+	}()
+	receive(t, blocked)
+	go func() {
+		_, acquireErr := b.acquire(t.Context(), nil, small, 20) // Past the limit: waits behind big.
+		smallDone <- acquireErr
+	}()
+	receive(t, blocked)
+
+	// 30 comes back: big still holds 40 of a share of 50, and wants 20 more, so it is
+	// passed over for small, which is within its share.
+	b.release(big, 30)
+	require.NoError(t, receive(t, smallDone), "the shard within its share is served past the one over it")
+	require.NoError(t, receive(t, bigDone), "and the other, alone now in wanting room, borrows what is left")
+	require.EqualValues(t, testBudgetLimit, b.inUse())
 }

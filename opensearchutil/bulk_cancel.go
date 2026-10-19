@@ -105,7 +105,7 @@ func (bi *bulkIndexer) failStranded(ctx context.Context) {
 			b.shard.open = nil
 		}
 		b.err = ErrIndexerCanceled
-		bi.budget.release(b.held)
+		bi.budget.release(b.shard.key, b.held)
 		s.release(b.node, b.held)
 	}
 	s.sealed = nil

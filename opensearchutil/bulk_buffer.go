@@ -375,14 +375,26 @@ func (b *chunkBuffer) String() string {
 // item's life gives them back. When the budget is spent Add waits, which is the
 // backpressure: memory stays bounded by the limit however slow the cluster is.
 //
-// Waiters are served in arrival order, so a large item is not starved by a
-// stream of small ones. A nil *byteBudget imposes no limit.
+// The bytes are counted by the shard the item belongs to, so that one shard whose
+// requests are slow cannot take the room every other shard needs. While other
+// shards are waiting, a shard may hold no more than an even share of the limit;
+// while nobody else is waiting, it may borrow up to the whole limit. A shard that
+// holds nothing may always take one item, past the limit if need be, so that no
+// shard is ever left with nothing in progress: the limit can be passed by at most
+// one item for each shard that holds nothing else.
+//
+// Waiters are served in arrival order within a shard, so a large item is not
+// starved by a stream of small ones. A waiter held back by its own shard's share
+// does not hold back the waiters of other shards behind it; one held back by the
+// limit does. A nil *byteBudget imposes no limit.
 type byteBudget struct {
 	limit int64
 
 	mu struct {
 		sync.Mutex
-		used    int64
+		used int64
+		// held is what each shard holds; a shard holding nothing has no entry.
+		held    map[shardKey]int64
 		waiters []*budgetWaiter
 	}
 
@@ -403,27 +415,33 @@ type byteBudget struct {
 	blockedTime atomic.Int64 // Nanoseconds.
 }
 
-// budgetBlockFunc is called each time a byteBudget acquire begins to wait.
-type budgetBlockFunc func()
+// budgetBlockFunc is called each time a byteBudget acquire begins to wait, with
+// the shard the acquire is for.
+type budgetBlockFunc func(key shardKey)
 
 type budgetWaiter struct {
+	key     shardKey
 	n       int64
 	ready   chan struct{}
 	granted bool
 }
 
 func newByteBudget(limit int64) *byteBudget {
-	return &byteBudget{limit: limit, now: time.Now}
+	b := &byteBudget{limit: limit, now: time.Now}
+	b.mu.held = map[shardKey]int64{}
+
+	return b
 }
 
 // errBudgetStopped is returned by acquire when the stop channel closes first.
 var errBudgetStopped = errors.New("opensearchutil: bulk indexer stopped while waiting for buffer space")
 
-// acquire takes n bytes, waiting while they are not there. It returns the amount
-// taken: n, or the limit when n is larger, because an item bigger than the whole
-// budget must still be able to go through, alone. It fails with ctx's error when
-// ctx ends first, or errBudgetStopped when stop closes first, and takes nothing.
-func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64) (int64, error) {
+// acquire takes n bytes for the shard key, waiting while they are not there. It
+// returns the amount taken: n, or the limit when n is larger, because an item
+// bigger than the whole budget must still be able to go through, alone. It fails
+// with ctx's error when ctx ends first, or errBudgetStopped when stop closes
+// first, and takes nothing.
+func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, key shardKey, n int64) (int64, error) {
 	if b == nil {
 		return 0, nil
 	}
@@ -431,20 +449,20 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64)
 	n = min(max(n, 0), b.limit)
 
 	b.mu.Lock()
-	if len(b.mu.waiters) == 0 && b.mu.used+n <= b.limit {
-		b.mu.used += n
+	if (len(b.mu.waiters) == 0 || b.mu.held[key] == 0) && b.admits(key, n) == budgetAdmit {
+		b.take(key, n)
 		b.mu.Unlock()
 
 		return n, nil
 	}
 
-	w := &budgetWaiter{n: n, ready: make(chan struct{})}
+	w := &budgetWaiter{key: key, n: n, ready: make(chan struct{})}
 	b.mu.waiters = append(b.mu.waiters, w)
 	b.mu.Unlock()
 
 	b.blocked.Add(1)
 	if b.onBlock != nil {
-		b.onBlock()
+		b.onBlock(key)
 	}
 
 	start := b.now()
@@ -474,7 +492,7 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64)
 	if w.granted {
 		// The grant raced the cancellation and won: give the bytes back rather
 		// than hand them to a caller that has gone.
-		b.mu.used -= n
+		b.give(key, n)
 		b.grant()
 
 		return 0, err
@@ -489,34 +507,164 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64)
 	return 0, err
 }
 
-// release gives n bytes back and wakes the waiters that now fit.
-func (b *byteBudget) release(n int64) {
+// release gives n bytes of the shard key back and wakes the waiters that now fit.
+func (b *byteBudget) release(key shardKey, n int64) {
 	if b == nil || n <= 0 {
 		return
 	}
 
 	b.mu.Lock()
-	b.mu.used -= n
+	b.give(key, n)
 	b.grant()
 	b.mu.Unlock()
 }
 
-// grant serves waiters in order while the head fits; it must be called with the
-// lock held.
+// take and give move n bytes of the shard key in and out of use; they must be
+// called with the lock held.
+func (b *byteBudget) take(key shardKey, n int64) {
+	b.mu.used += n
+	b.mu.held[key] += n
+}
+
+func (b *byteBudget) give(key shardKey, n int64) {
+	b.mu.used -= n
+	if left := b.mu.held[key] - n; left > 0 {
+		b.mu.held[key] = left
+	} else {
+		delete(b.mu.held, key)
+	}
+}
+
+// budgetAdmission is what the budget can do for an acquire now.
+type budgetAdmission uint8
+
+const (
+	// budgetAdmit: the bytes may be taken.
+	budgetAdmit budgetAdmission = iota
+	// budgetOverShare: the shard holds its share while other shards wait; the
+	// waiters of other shards may be served past it.
+	budgetOverShare
+	// budgetFull: the limit is spent; nobody behind may be served past it.
+	budgetFull
+)
+
+// admits says whether n bytes may be taken for the shard key now; it must be
+// called with the lock held.
+func (b *byteBudget) admits(key shardKey, n int64) budgetAdmission {
+	held := b.mu.held[key]
+	if held == 0 {
+		// One item for a shard that holds nothing, whatever else is held, so that
+		// no shard is ever left with nothing in progress.
+		return budgetAdmit
+	}
+
+	if b.othersWaiting(key) && held+n > b.share() {
+		return budgetOverShare
+	}
+
+	if b.mu.used+n > b.limit {
+		return budgetFull
+	}
+
+	return budgetAdmit
+}
+
+// othersWaiting reports whether an acquire for a shard other than key is
+// waiting; it must be called with the lock held.
+func (b *byteBudget) othersWaiting(key shardKey) bool {
+	for _, w := range b.mu.waiters {
+		if w.key != key {
+			return true
+		}
+	}
+
+	return false
+}
+
+// share is an even split of the limit among the shards that hold bytes or are
+// waiting for them; it must be called with the lock held.
+func (b *byteBudget) share() int64 {
+	active := len(b.mu.held)
+	for i, w := range b.mu.waiters {
+		if _, holds := b.mu.held[w.key]; holds {
+			continue
+		}
+		if !slices.ContainsFunc(b.mu.waiters[:i], func(e *budgetWaiter) bool { return e.key == w.key }) {
+			active++
+		}
+	}
+
+	return b.limit / int64(max(active, 1))
+}
+
+// grant serves the waiters that may be served, in order: within a shard in
+// arrival order, and past a shard that is held to its share. Past a waiter the
+// spent limit holds back, only a shard that holds nothing is served, its one
+// item, so that a full limit never leaves a shard with nothing in progress. It
+// must be called with the lock held.
 func (b *byteBudget) grant() {
-	for len(b.mu.waiters) > 0 {
-		w := b.mu.waiters[0]
-		if b.mu.used+w.n > b.limit {
-			return
+	var (
+		held map[shardKey]bool
+		full bool
+	)
+
+	for i := 0; i < len(b.mu.waiters); {
+		w := b.mu.waiters[i]
+		if held[w.key] || (full && b.mu.held[w.key] > 0) {
+			i++
+
+			continue
 		}
 
-		b.mu.used += w.n
+		switch b.admits(w.key, w.n) {
+		case budgetFull:
+			full = true
+			if held == nil {
+				held = map[shardKey]bool{}
+			}
+			held[w.key] = true
+			i++
+
+			continue
+		case budgetOverShare:
+			if held == nil {
+				held = map[shardKey]bool{}
+			}
+			held[w.key] = true
+			i++
+
+			continue
+		case budgetAdmit:
+		}
+
+		b.take(w.key, w.n)
 		w.granted = true
 		close(w.ready)
+		b.mu.waiters = slices.Delete(b.mu.waiters, i, i+1)
 
-		b.mu.waiters[0] = nil
-		b.mu.waiters = b.mu.waiters[1:]
+		// A waiter passed over for its share may be within it now, or alone in
+		// wanting room, so the waiters are looked at again from the oldest.
+		i, held, full = 0, nil, false
 	}
+}
+
+// waitingKeys returns the shards that have an acquire waiting, oldest first.
+func (b *byteBudget) waitingKeys() []shardKey {
+	if b == nil {
+		return nil
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	var keys []shardKey
+	for _, w := range b.mu.waiters {
+		if !slices.Contains(keys, w.key) {
+			keys = append(keys, w.key)
+		}
+	}
+
+	return keys
 }
 
 // waiting returns the number of acquires waiting for room.

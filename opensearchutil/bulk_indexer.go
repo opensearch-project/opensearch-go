@@ -326,6 +326,13 @@ type BulkIndexerConfig struct {
 	// slows the caller down and does not grow the indexer's memory. An item larger
 	// than the whole limit is let through alone.
 	//
+	// The limit is shared among shards. While other shards are waiting for room, a
+	// shard holds no more than an even share of it, so a shard whose requests are
+	// slow makes only the callers adding to it wait; while nobody else is waiting, a
+	// shard may use all of it. A shard that holds nothing may always take one item,
+	// so that no shard is ever left with nothing in progress: the limit can be passed
+	// by at most one item for each such shard.
+	//
 	// Defaults to max(GOMEMLIMIT/4, 4 GiB, [DefaultMaxMemoryBytes]) when the process
 	// has a Go memory limit (GOMEMLIMIT), and to [DefaultMaxMemoryBytes], enough for
 	// one default AWS gp3 volume's 150 MB/s, when it does not. The 4 GiB floor can
@@ -910,7 +917,12 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 	size := estimateItemBytes(item)
 	held := itemHeldBytes(item, size)
 
-	held, err = bi.budget.acquire(ctx, bi.workersDone(), held)
+	budgetKey := unplacedKey
+	if key != nil {
+		budgetKey = *key
+	}
+
+	held, err = bi.budget.acquire(ctx, bi.workersDone(), budgetKey, held)
 	if err != nil {
 		if bi.canceled() && errors.Is(err, errBudgetStopped) {
 			return bi.refuse(ctx, item, ErrIndexerCanceled)
@@ -922,7 +934,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 	bi.sched.Lock()
 	if bi.sched.closed {
 		bi.sched.Unlock()
-		bi.budget.release(held)
+		bi.budget.release(budgetKey, held)
 
 		return ErrBulkIndexerClosed
 	}

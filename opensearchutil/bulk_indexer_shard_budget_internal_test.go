@@ -44,7 +44,6 @@ func idsOnShards(t *testing.T, cluster *fakeCluster, index string, n int, want f
 // shard's producer waits, and the others go on.
 func TestBulkIndexerStalledShardDoesNotStarveTheOthers(t *testing.T) {
 	t.Parallel()
-	t.Skip("every shard draws on one memory pool; a share per shard is still to be built, and until then a stalled shard takes the whole pool")
 
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(4)}, "n0")
 	server := newFakeServer(cluster)
