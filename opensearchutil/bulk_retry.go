@@ -56,10 +56,15 @@ import (
 // passed to Flush or Close, or the one the indexer was built with for a
 // periodic or size-triggered flush. Keep the delay short against FlushInterval.
 //
-// A retry happens above the transport's own: the transport has already resent
-// a request that drew a 502, 503 or 504 or failed on a network error, up to its
-// MaxRetries, before the indexer sees the failure. Attempts multiply with
-// those, and DisableRetry on the client turns the transport's side off.
+// A retry happens above the transport's own: the transport has already resent,
+// up to its MaxRetries, a request that failed on a network error or drew a status
+// in its RetryOnStatus (502, 503 and 504 by default), before the indexer sees the
+// error. It also resends a request a node answered with a 429 when the client
+// has a router and the node's write thread pool is tracked, as with the default
+// router, and it routes that resend afresh, so it can go to another node. A 429
+// the transport resent successfully never reaches the indexer, and does not cut
+// the node's window. Attempts multiply with those, and DisableRetry on the
+// client turns the transport's side off.
 //
 // A document that cannot be serialized, or that has no id, fails at once,
 // without a retry, and a policy never sees it.

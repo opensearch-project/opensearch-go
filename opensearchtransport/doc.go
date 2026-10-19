@@ -45,6 +45,9 @@ is a re-resolution cadence rather than a per-record TTL.
 
 The package will automatically retry requests on network-related errors, and on specific
 response status codes (by default 502, 503, 504). Use the RetryOnStatus option to customize the list.
+It also retries a request answered with 429 Too Many Requests when the client has a router and the
+node's thread pool for the request is tracked, as with the default router: it marks that pool
+overloaded, and routes the retry afresh, so it can go to another node.
 The transport will not retry a timeout network error, unless enabled by setting EnableRetryOnTimeout to true.
 
 A timeout means the node's pooled connection may be stale: canceling the attempt resets the HTTP/2 stream

@@ -175,7 +175,7 @@ OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *ope
 
 A request error is ambiguous: the request may have reached the cluster, in part or in full, before the error. The indexer reports the same error to every item in the request. If an item has no `OnError`, the error is reported to `BulkIndexerConfig.OnUnhandledError` instead. An explicit `Flush` reports through its return value and does not call `OnUnhandledError`.
 
-The transport also retries on its own, beneath the indexer, a request that drew a 502, 503, or 504 or failed on a network error; see [Retry and Backoff](transport-retry_backoff.md). The indexer only sees the error once that is exhausted.
+The transport also retries on its own, beneath the indexer: a request that failed on a network error or drew a status in its `RetryOnStatus` (502, 503 and 504 by default), and, when the client has a router and the node's write thread pool is tracked, as with the default router, a request the node answered with a 429. It routes a 429's resend afresh, so it can go to another node. See [Retry and Backoff](transport-retry_backoff.md). The indexer only sees the error once that is exhausted, and a 429 the transport resent successfully does not cut the node's window.
 
 ## Retrying failed items
 
