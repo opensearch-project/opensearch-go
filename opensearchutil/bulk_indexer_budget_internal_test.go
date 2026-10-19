@@ -346,3 +346,73 @@ func TestBulkIndexerDefaults(t *testing.T) {
 	require.Zero(t, cfg.NumWorkers, "no cap unless asked for")
 	require.NoError(t, bi.Close(t.Context()))
 }
+
+// TestBulkIndexerPressureSealsOnlyWhatCanGoOut: Add waits for memory while the node
+// has every request it allows out. A buffer sealed now would only queue behind them,
+// freeing nothing until they are answered, and it would split the batch it was
+// becoming into small requests. So nothing short of full is sealed until a request
+// can go; when one is answered, the fullest buffer is sent.
+func TestBulkIndexerPressureSealsOnlyWhatCanGoOut(t *testing.T) {
+	t.Parallel()
+
+	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0")
+	cluster.setWindow(1, false)
+	server := newFakeServer(cluster)
+	server.gate = make(chan struct{})
+
+	const producers, perProducer = 4, 100
+	const items = producers * perProducer
+	// One per request at most, so the server never waits on the test to read it.
+	server.entered = make(chan string, items)
+
+	const perBatch = 8
+	itemBytes := docBytes("idx", "doc-0000", 1000)
+	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+		FlushBytes:     int(itemBytes) * perBatch,
+		Sizing:         BulkSizing{Fixed: true},
+		FlushInterval:  time.Hour,
+		MaxMemoryBytes: int(itemBytes) * 40,
+	})
+	indexer := bi.(*bulkIndexer)
+
+	var wg sync.WaitGroup
+	for p := range producers {
+		wg.Go(func() {
+			for i := range perProducer {
+				// Not addDoc: a test's helper may not fail the test from another goroutine.
+				_ = bi.Add(t.Context(), BulkIndexerItem{
+					Action: actionIndex, Index: "idx", DocumentID: fmt.Sprintf("doc-%d-%04d", p, i), Body: seqBody(1000 + i%10),
+				})
+			}
+		})
+	}
+	produced := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(produced)
+	}()
+
+	// The first block sends a buffer, which the server holds: the node's one
+	// request is out, and the producers that run out of memory after it wait.
+	receive(t, server.entered)
+	require.Eventually(t, func() bool { return indexer.budget.waiting() >= 2 },
+		10*time.Second, time.Millisecond, "Adds must be waiting for memory with the node's window full")
+
+	indexer.sched.Lock()
+	for _, b := range indexer.sched.sealed {
+		if !b.dispatched {
+			require.GreaterOrEqual(t, b.bytes, itemBytes*perBatch, "only a full buffer queues behind the node's window")
+		}
+	}
+	indexer.sched.Unlock()
+
+	close(server.gate)
+	receive(t, produced)
+	require.NoError(t, bi.Close(t.Context()))
+
+	total := 0
+	for _, r := range server.requests() {
+		total += len(r.actions)
+	}
+	require.Equal(t, items, total)
+}
