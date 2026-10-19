@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -251,6 +252,26 @@ func TestBulkIndexerHotShardDoesNotHoldBackTheOthers(t *testing.T) {
 	cluster.setWindow(8, false)
 	server := newFakeServer(cluster)
 	server.yields = 50
+	// The first hot request is held until another shard's request arrives, so the two
+	// are in flight together however the goroutines are scheduled. A cold shard's
+	// buffer goes out when it fills or at Close, neither of which waits for the hot one.
+	coldArrived := make(chan struct{})
+	var coldOnce, holdOnce sync.Once
+	server.advance = func(r sentRequest) {
+		if _, hot := r.shards[shardKey{index: "alpha", shard: 0}]; !hot {
+			coldOnce.Do(func() { close(coldArrived) })
+
+			return
+		}
+		// Bounded, so an indexer that holds the other shards back fails the
+		// assertion on maxInflight instead of hanging.
+		holdOnce.Do(func() {
+			select {
+			case <-coldArrived:
+			case <-time.After(10 * time.Second):
+			}
+		})
+	}
 
 	// Batches aim for 5 documents; a batch held back by the hot shard may grow to 50.
 	itemBytes := docBytes("alpha", "hot-0", 1)
