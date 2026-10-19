@@ -40,7 +40,7 @@ func (f *callbackCounts) item(id string) BulkIndexerItem {
 		DocumentID: id,
 		Body:       strings.NewReader(`{"a":1}`),
 		OnSuccess:  func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) { f.succeeded.Add(1) },
-		OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+		OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 			f.failed.Add(1)
 			f.errs <- err
 		},
@@ -58,7 +58,7 @@ func TestBulkIndexerCloseWaitsForBackoff(t *testing.T) {
 		NumWorkers: 1,
 		Client:     client,
 		RetryPolicy: RetryPolicyFunc(func(
-			attempt int, _ FailureScope, _ FailureKind, _ opensearchapi.BulkRespItem, _ error,
+			attempt int, _ *BulkError,
 		) (time.Duration, bool) {
 			return 20 * time.Millisecond, attempt < 2
 		}),
@@ -85,7 +85,7 @@ func TestBulkIndexerCloseEscalatesWhenContextEnds(t *testing.T) {
 		NumWorkers: 1,
 		Client:     client,
 		RetryPolicy: RetryPolicyFunc(func(
-			int, FailureScope, FailureKind, opensearchapi.BulkRespItem, error,
+			int, *BulkError,
 		) (time.Duration, bool) {
 			backingOff <- struct{}{}
 			return time.Hour, true
@@ -137,7 +137,7 @@ func TestBulkIndexerCancelInterruptsRequestInFlight(t *testing.T) {
 
 	require.ErrorIs(t, <-flushed, context.Canceled)
 	require.NoError(t, bi.Close(t.Context()))
-	require.Equal(t, int64(1), f.failed.Load(), "exactly one OnFailure")
+	require.Equal(t, int64(1), f.failed.Load(), "exactly one OnError")
 	require.ErrorIs(t, <-f.errs, context.Canceled)
 	require.Zero(t, f.succeeded.Load())
 }
@@ -264,7 +264,7 @@ func TestBulkIndexerCancelDoesNotCountARetry(t *testing.T) {
 		Client:     client,
 		// A policy that always retries: only the canceled context can stop it.
 		RetryPolicy: RetryPolicyFunc(func(
-			int, FailureScope, FailureKind, opensearchapi.BulkRespItem, error,
+			int, *BulkError,
 		) (time.Duration, bool) {
 			asked.Add(1)
 			return time.Hour, true
@@ -282,35 +282,35 @@ func TestBulkIndexerCancelDoesNotCountARetry(t *testing.T) {
 
 	require.Equal(t, int64(1), f.failed.Load())
 	require.Zero(t, asked.Load(), "a canceled indexer sends nothing more, so the policy is not asked")
-	require.Equal(t, [numFailureKinds]uint64{}, bi.Stats().NumRetries, "no retry was sent, so none is counted")
+	require.Equal(t, [numErrorKinds]uint64{}, bi.Stats().NumRetries, "no retry was sent, so none is counted")
 }
 
-// failureCall is what one item's OnFailure was handed.
+// failureCall is what one item's OnError was handed.
 type failureCall struct {
 	ID   string
 	Resp opensearchapi.BulkRespItem
-	Err  error
+	Err  *BulkError
 }
 
-// recordingItem returns an item whose OnFailure appends to calls.
+// recordingItem returns an item whose OnError appends to calls.
 func recordingItem(id string, calls *[]failureCall) BulkIndexerItem {
 	return BulkIndexerItem{
 		Action:     "index",
 		DocumentID: id,
-		OnFailure: func(_ context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
-			*calls = append(*calls, failureCall{ID: item.DocumentID, Resp: resp, Err: err})
+		OnError: func(_ context.Context, item BulkIndexerItem, err *BulkError) {
+			*calls = append(*calls, failureCall{ID: item.DocumentID, Resp: err.Resp, Err: err})
 		},
 	}
 }
 
 // TestWorkerFailCanceled: a canceled worker fails every buffered item with
-// ErrIndexerCanceled and sends nothing. An item with an OnFailure hears of it
+// ErrIndexerCanceled and sends nothing. An item with an OnError hears of it
 // there; one without is reported through the returned error. The observer sees
 // OnItemDone for each item, but no failure event, since a cancel is not a failure.
 func TestWorkerFailCanceled(t *testing.T) {
 	t.Parallel()
 
-	t.Run("items with and without OnFailure", func(t *testing.T) {
+	t.Run("items with and without OnError", func(t *testing.T) {
 		t.Parallel()
 
 		var calls []failureCall
@@ -328,13 +328,14 @@ func TestWorkerFailCanceled(t *testing.T) {
 
 		require.ErrorIs(t, err, ErrIndexerCanceled)
 		require.ErrorIs(t, err, context.Canceled)
-		require.Equal(t, 2, strings.Count(err.Error(), ErrIndexerCanceled.Error()), "once for each item without an OnFailure")
+		require.Equal(t, 2, strings.Count(err.Error(), ErrIndexerCanceled.Error()), "once for each item without an OnError")
 
 		require.Len(t, calls, 2)
 		for i, id := range []string{"a", "c"} {
 			require.Equal(t, id, calls[i].ID)
 			require.ErrorIs(t, calls[i].Err, ErrIndexerCanceled)
-			require.NotNil(t, calls[i].Resp.Error, "OnFailure always gets an error cause")
+			require.Equal(t, LayerIndexer, calls[i].Err.Layer)
+			require.Equal(t, KindCanceled, calls[i].Err.Kind)
 		}
 
 		require.Equal(t, uint64(4), w.bi.stats.numFailed.Load())
@@ -343,7 +344,7 @@ func TestWorkerFailCanceled(t *testing.T) {
 		require.Zero(t, obs.failures.Load())
 	})
 
-	t.Run("items that all have OnFailure leave nothing to report", func(t *testing.T) {
+	t.Run("items that all have OnError leave nothing to report", func(t *testing.T) {
 		t.Parallel()
 
 		var calls []failureCall
@@ -373,7 +374,7 @@ type cancelObserver struct {
 	canceled atomic.Int64
 }
 
-func (o *cancelObserver) OnItemFailure(context.Context, BulkFailureEvent) { o.failures.Add(1) }
+func (o *cancelObserver) OnItemError(context.Context, BulkErrorEvent) { o.failures.Add(1) }
 
 func (o *cancelObserver) OnItemDone(_ context.Context, ev BulkItemEvent) {
 	o.done.Add(1)
@@ -382,7 +383,7 @@ func (o *cancelObserver) OnItemDone(_ context.Context, ev BulkItemEvent) {
 	}
 }
 
-func TestBulkIndexerCancelIsNotReportedAsAFailureKind(t *testing.T) {
+func TestBulkIndexerCancelIsNotReportedAsAnErrorKind(t *testing.T) {
 	t.Parallel()
 
 	seq := &bulkSequence{outcomes: []bulkOutcome{outcomeOK}}

@@ -19,8 +19,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 // eventLog is a BulkIndexerObserver that records each event as one line, in
@@ -31,7 +29,7 @@ type eventLog struct {
 	mu       sync.Mutex
 	lines    []string
 	requests []BulkRequestEvent
-	failures []BulkFailureEvent
+	failures []BulkErrorEvent
 }
 
 func (l *eventLog) add(line string) {
@@ -47,25 +45,25 @@ func (l *eventLog) OnRequestEnd(_ context.Context, e BulkRequestEvent) {
 	l.add(fmt.Sprintf("request-end a=%d items=%d status=%d err=%t", e.Attempt, e.Items, e.StatusCode, e.Err != nil))
 }
 
-func (l *eventLog) OnRequestFailure(_ context.Context, e BulkFailureEvent) {
+func (l *eventLog) OnRequestError(_ context.Context, e BulkErrorEvent) {
 	l.mu.Lock()
 	l.failures = append(l.failures, e)
 	l.mu.Unlock()
 	l.add(fmt.Sprintf("request-failure scope=%s a=%d kind=%s items=%d status=%d retry=%t delay=%s err=%t",
-		e.Scope, e.Attempt, e.Kind, e.Items, e.StatusCode, e.Retrying, e.Delay, e.Err != nil))
+		e.Err.Layer, e.Attempt, e.Err.Kind, e.Items, e.Err.Status, e.Retrying, e.Delay, e.Err.Err != nil))
 }
 
-func (l *eventLog) OnItemFailure(_ context.Context, e BulkFailureEvent) {
+func (l *eventLog) OnItemError(_ context.Context, e BulkErrorEvent) {
 	l.mu.Lock()
 	l.failures = append(l.failures, e)
 	l.mu.Unlock()
 	l.add(fmt.Sprintf("item-failure scope=%s a=%d kind=%s id=%s status=%d retry=%t delay=%s err=%t",
-		e.Scope, e.Attempt, e.Kind, e.DocumentID, e.StatusCode, e.Retrying, e.Delay, e.Err != nil))
+		e.Err.Layer, e.Attempt, e.Err.Kind, e.DocumentID, e.Err.Status, e.Retrying, e.Delay, e.Err.Err != nil))
 }
 
 func (l *eventLog) OnItemDone(_ context.Context, e BulkItemEvent) {
 	l.add(fmt.Sprintf("done id=%s attempts=%d failed=%t status=%d err=%t meta=%v",
-		e.DocumentID, e.Attempts, e.Failed, e.Resp.Status, e.Err != nil, e.Metadata))
+		e.DocumentID, e.Attempts, e.Failed, e.Resp.Status, e.Err != nil && e.Err.Err != nil, e.Metadata))
 }
 
 func TestBulkIndexerObserver(t *testing.T) {
@@ -75,7 +73,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 
 	// retryOnce retries the first failure after one nanosecond, and no other.
 	retryOnce := RetryPolicyFunc(func(
-		attempt int, _ FailureScope, _ FailureKind, _ opensearchapi.BulkRespItem, _ error,
+		attempt int, _ *BulkError,
 	) (time.Duration, bool) {
 		return time.Nanosecond, attempt < 2
 	})
@@ -86,7 +84,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 		policy   RetryPolicy
 		items    []BulkIndexerItem
 		want     []string
-		wantStat [numFailureKinds]uint64
+		wantStat [numErrorKinds]uint64
 	}{
 		{
 			name:     "a request failure retried, then accepted",
@@ -100,7 +98,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 				"done id=a attempts=2 failed=false status=201 err=false meta=<nil>",
 				"done id=b attempts=2 failed=false status=201 err=false meta=<nil>",
 			},
-			wantStat: [numFailureKinds]uint64{FailureRejected: 2},
+			wantStat: [numErrorKinds]uint64{KindRejected: 2},
 		},
 		{
 			name:     "an item rejection retried, then accepted",
@@ -114,7 +112,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 				"request-end a=2 items=1 status=200 err=false",
 				"done id=b attempts=2 failed=false status=201 err=false meta=7",
 			},
-			wantStat: [numFailureKinds]uint64{FailureRejected: 1},
+			wantStat: [numErrorKinds]uint64{KindRejected: 1},
 		},
 		{
 			name:     "a request failure with no policy fails every item",
@@ -190,23 +188,26 @@ func TestBulkIndexerObserver(t *testing.T) {
 
 // TestBulkIndexerObserverScopes pins that the two failure levels reach separate
 // observer methods with their own scope and counts.
-func TestFailureScopeString(t *testing.T) {
+func TestErrorLayerString(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		scope FailureScope
+		layer ErrorLayer
 		want  string
 	}{
-		{ScopeRequest, "request"},
-		{ScopeItem, "item"},
-		{FailureScope(42), "unknown"},
+		{LayerUnknown, "unknown"},
+		{LayerItem, "item"},
+		{LayerRequest, "request"},
+		{LayerIndex, "index"},
+		{LayerIndexer, "indexer"},
+		{ErrorLayer(42), "ErrorLayer(42)"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
 			t.Parallel()
 
-			require.Equal(t, tt.want, tt.scope.String())
+			require.Equal(t, tt.want, tt.layer.String())
 		})
 	}
 }
@@ -233,8 +234,8 @@ func TestBaseBulkIndexerObserver(t *testing.T) {
 
 		require.NotPanics(t, func() {
 			obs.OnRequestEnd(t.Context(), BulkRequestEvent{})
-			obs.OnRequestFailure(t.Context(), BulkFailureEvent{})
-			obs.OnItemFailure(t.Context(), BulkFailureEvent{})
+			obs.OnRequestError(t.Context(), BulkErrorEvent{})
+			obs.OnItemError(t.Context(), BulkErrorEvent{})
 		})
 		require.Zero(t, o.done.Load(), "only the overridden method counts")
 
@@ -253,7 +254,7 @@ func TestBaseBulkIndexerObserver(t *testing.T) {
 			Client:     client,
 			Observer:   o,
 			RetryPolicy: RetryPolicyFunc(func(
-				attempt int, _ FailureScope, _ FailureKind, _ opensearchapi.BulkRespItem, _ error,
+				attempt int, _ *BulkError,
 			) (time.Duration, bool) {
 				return time.Nanosecond, attempt < 2
 			}),
@@ -275,12 +276,12 @@ func TestBulkIndexerObserverScopes(t *testing.T) {
 	tests := []struct {
 		name      string
 		outcome   bulkOutcome
-		wantScope FailureScope
+		wantScope ErrorLayer
 		wantItems int
 		wantID    string
 	}{
-		{name: "whole request", outcome: outcomeTooManyRequests, wantScope: ScopeRequest, wantItems: 3},
-		{name: "one item", outcome: outcomeItems(map[string]int{"b": 429}), wantScope: ScopeItem, wantItems: 1, wantID: "b"},
+		{name: "whole request", outcome: outcomeTooManyRequests, wantScope: LayerRequest, wantItems: 3},
+		{name: "one item", outcome: outcomeItems(map[string]int{"b": 429}), wantScope: LayerItem, wantItems: 1, wantID: "b"},
 	}
 
 	for _, tt := range tests {
@@ -303,11 +304,11 @@ func TestBulkIndexerObserverScopes(t *testing.T) {
 			log.mu.Lock()
 			defer log.mu.Unlock()
 			require.Len(t, log.failures, 1)
-			require.Equal(t, tt.wantScope, log.failures[0].Scope)
+			require.Equal(t, tt.wantScope, log.failures[0].Err.Layer)
 			require.Equal(t, tt.wantItems, log.failures[0].Items)
 			require.Equal(t, tt.wantID, log.failures[0].DocumentID)
 			// The method matches the scope: a request failure never arrives as an item failure.
-			if tt.wantScope == ScopeRequest {
+			if tt.wantScope == LayerRequest {
 				require.Contains(t, log.lines[1], "request-failure")
 			} else {
 				require.Contains(t, strings.Join(log.lines, "\n"), "item-failure")

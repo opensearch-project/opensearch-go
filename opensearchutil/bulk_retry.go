@@ -16,81 +16,35 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// FailureKind classifies why a bulk request, or one item of it, failed. It is
-// what a [RetryPolicy] is given to decide whether a retry can help.
-type FailureKind int
-
-const (
-	// FailureRejected means the cluster refused the work because a write queue
-	// was full (HTTP 429), either for the whole request or for one item. The
-	// work was not applied.
-	FailureRejected FailureKind = iota
-
-	// FailureUnavailable means the cluster, or a proxy in front of it, could not
-	// serve the work right now (HTTP 503), either for the whole request or for
-	// one item. The work is treated as not applied.
-	FailureUnavailable
-
-	// FailureTransport means the outcome is unknown: the request failed before
-	// a response arrived, or the response was a server error other than 503 (for
-	// one item, a status of 500 or more other than 503) or could not be read. The batch may have been applied in full, in part, or
-	// not at all, so retrying it can write a document twice unless the writes
-	// are idempotent. See the precondition on [RetryPolicy].
-	FailureTransport
-
-	// FailurePermanent means the same request would fail the same way: a
-	// mapping error, a version conflict, any other 4xx, or a response that
-	// cannot be paired with the items sent. Retrying cannot succeed.
-	FailurePermanent
-)
-
-// numFailureKinds is the number of FailureKind values, sizing the retry counters.
-const numFailureKinds = 4
-
-// String returns the name of the kind without its Failure prefix.
-func (k FailureKind) String() string {
-	switch k {
-	case FailureRejected:
-		return "rejected"
-	case FailureUnavailable:
-		return "unavailable"
-	case FailureTransport:
-		return "transport"
-	case FailurePermanent:
-		return "permanent"
-	default:
-		return fmt.Sprintf("FailureKind(%d)", int(k))
-	}
-}
-
 // RetryPolicy decides whether the indexer sends a failed item again, and after
 // how long. The indexer drives the loop; the policy supplies the backoff and
 // the limit. Set it as [BulkIndexerConfig].RetryPolicy.
 //
-// Retrying requires idempotent writes: a failure of kind [FailureTransport] is
+// Retrying requires idempotent writes: a failure of kind [KindTransport] is
 // ambiguous, because the batch may already have reached the cluster, and
 // sending it again would index an item without a DocumentID a second time under
 // a new generated _id. So when a RetryPolicy is set, every item must carry a
 // DocumentID, and the indexer enforces it: an item without one is not sent and
-// fails through its own OnFailure with [ErrMissingDocumentID]. Set
+// fails through its own OnError with [ErrMissingDocumentID]. Set
 // [BulkIndexerConfig].Fingerprinter to have the indexer generate the id.
 //
-// A bulk request can fail in two ways, and Retry is told which by scope. With
-// [ScopeRequest] the whole request failed: resp is empty, err is non-nil, and
-// one call stands for every item in the request, which all draw the same
-// failure. With [ScopeItem] the cluster answered and rejected one item: resp is
-// that item's response, err is nil, and there is one call per rejected item.
-// attempt counts the requests that have carried the work so far: 1 after the
-// first request fails. kind is also offered for [FailurePermanent], which no
-// retry can fix; a policy should return false for it. The indexer applies no
-// limit of its own, so a policy that always returns true retries a persistent
-// failure forever.
+// Retry is asked about two layers of error, and err.Layer says which. With
+// [LayerRequest] the whole request failed: err.Err is the request's error, and one
+// call stands for every item in the request, which all draw the same error. With
+// [LayerItem] the cluster answered and rejected one item: err.Resp is that item's
+// response, and there is one call per rejected item. Errors of the other layers
+// are never retried, and a policy never sees them. err.Kind, or errors.Is with
+// ErrRejected, ErrUnavailable, ErrTransport or ErrPermanent, says why. attempt
+// counts the requests that have carried the work so far: 1 after the first
+// request fails. [KindPermanent] is offered too, which no retry can fix; a policy
+// should return false for it. The indexer applies no limit of its own, so a
+// policy that always returns true retries a persistent error forever.
 //
 // When retry is true the item is sent again, in a request of its own together
 // with the other items being retried, after the longest delay any of them was
-// given. While an item is being retried neither OnSuccess nor OnFailure fires
+// given. While an item is being retried neither OnSuccess nor OnError fires
 // for it: each fires once, when the indexer is done with the item. When retry is
-// false the item fails with the failure it was offered, and OnFailure fires.
+// false the item fails with the failure it was offered, and OnError fires.
 //
 // Retry runs on the goroutine that sends the buffer, as the item callbacks do, so
 // it must not block. That goroutine then waits for delay while the buffer keeps
@@ -110,21 +64,15 @@ func (k FailureKind) String() string {
 // A document that cannot be serialized, or that has no id, fails at once,
 // without a retry, and a policy never sees it.
 type RetryPolicy interface {
-	Retry(
-		attempt int, scope FailureScope, kind FailureKind, resp opensearchapi.BulkRespItem, err error,
-	) (delay time.Duration, retry bool)
+	Retry(attempt int, err *BulkError) (delay time.Duration, retry bool)
 }
 
 // RetryPolicyFunc adapts a function to a [RetryPolicy].
-type RetryPolicyFunc func(
-	attempt int, scope FailureScope, kind FailureKind, resp opensearchapi.BulkRespItem, err error,
-) (time.Duration, bool)
+type RetryPolicyFunc func(attempt int, err *BulkError) (time.Duration, bool)
 
 // Retry calls f.
-func (f RetryPolicyFunc) Retry(
-	attempt int, scope FailureScope, kind FailureKind, resp opensearchapi.BulkRespItem, err error,
-) (time.Duration, bool) {
-	return f(attempt, scope, kind, resp, err)
+func (f RetryPolicyFunc) Retry(attempt int, err *BulkError) (time.Duration, bool) {
+	return f(attempt, err)
 }
 
 // bulkResponseMismatchError reports a bulk response that cannot be paired with
@@ -138,39 +86,39 @@ func (e *bulkResponseMismatchError) Error() string {
 }
 
 // classifyItemFailure classifies the rejection of one item the cluster answered.
-func classifyItemFailure(info opensearchapi.BulkRespItem) FailureKind {
+func classifyItemFailure(info opensearchapi.BulkRespItem) ErrorKind {
 	switch info.Status {
 	case http.StatusTooManyRequests:
-		return FailureRejected
+		return KindRejected
 	case http.StatusServiceUnavailable:
-		return FailureUnavailable
+		return KindUnavailable
 	}
 
 	if info.Status >= http.StatusInternalServerError {
-		return FailureTransport
+		return KindTransport
 	}
 
-	return FailurePermanent
+	return KindPermanent
 }
 
 // classifyBatchFailure classifies a bulk request that failed as a whole. status
 // is the HTTP status of the response, or 0 when none arrived; it is taken from
 // the response rather than from err, which carries no status for an error body
 // the client could not parse.
-func classifyBatchFailure(status int, err error) FailureKind {
+func classifyBatchFailure(status int, err error) ErrorKind {
 	if _, ok := errors.AsType[*bulkResponseMismatchError](err); ok { //nolint:errcheck // discarded result is the matched error
-		return FailurePermanent
+		return KindPermanent
 	}
 
 	switch {
 	case status == http.StatusTooManyRequests:
-		return FailureRejected
+		return KindRejected
 	case status == http.StatusServiceUnavailable:
-		return FailureUnavailable
+		return KindUnavailable
 	case status >= http.StatusBadRequest && status < http.StatusInternalServerError:
-		return FailurePermanent
+		return KindPermanent
 	default:
-		return FailureTransport
+		return KindTransport
 	}
 }
 
@@ -188,14 +136,12 @@ func batchStatus(blk *opensearchapi.BulkResp) int {
 }
 
 // failedItem is an item whose last request failed and which the policy chose to
-// send again. resp and err are the failure it was offered, kept so the item can
-// still be failed with them if the retry is abandoned. attempt is the number of
-// requests that have carried it.
+// send again. err is the error it was offered, kept so the item can still be
+// failed with it if the retry is abandoned. attempt is the number of requests
+// that have carried it.
 type failedItem struct {
 	item    BulkIndexerItem
-	op      string
-	resp    opensearchapi.BulkRespItem
-	err     error
+	err     *BulkError
 	attempt int
 }
 
@@ -216,7 +162,7 @@ func (r *retryBatch) add(f failedItem, delay time.Duration) {
 // whether to send the affected work again. With no policy it declines. The
 // event arrives without its Index, Node, Retrying and Delay, which are filled
 // in here.
-func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Duration, bool) {
+func (w *worker) decideRetry(ctx context.Context, ev BulkErrorEvent) (time.Duration, bool) {
 	var (
 		delay time.Duration
 		retry bool
@@ -224,55 +170,50 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Dur
 	// A canceled indexer or an ended context sends nothing more, so the policy is
 	// not asked and the failure is not counted as a retry.
 	if policy := w.bi.config.RetryPolicy; policy != nil && ctx.Err() == nil && !w.bi.canceled() {
-		delay, retry = policy.Retry(ev.Attempt, ev.Scope, ev.Kind, ev.Resp, ev.Err)
+		delay, retry = policy.Retry(ev.Attempt, ev.Err)
 	}
 	delay = max(delay, 0)
 
 	if retry {
-		w.bi.stats.numRetries[ev.Kind].Add(uint64(ev.Items)) //nolint:gosec // Items is a count, never negative
+		w.bi.stats.numRetries[ev.Err.Kind].Add(uint64(ev.Items)) //nolint:gosec // Items is a count, never negative
 		ev.Retrying, ev.Delay = true, delay
 	}
 
 	if obs := w.bi.config.Observer; obs != nil {
 		ev.Index, ev.Node = w.bi.config.Index, w.node.Name
-		if ev.Scope == ScopeRequest {
-			obs.OnRequestFailure(ctx, ev)
+		if ev.Err.Layer == LayerRequest {
+			obs.OnRequestError(ctx, ev)
 		} else {
-			obs.OnItemFailure(ctx, ev)
+			obs.OnItemError(ctx, ev)
 		}
 	}
 
 	return delay, retry
 }
 
-// failItem fails an item for good: it counts it, tells the item's
-// OnFailure and the observer. resp is the response item, and err the error the
-// item failed with (nil for an item the cluster rejected). attempts is the
-// number of requests that carried it.
+// failItem fails an item for good with err: it counts it, tells the item's OnError
+// and the observer. attempts is the number of requests that carried it.
 //
-// An item without an OnFailure of its own returns the error to report instead,
-// so the flush site can surface it through OnError; whether to use it is up to
-// the caller.
-func (w *worker) failItem(
-	ctx context.Context, item BulkIndexerItem, op string, resp opensearchapi.BulkRespItem, err error, attempts int,
-) error {
+// An item without an OnError of its own returns err to report instead, so the
+// flush site can surface it through OnUnhandledError; whether to use it is up to
+// the caller. An item with one returns nil.
+func (w *worker) failItem(ctx context.Context, item BulkIndexerItem, err *BulkError, attempts int) error {
 	w.bi.stats.numFailed.Add(1)
-	w.observeDone(ctx, item, attempts, true, resp, err)
+	w.observeDone(ctx, item, attempts, err.Resp, err)
 
-	if item.OnFailure != nil {
-		item.OnFailure(ctx, item, bulkRespItemForOnFailure(resp), err)
+	if item.OnError != nil {
+		item.OnError(ctx, item, err)
+
 		return nil
-	}
-	if err == nil {
-		return bulkItemFailure(op, resp)
 	}
 
 	return err
 }
 
-// observeDone tells the observer that the indexer is done with an item.
+// observeDone tells the observer that the indexer is done with an item. err is nil
+// for an item the cluster accepted.
 func (w *worker) observeDone(
-	ctx context.Context, item BulkIndexerItem, attempts int, failed bool, resp opensearchapi.BulkRespItem, err error,
+	ctx context.Context, item BulkIndexerItem, attempts int, resp opensearchapi.BulkRespItem, err *BulkError,
 ) {
 	obs := w.bi.config.Observer
 	if obs == nil {
@@ -291,35 +232,35 @@ func (w *worker) observeDone(
 		Metadata:   item.Metadata,
 		Node:       w.node.Name,
 		Attempts:   attempts,
-		Failed:     failed,
+		Failed:     err != nil,
 		Resp:       resp,
 		Err:        err,
 	})
 }
 
-// failUnsent fails an item that could not be written to a request, because it
-// does not serialize or has no document id. A retry cannot help, so the policy
-// is not asked. attempts is the number of requests that carried the item
-// before, 0 for an item never sent. It returns what failItem does.
+// failUnsent fails an item that was never written to a request, for the reason
+// cause: it does not serialize, has no document ID, its index's shard map changed,
+// or the indexer was canceled. A retry cannot help, so the policy is not asked.
+// attempts is the number of requests that carried the item before, 0 for an item
+// never sent. It returns what failItem does.
 //
-// A cancellation is not a failure of the work, so it is left out of the
-// failure events, whose kinds count what went wrong; the item still reaches
-// OnItemDone, with ErrIndexerCanceled.
-func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, err error, attempts int) error {
-	if obs := w.bi.config.Observer; obs != nil && !errors.Is(err, ErrIndexerCanceled) {
-		obs.OnItemFailure(ctx, BulkFailureEvent{
-			Scope:      ScopeItem,
-			Kind:       FailurePermanent,
+// A cancellation is not a failure of the work, so it is left out of the error
+// events, whose kinds count what went wrong; the item still reaches OnItemDone,
+// with an error of [KindCanceled].
+func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, cause error, attempts int) error {
+	err := unsentError(item, cause)
+	if obs := w.bi.config.Observer; obs != nil && err.Kind != KindCanceled {
+		obs.OnItemError(ctx, BulkErrorEvent{
+			Err:        err,
 			Index:      w.bi.config.Index,
 			Node:       w.node.Name,
 			Attempt:    attempts,
 			Items:      1,
 			DocumentID: item.DocumentID,
-			Err:        err,
 		})
 	}
 
-	return w.failItem(ctx, item, item.Action, opensearchapi.BulkRespItem{}, err, attempts)
+	return w.failItem(ctx, item, err, attempts)
 }
 
 // sendWithRetry sends the buffered items and, while the policy asks for it,
@@ -393,7 +334,7 @@ func (w *worker) rebuild(ctx context.Context, items []failedItem) (int, error) {
 }
 
 // failPending fails items whose retry was abandoned, each with the failure it
-// last drew. An item without an OnFailure of its own is reported through the
+// last drew. An item without an OnError of its own is reported through the
 // returned error instead, once per distinct request failure.
 func (w *worker) failPending(ctx context.Context, items []failedItem) error {
 	var (
@@ -401,10 +342,10 @@ func (w *worker) failPending(ctx context.Context, items []failedItem) error {
 		batchSeen bool
 	)
 	for _, f := range items {
-		err := w.failItem(ctx, f.item, f.op, f.resp, f.err, f.attempt)
+		err := w.failItem(ctx, f.item, f.err, f.attempt)
 		switch {
 		case err == nil:
-		case f.err == nil:
+		case f.err.Layer != LayerRequest:
 			errs = append(errs, err)
 		case !batchSeen:
 			batchSeen = true

@@ -38,7 +38,7 @@ func (o *nodeObserver) OnRequestEnd(_ context.Context, e BulkRequestEvent) {
 	o.requests = append(o.requests, e.Node)
 }
 
-func (o *nodeObserver) OnItemFailure(_ context.Context, e BulkFailureEvent) {
+func (o *nodeObserver) OnItemError(_ context.Context, e BulkErrorEvent) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 

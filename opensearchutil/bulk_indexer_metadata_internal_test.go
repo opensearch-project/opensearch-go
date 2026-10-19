@@ -40,7 +40,7 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 		outcomes       []bulkOutcome
 		policy         *recordingPolicy
 		unserializable bool // add an item that cannot be serialized
-		wantOK         bool // OnSuccess is called, otherwise OnFailure
+		wantOK         bool // OnSuccess is called, otherwise OnError
 		wantBodies     []string
 	}{
 		{name: "accepted", outcomes: []bulkOutcome{outcomeOK}, wantOK: true, wantBodies: []string{wantBody}},
@@ -62,7 +62,7 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 		{
 			name:       "accepted after a retry",
 			outcomes:   []bulkOutcome{outcomeTooManyRequests, outcomeOK},
-			policy:     &recordingPolicy{decide: func(int, FailureKind) (time.Duration, bool) { return 0, true }},
+			policy:     &recordingPolicy{decide: func(int, ErrorKind) (time.Duration, bool) { return 0, true }},
 			wantOK:     true,
 			wantBodies: []string{wantBody, wantBody},
 		},
@@ -90,7 +90,7 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 				OnSuccess: func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
 					succeeded = append(succeeded, item.Metadata)
 				},
-				OnFailure: func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem, _ error) {
+				OnError: func(_ context.Context, item BulkIndexerItem, _ *BulkError) {
 					failed = append(failed, item.Metadata)
 				},
 			}
@@ -105,7 +105,7 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 				require.Equal(t, []any{position}, succeeded, "Metadata in OnSuccess")
 				require.Empty(t, failed)
 			} else {
-				require.Equal(t, []any{position}, failed, "Metadata in OnFailure")
+				require.Equal(t, []any{position}, failed, "Metadata in OnError")
 				require.Empty(t, succeeded)
 			}
 

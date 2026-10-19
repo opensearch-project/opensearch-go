@@ -33,14 +33,14 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 
 	o.OnRequestEnd(ctx, opensearchutil.BulkRequestEvent{Items: 3, Bytes: 2048, Duration: 250 * time.Millisecond})
 	o.OnRequestEnd(ctx, opensearchutil.BulkRequestEvent{Items: 3, Bytes: 2048, Err: io.ErrUnexpectedEOF})
-	o.OnRequestFailure(ctx, opensearchutil.BulkFailureEvent{
-		Scope: opensearchutil.ScopeRequest, Kind: opensearchutil.FailureTransport, Items: 3, Retrying: true,
+	o.OnRequestError(ctx, opensearchutil.BulkErrorEvent{
+		Err: &opensearchutil.BulkError{Layer: opensearchutil.LayerRequest, Kind: opensearchutil.KindTransport}, Items: 3, Retrying: true,
 	})
-	o.OnItemFailure(ctx, opensearchutil.BulkFailureEvent{
-		Scope: opensearchutil.ScopeItem, Kind: opensearchutil.FailureRejected, Items: 1, Retrying: true,
+	o.OnItemError(ctx, opensearchutil.BulkErrorEvent{
+		Err: &opensearchutil.BulkError{Layer: opensearchutil.LayerItem, Kind: opensearchutil.KindRejected}, Items: 1, Retrying: true,
 	})
-	o.OnItemFailure(ctx, opensearchutil.BulkFailureEvent{
-		Scope: opensearchutil.ScopeItem, Kind: opensearchutil.FailurePermanent, Items: 1,
+	o.OnItemError(ctx, opensearchutil.BulkErrorEvent{
+		Err: &opensearchutil.BulkError{Layer: opensearchutil.LayerItem, Kind: opensearchutil.KindPermanent}, Items: 1,
 	})
 	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{})
 	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
@@ -53,9 +53,9 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 	}{
 		{"requests ok", testutil.ToFloat64(o.requests.WithLabelValues("ok")), 1},
 		{"requests error", testutil.ToFloat64(o.requests.WithLabelValues("error")), 1},
-		{"request failure retried", testutil.ToFloat64(o.failures.WithLabelValues("request", "transport", "true")), 1},
-		{"item failure retried", testutil.ToFloat64(o.failures.WithLabelValues("item", "rejected", "true")), 1},
-		{"item failure final", testutil.ToFloat64(o.failures.WithLabelValues("item", "permanent", "false")), 1},
+		{"request failure retried", testutil.ToFloat64(o.errs.WithLabelValues("request", "transport", "true")), 1},
+		{"item failure retried", testutil.ToFloat64(o.errs.WithLabelValues("item", "rejected", "true")), 1},
+		{"item failure final", testutil.ToFloat64(o.errs.WithLabelValues("item", "permanent", "false")), 1},
 		{"retries by kind counts items, request scope", testutil.ToFloat64(o.retries.WithLabelValues("transport")), 3},
 		{"retries by kind counts items, item scope", testutil.ToFloat64(o.retries.WithLabelValues("rejected")), 1},
 		{"a failure that is not retried is not counted as a retry", testutil.ToFloat64(o.retries.WithLabelValues("permanent")), 0},
@@ -120,9 +120,7 @@ func TestBulkIndexerObserverWithIndexer(t *testing.T) {
 		NumWorkers: 1,
 		Client:     client,
 		Observer:   o,
-		RetryPolicy: opensearchutil.RetryPolicyFunc(func(
-			attempt int, _ opensearchutil.FailureScope, _ opensearchutil.FailureKind, _ opensearchapi.BulkRespItem, _ error,
-		) (time.Duration, bool) {
+		RetryPolicy: opensearchutil.RetryPolicyFunc(func(attempt int, _ *opensearchutil.BulkError) (time.Duration, bool) {
 			return time.Nanosecond, attempt < 3
 		}),
 	})
@@ -130,13 +128,13 @@ func TestBulkIndexerObserverWithIndexer(t *testing.T) {
 
 	require.NoError(t, bi.Add(t.Context(), opensearchutil.BulkIndexerItem{
 		Action: "index", DocumentID: "a", Body: strings.NewReader(`{"a":1}`),
-		OnFailure: func(context.Context, opensearchutil.BulkIndexerItem, opensearchapi.BulkRespItem, error) {},
+		OnError: func(context.Context, opensearchutil.BulkIndexerItem, *opensearchutil.BulkError) {},
 	}))
 	require.NoError(t, bi.Close(t.Context()))
 
 	require.InDelta(t, 1, testutil.ToFloat64(o.requests.WithLabelValues("error")), 0)
 	require.InDelta(t, 1, testutil.ToFloat64(o.requests.WithLabelValues("ok")), 0)
-	require.InDelta(t, 1, testutil.ToFloat64(o.failures.WithLabelValues("request", "rejected", "true")), 0)
+	require.InDelta(t, 1, testutil.ToFloat64(o.errs.WithLabelValues("request", "rejected", "true")), 0)
 	require.InDelta(t, 1, testutil.ToFloat64(o.retries.WithLabelValues("rejected")), 0)
 	require.InDelta(t, 1, testutil.ToFloat64(o.items.WithLabelValues("succeeded")), 0)
 	require.InDelta(t, 0, testutil.ToFloat64(o.items.WithLabelValues("failed")), 0)

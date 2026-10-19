@@ -38,9 +38,9 @@ var ErrMissingDocumentID = errors.New("opensearchutil: bulk item has no document
 // item.Body may be read to compute the id. The indexer rewinds it afterwards,
 // so the fingerprinter need not, but it must not close it.
 //
-// An error returned here fails only that item, through its OnFailure, without
+// An error returned here fails only that item, through its OnError, without
 // being queued: [BulkIndexer.Add] still returns nil. When the item has no
-// OnFailure the error goes to OnError instead.
+// OnError the error goes to OnUnhandledError instead.
 type DocumentFingerprinter func(ctx context.Context, item BulkIndexerItem) (string, error)
 
 // ensureDocumentID gives item a DocumentID when it lacks one and the indexer's
@@ -82,11 +82,11 @@ func (bi *bulkIndexer) ensureDocumentID(ctx context.Context, item BulkIndexerIte
 }
 
 // rejectItem fails an item that was refused before it was placed in a buffer. The
-// item's OnFailure hears of it; an item without one has the error reported to
-// OnError, since nothing else would. It runs on the caller's goroutine.
+// item's OnError hears of it; an item without one has the error reported to
+// OnUnhandledError, since nothing else would. It runs on the caller's goroutine.
 func (bi *bulkIndexer) rejectItem(ctx context.Context, item BulkIndexerItem, err error) {
 	w := worker{bi: bi}
-	if unhandled := w.failUnsent(ctx, item, err, 0); unhandled != nil && bi.config.OnError != nil {
-		bi.config.OnError(ctx, unhandled)
+	if unhandled := w.failUnsent(ctx, item, err, 0); unhandled != nil && bi.config.OnUnhandledError != nil {
+		bi.config.OnUnhandledError(ctx, unhandled)
 	}
 }

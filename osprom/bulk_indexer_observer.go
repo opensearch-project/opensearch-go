@@ -18,7 +18,7 @@ import (
 // Metric label names specific to the bulk indexer.
 const (
 	labelResult   = "result"
-	labelScope    = "scope"
+	labelLayer    = "layer"
 	labelKind     = "kind"
 	labelRetrying = "retrying"
 	labelOutcome  = "outcome"
@@ -33,13 +33,13 @@ const (
 // BulkIndexerObserver records what an [opensearchutil.BulkIndexer] does as
 // Prometheus metrics. It implements [opensearchutil.BulkIndexerObserver], so set
 // it as the indexer's Observer; it is independent of [Registry] and of the
-// transport. Every label is low-cardinality (result, scope, kind, retrying,
+// transport. Every label is low-cardinality (result, layer, kind, retrying,
 // outcome); none carries an index name or a document id.
 //
 //   - Rate and errors of the bulk requests: a counter by result (ok when the
 //     cluster answered, error when the whole request failed), plus histograms of
 //     request duration and body size.
-//   - Failures: a counter by scope (request or item), kind (rejected,
+//   - Errors: a counter by layer (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
 //   - Items: a counter of items the indexer is done with, by outcome, and a
@@ -56,7 +56,7 @@ type BulkIndexerObserver struct {
 	requests *prometheus.CounterVec // bulk requests by result
 	duration prometheus.Histogram   // bulk request latency
 	bytes    prometheus.Histogram   // bulk request body size
-	failures *prometheus.CounterVec // failed attempts by scope, kind, retrying
+	errs     *prometheus.CounterVec // failed attempts by layer, kind, retrying
 	retries  *prometheus.CounterVec // items sent again, by kind
 	items    *prometheus.CounterVec // items done, by outcome
 	itemSize prometheus.Histogram   // document size of items done
@@ -88,12 +88,12 @@ func NewBulkIndexerObserver() *BulkIndexerObserver {
 			Help:      "Body size of bulk requests the indexer sent.",
 			Buckets:   prometheus.ExponentialBuckets(1<<10, 4, 9), // 1 KiB .. 64 MiB
 		}),
-		failures: prometheus.NewCounterVec(prometheus.CounterOpts{
+		errs: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
-			Name:      "bulk_failures_total",
-			Help:      "Failed attempts of a bulk request or of an item, by scope, failure kind, and whether the retry policy retried it.",
-		}, []string{labelScope, labelKind, labelRetrying}),
+			Name:      "bulk_errors_total",
+			Help:      "Failed attempts of a bulk request or of an item, by layer, error kind, and whether the retry policy retried it.",
+		}, []string{labelLayer, labelKind, labelRetrying}),
 		retries: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
@@ -119,7 +119,7 @@ func NewBulkIndexerObserver() *BulkIndexerObserver {
 
 // Register adds the observer's collectors to reg.
 func (o *BulkIndexerObserver) Register(reg prometheus.Registerer) error {
-	for _, c := range []prometheus.Collector{o.requests, o.duration, o.bytes, o.failures, o.retries, o.items, o.itemSize} {
+	for _, c := range []prometheus.Collector{o.requests, o.duration, o.bytes, o.errs, o.retries, o.items, o.itemSize} {
 		if err := reg.Register(c); err != nil {
 			return err
 		}
@@ -138,20 +138,20 @@ func (o *BulkIndexerObserver) OnRequestEnd(_ context.Context, e opensearchutil.B
 	o.bytes.Observe(float64(e.Bytes))
 }
 
-// OnRequestFailure implements [opensearchutil.BulkIndexerObserver].
-func (o *BulkIndexerObserver) OnRequestFailure(_ context.Context, e opensearchutil.BulkFailureEvent) {
-	o.recordFailure(e)
+// OnRequestError implements [opensearchutil.BulkIndexerObserver].
+func (o *BulkIndexerObserver) OnRequestError(_ context.Context, e opensearchutil.BulkErrorEvent) {
+	o.recordError(e)
 }
 
-// OnItemFailure implements [opensearchutil.BulkIndexerObserver].
-func (o *BulkIndexerObserver) OnItemFailure(_ context.Context, e opensearchutil.BulkFailureEvent) {
-	o.recordFailure(e)
+// OnItemError implements [opensearchutil.BulkIndexerObserver].
+func (o *BulkIndexerObserver) OnItemError(_ context.Context, e opensearchutil.BulkErrorEvent) {
+	o.recordError(e)
 }
 
-func (o *BulkIndexerObserver) recordFailure(e opensearchutil.BulkFailureEvent) {
-	o.failures.WithLabelValues(e.Scope.String(), e.Kind.String(), strconv.FormatBool(e.Retrying)).Inc()
+func (o *BulkIndexerObserver) recordError(e opensearchutil.BulkErrorEvent) {
+	o.errs.WithLabelValues(e.Err.Layer.String(), e.Err.Kind.String(), strconv.FormatBool(e.Retrying)).Inc()
 	if e.Retrying {
-		o.retries.WithLabelValues(e.Kind.String()).Add(float64(e.Items))
+		o.retries.WithLabelValues(e.Err.Kind.String()).Add(float64(e.Items))
 	}
 }
 

@@ -42,7 +42,7 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 	errFingerprint := errors.New("cannot fingerprint")
 
 	retry := RetryPolicyFunc(func(
-		attempt int, _ FailureScope, _ FailureKind, _ opensearchapi.BulkRespItem, _ error,
+		attempt int, _ *BulkError,
 	) (time.Duration, bool) {
 		return 0, attempt < 2
 	})
@@ -54,7 +54,7 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 		item          BulkIndexerItem
 		outcomes      []bulkOutcome
 		wantSent      [][]string // action lines of each request
-		wantFailErr   error      // OnFailure err, matched with errors.Is
+		wantFailErr   error      // OnError err, matched with errors.Is
 		wantSucceeded []string   // ids passed to OnSuccess
 		wantNotCalls  bool       // the fingerprinter must not have run
 	}{
@@ -130,11 +130,11 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 				log       = &eventLog{}
 			)
 			cfg := BulkIndexerConfig{
-				NumWorkers:  1,
-				Client:      client,
-				Observer:    log,
-				RetryPolicy: tt.policy,
-				OnError:     func(_ context.Context, err error) { onErrors = append(onErrors, err) },
+				NumWorkers:       1,
+				Client:           client,
+				Observer:         log,
+				RetryPolicy:      tt.policy,
+				OnUnhandledError: func(_ context.Context, err error) { onErrors = append(onErrors, err) },
 			}
 			if tt.fingerprint != nil {
 				cfg.Fingerprinter = func(ctx context.Context, item BulkIndexerItem) (string, error) {
@@ -149,11 +149,11 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			item.OnSuccess = func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
 				succeeded = append(succeeded, item.DocumentID)
 			}
-			item.OnFailure = func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+			item.OnError = func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 				failErrs = append(failErrs, err)
 			}
 
-			require.NoError(t, bi.Add(t.Context(), item), "a refused item is reported through OnFailure, not Add")
+			require.NoError(t, bi.Add(t.Context(), item), "a refused item is reported through OnError, not Add")
 			require.NoError(t, bi.Close(t.Context()))
 
 			require.Equal(t, tt.wantSent, seq.requests(), "requests sent")
@@ -161,11 +161,11 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			if tt.wantFailErr == nil {
 				require.Empty(t, failErrs)
 			} else {
-				require.Len(t, failErrs, 1, "OnFailure fires once")
+				require.Len(t, failErrs, 1, "OnError fires once")
 				require.ErrorIs(t, failErrs[0], tt.wantFailErr)
 				require.Equal(t, uint64(1), bi.Stats().NumFailed)
 				require.Zero(t, bi.Stats().NumAdded, "a refused item is not added")
-				require.Empty(t, onErrors, "an item with an OnFailure is not also reported to OnError")
+				require.Empty(t, onErrors, "an item with an OnError is not also reported to OnUnhandledError")
 				require.Contains(t, log.lines[0], "item-failure scope=item a=0 kind=permanent")
 			}
 			if tt.wantNotCalls {
@@ -225,7 +225,7 @@ func TestBulkIndexerGeneratedIDRoutesLikeAnExplicitOne(t *testing.T) {
 }
 
 // TestBulkIndexerRejectedItemFallsBackToOnError pins that an item refused before
-// it was queued, and which has no OnFailure to hear of it, is still reported.
+// it was queued, and which has no OnError to hear of it, is still reported.
 func TestBulkIndexerRejectedItemFallsBackToOnError(t *testing.T) {
 	t.Parallel()
 
@@ -237,11 +237,11 @@ func TestBulkIndexerRejectedItemFallsBackToOnError(t *testing.T) {
 		NumWorkers: 1,
 		Client:     client,
 		RetryPolicy: RetryPolicyFunc(func(
-			int, FailureScope, FailureKind, opensearchapi.BulkRespItem, error,
+			int, *BulkError,
 		) (time.Duration, bool) {
 			return 0, false
 		}),
-		OnError: func(_ context.Context, err error) { onErrors = append(onErrors, err) },
+		OnUnhandledError: func(_ context.Context, err error) { onErrors = append(onErrors, err) },
 	})
 
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{Action: "index", Body: strings.NewReader(`{"a":1}`)}))

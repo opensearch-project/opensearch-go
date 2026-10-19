@@ -108,7 +108,7 @@ func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 	tests := []struct {
 		name   string
 		status int
-		// failed is whether the items end in OnFailure.
+		// failed is whether the items end in OnError.
 		failed bool
 	}{
 		{name: "created", status: http.StatusCreated},
@@ -146,8 +146,8 @@ func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 					BulkIndexerItem: BulkIndexerItem{
 						Index: "idx", Action: actionIndex, DocumentID: fmt.Sprint("doc-", i),
 						OnSuccess: done,
-						OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, _ error) {
-							done(ctx, item, resp)
+						OnError: func(ctx context.Context, item BulkIndexerItem, err *BulkError) {
+							done(ctx, item, err.Resp)
 						},
 					},
 					Data: lentDoc(i),

@@ -49,7 +49,7 @@ func TestBulkIndexerGetStatsFillsTheCallersStruct(t *testing.T) {
 			name: "a used struct is replaced entirely, not added to",
 			dirty: BulkIndexerStats{
 				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeWindow: JobNodeStats{Min: 0.25},
-				NumRetries: [numFailureKinds]uint64{1, 2, 3, 4},
+				NumRetries: [numErrorKinds]uint64{1, 2, 3, 4},
 			},
 		},
 		{name: "a closed indexer still answers", dirty: BulkIndexerStats{NumAdded: 5}, close: true},

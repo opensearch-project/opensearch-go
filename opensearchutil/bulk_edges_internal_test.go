@@ -24,7 +24,7 @@ import (
 )
 
 // TestBulkIndexerCloseReportsAnEndedContextToOnError: when the context handed to
-// Close ends, Close returns its error and tells OnError once, as it does for the
+// Close ends, Close returns its error and tells OnUnhandledError once, as it does for the
 // failures it finds while draining.
 func TestBulkIndexerCloseReportsAnEndedContextToOnError(t *testing.T) {
 	t.Parallel()
@@ -39,7 +39,7 @@ func TestBulkIndexerCloseReportsAnEndedContextToOnError(t *testing.T) {
 	bi := newBulkIndexer(t, BulkIndexerConfig{
 		NumWorkers: 1,
 		Client:     client,
-		OnError: func(_ context.Context, err error) {
+		OnUnhandledError: func(_ context.Context, err error) {
 			reported.Lock()
 			defer reported.Unlock()
 
@@ -169,7 +169,7 @@ func TestBulkIndexerRetryFailsAnItemWhoseBodyCannotBeReadAgain(t *testing.T) {
 		NumWorkers: 1,
 		Client:     client,
 		RetryPolicy: RetryPolicyFunc(func(
-			int, FailureScope, FailureKind, opensearchapi.BulkRespItem, error,
+			int, *BulkError,
 		) (time.Duration, bool) {
 			return 0, true
 		}),

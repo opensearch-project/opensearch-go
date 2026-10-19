@@ -275,15 +275,15 @@ func TestBulkIndexerIntegration(t *testing.T) {
 									t.Logf("[%s] SUCCESS: id=%s, index=%s, status=%d", tt.action, item.DocumentID, resp.Index, resp.Status)
 								}
 							},
-							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+							OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
 								failureCount++
 								if firstFailureErr == nil {
 									firstFailureErr = err
 								}
 								// Only log individual failures if unexpected or in debug mode
 								if (tt.numFailed == 0 || testutil.IsDebugEnabled(t)) && failureCount <= 5 {
-									t.Logf("[%s] FAILURE: id=%s, index=%s, status=%d, err=%v, resp.Error=%+v",
-										tt.action, item.DocumentID, resp.Index, resp.Status, err, resp.Error)
+									t.Logf("[%s] FAILURE: id=%s, index=%s, status=%d, err=%v, err.Resp.Error=%+v",
+										tt.action, item.DocumentID, err.Resp.Index, err.Resp.Status, err, err.Resp.Error)
 								}
 							},
 						})
@@ -374,7 +374,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 						Index:  indexA,
 						Client: client,
-						OnError: func(ctx context.Context, err error) {
+						OnUnhandledError: func(ctx context.Context, err error) {
 							t.Logf("BulkIndexer error: %v", err)
 						},
 					})
@@ -390,13 +390,13 @@ func TestBulkIndexerIntegration(t *testing.T) {
 									t.Logf("[Multiple indices] SUCCESS: id=%s, index=%s", item.DocumentID, resp.Index)
 								}
 							},
-							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+							OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
 								failureCount++
 								if firstFailureErr == nil {
 									firstFailureErr = err
 								}
-								t.Logf("[Multiple indices] FAILURE: id=%s, index=%s, status=%d, err=%v, resp.Error=%+v",
-									item.DocumentID, resp.Index, resp.Status, err, resp.Error)
+								t.Logf("[Multiple indices] FAILURE: id=%s, index=%s, status=%d, err=%v, err.Resp.Error=%+v",
+									item.DocumentID, err.Resp.Index, err.Resp.Status, err, err.Resp.Error)
 							},
 						})
 						if err != nil {
@@ -415,13 +415,13 @@ func TestBulkIndexerIntegration(t *testing.T) {
 									t.Logf("[Multiple indices] SUCCESS: index=%s", resp.Index)
 								}
 							},
-							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+							OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
 								failureCount++
 								if firstFailureErr == nil {
 									firstFailureErr = err
 								}
-								t.Logf("[Multiple indices] FAILURE: index=%s, status=%d, err=%v, resp.Error=%+v",
-									resp.Index, resp.Status, err, resp.Error)
+								t.Logf("[Multiple indices] FAILURE: index=%s, status=%d, err=%v, err.Resp.Error=%+v",
+									err.Resp.Index, err.Resp.Status, err, err.Resp.Error)
 							},
 						})
 						if err != nil {
@@ -440,13 +440,13 @@ func TestBulkIndexerIntegration(t *testing.T) {
 									t.Logf("[Multiple indices] SUCCESS: index=%s", resp.Index)
 								}
 							},
-							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+							OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
 								failureCount++
 								if firstFailureErr == nil {
 									firstFailureErr = err
 								}
-								t.Logf("[Multiple indices] FAILURE: index=%s, status=%d, err=%v, resp.Error=%+v",
-									resp.Index, resp.Status, err, resp.Error)
+								t.Logf("[Multiple indices] FAILURE: index=%s, status=%d, err=%v, err.Resp.Error=%+v",
+									err.Resp.Index, err.Resp.Status, err, err.Resp.Error)
 							},
 						})
 						if err != nil {

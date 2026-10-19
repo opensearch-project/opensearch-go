@@ -35,7 +35,7 @@ Creating an indexer per job throws away what the controllers learned about the n
 
 | Term | Meaning |
 | --- | --- |
-| **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. Exactly one of its callbacks runs, once: `OnSuccess` or `OnFailure`. |
+| **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. Exactly one of its callbacks runs, once: `OnSuccess` or `OnError`. |
 | **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
 | **Node window** | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it. |
@@ -59,10 +59,10 @@ An item travels through it like this:
 1. `Add` places the item in the buffer for its shard. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory frees up. `Add` also waits when its shard is over an even share of the limit while other shards are waiting for room (see below).
 2. A buffer is sent as one bulk request, to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` passes, or when you call `Flush` or `Close`. If sending it would put more bytes out to that node than its window allows, it waits, still counted against `MaxMemoryBytes`, until requests come back.
 3. The response is read **item by item**. A bulk request is not all-or-nothing: a `200` can carry items the cluster rejected, and that is partial success, not an error. An item the cluster accepted gets `OnSuccess`.
-4. An item that was rejected, or whose whole request failed, is classified by scope and kind (see [Retrying failed items](#retrying-failed-items)). With a retry policy that asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnFailure`. See [Three kinds of failure](#three-kinds-of-failure) for how to read its arguments.
+4. An item that was rejected, or whose whole request failed, is classified by layer and kind (see [Retrying failed items](#retrying-failed-items)). With a retry policy that asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnError`. See [Reading an error](#reading-an-error) for what the error says.
 5. Every completed request also teaches the controllers: the latency of the request feeds the shard's controller, and a 429 feeds the node's.
 
-So `Flush` returning means every item you added has had its `OnSuccess` or `OnFailure` called. It does not mean every item succeeded; the callbacks, or `OnError` for an item with no `OnFailure`, say which did not.
+So `Flush` returning means every item you added has had its `OnSuccess` or `OnError` called. It does not mean every item succeeded; the callbacks, or `OnUnhandledError` for an item with no `OnError`, say which did not.
 
 Every shard draws on the one `MaxMemoryBytes` limit, and a shard whose requests are slow keeps the bytes it holds until they are answered. So that such a shard cannot take the whole limit, each shard holds no more than an even share of it while other shards are waiting for room, and the waiters of other shards are served past it. While nobody else is waiting, a shard may use the whole limit. A shard that holds nothing may always take one item, so no shard is left with nothing in progress, and the limit can be passed by at most one item for each such shard.
 
@@ -94,8 +94,8 @@ err = indexer.Add(ctx, opensearchutil.BulkIndexerItem{
 	OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem) {
 		fmt.Printf("indexed %s\n", item.DocumentID)
 	},
-	OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
-		fmt.Printf("failed %s: %v (status %d)\n", item.DocumentID, err, resp.Status)
+	OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
+		fmt.Printf("failed %s: %s %s error: %v\n", item.DocumentID, err.Layer, err.Kind, err)
 	},
 })
 if err != nil {
@@ -123,10 +123,10 @@ Things to know:
 - **`Add` after `Close` returns `ErrBulkIndexerClosed`.** `Add` otherwise returns an error only when the context you pass ends before the item is queued; it blocks while the indexer holds `MaxMemoryBytes`, and while its shard is over an even share of it with other shards waiting.
 - **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` are written in the order you added them: a shard has one request out at a time, and a retry happens in that request's slot, so a later buffer of the shard is not sent ahead of it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is ordered the same way by its ID: the buffer holding it is not sent until the earlier buffer that holds a document with the same ID has finished, while buffers that share no ID are sent in parallel.
 
-  The order holds across a change in where documents go. A shard that moves to another node keeps its order, and so does one whose node is not known: only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or the router losing the index's shard map, can send a document's next action to a different shard from its last. When `Add` finds that, the items still buffered for the index's shards fail with `ErrShardMapChanged`, through their own `OnFailure`, without being sent, and `Add` waits for the index's requests already out to be answered before it places the item, so that nothing overtakes them. Geometry changes are told by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect one.
+  The order holds across a change in where documents go. A shard that moves to another node keeps its order, and so does one whose node is not known: only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or the router losing the index's shard map, can send a document's next action to a different shard from its last. When `Add` finds that, the items still buffered for the index's shards fail through their own `OnError` with a `LayerIndex` error that matches `ErrShardMapChanged`, without being sent, and `Add` waits for the index's requests already out to be answered before it places the item, so that nothing overtakes them. Geometry changes are told by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect one.
 
 - **Callbacks run on the goroutine that sends the request.** A slow callback stalls its buffer, and the shard's next one, but not the rest of the indexer. Do not call `Add`, `Flush`, or `Close` from a callback; `Cancel` is safe.
-- **Every item gets exactly one callback**: `OnSuccess` or `OnFailure`.
+- **Every item gets exactly one callback**: `OnSuccess` or `OnError`.
 
 ## Flush, Close, and Cancel
 
@@ -144,35 +144,46 @@ When `Flush` returns without a context error, every item it covered has already 
 
 An indexer is more than a buffer. It runs a periodic flush on a timer and goroutines that send requests, it holds pooled buffers and, when you did not pass a `Client`, a client of its own. `Close` is what stops and releases all of that, after sending what is still buffered. An indexer that is dropped without `Close` keeps its goroutines and timer alive, keeps its memory, and loses any item still sitting in a buffer when the process exits. `Flush` is not a substitute: it drains what has been added and leaves everything running. Call `Close` once, when you are done with the indexer for good, and reuse the indexer until then (see [A long-lived client](#a-long-lived-client)).
 
-After `Cancel`, each item that is not yet final fails through its `OnFailure` exactly once. An item that was never sent fails with `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. An item that was in a request when it was canceled fails with that request's error, which is ambiguous about whether it landed. `Add` after `Cancel` fails the item the same way and returns nil.
+After `Cancel`, each item the indexer is not yet done with fails through its `OnError` exactly once. An item that was never sent fails with an error of layer `LayerIndexer` and kind `KindCanceled`, which matches `opensearchutil.ErrIndexerCanceled` and `context.Canceled`. An item that was in a request when it was canceled fails with that request's error, which is ambiguous about whether it landed. `Add` after `Cancel` fails the item the same way and returns nil.
 
-## Three kinds of failure
+## Reading an error
 
-`OnFailure` covers three different situations. Tell them apart by its arguments:
+`OnError` gets a `*opensearchutil.BulkError`, which says which layer failed (`Layer`) and why (`Kind`), and keeps the details:
 
-| What happened                                               | `err`                               | `resp`                                 |
-| ----------------------------------------------------------- | ----------------------------------- | -------------------------------------- |
-| The cluster rejected this item (version conflict, 429)      | `nil`                               | the item's response, with `Status` set |
-| The whole request failed (network error, 5xx)               | non-nil, wrapping the request error | empty                                  |
-| The item was never sent (cannot serialize, no ID, canceled) | non-nil                             | empty                                  |
+| What happened                                                         | `Layer`        | `Kind`                                         | Details                                                             |
+| --------------------------------------------------------------------- | -------------- | ---------------------------------------------- | ------------------------------------------------------------------- |
+| The cluster rejected this item (version conflict, mapping error, 429) | `LayerItem`    | by status                                      | `Resp` is the item's response and `Status` its status; `Err` is nil |
+| The item was never sent (cannot serialize, no ID)                     | `LayerItem`    | `KindPermanent`                                | `Err` is the reason                                                 |
+| The whole request failed (network error, 5xx, 429)                    | `LayerRequest` | by status, or `KindTransport` with no response | `Err` wraps the request error, and `Status` is the request's status |
+| The index's shard map changed before the item was sent                | `LayerIndex`   | `KindPermanent`                                | `Err` matches `ErrShardMapChanged`                                  |
+| The indexer was canceled before the item was sent                     | `LayerIndexer` | `KindCanceled`                                 | `Err` matches `ErrIndexerCanceled` and `context.Canceled`           |
 
-A request failure is ambiguous: the request may have reached the cluster, in part or in full, before the error. The indexer reports the same thing to every item in the request. If an item has no `OnFailure`, the failure is reported to `BulkIndexerConfig.OnError` instead. An explicit `Flush` reports through its return value and does not call `OnError`.
+`errors.Is` matches the error against the sentinel of its layer (`ErrItemLayer`, `ErrRequestLayer`, `ErrIndexLayer`, `ErrIndexerLayer`), of its kind (`ErrRejected`, `ErrUnavailable`, `ErrTransport`, `ErrPermanent`, `ErrIndexerCanceled`), and against its cause:
 
-The transport also retries on its own, beneath the indexer, a request that drew a 502, 503, or 504 or failed on a network error; see [Retry and Backoff](transport-retry_backoff.md). The indexer only sees the failure once that is exhausted.
+```go
+OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
+	switch {
+	case errors.Is(err, opensearchutil.ErrIndexerCanceled):
+		// Shutting down; the item was never sent.
+	case errors.Is(err, opensearchutil.ErrTransport):
+		// The outcome is unknown: the item may or may not have been written.
+	default:
+		log.Printf("%s %s: %v", err.Layer, err.Kind, err)
+	}
+},
+```
+
+A request error is ambiguous: the request may have reached the cluster, in part or in full, before the error. The indexer reports the same error to every item in the request. If an item has no `OnError`, the error is reported to `BulkIndexerConfig.OnUnhandledError` instead. An explicit `Flush` reports through its return value and does not call `OnUnhandledError`.
+
+The transport also retries on its own, beneath the indexer, a request that drew a 502, 503, or 504 or failed on a network error; see [Retry and Backoff](transport-retry_backoff.md). The indexer only sees the error once that is exhausted.
 
 ## Retrying failed items
 
 Set `BulkIndexerConfig.RetryPolicy` to have the indexer send failed items again. The indexer drives the loop; the policy supplies the backoff and the limit:
 
 ```go
-retry := opensearchutil.RetryPolicyFunc(func(
-	attempt int,
-	scope opensearchutil.FailureScope,
-	kind opensearchutil.FailureKind,
-	resp opensearchapi.BulkRespItem,
-	err error,
-) (time.Duration, bool) {
-	if kind == opensearchutil.FailurePermanent || attempt >= 5 {
+retry := opensearchutil.RetryPolicyFunc(func(attempt int, err *opensearchutil.BulkError) (time.Duration, bool) {
+	if errors.Is(err, opensearchutil.ErrPermanent) || attempt >= 5 {
 		return 0, false
 	}
 	return 100 * time.Millisecond << (attempt - 1), true // 100ms, 200ms, 400ms, ...
@@ -181,25 +192,26 @@ retry := opensearchutil.RetryPolicyFunc(func(
 
 `attempt` counts the requests that have carried the work: 1 after the first request fails. The policy returns how long to wait and whether to retry. The indexer applies no limit of its own, so a policy that always returns true retries a persistent failure forever.
 
-### Scope and kind
+### Layer and kind
 
-A bulk request can fail in two ways, and the policy is told which:
+A policy is asked about two layers of error, and `err.Layer` says which:
 
-- **`ScopeRequest`**: the whole request failed. `resp` is empty and `err` is non-nil. One call stands for every item in the request.
-- **`ScopeItem`**: the cluster answered and rejected one item. `resp` is that item's response and `err` is nil. There is one call per rejected item.
+- **`LayerRequest`**: the whole request failed. `err.Err` is the request's error. One call stands for every item in the request.
+- **`LayerItem`**: the cluster answered and rejected one item. `err.Resp` is that item's response. There is one call per rejected item.
 
-The indexer also classifies each failure:
+Errors of the other layers, an index whose shard map changed and a canceled indexer, are never retried, and a policy never sees them. The indexer classifies each error by kind:
 
-| Kind                 | Means                                                                                                                | Safe to retry               |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `FailureRejected`    | a write queue was full (HTTP 429)                                                                                    | yes                         |
-| `FailureUnavailable` | the cluster or a proxy could not serve it (HTTP 503)                                                                 | yes                         |
-| `FailureTransport`   | the outcome is unknown: no response, a server error other than 503, or an unreadable response                        | only with deterministic IDs |
-| `FailurePermanent`   | the same request would fail the same way: a mapping error, a version conflict, any other 4xx, an unpairable response | no                          |
+| Kind              | Sentinel             | Means                                                                                                                | Safe to retry               |
+| ----------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `KindRejected`    | `ErrRejected`        | a write queue was full (HTTP 429)                                                                                    | yes                         |
+| `KindUnavailable` | `ErrUnavailable`     | the cluster or a proxy could not serve it (HTTP 503)                                                                 | yes                         |
+| `KindTransport`   | `ErrTransport`       | the outcome is unknown: no response, a server error other than 503, or an unreadable response                        | only with deterministic IDs |
+| `KindPermanent`   | `ErrPermanent`       | the same request would fail the same way: a mapping error, a version conflict, any other 4xx, an unpairable response | no                          |
+| `KindCanceled`    | `ErrIndexerCanceled` | the indexer was canceled before the work was sent                                                                    | never offered               |
 
 ### What the callbacks see
 
-While an item is being retried, neither `OnSuccess` nor `OnFailure` fires for it. Each fires once, when the indexer is done with the item: it was accepted, the policy declined to retry it, or its retries were abandoned. A rejected item is sent again in a request with the other items being retried, after the longest delay any of them was given.
+While an item is being retried, neither `OnSuccess` nor `OnError` fires for it. Each fires once, when the indexer is done with the item: it was accepted, the policy declined to retry it, or its retries were abandoned. A rejected item is sent again in a request with the other items being retried, after the longest delay any of them was given.
 
 Set `BulkIndexerConfig.Timeout`, the server-side timeout, whenever you set a `RetryPolicy`. Without it, a request that your context abandoned may keep running on the cluster while the retry adds a second one against the same shards; see [Bulk: Timeout Configuration](indexing-bulk.md#timeout-configuration).
 
@@ -207,7 +219,7 @@ The wait for a retry uses a timer and the context together. It ends early, and t
 
 ## Document IDs
 
-Retrying a `FailureTransport` failure can write a document twice, because the first attempt may have landed. With a deterministic `_id` the second write replaces the first; with a server-generated one it adds a duplicate. So when a `RetryPolicy` is set, every item must have a `DocumentID`. An item without one is not sent and fails through its own `OnFailure` with `opensearchutil.ErrMissingDocumentID`. `Add` still returns nil, and that `OnFailure` runs on the goroutine that called `Add`. Without a policy, nothing changes and the cluster generates the ID.
+Retrying a `KindTransport` error can write a document twice, because the first attempt may have landed. With a deterministic `_id` the second write replaces the first; with a server-generated one it adds a duplicate. So when a `RetryPolicy` is set, every item must have a `DocumentID`. An item without one is not sent and fails through its own `OnError`, with an error that matches `opensearchutil.ErrMissingDocumentID`. `Add` still returns nil, and that `OnError` runs on the goroutine that called `Add`. Without a policy, nothing changes and the cluster generates the ID.
 
 If your documents have no natural ID, set `BulkIndexerConfig.Fingerprinter` to derive one:
 
@@ -222,11 +234,11 @@ fingerprint := func(ctx context.Context, item opensearchutil.BulkIndexerItem) (s
 }
 ```
 
-The fingerprinter is called by `Add`, only for an item whose `DocumentID` is empty, before the item is placed in a shard, so a generated ID routes exactly like an explicit one and per-ID ordering holds. It must be deterministic and safe for concurrent use. It may read `Body`; the indexer rewinds it. An error, or an empty ID, fails that item through its `OnFailure`.
+The fingerprinter is called by `Add`, only for an item whose `DocumentID` is empty, before the item is placed in a shard, so a generated ID routes exactly like an explicit one and per-ID ordering holds. It must be deterministic and safe for concurrent use. It may read `Body`; the indexer rewinds it. An error, or an empty ID, fails that item through its `OnError`.
 
 ## Carrying data with Metadata
 
-`BulkIndexerItem.Metadata` is an opaque `any` that comes back unchanged in the item handed to `OnSuccess` and `OnFailure`. It is never sent to the cluster. Use it to carry what a callback needs, such as the stream offset the document came from, instead of allocating a closure per item:
+`BulkIndexerItem.Metadata` is an opaque `any` that comes back unchanged in the item handed to `OnSuccess` and `OnError`. It is never sent to the cluster. Use it to carry what a callback needs, such as the stream offset the document came from, instead of allocating a closure per item:
 
 ```go
 type source struct {
@@ -473,18 +485,18 @@ These readings follow the cluster and do not change what the indexer does; it go
 
 ## Observing the indexer
 
-`BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `FailureKind`. For a live stream of events instead, set `BulkIndexerConfig.Observer`, following the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the methods you need.
+`BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `ErrorKind`. For a live stream of events instead, set `BulkIndexerConfig.Observer`, following the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the methods you need.
 
-| Method             | Fired                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `OnRequestEnd`     | after each bulk request returns, including a retry; carries status, duration, and size |
-| `OnRequestFailure` | when a whole request fails, once per attempt; `Scope` is `ScopeRequest`                |
-| `OnItemFailure`    | when one item fails, once per attempt; `Scope` is `ScopeItem`                          |
-| `OnItemDone`       | once per item, when the indexer is done with it; carries the size of its document      |
+| Method           | Fired                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `OnRequestEnd`   | after each bulk request returns, including a retry; carries status, duration, and size |
+| `OnRequestError` | when a whole request fails, once per attempt; the error's `Layer` is `LayerRequest`    |
+| `OnItemError`    | when one item fails, once per attempt; the error's `Layer` is `LayerItem`              |
+| `OnItemDone`     | once per item, when the indexer is done with it; carries the size of its document      |
 
 `OnRequestEnd` reports the size of the whole request body, which is the buffer the indexer built: the action lines and documents of one shard, before the transport compresses it. `OnItemDone` reports one document: `BulkItemEvent.Bytes` is the length of the item's `Body`, without the action line, and is the same whether the item succeeded, was rejected or was refused. Use it to find an outlier, which the request's average hides. The size on the wire after compression is the transport's, not the indexer's: the transport observer's `OnRequestStart` event carries the body size before compression and `OnRequestResponse` the `Content-Length` after it.
 
-The failure events carry the `FailureKind`, the attempt, and whether the retry policy is retrying. The methods run on the goroutine that sends the request and receive the context of the flush, so keep them quick, do not call back into the indexer, and let a tracing observer link to the flush's span.
+The error events carry the `*BulkError`, with its layer and kind, the attempt, and whether the retry policy is retrying. The methods run on the goroutine that sends the request and receive the context of the flush, so keep them quick, do not call back into the indexer, and let a tracing observer link to the flush's span.
 
 The [`osprom`](https://github.com/opensearch-project/opensearch-go/tree/main/osprom) and [`osotel`](https://github.com/opensearch-project/opensearch-go/tree/main/osotel) modules ship ready-made observers that record bulk requests, failures by scope and kind, retries, and final item outcomes. They are independent of the transport's `Registry`:
 

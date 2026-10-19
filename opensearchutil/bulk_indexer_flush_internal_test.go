@@ -23,7 +23,7 @@ import (
 
 // TestBulkIndexerFlushCompletesCallbacksBeforeReturning pins the guarantee a
 // caller commits an external position on: when Flush returns, every item it
-// covered has already had its OnSuccess or OnFailure called. Nothing closes the
+// covered has already had its OnSuccess or OnError called. Nothing closes the
 // indexer or waits between Flush and the check, so a callback that ran after
 // the drain was reported done would be counted short.
 func TestBulkIndexerFlushCompletesCallbacksBeforeReturning(t *testing.T) {
@@ -64,7 +64,7 @@ func TestBulkIndexerFlushCompletesCallbacksBeforeReturning(t *testing.T) {
 					OnSuccess: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) {
 						succeeded.Add(1)
 					},
-					OnFailure: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) {
+					OnError: func(context.Context, BulkIndexerItem, *BulkError) {
 						failed.Add(1)
 					},
 				}))
@@ -75,7 +75,7 @@ func TestBulkIndexerFlushCompletesCallbacksBeforeReturning(t *testing.T) {
 			// Read before Close, which would join the workers and hide a
 			// callback that had not run by the time Flush returned.
 			require.Equal(t, tt.wantSucceeded, succeeded.Load(), "OnSuccess calls at Flush return")
-			require.Equal(t, tt.wantFailed, failed.Load(), "OnFailure calls at Flush return")
+			require.Equal(t, tt.wantFailed, failed.Load(), "OnError calls at Flush return")
 			if tt.wantFlushErr {
 				require.Error(t, flushErr)
 			} else {
@@ -117,7 +117,7 @@ func TestBulkIndexerFlushCallbacksAfterContextEnds(t *testing.T) {
 		DocumentID: "doc",
 		Body:       strings.NewReader(`{"a":1}`),
 		OnSuccess:  func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) { successes.Add(1) },
-		OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+		OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 			failures <- err
 		},
 	}))
@@ -136,7 +136,7 @@ func TestBulkIndexerFlushCallbacksAfterContextEnds(t *testing.T) {
 
 	// Close has joined the workers, so the callback has run by now, but whether
 	// it ran before or after Flush returned is not promised.
-	require.Len(t, failures, 1, "OnFailure fires exactly once")
+	require.Len(t, failures, 1, "OnError fires exactly once")
 	require.ErrorIs(t, <-failures, context.Canceled)
 	require.Zero(t, successes.Load())
 	require.Equal(t, uint64(1), bi.Stats().NumFailed)

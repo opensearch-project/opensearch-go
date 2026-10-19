@@ -19,7 +19,7 @@ import (
 // Attribute names specific to the bulk indexer.
 const (
 	attrResult   = "result"
-	attrScope    = "scope"
+	attrLayer    = "layer"
 	attrKind     = "kind"
 	attrRetrying = "retrying"
 	attrOutcome  = "outcome"
@@ -34,13 +34,13 @@ const (
 // BulkIndexerObserver records what an [opensearchutil.BulkIndexer] does as
 // OpenTelemetry metrics. It implements [opensearchutil.BulkIndexerObserver], so
 // set it as the indexer's Observer; it is independent of [Registry] and of the
-// transport. Every attribute is low-cardinality (result, scope, kind, retrying,
+// transport. Every attribute is low-cardinality (result, layer, kind, retrying,
 // outcome); none carries an index name or a document id.
 //
 //   - Rate and errors of the bulk requests: a counter by result (ok when the
 //     cluster answered, error when the whole request failed), plus histograms of
 //     request duration and body size.
-//   - Failures: a counter by scope (request or item), kind (rejected,
+//   - Errors: a counter by layer (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
 //   - Items: a counter of items the indexer is done with, by outcome.
@@ -54,7 +54,7 @@ type BulkIndexerObserver struct {
 	requests metric.Int64Counter     // bulk requests by result
 	duration metric.Float64Histogram // bulk request latency
 	bytes    metric.Int64Histogram   // bulk request body size
-	failures metric.Int64Counter     // failed attempts by scope, kind, retrying
+	errs     metric.Int64Counter     // failed attempts by layer, kind, retrying
 	retries  metric.Int64Counter     // items sent again, by kind
 	items    metric.Int64Counter     // items done, by outcome
 }
@@ -91,11 +91,11 @@ func (o *BulkIndexerObserver) Register(meter metric.Meter) error {
 	); err != nil {
 		return err
 	}
-	if o.failures, err = meter.Int64Counter(
-		instrumentPrefix+"bulk.failures",
-		metric.WithDescription("Failed attempts of a bulk request or of an item, by scope, failure kind, and whether the retry "+
+	if o.errs, err = meter.Int64Counter(
+		instrumentPrefix+"bulk.errors",
+		metric.WithDescription("Failed attempts of a bulk request or of an item, by layer, error kind, and whether the retry "+
 			"policy retried it."),
-		metric.WithUnit("{failure}"),
+		metric.WithUnit("{error}"),
 	); err != nil {
 		return err
 	}
@@ -125,24 +125,24 @@ func (o *BulkIndexerObserver) OnRequestEnd(ctx context.Context, e opensearchutil
 	o.bytes.Record(ctx, int64(e.Bytes))
 }
 
-// OnRequestFailure implements [opensearchutil.BulkIndexerObserver].
-func (o *BulkIndexerObserver) OnRequestFailure(ctx context.Context, e opensearchutil.BulkFailureEvent) {
-	o.recordFailure(ctx, e)
+// OnRequestError implements [opensearchutil.BulkIndexerObserver].
+func (o *BulkIndexerObserver) OnRequestError(ctx context.Context, e opensearchutil.BulkErrorEvent) {
+	o.recordError(ctx, e)
 }
 
-// OnItemFailure implements [opensearchutil.BulkIndexerObserver].
-func (o *BulkIndexerObserver) OnItemFailure(ctx context.Context, e opensearchutil.BulkFailureEvent) {
-	o.recordFailure(ctx, e)
+// OnItemError implements [opensearchutil.BulkIndexerObserver].
+func (o *BulkIndexerObserver) OnItemError(ctx context.Context, e opensearchutil.BulkErrorEvent) {
+	o.recordError(ctx, e)
 }
 
-func (o *BulkIndexerObserver) recordFailure(ctx context.Context, e opensearchutil.BulkFailureEvent) {
-	o.failures.Add(ctx, 1, metric.WithAttributes(
-		attribute.String(attrScope, e.Scope.String()),
-		attribute.String(attrKind, e.Kind.String()),
+func (o *BulkIndexerObserver) recordError(ctx context.Context, e opensearchutil.BulkErrorEvent) {
+	o.errs.Add(ctx, 1, metric.WithAttributes(
+		attribute.String(attrLayer, e.Err.Layer.String()),
+		attribute.String(attrKind, e.Err.Kind.String()),
 		attribute.String(attrRetrying, strconv.FormatBool(e.Retrying)),
 	))
 	if e.Retrying {
-		o.retries.Add(ctx, int64(e.Items), metric.WithAttributes(attribute.String(attrKind, e.Kind.String())))
+		o.retries.Add(ctx, int64(e.Items), metric.WithAttributes(attribute.String(attrKind, e.Err.Kind.String())))
 	}
 }
 

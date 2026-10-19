@@ -424,7 +424,7 @@ func TestBulkIndexerSwitchToShardsHonoursContext(t *testing.T) {
 	var onError atomic.Int64
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{
 		NumWorkers: 2, FlushInterval: time.Hour,
-		OnError: func(_ context.Context, _ error) { onError.Add(1) },
+		OnUnhandledError: func(_ context.Context, _ error) { onError.Add(1) },
 	})
 
 	addDoc(t, bi, "idx", "doc", 1)
@@ -481,7 +481,7 @@ func TestBulkIndexerSwitchToShardsDoesNotLendTheTriggeringContext(t *testing.T) 
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Index: "idx", Action: actionIndex, DocumentID: "other", Body: seqBody(1),
 		OnSuccess: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) { succeeded.Add(1) },
-		OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+		OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 			failure.Store(err)
 		},
 	}), "another caller's item, buffered while the shard map is unknown")

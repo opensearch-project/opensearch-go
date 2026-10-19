@@ -24,7 +24,7 @@ var ErrIndexerCanceled = fmt.Errorf("opensearchutil: bulk indexer canceled: %w",
 
 // Cancel stops the indexer immediately. Requests in flight are canceled, retry
 // backoff ends, and every item the indexer is not yet done with fails through its
-// own OnFailure exactly once: with ErrIndexerCanceled for an item that was
+// own OnError exactly once: with ErrIndexerCanceled for an item that was
 // never sent, and with the request's error for one that was in flight. Items
 // added after Cancel fail the same way, with Add returning nil.
 //
@@ -57,9 +57,9 @@ func (bi *bulkIndexer) joinCancel(ctx context.Context) (context.Context, func())
 }
 
 // failCanceled fails every item in the worker's buffer with ErrIndexerCanceled,
-// without sending them. An item without an OnFailure of its own is reported
+// without sending them. An item without an OnError of its own is reported
 // through the returned error, as for any other unsent item, so a buffer whose
-// items all have one does not reach OnError.
+// items all have one does not reach OnUnhandledError.
 func (w *worker) failCanceled(ctx context.Context) error {
 	errs := make([]error, 0, len(w.items))
 	for _, item := range w.items {
@@ -114,7 +114,7 @@ func (bi *bulkIndexer) failStranded(ctx context.Context) {
 	w := worker{bi: bi}
 	for _, b := range stranded {
 		for _, item := range b.items {
-			// An item without an OnFailure is not reported to OnError: the caller
+			// An item without an OnError is not reported to OnUnhandledError: the caller
 			// canceled the indexer, so the failure is no surprise.
 			_ = w.failUnsent(ctx, item, ErrIndexerCanceled, 0) //nolint:errcheck // see above
 		}

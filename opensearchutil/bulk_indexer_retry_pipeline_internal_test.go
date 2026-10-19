@@ -24,7 +24,7 @@ import (
 
 // retryOnce asks for each failed item to be sent once more, at once.
 var retryOnce = RetryPolicyFunc(
-	func(attempt int, _ FailureScope, _ FailureKind, _ opensearchapi.BulkRespItem, _ error) (time.Duration, bool) {
+	func(attempt int, _ *BulkError) (time.Duration, bool) {
 		return 0, attempt < 2
 	})
 
@@ -176,9 +176,9 @@ func TestBulkIndexerCancelEndsBlockedAdds(t *testing.T) {
 				released atomic.Int64
 				addErr   = make(chan error, 1)
 			)
-			onFailure := func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) { failure <- err }
+			onFailure := func(_ context.Context, _ BulkIndexerItem, err *BulkError) { failure <- err }
 			go func() {
-				item := BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: "doc-1", OnFailure: onFailure}
+				item := BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: "doc-1", OnError: onFailure}
 				if tt.lend {
 					addErr <- AddZeroCopy(t.Context(), bi, BulkIndexerZeroCopyItem{
 						BulkIndexerItem: item, Data: lentDoc(2), Release: func([]byte) { released.Add(1) },

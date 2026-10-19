@@ -100,8 +100,8 @@ func TestBaseBulkIndexerObserverIgnoresEveryEvent(t *testing.T) {
 
 	require.NotPanics(t, func() {
 		obs.OnRequestEnd(t.Context(), BulkRequestEvent{})
-		obs.OnRequestFailure(t.Context(), BulkFailureEvent{})
-		obs.OnItemFailure(t.Context(), BulkFailureEvent{})
+		obs.OnRequestError(t.Context(), BulkErrorEvent{})
+		obs.OnItemError(t.Context(), BulkErrorEvent{})
 		obs.OnItemDone(t.Context(), BulkItemEvent{})
 	})
 }

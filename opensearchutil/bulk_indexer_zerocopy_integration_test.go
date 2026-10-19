@@ -80,7 +80,7 @@ func TestBulkIndexerZeroCopy_Integration(t *testing.T) {
 				require.NoError(t, opensearchutil.AddZeroCopy(ctx, bi, opensearchutil.BulkIndexerZeroCopyItem{
 					BulkIndexerItem: opensearchutil.BulkIndexerItem{
 						Index: index, Action: "index", DocumentID: "doc-" + strconv.Itoa(i),
-						OnFailure: func(context.Context, opensearchutil.BulkIndexerItem, opensearchapi.BulkRespItem, error) {
+						OnError: func(context.Context, opensearchutil.BulkIndexerItem, *opensearchutil.BulkError) {
 							failed.Add(1)
 						},
 					},

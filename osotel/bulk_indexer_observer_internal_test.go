@@ -59,21 +59,21 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 
 	o.OnRequestEnd(ctx, opensearchutil.BulkRequestEvent{Items: 3, Bytes: 2048, Duration: 250 * time.Millisecond})
 	o.OnRequestEnd(ctx, opensearchutil.BulkRequestEvent{Items: 3, Bytes: 2048, Err: io.ErrUnexpectedEOF})
-	o.OnRequestFailure(ctx, opensearchutil.BulkFailureEvent{
-		Scope: opensearchutil.ScopeRequest, Kind: opensearchutil.FailureTransport, Items: 3, Retrying: true,
+	o.OnRequestError(ctx, opensearchutil.BulkErrorEvent{
+		Err: &opensearchutil.BulkError{Layer: opensearchutil.LayerRequest, Kind: opensearchutil.KindTransport}, Items: 3, Retrying: true,
 	})
-	o.OnItemFailure(ctx, opensearchutil.BulkFailureEvent{
-		Scope: opensearchutil.ScopeItem, Kind: opensearchutil.FailureRejected, Items: 1, Retrying: true,
+	o.OnItemError(ctx, opensearchutil.BulkErrorEvent{
+		Err: &opensearchutil.BulkError{Layer: opensearchutil.LayerItem, Kind: opensearchutil.KindRejected}, Items: 1, Retrying: true,
 	})
-	o.OnItemFailure(ctx, opensearchutil.BulkFailureEvent{
-		Scope: opensearchutil.ScopeItem, Kind: opensearchutil.FailurePermanent, Items: 1,
+	o.OnItemError(ctx, opensearchutil.BulkErrorEvent{
+		Err: &opensearchutil.BulkError{Layer: opensearchutil.LayerItem, Kind: opensearchutil.KindPermanent}, Items: 1,
 	})
 	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{})
 	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
 	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
 
 	rm := collect()
-	const failures = "opensearch.client.bulk.failures"
+	const errs = "opensearch.client.bulk.errors"
 	tests := []struct {
 		name   string
 		metric string
@@ -82,9 +82,9 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 	}{
 		{"requests ok", "opensearch.client.bulk.requests", map[string]string{"result": "ok"}, 1},
 		{"requests error", "opensearch.client.bulk.requests", map[string]string{"result": "error"}, 1},
-		{"request failure retried", failures, map[string]string{"scope": "request", "kind": "transport", "retrying": "true"}, 1},
-		{"item failure retried", failures, map[string]string{"scope": "item", "kind": "rejected", "retrying": "true"}, 1},
-		{"item failure final", failures, map[string]string{"scope": "item", "kind": "permanent", "retrying": "false"}, 1},
+		{"request failure retried", errs, map[string]string{"layer": "request", "kind": "transport", "retrying": "true"}, 1},
+		{"item failure retried", errs, map[string]string{"layer": "item", "kind": "rejected", "retrying": "true"}, 1},
+		{"item failure final", errs, map[string]string{"layer": "item", "kind": "permanent", "retrying": "false"}, 1},
 		{"retries count items, request scope", "opensearch.client.bulk.retries", map[string]string{"kind": "transport"}, 3},
 		{"retries count items, item scope", "opensearch.client.bulk.retries", map[string]string{"kind": "rejected"}, 1},
 		{"a failure that is not retried is not counted as a retry", "opensearch.client.bulk.retries", map[string]string{"kind": "permanent"}, 0},

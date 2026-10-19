@@ -100,7 +100,7 @@ type buffer struct {
 	done chan struct{}
 	err  error
 	// waiters counts the Flush calls waiting for the buffer; they receive its
-	// error, and OnError does not.
+	// error, and OnUnhandledError does not.
 	waiters int
 }
 
@@ -582,7 +582,7 @@ func (s *scheduler) pump() {
 // complete records that a buffer's request has finished, gives back its memory,
 // teaches the shard and the node what the request showed, and sends whatever that
 // unblocks. The error is delivered to the Flush calls waiting for the buffer, or to
-// OnError when there are none.
+// OnUnhandledError when there are none.
 func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	s.Lock()
 
@@ -659,8 +659,8 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	s.bi.putItems(b.items)
 	b.items = nil
 
-	if reportToOnError && s.bi.config.OnError != nil {
-		s.bi.config.OnError(b.ctx, err)
+	if reportToOnError && s.bi.config.OnUnhandledError != nil {
+		s.bi.config.OnUnhandledError(b.ctx, err)
 	}
 }
 
@@ -709,8 +709,8 @@ func (s *scheduler) relieve() {
 // added.
 //
 // With collect set it returns the errors of those buffers, joined, and they are
-// not reported to OnError: that is how Flush gives its caller the outcome. Without
-// it drain only waits, and each buffer reports its own error to OnError as it would
+// not reported to OnUnhandledError: that is how Flush gives its caller the outcome. Without
+// it drain only waits, and each buffer reports its own error to OnUnhandledError as it would
 // had nobody waited.
 func (s *scheduler) drain(run, wait context.Context, collect bool) error {
 	s.Lock()
@@ -751,7 +751,7 @@ func (s *scheduler) drain(run, wait context.Context, collect bool) error {
 
 // abandon withdraws a drain from the buffers it stopped waiting for, because its
 // context ended or the workers stopped. A buffer that no Flush waits for reports
-// its own error to OnError when it completes, and one that completed since the
+// its own error to OnUnhandledError when it completes, and one that completed since the
 // drain began, while the drain was still counted, would otherwise have reported
 // to nobody: Flush returned the context's error, not the buffer's.
 func (s *scheduler) abandon(collect bool, buffers []*buffer) {
@@ -778,11 +778,11 @@ func (s *scheduler) abandon(collect bool, buffers []*buffer) {
 	}
 	s.Unlock()
 
-	if s.bi.config.OnError == nil {
+	if s.bi.config.OnUnhandledError == nil {
 		return
 	}
 	for _, b := range unreported {
-		s.bi.config.OnError(b.ctx, b.err)
+		s.bi.config.OnUnhandledError(b.ctx, b.err)
 	}
 }
 

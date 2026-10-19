@@ -13,37 +13,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// FailureScope says what a failure applies to: a whole bulk request, or one
-// item in it. The two are different events with different causes. A request
-// fails as one unit, every item in it drawing the same error, and says nothing
-// about whether the batch landed; an item fails alone, in a request that the
-// cluster answered.
-type FailureScope uint8
-
-const (
-	// ScopeRequest is the failure of a whole bulk request: no response, an
-	// error status for the request, or a response that cannot be paired with
-	// the items sent. Every item in the request is affected.
-	ScopeRequest FailureScope = iota
-
-	// ScopeItem is the failure of one item in a bulk request the cluster
-	// answered, or of an item that was never sent because it could not be
-	// serialized or had no document ID.
-	ScopeItem
-)
-
-// String returns the name of the scope without its Scope prefix.
-func (s FailureScope) String() string {
-	switch s {
-	case ScopeRequest:
-		return "request"
-	case ScopeItem:
-		return "item"
-	default:
-		return "unknown"
-	}
-}
-
 // BulkIndexerObserver receives notifications about the requests a [BulkIndexer]
 // sends and how each item fares, for statistics and metrics. Set it as
 // [BulkIndexerConfig].Observer.
@@ -62,21 +31,21 @@ type BulkIndexerObserver interface {
 	// retry, whether the request failed or not.
 	OnRequestEnd(ctx context.Context, event BulkRequestEvent)
 
-	// OnRequestFailure is called when a whole bulk request fails, once per
+	// OnRequestError is called when a whole bulk request fails, once per
 	// failed attempt, before any retry. The event's Scope is [ScopeRequest].
-	OnRequestFailure(ctx context.Context, event BulkFailureEvent)
+	OnRequestError(ctx context.Context, event BulkErrorEvent)
 
-	// OnItemFailure is called when one item fails, once per failed attempt,
+	// OnItemError is called when one item fails, once per failed attempt,
 	// before any retry. It is called for an item the cluster rejected and for
 	// an item that was never sent, but not for one failed by [BulkIndexer.Cancel]
 	// or a Close that escalated: a cancellation is no failure of the work, and
 	// the item's [BulkIndexerObserver.OnItemDone] carries [ErrIndexerCanceled].
 	// The event's Scope is [ScopeItem].
-	OnItemFailure(ctx context.Context, event BulkFailureEvent)
+	OnItemError(ctx context.Context, event BulkErrorEvent)
 
 	// OnItemDone is called once per item, when the indexer is done with it: it
 	// was accepted, or it failed and will not be retried. It fires at the same
-	// moment as the item's OnSuccess or OnFailure callback.
+	// moment as the item's OnSuccess or OnError callback.
 	OnItemDone(ctx context.Context, event BulkItemEvent)
 }
 
@@ -87,11 +56,11 @@ type BaseBulkIndexerObserver struct{}
 // OnRequestEnd implements BulkIndexerObserver (no-op).
 func (BaseBulkIndexerObserver) OnRequestEnd(context.Context, BulkRequestEvent) {}
 
-// OnRequestFailure implements BulkIndexerObserver (no-op).
-func (BaseBulkIndexerObserver) OnRequestFailure(context.Context, BulkFailureEvent) {}
+// OnRequestError implements BulkIndexerObserver (no-op).
+func (BaseBulkIndexerObserver) OnRequestError(context.Context, BulkErrorEvent) {}
 
-// OnItemFailure implements BulkIndexerObserver (no-op).
-func (BaseBulkIndexerObserver) OnItemFailure(context.Context, BulkFailureEvent) {}
+// OnItemError implements BulkIndexerObserver (no-op).
+func (BaseBulkIndexerObserver) OnItemError(context.Context, BulkErrorEvent) {}
 
 // OnItemDone implements BulkIndexerObserver (no-op).
 func (BaseBulkIndexerObserver) OnItemDone(context.Context, BulkItemEvent) {}
@@ -126,14 +95,13 @@ type BulkRequestEvent struct {
 	Err error
 }
 
-// BulkFailureEvent describes one failure of a request or of an item, as the
-// retry policy was shown it.
-type BulkFailureEvent struct {
-	// Scope says whether Items counts the whole request or a single item.
-	Scope FailureScope
-
-	// Kind is the classification the retry policy was given.
-	Kind FailureKind
+// BulkErrorEvent describes one error of a request or of an item, as the retry
+// policy was shown it.
+type BulkErrorEvent struct {
+	// Err is the error: its Layer says whether Items counts the whole request or a
+	// single item, its Kind is the classification the retry policy was given, and
+	// it holds the response status, the item's response and the cause.
+	Err *BulkError
 
 	// Index is the default index of the indexer, empty when items carry their own.
 	Index string
@@ -149,27 +117,15 @@ type BulkFailureEvent struct {
 	Attempt int
 
 	// Items is the number of items affected: every item in the request for
-	// [ScopeRequest], and 1 for [ScopeItem].
+	// [LayerRequest], and 1 for [LayerItem].
 	Items int
 
-	// DocumentID is the failed item's id, for [ScopeItem]. It is empty for
-	// [ScopeRequest].
+	// DocumentID is the failed item's ID, for [LayerItem]. It is empty for
+	// [LayerRequest].
 	DocumentID string
 
-	// StatusCode is the HTTP status of the response: of the whole request for
-	// [ScopeRequest] (0 when none arrived), of the item for [ScopeItem].
-	StatusCode int
-
-	// Resp is the response item for [ScopeItem] when the cluster rejected it.
-	// It is the zero value otherwise.
-	Resp opensearchapi.BulkRespItem
-
-	// Err is the request's error for [ScopeRequest], and nil for an item the
-	// cluster rejected. It is non-nil for an item that was never sent.
-	Err error
-
 	// Retrying reports that the retry policy asked for the work to be sent
-	// again. When false the failure is final for the affected items.
+	// again. When false the error is final for the affected items.
 	Retrying bool
 
 	// Delay is how long the retry policy asked to wait first. It is 0 unless
@@ -219,8 +175,6 @@ type BulkItemEvent struct {
 	// Resp is the response item the cluster returned, when it returned one.
 	Resp opensearchapi.BulkRespItem
 
-	// Err is the error the item failed with when the whole request failed, or
-	// when the item was never sent. It is nil for an accepted item and for an
-	// item the cluster rejected.
-	Err error
+	// Err is the error the item failed with, and nil for an accepted item.
+	Err *BulkError
 }

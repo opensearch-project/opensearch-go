@@ -312,13 +312,13 @@ func FuzzClassifyFailure(f *testing.F) {
 
 		kind := classifyBatchFailure(status, err)
 		require.GreaterOrEqual(t, int(kind), 0)
-		require.Less(t, int(kind), numFailureKinds)
+		require.Less(t, int(kind), numErrorKinds)
 
 		if status == http.StatusTooManyRequests {
-			require.Equal(t, FailureRejected, kind)
+			require.Equal(t, KindRejected, kind)
 		}
 		if status == http.StatusServiceUnavailable {
-			require.Equal(t, FailureUnavailable, kind)
+			require.Equal(t, KindUnavailable, kind)
 		}
 		require.Equal(t, kind, classifyBatchFailure(status, errors.New("another")), "the status decides, not the error")
 	})

@@ -21,7 +21,7 @@ import (
 
 // TestBulkIndexerFlushThatEndedStillLetsBufferReportItsError: a Flush whose
 // context ends returns the context's error, so the failure of the buffer it was
-// waiting for must reach OnError, since nobody else is waiting for it.
+// waiting for must reach OnUnhandledError, since nobody else is waiting for it.
 func TestBulkIndexerFlushThatEndedStillLetsBufferReportItsError(t *testing.T) {
 	t.Parallel()
 
@@ -46,7 +46,7 @@ func TestBulkIndexerFlushThatEndedStillLetsBufferReportItsError(t *testing.T) {
 		Client:     client,
 		// One byte sends the buffer on size, with no Flush involved.
 		FlushBytes: 1,
-		OnError: func(_ context.Context, err error) {
+		OnUnhandledError: func(_ context.Context, err error) {
 			reported.Add(1)
 			onErrors <- err
 		},
@@ -81,6 +81,6 @@ func TestBulkIndexerFlushThatEndedStillLetsBufferReportItsError(t *testing.T) {
 	close(release)
 	require.NoError(t, bi.Close(t.Context()))
 
-	require.Equal(t, int64(1), reported.Load(), "the failure reaches OnError once, as it would without the Flush")
+	require.Equal(t, int64(1), reported.Load(), "the failure reaches OnUnhandledError once, as it would without the Flush")
 	require.ErrorContains(t, <-onErrors, "boom")
 }

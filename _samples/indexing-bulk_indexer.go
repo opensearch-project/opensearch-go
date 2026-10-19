@@ -56,7 +56,7 @@ type source struct {
 type counters struct {
 	opensearchutil.BaseBulkIndexerObserver
 
-	requests, requestFailures, itemFailures, retried atomic.Int64
+	requests, requestErrors, itemErrors, retried atomic.Int64
 }
 
 // OnRequestEnd runs after every bulk request returns, including a retry.
@@ -64,17 +64,17 @@ func (c *counters) OnRequestEnd(context.Context, opensearchutil.BulkRequestEvent
 	c.requests.Add(1)
 }
 
-// OnRequestFailure runs when a whole request fails, once per attempt.
-func (c *counters) OnRequestFailure(_ context.Context, e opensearchutil.BulkFailureEvent) {
-	c.requestFailures.Add(1)
+// OnRequestError runs when a whole request fails, once per attempt.
+func (c *counters) OnRequestError(_ context.Context, e opensearchutil.BulkErrorEvent) {
+	c.requestErrors.Add(1)
 	if e.Retrying {
 		c.retried.Add(int64(e.Items))
 	}
 }
 
-// OnItemFailure runs when the cluster rejects one item, once per attempt.
-func (c *counters) OnItemFailure(_ context.Context, e opensearchutil.BulkFailureEvent) {
-	c.itemFailures.Add(1)
+// OnItemError runs when the cluster rejects one item, once per attempt.
+func (c *counters) OnItemError(_ context.Context, e opensearchutil.BulkErrorEvent) {
+	c.itemErrors.Add(1)
 	if e.Retrying {
 		c.retried.Add(int64(e.Items))
 	}
@@ -84,19 +84,13 @@ func (c *counters) OnItemFailure(_ context.Context, e opensearchutil.BulkFailure
 // times, five attempts in all, with exponential backoff: 100ms, 200ms, 400ms,
 // 800ms. A permanent failure, such as a mapping error, can never succeed, so it
 // is not retried.
-// The policy is told whether the whole request failed or a single item did; this
-// one treats both the same.
+// err.Layer says whether the whole request failed or a single item did; this
+// policy treats both the same.
 //
 // A retry resends the item, so every item needs a stable document id, or a retry
 // after an ambiguous failure could index it twice. See fingerprint.
-func retryPolicy(
-	attempt int,
-	_ opensearchutil.FailureScope,
-	kind opensearchutil.FailureKind,
-	_ opensearchapi.BulkRespItem,
-	_ error,
-) (time.Duration, bool) {
-	if kind == opensearchutil.FailurePermanent || attempt >= 5 {
+func retryPolicy(attempt int, err *opensearchutil.BulkError) (time.Duration, bool) {
+	if errors.Is(err, opensearchutil.ErrPermanent) || attempt >= 5 {
 		return 0, false
 	}
 
@@ -197,8 +191,8 @@ func example() error {
 
 	stats := indexer.Stats()
 	fmt.Printf("added=%d indexed=%d failed=%d\n", stats.NumAdded, stats.NumIndexed, stats.NumFailed)
-	fmt.Printf("requests=%d request failures=%d item failures=%d retried=%d\n",
-		obs.requests.Load(), obs.requestFailures.Load(), obs.itemFailures.Load(), obs.retried.Load())
+	fmt.Printf("requests=%d request errors=%d item errors=%d retried=%d\n",
+		obs.requests.Load(), obs.requestErrors.Load(), obs.itemErrors.Load(), obs.retried.Load())
 
 	return nil
 }
@@ -215,9 +209,9 @@ func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *o
 	}
 	// A failed item is deliberately not completed: the position stays below it
 	// until it is dealt with.
-	onFailure := func(_ context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+	onError := func(_ context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
 		src := item.Metadata.(source)
-		fmt.Printf("offset %d failed: err=%v status=%d\n", src.offset, err, resp.Status)
+		fmt.Printf("offset %d failed: %s %s error, status %d: %v\n", src.offset, err.Layer, err.Kind, err.Status, err)
 	}
 
 	next := firstOffset
@@ -228,7 +222,7 @@ func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *o
 				Body:      strings.NewReader(fmt.Sprintf(`{"offset":%d,"title":"Event %d"}`, next, next)),
 				Metadata:  source{stream: stream, offset: next},
 				OnSuccess: onSuccess,
-				OnFailure: onFailure,
+				OnError:   onError,
 			})
 			if err != nil {
 				return err
@@ -238,7 +232,7 @@ func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *o
 
 		// The job ends here. Flush returns once every item added so far has had its
 		// callback, which says they are final and not that they all succeeded: a
-		// failed item shows up in onFailure, and holds the position back.
+		// failed item shows up in onError, and holds the position back.
 		if err := indexer.Flush(ctx); err != nil {
 			return err
 		}

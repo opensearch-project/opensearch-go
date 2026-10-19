@@ -113,18 +113,16 @@ func ExampleNewBulkIndexer() {
 				fmt.Printf("[%d] %v test/%s from %s@%d", res.Status, res.Result, item.DocumentID, from.Topic, from.Offset)
 			},
 
-			// OnFailure is the optional callback for each failed operation
-			OnFailure: func(
+			// OnError is the optional callback for each failed operation
+			OnError: func(
 				ctx context.Context,
 				item opensearchutil.BulkIndexerItem,
-				res opensearchapi.BulkRespItem, err error,
+				err *opensearchutil.BulkError,
 			) {
+				// err says which layer failed and why; for an item the cluster
+				// rejected, its message carries the cluster's reason.
 				from, _ := item.Metadata.(source)
-				if err != nil {
-					log.Printf("ERROR: %s@%d: %s", from.Topic, from.Offset, err)
-				} else {
-					log.Printf("ERROR: %s@%d: %s: %v", from.Topic, from.Offset, res.Error.Type, res.Error.Reason)
-				}
+				log.Printf("ERROR: %s@%d: %s", from.Topic, from.Offset, err)
 			},
 		},
 	)

@@ -17,8 +17,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 // doneSizes records the Bytes of each item the indexer is done with, by document id.
@@ -70,7 +68,7 @@ func TestBulkItemEventBytes(t *testing.T) {
 	// The rejected item goes out in a request of its own, so the others are accepted.
 	add(BulkIndexerItem{
 		Action: actionIndex, DocumentID: "rejected", Body: strings.NewReader(doc),
-		OnFailure: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) {}, // So Flush reports no error.
+		OnError: func(context.Context, BulkIndexerItem, *BulkError) {}, // So Flush reports no error.
 	})
 	require.NoError(t, bi.Flush(t.Context()))
 
@@ -117,7 +115,7 @@ func TestBulkItemEventBytesOfARefusedItem(t *testing.T) {
 	var failure error
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Index: "idx", Action: actionIndex, Body: strings.NewReader(doc),
-		OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) { failure = err },
+		OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) { failure = err },
 	}))
 	require.NoError(t, bi.Close(t.Context()))
 

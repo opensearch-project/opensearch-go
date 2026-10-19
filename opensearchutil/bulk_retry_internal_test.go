@@ -33,17 +33,17 @@ func TestClassifyFailure(t *testing.T) {
 		tests := []struct {
 			name   string
 			status int
-			want   FailureKind
+			want   ErrorKind
 		}{
-			{name: "write queue full", status: http.StatusTooManyRequests, want: FailureRejected},
-			{name: "unavailable", status: http.StatusServiceUnavailable, want: FailureUnavailable},
-			{name: "version conflict", status: http.StatusConflict, want: FailurePermanent},
-			{name: "mapping error", status: http.StatusBadRequest, want: FailurePermanent},
-			{name: "not found", status: http.StatusNotFound, want: FailurePermanent},
-			{name: "server error", status: http.StatusInternalServerError, want: FailureTransport},
-			{name: "bad gateway", status: http.StatusBadGateway, want: FailureTransport},
-			{name: "gateway timeout", status: http.StatusGatewayTimeout, want: FailureTransport},
-			{name: "no status", status: 0, want: FailurePermanent},
+			{name: "write queue full", status: http.StatusTooManyRequests, want: KindRejected},
+			{name: "unavailable", status: http.StatusServiceUnavailable, want: KindUnavailable},
+			{name: "version conflict", status: http.StatusConflict, want: KindPermanent},
+			{name: "mapping error", status: http.StatusBadRequest, want: KindPermanent},
+			{name: "not found", status: http.StatusNotFound, want: KindPermanent},
+			{name: "server error", status: http.StatusInternalServerError, want: KindTransport},
+			{name: "bad gateway", status: http.StatusBadGateway, want: KindTransport},
+			{name: "gateway timeout", status: http.StatusGatewayTimeout, want: KindTransport},
+			{name: "no status", status: 0, want: KindPermanent},
 		}
 
 		for _, tt := range tests {
@@ -62,22 +62,22 @@ func TestClassifyFailure(t *testing.T) {
 			name   string
 			status int
 			err    error
-			want   FailureKind
+			want   ErrorKind
 		}{
-			{name: "no response", err: errors.New("connection reset"), want: FailureTransport},
-			{name: "context deadline", err: context.DeadlineExceeded, want: FailureTransport},
-			{name: "write queue full", status: http.StatusTooManyRequests, err: errors.New("x"), want: FailureRejected},
-			{name: "unavailable", status: http.StatusServiceUnavailable, err: errors.New("x"), want: FailureUnavailable},
-			{name: "bad gateway", status: http.StatusBadGateway, err: errors.New("x"), want: FailureTransport},
-			{name: "gateway timeout", status: http.StatusGatewayTimeout, err: errors.New("x"), want: FailureTransport},
-			{name: "server error", status: http.StatusInternalServerError, err: errors.New("x"), want: FailureTransport},
-			{name: "unreadable success", status: http.StatusOK, err: errors.New("x"), want: FailureTransport},
-			{name: "bad request", status: http.StatusBadRequest, err: errors.New("x"), want: FailurePermanent},
-			{name: "request too large", status: http.StatusRequestEntityTooLarge, err: errors.New("x"), want: FailurePermanent},
+			{name: "no response", err: errors.New("connection reset"), want: KindTransport},
+			{name: "context deadline", err: context.DeadlineExceeded, want: KindTransport},
+			{name: "write queue full", status: http.StatusTooManyRequests, err: errors.New("x"), want: KindRejected},
+			{name: "unavailable", status: http.StatusServiceUnavailable, err: errors.New("x"), want: KindUnavailable},
+			{name: "bad gateway", status: http.StatusBadGateway, err: errors.New("x"), want: KindTransport},
+			{name: "gateway timeout", status: http.StatusGatewayTimeout, err: errors.New("x"), want: KindTransport},
+			{name: "server error", status: http.StatusInternalServerError, err: errors.New("x"), want: KindTransport},
+			{name: "unreadable success", status: http.StatusOK, err: errors.New("x"), want: KindTransport},
+			{name: "bad request", status: http.StatusBadRequest, err: errors.New("x"), want: KindPermanent},
+			{name: "request too large", status: http.StatusRequestEntityTooLarge, err: errors.New("x"), want: KindPermanent},
 			{
 				name: "unpairable response", status: http.StatusOK,
 				err:  fmt.Errorf("flush: %w", &bulkResponseMismatchError{got: 2, want: 1}),
-				want: FailurePermanent,
+				want: KindPermanent,
 			},
 		}
 
@@ -93,29 +93,31 @@ func TestClassifyFailure(t *testing.T) {
 
 // policyCall is what one Retry call was handed.
 type policyCall struct {
-	Scope   FailureScope
+	Scope   ErrorLayer
 	Attempt int
-	Kind    FailureKind
+	Kind    ErrorKind
 	Status  int  // the response item's status; 0 for a failure of the whole request
-	HasErr  bool // err was non-nil
+	HasErr  bool // err had a cause, as a request's error
 }
 
 // recordingPolicy records every call and answers with decide.
 type recordingPolicy struct {
-	decide func(attempt int, kind FailureKind) (time.Duration, bool)
+	decide func(attempt int, kind ErrorKind) (time.Duration, bool)
 
 	mu    sync.Mutex
 	calls []policyCall
 }
 
 func (p *recordingPolicy) Retry(
-	attempt int, scope FailureScope, kind FailureKind, resp opensearchapi.BulkRespItem, err error,
+	attempt int, err *BulkError,
 ) (time.Duration, bool) {
 	p.mu.Lock()
-	p.calls = append(p.calls, policyCall{Scope: scope, Attempt: attempt, Kind: kind, Status: resp.Status, HasErr: err != nil})
+	p.calls = append(p.calls, policyCall{
+		Scope: err.Layer, Attempt: attempt, Kind: err.Kind, Status: err.Resp.Status, HasErr: err.Err != nil,
+	})
 	p.mu.Unlock()
 
-	return p.decide(attempt, kind)
+	return p.decide(attempt, err.Kind)
 }
 
 func (p *recordingPolicy) recorded() []policyCall {
@@ -126,10 +128,10 @@ func (p *recordingPolicy) recorded() []policyCall {
 }
 
 // retryThrice retries every failure until the third attempt has failed.
-func retryThrice(attempt int, _ FailureKind) (time.Duration, bool) { return 0, attempt < 3 }
+func retryThrice(attempt int, _ ErrorKind) (time.Duration, bool) { return 0, attempt < 3 }
 
 // neverRetry declines every failure.
-func neverRetry(int, FailureKind) (time.Duration, bool) { return 0, false }
+func neverRetry(int, ErrorKind) (time.Duration, bool) { return 0, false }
 
 // outcomeItems accepts the request and gives each action the status listed for
 // its document ID, or 201 when it is not listed.
@@ -176,7 +178,7 @@ func outcomeStatus(status int) bulkOutcome {
 type retryRun struct {
 	succeeded []string
 	failed    []string
-	failErrs  []error
+	failErrs  []*BulkError
 	onErrors  []error
 	flushErr  error
 	seq       *bulkSequence
@@ -198,10 +200,10 @@ func runRetry(
 	run := &retryRun{seq: &bulkSequence{outcomes: outcomes}, policy: policy}
 	client := newBulkTestClient(t, run.seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
 	bi := newBulkIndexer(t, BulkIndexerConfig{
-		NumWorkers:  1,
-		Client:      client,
-		RetryPolicy: policy,
-		OnError:     func(_ context.Context, err error) { run.onErrors = append(run.onErrors, err) },
+		NumWorkers:       1,
+		Client:           client,
+		RetryPolicy:      policy,
+		OnUnhandledError: func(_ context.Context, err error) { run.onErrors = append(run.onErrors, err) },
 	})
 
 	for _, id := range ids {
@@ -212,7 +214,7 @@ func runRetry(
 			OnSuccess: func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
 				run.succeeded = append(run.succeeded, item.DocumentID)
 			},
-			OnFailure: func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+			OnError: func(_ context.Context, item BulkIndexerItem, err *BulkError) {
 				run.failed = append(run.failed, item.DocumentID)
 				run.failErrs = append(run.failErrs, err)
 			},
@@ -236,54 +238,54 @@ func TestBulkIndexerRetryPolicyKinds(t *testing.T) {
 		name       string
 		outcome    bulkOutcome
 		want       policyCall
-		wantItemOK bool // the failure is an item's: OnFailure gets a nil err
+		wantItemOK bool // the failure is an item's: OnError gets a nil err
 	}{
 		{
 			name:    "request refused for a full write queue",
 			outcome: outcomeTooManyRequests,
-			want:    policyCall{Attempt: 1, Kind: FailureRejected, HasErr: true},
+			want:    policyCall{Scope: LayerRequest, Attempt: 1, Kind: KindRejected, HasErr: true},
 		},
 		{
 			name:    "request refused as unavailable",
 			outcome: outcomeUnavailable,
-			want:    policyCall{Attempt: 1, Kind: FailureUnavailable, HasErr: true},
+			want:    policyCall{Scope: LayerRequest, Attempt: 1, Kind: KindUnavailable, HasErr: true},
 		},
 		{
 			name:    "request failed before a response",
 			outcome: outcomeConnectionError,
-			want:    policyCall{Attempt: 1, Kind: FailureTransport, HasErr: true},
+			want:    policyCall{Scope: LayerRequest, Attempt: 1, Kind: KindTransport, HasErr: true},
 		},
 		{
 			name:    "request answered with a bad gateway",
 			outcome: outcomeStatus(http.StatusBadGateway),
-			want:    policyCall{Attempt: 1, Kind: FailureTransport, HasErr: true},
+			want:    policyCall{Scope: LayerRequest, Attempt: 1, Kind: KindTransport, HasErr: true},
 		},
 		{
 			name:    "request refused as malformed",
 			outcome: outcomeStatus(http.StatusBadRequest),
-			want:    policyCall{Attempt: 1, Kind: FailurePermanent, HasErr: true},
+			want:    policyCall{Scope: LayerRequest, Attempt: 1, Kind: KindPermanent, HasErr: true},
 		},
 		{
 			name:    "response cannot be paired with the items",
 			outcome: outcomeExtraItem,
-			want:    policyCall{Attempt: 1, Kind: FailurePermanent, HasErr: true},
+			want:    policyCall{Scope: LayerRequest, Attempt: 1, Kind: KindPermanent, HasErr: true},
 		},
 		{
 			name:       "item rejected for a full write queue",
 			outcome:    outcomeItems(map[string]int{"a": http.StatusTooManyRequests}),
-			want:       policyCall{Scope: ScopeItem, Attempt: 1, Kind: FailureRejected, Status: http.StatusTooManyRequests},
+			want:       policyCall{Scope: LayerItem, Attempt: 1, Kind: KindRejected, Status: http.StatusTooManyRequests},
 			wantItemOK: true,
 		},
 		{
 			name:       "item unavailable",
 			outcome:    outcomeItems(map[string]int{"a": http.StatusServiceUnavailable}),
-			want:       policyCall{Scope: ScopeItem, Attempt: 1, Kind: FailureUnavailable, Status: http.StatusServiceUnavailable},
+			want:       policyCall{Scope: LayerItem, Attempt: 1, Kind: KindUnavailable, Status: http.StatusServiceUnavailable},
 			wantItemOK: true,
 		},
 		{
 			name:       "item hit a version conflict",
 			outcome:    outcomeItems(map[string]int{"a": http.StatusConflict}),
-			want:       policyCall{Scope: ScopeItem, Attempt: 1, Kind: FailurePermanent, Status: http.StatusConflict},
+			want:       policyCall{Scope: LayerItem, Attempt: 1, Kind: KindPermanent, Status: http.StatusConflict},
 			wantItemOK: true,
 		},
 	}
@@ -300,7 +302,7 @@ func TestBulkIndexerRetryPolicyKinds(t *testing.T) {
 			require.Equal(t, []string{"a"}, run.failed)
 			require.Empty(t, run.succeeded)
 			require.Len(t, run.failErrs, 1)
-			require.Equal(t, !tt.wantItemOK, run.failErrs[0] != nil, "OnFailure err")
+			require.Equal(t, !tt.wantItemOK, run.failErrs[0].Err != nil, "OnError err has a cause beyond the item's response")
 			require.Equal(t, uint64(1), run.stats.NumFailed)
 		})
 	}
@@ -321,14 +323,14 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Empty(t, run.onErrors)
 		require.Equal(t, []string{"a", "b"}, run.succeeded, "each item succeeds once")
 		require.Empty(t, run.failed, "the 429 is never reported")
-		require.Equal(t, []policyCall{{Attempt: 1, Kind: FailureRejected, HasErr: true}}, policy.recorded(),
+		require.Equal(t, []policyCall{{Scope: LayerRequest, Attempt: 1, Kind: KindRejected, HasErr: true}}, policy.recorded(),
 			"one decision for the request, not one per item")
 		require.Equal(t, [][]string{{"index:a", "index:b"}, {"index:a", "index:b"}}, run.seq.requests())
 		bodies := run.seq.bodies()
 		require.Equal(t, bodies[0], bodies[1], "the retry carries the same bytes")
 		require.Equal(t, BulkIndexerStats{
 			NumAdded: 2, NumUngroupedItems: 2, NumFlushed: 2, NumIndexed: 2, NumRequests: 2,
-			NumRetries: [numFailureKinds]uint64{FailureRejected: 2},
+			NumRetries: [numErrorKinds]uint64{KindRejected: 2},
 		}, withoutLoad(run.stats))
 	})
 
@@ -344,7 +346,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.NoError(t, run.flushErr)
 		require.Equal(t, []string{"a", "c", "b"}, run.succeeded, "a and c succeed on the first request, b on the second")
 		require.Empty(t, run.failed)
-		require.Equal(t, []policyCall{{Scope: ScopeItem, Attempt: 1, Kind: FailureRejected, Status: http.StatusTooManyRequests}},
+		require.Equal(t, []policyCall{{Scope: LayerItem, Attempt: 1, Kind: KindRejected, Status: http.StatusTooManyRequests}},
 			policy.recorded())
 		require.Equal(t, [][]string{{"index:a", "index:b", "index:c"}, {"index:b"}}, run.seq.requests())
 		require.Equal(t, []string{`{"index":{"_id":"b"}}`, `{"title":"b"}`},
@@ -352,7 +354,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 			"the retry carries b's metadata and body, rewound")
 		require.Equal(t, BulkIndexerStats{
 			NumAdded: 3, NumUngroupedItems: 3, NumFlushed: 3, NumIndexed: 3, NumRequests: 2,
-			NumRetries: [numFailureKinds]uint64{FailureRejected: 1},
+			NumRetries: [numErrorKinds]uint64{KindRejected: 1},
 		}, withoutLoad(run.stats))
 	})
 
@@ -363,12 +365,12 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		run := runRetry(t, inherit, []bulkOutcome{outcomeTooManyRequests}, policy, "a")
 
 		require.Equal(t, []policyCall{
-			{Attempt: 1, Kind: FailureRejected, HasErr: true},
-			{Attempt: 2, Kind: FailureRejected, HasErr: true},
-			{Attempt: 3, Kind: FailureRejected, HasErr: true},
+			{Scope: LayerRequest, Attempt: 1, Kind: KindRejected, HasErr: true},
+			{Scope: LayerRequest, Attempt: 2, Kind: KindRejected, HasErr: true},
+			{Scope: LayerRequest, Attempt: 3, Kind: KindRejected, HasErr: true},
 		}, policy.recorded())
 		require.Len(t, run.seq.requests(), 3)
-		require.Equal(t, []string{"a"}, run.failed, "one OnFailure, after the last attempt")
+		require.Equal(t, []string{"a"}, run.failed, "one OnError, after the last attempt")
 		require.ErrorContains(t, run.failErrs[0], "es_rejected_execution_exception")
 		require.Error(t, run.flushErr)
 		require.Equal(t, uint64(1), run.stats.NumFailed)
@@ -378,8 +380,8 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 	t.Run("an item that is done drops out of later requests", func(t *testing.T) {
 		t.Parallel()
 
-		policy := &recordingPolicy{decide: func(attempt int, kind FailureKind) (time.Duration, bool) {
-			return 0, kind != FailurePermanent && attempt < 5
+		policy := &recordingPolicy{decide: func(attempt int, kind ErrorKind) (time.Duration, bool) {
+			return 0, kind != KindPermanent && attempt < 5
 		}}
 		run := runRetry(t, inherit, []bulkOutcome{
 			outcomeItems(map[string]int{"a": http.StatusTooManyRequests, "b": http.StatusConflict}),
@@ -388,14 +390,14 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		}, policy, "a", "b")
 
 		require.Equal(t, []policyCall{
-			{Scope: ScopeItem, Attempt: 1, Kind: FailureRejected, Status: http.StatusTooManyRequests},
-			{Scope: ScopeItem, Attempt: 1, Kind: FailurePermanent, Status: http.StatusConflict},
-			{Scope: ScopeItem, Attempt: 2, Kind: FailureUnavailable, Status: http.StatusServiceUnavailable},
+			{Scope: LayerItem, Attempt: 1, Kind: KindRejected, Status: http.StatusTooManyRequests},
+			{Scope: LayerItem, Attempt: 1, Kind: KindPermanent, Status: http.StatusConflict},
+			{Scope: LayerItem, Attempt: 2, Kind: KindUnavailable, Status: http.StatusServiceUnavailable},
 		}, policy.recorded(), "b fails for good on the first request and is not offered again")
 		require.Equal(t, [][]string{{"index:a", "index:b"}, {"index:a"}, {"index:a"}}, run.seq.requests())
 		require.Equal(t, []string{"a"}, run.succeeded)
 		require.Equal(t, []string{"b"}, run.failed)
-		require.NoError(t, run.flushErr, "b has an OnFailure, so its rejection is not the flush's error")
+		require.NoError(t, run.flushErr, "b has an OnError, so its rejection is not the flush's error")
 	})
 
 	t.Run("a cancelled context abandons the retry", func(t *testing.T) {
@@ -405,7 +407,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 
 		// Canceling inside Retry and then asking for a long delay is
 		// deterministic: the wait sees a done context before it sleeps.
-		policy := &recordingPolicy{decide: func(int, FailureKind) (time.Duration, bool) {
+		policy := &recordingPolicy{decide: func(int, ErrorKind) (time.Duration, bool) {
 			cancel()
 			return time.Hour, true
 		}}
@@ -436,7 +438,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 			Action:              "index",
 			DocumentID:          "a",
 			WaitForActiveShards: math.NaN(),
-			OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+			OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 				failures = append(failures, err)
 			},
 		}))
@@ -448,7 +450,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Empty(t, seq.requests())
 	})
 
-	t.Run("a retried item without an OnFailure is not reported once it succeeds", func(t *testing.T) {
+	t.Run("a retried item without an OnError is not reported once it succeeds", func(t *testing.T) {
 		t.Parallel()
 
 		policy := &recordingPolicy{decide: retryThrice}
@@ -459,10 +461,10 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 
 		var onErrors []error
 		bi := newBulkIndexer(t, BulkIndexerConfig{
-			NumWorkers:  1,
-			Client:      client,
-			RetryPolicy: policy,
-			OnError:     func(_ context.Context, err error) { onErrors = append(onErrors, err) },
+			NumWorkers:       1,
+			Client:           client,
+			RetryPolicy:      policy,
+			OnUnhandledError: func(_ context.Context, err error) { onErrors = append(onErrors, err) },
 		})
 
 		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
@@ -477,7 +479,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 }
 
 // TestWorkerFailPending: items whose retry was abandoned fail with the failure they
-// last drew. Each item with an OnFailure hears of it. For the ones without, a
+// last drew. Each item with an OnError hears of it. For the ones without, a
 // request failure is reported once however many items it took down, and a
 // rejection by the cluster once for each item, since each has its own cause.
 func TestWorkerFailPending(t *testing.T) {
@@ -492,8 +494,14 @@ func TestWorkerFailPending(t *testing.T) {
 		}
 	}
 	errTimeout := errors.New("request timed out")
+	timedOut := &BulkError{Layer: LayerRequest, Kind: KindTransport, Err: errTimeout}
+	rejectedErr := func(id, reason string) *BulkError {
+		resp := rejected(id, reason)
 
-	t.Run("request failure reaches every OnFailure and is reported once", func(t *testing.T) {
+		return &BulkError{Layer: LayerItem, Kind: KindPermanent, Status: resp.Status, Resp: resp, action: "index"}
+	}
+
+	t.Run("request failure reaches every OnError and is reported once", func(t *testing.T) {
 		t.Parallel()
 
 		var calls []failureCall
@@ -501,10 +509,10 @@ func TestWorkerFailPending(t *testing.T) {
 		noCallback := func(id string) BulkIndexerItem { return BulkIndexerItem{Action: "index", DocumentID: id} }
 
 		err := w.failPending(t.Context(), []failedItem{
-			{item: recordingItem("a", &calls), err: errTimeout, attempt: 2},
-			{item: noCallback("b"), err: errTimeout, attempt: 2},
-			{item: recordingItem("c", &calls), err: errTimeout, attempt: 2},
-			{item: noCallback("d"), err: errTimeout, attempt: 2},
+			{item: recordingItem("a", &calls), err: timedOut, attempt: 2},
+			{item: noCallback("b"), err: timedOut, attempt: 2},
+			{item: recordingItem("c", &calls), err: timedOut, attempt: 2},
+			{item: noCallback("d"), err: timedOut, attempt: 2},
 		})
 
 		require.ErrorIs(t, err, errTimeout)
@@ -513,43 +521,48 @@ func TestWorkerFailPending(t *testing.T) {
 		require.Len(t, calls, 2)
 		for i, id := range []string{"a", "c"} {
 			require.Equal(t, id, calls[i].ID)
-			require.Equal(t, errTimeout, calls[i].Err)
+			require.Same(t, timedOut, calls[i].Err)
+			require.ErrorIs(t, calls[i].Err, errTimeout)
+			require.ErrorIs(t, calls[i].Err, ErrRequestLayer)
+			require.ErrorIs(t, calls[i].Err, ErrTransport)
 		}
 		require.Equal(t, uint64(4), w.bi.stats.numFailed.Load())
 	})
 
-	t.Run("each rejected item without OnFailure is reported with its own cause", func(t *testing.T) {
+	t.Run("each rejected item without OnError is reported with its own cause", func(t *testing.T) {
 		t.Parallel()
 
 		var calls []failureCall
 		w := newTestWorker()
 
 		err := w.failPending(t.Context(), []failedItem{
-			{item: BulkIndexerItem{Action: "index", DocumentID: "a"}, op: "index", resp: rejected("a", "bad a"), attempt: 3},
-			{item: recordingItem("b", &calls), op: "index", resp: rejected("b", "bad b"), attempt: 3},
-			{item: BulkIndexerItem{Action: "index", DocumentID: "c"}, op: "index", resp: rejected("c", "bad c"), attempt: 3},
+			{item: BulkIndexerItem{Action: "index", DocumentID: "a"}, err: rejectedErr("a", "bad a"), attempt: 3},
+			{item: recordingItem("b", &calls), err: rejectedErr("b", "bad b"), attempt: 3},
+			{item: BulkIndexerItem{Action: "index", DocumentID: "c"}, err: rejectedErr("c", "bad c"), attempt: 3},
 		})
 
 		require.ErrorContains(t, err, `"index" "a" rejected: "mapper_parsing_exception": "bad a"`)
 		require.ErrorContains(t, err, `"index" "c" rejected: "mapper_parsing_exception": "bad c"`)
-		require.NotContains(t, err.Error(), "bad b", "b has an OnFailure of its own")
+		require.NotContains(t, err.Error(), "bad b", "b has an OnError of its own")
 
 		require.Len(t, calls, 1)
 		require.Equal(t, "b", calls[0].ID)
-		require.NoError(t, calls[0].Err, "a rejection by the cluster carries no request error")
+		require.NoError(t, calls[0].Err.Err, "a rejection by the cluster has no cause beyond its response")
+		require.ErrorIs(t, calls[0].Err, ErrItemLayer)
+		require.ErrorIs(t, calls[0].Err, ErrPermanent)
 		require.Equal(t, http.StatusBadRequest, calls[0].Resp.Status)
 		require.Equal(t, uint64(3), w.bi.stats.numFailed.Load())
 	})
 
-	t.Run("items that all have OnFailure leave nothing to report", func(t *testing.T) {
+	t.Run("items that all have OnError leave nothing to report", func(t *testing.T) {
 		t.Parallel()
 
 		var calls []failureCall
 		w := newTestWorker()
 
 		err := w.failPending(t.Context(), []failedItem{
-			{item: recordingItem("a", &calls), err: errTimeout, attempt: 2},
-			{item: recordingItem("b", &calls), resp: rejected("b", "bad b"), attempt: 2},
+			{item: recordingItem("a", &calls), err: timedOut, attempt: 2},
+			{item: recordingItem("b", &calls), err: rejectedErr("b", "bad b"), attempt: 2},
 		})
 
 		require.NoError(t, err)
@@ -564,7 +577,7 @@ func TestWorkerFailPending(t *testing.T) {
 		w.bi.config.Observer = obs
 
 		require.NoError(t, w.failPending(t.Context(), []failedItem{
-			{item: recordingItem("a", new([]failureCall)), err: errTimeout, attempt: 4},
+			{item: recordingItem("a", new([]failureCall)), err: timedOut, attempt: 4},
 		}))
 
 		require.Equal(t, []int{4}, obs.attempts)
@@ -596,32 +609,32 @@ func (o *attemptObserver) OnItemDone(_ context.Context, ev BulkItemEvent) {
 func TestRetryPolicyFunc(t *testing.T) {
 	t.Parallel()
 
-	var p RetryPolicy = RetryPolicyFunc(func(
-		attempt int, _ FailureScope, kind FailureKind, _ opensearchapi.BulkRespItem, _ error,
-	) (time.Duration, bool) {
-		return time.Duration(attempt) * time.Second, kind == FailureRejected
+	var p RetryPolicy = RetryPolicyFunc(func(attempt int, err *BulkError) (time.Duration, bool) {
+		return time.Duration(attempt) * time.Second, errors.Is(err, ErrRejected)
 	})
 
-	delay, retry := p.Retry(2, ScopeItem, FailureRejected, opensearchapi.BulkRespItem{}, nil)
+	delay, retry := p.Retry(2, &BulkError{Layer: LayerItem, Kind: KindRejected})
 	require.Equal(t, 2*time.Second, delay)
 	require.True(t, retry)
 
-	_, retry = p.Retry(1, ScopeItem, FailurePermanent, opensearchapi.BulkRespItem{}, nil)
+	_, retry = p.Retry(1, &BulkError{Layer: LayerItem, Kind: KindPermanent})
 	require.False(t, retry)
 }
 
-func TestFailureKindString(t *testing.T) {
+func TestErrorKindString(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		kind FailureKind
+		kind ErrorKind
 		want string
 	}{
-		{FailureRejected, "rejected"},
-		{FailureUnavailable, "unavailable"},
-		{FailureTransport, "transport"},
-		{FailurePermanent, "permanent"},
-		{FailureKind(42), "FailureKind(42)"},
+		{KindUnknown, "unknown"},
+		{KindRejected, "rejected"},
+		{KindUnavailable, "unavailable"},
+		{KindTransport, "transport"},
+		{KindPermanent, "permanent"},
+		{KindCanceled, "canceled"},
+		{ErrorKind(42), "ErrorKind(42)"},
 	}
 
 	for _, tt := range tests {

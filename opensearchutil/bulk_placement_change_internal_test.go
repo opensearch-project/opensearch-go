@@ -168,7 +168,7 @@ func TestBulkIndexerFailsBufferedItemsWhenTheShardGeometryChanges(t *testing.T) 
 	var sent atomic.Int64
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1),
-		OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+		OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 			buffered.Store(err)
 		},
 	}), "buffered, not sent")
@@ -200,16 +200,16 @@ func TestBulkIndexerIgnoresAChangeAnUnversionedRouterReports(t *testing.T) {
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
 
 	var failed atomic.Int64
-	onFailure := func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) { failed.Add(1) }
+	onFailure := func(context.Context, BulkIndexerItem, *BulkError) { failed.Add(1) }
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1), OnFailure: onFailure,
+		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1), OnError: onFailure,
 	}))
 
 	cluster.mu.Lock()
 	cluster.mu.maps["idx"] = DefaultShardMap(4) // Still generation 0.
 	cluster.mu.Unlock()
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Index: "idx", Action: actionIndex, DocumentID: "b", Body: seqBody(2), OnFailure: onFailure,
+		Index: "idx", Action: actionIndex, DocumentID: "b", Body: seqBody(2), OnError: onFailure,
 	}))
 
 	require.NoError(t, bi.Close(t.Context()))
