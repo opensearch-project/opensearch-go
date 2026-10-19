@@ -312,13 +312,31 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 		kind   ErrorKind
 		errors uint64
 	}{
-		{name: "connection error", first: outcomeConnectionError, wantFlush: true, layer: LayerRequest, kind: KindTransport, errors: 1},
-		{name: "whole request refused with 429", first: outcomeTooManyRequests, wantFlush: true, layer: LayerRequest, kind: KindRejected, errors: 1},
-		{name: "whole request refused with 503", first: outcomeUnavailable, wantFlush: true, layer: LayerRequest, kind: KindUnavailable, errors: 1},
-		{name: "response cannot be paired with the items", first: outcomeExtraItem, wantFlush: true, layer: LayerRequest, kind: KindPermanent, errors: 1},
-		{name: "response holds fewer results than the items", first: outcomeMissingItem, wantFlush: true, layer: LayerRequest, kind: KindPermanent, errors: 1},
+		{
+			name: "connection error", first: outcomeConnectionError, wantFlush: true,
+			layer: LayerRequest, kind: KindTransport, errors: 1,
+		},
+		{
+			name: "whole request refused with 429", first: outcomeTooManyRequests, wantFlush: true,
+			layer: LayerRequest, kind: KindRejected, errors: 1,
+		},
+		{
+			name: "whole request refused with 503", first: outcomeUnavailable, wantFlush: true,
+			layer: LayerRequest, kind: KindUnavailable, errors: 1,
+		},
+		{
+			name: "response cannot be paired with the items", first: outcomeExtraItem, wantFlush: true,
+			layer: LayerRequest, kind: KindPermanent, errors: 1,
+		},
+		{
+			name: "response holds fewer results than the items", first: outcomeMissingItem, wantFlush: true,
+			layer: LayerRequest, kind: KindPermanent, errors: 1,
+		},
 		// Every rejected item has an OnError, so the drain itself succeeded.
-		{name: "every item rejected", first: outcomeEveryItemRejected, wantFlush: false, layer: LayerItem, kind: KindRejected, errors: 2},
+		{
+			name: "every item rejected", first: outcomeEveryItemRejected, wantFlush: false,
+			layer: LayerItem, kind: KindRejected, errors: 2,
+		},
 	}
 
 	for _, tt := range tests {

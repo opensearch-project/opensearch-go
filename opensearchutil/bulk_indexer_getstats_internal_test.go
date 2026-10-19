@@ -33,7 +33,8 @@ func withoutLoad(s BulkIndexerStats) BulkIndexerStats {
 }
 
 // errorsAt is the Errors of stats that counted n errors of one layer and kind.
-func errorsAt(layer ErrorLayer, kind ErrorKind, n uint64) (errs [numErrorLayers][numErrorKinds]uint64) {
+func errorsAt(layer ErrorLayer, kind ErrorKind, n uint64) [numErrorLayers][numErrorKinds]uint64 {
+	var errs [numErrorLayers][numErrorKinds]uint64
 	errs[layer][kind] = n
 
 	return errs
