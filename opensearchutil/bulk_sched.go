@@ -871,6 +871,10 @@ func (s *scheduler) publishLoad(sample flushSample) {
 		w.weight = append(w.weight, float64(ns.held.Load()))
 	}
 
+	// summarize sorts a copy of each reading in the scratch it is given, and cannot
+	// hand a grown one back, so it is sized here, where it is kept.
+	w.tmp = slices.Grow(w.tmp[:0], len(w.window))
+
 	st := s.bi.stats
 	st.numNodes.Store(uint64(len(w.window)))
 	st.nodeWindow.store(summarize(w.window, w.weight, w.tmp))
