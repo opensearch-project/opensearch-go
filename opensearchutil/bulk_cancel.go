@@ -98,6 +98,7 @@ func (bi *bulkIndexer) failStranded(ctx context.Context) {
 	for _, b := range stranded {
 		if b.sealed {
 			s.sealedPending--
+			b.node.queued--
 		}
 		delete(s.live, b)
 		delete(b.node.opens, b)
@@ -110,6 +111,9 @@ func (bi *bulkIndexer) failStranded(ctx context.Context) {
 	}
 	s.sealed = nil
 	s.trackQueued()
+	for _, ns := range s.nodes {
+		ns.storeStats()
+	}
 	s.Unlock()
 
 	w := worker{bi: bi}

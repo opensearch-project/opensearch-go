@@ -190,6 +190,8 @@ type nodeState struct {
 	rate rateTracker
 	// sink serves documents that belong to no shard.
 	sink *shardState
+	// stats holds the node's statistics as atomics, for GetNodeStats to read.
+	stats nodeAtomicStats
 }
 
 // window is how many requests may be outstanding to the node: the window the
@@ -269,6 +271,9 @@ type scheduler struct {
 
 	shards map[shardKey]*shardState
 	nodes  map[string]*nodeState
+	// nodeList is every node in nodes, in the order they were first used, for
+	// GetNodeStats to read without the lock.
+	nodeList atomic.Pointer[[]*nodeState]
 
 	// work is the workspace publishLoad reuses.
 	work loadWork
@@ -324,6 +329,8 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 	}
 	ns.sink = &shardState{key: unplacedKey(), sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
+	ns.storeStats()
+	s.addNode(ns)
 
 	return ns
 }
@@ -509,6 +516,7 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	}
 	delete(ns.opens, b)
 	ns.queued++
+	ns.storeStats()
 	ss.pending++
 	s.sealed = append(s.sealed, b)
 	s.sealedPending++
@@ -601,6 +609,7 @@ func (s *scheduler) pump() {
 		ns.queued--
 		ns.inflight++
 		ns.flightBytes += b.bytes
+		ns.storeStats()
 		b.sentAt = ns.win.cuts
 		ss.inflight++
 		b.dispatched = true
@@ -641,6 +650,7 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// carries no 429 but failed, which only cuts the buffer.
 	if sample.rejected {
 		ns.win.reject(ns.flightBytes, b.sentAt)
+		ns.stats.rejections.Add(1)
 	} else {
 		ns.win.complete(b.bytes, sample.overloaded)
 	}
@@ -662,6 +672,7 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 		s.capRequests(sample.tooLarge)
 	}
 	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
+	ns.storeStats()
 	s.publishLoad(sample)
 	ss.idleSince = s.bi.now()
 

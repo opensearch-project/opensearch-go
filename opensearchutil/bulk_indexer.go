@@ -226,6 +226,15 @@ type BulkIndexer interface {
 	// can have moved between two of them. It returns [ErrNilStats] when dst is nil,
 	// and works on a closed indexer, whose statistics no longer change.
 	GetStats(dst *BulkIndexerStats) error
+
+	// GetNodeStats loads the statistics of each node the indexer has written to
+	// into dst, in the order the indexer first used them, and returns it. It
+	// replaces what dst holds and reuses its capacity, so a caller that passes
+	// the slice it got back allocates nothing once it has room for every node.
+	// Like GetStats it takes no lock and its values are loaded one after another,
+	// not at a single instant, so one node's values need not agree with each
+	// other. It works on a closed indexer.
+	GetNodeStats(dst []NodeStats) []NodeStats
 }
 
 // BulkIndexerConfig represents configuration of the indexer.

@@ -530,6 +530,18 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 Item latency runs from `Add` to the item's outcome, across every attempt. It includes time spent in a buffer and in the queue, so it exceeds request duration; the difference is queueing delay. `BlockedShards` counts the shards that have a request in flight and further documents waiting behind it. `GetStats` loads each value separately, so the values are not a snapshot of a single instant.
 
+`GetNodeStats` reports the same readings for each node: in-flight requests and bytes, queued buffers, held bytes, rejections, window, buffer size and slowdown. It identifies the node behind an outlier in `NodeWindow`, `BufferSize` or `Slowdown`. Pass back the slice it returned to avoid allocating:
+
+```go
+var nodes []opensearchutil.NodeStats
+nodes = indexer.GetNodeStats(nodes)
+for _, n := range nodes {
+	slowdown.WithLabelValues(n.Name).Set(n.Slowdown)
+}
+```
+
+Like `GetStats`, `GetNodeStats` takes no lock, and one node's values are not guaranteed to be from the same instant.
+
 ## See also
 
 - [Bulk](indexing-bulk.md) - the underlying `bulk` API, timeouts, and ingest-node routing.
