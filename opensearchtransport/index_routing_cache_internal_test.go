@@ -17,40 +17,52 @@ import (
 func TestNewIndexSlotCache(t *testing.T) {
 	t.Parallel()
 
-	t.Run("defaults", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{})
-		require.Equal(t, defaultMinFanOut, c.minFanOut)
-		require.Equal(t, defaultMaxFanOut, c.maxFanOut)
-		require.Equal(t, defaultIdleEvictionTTL, c.idleEvictionTTL)
-		require.InDelta(t, defaultDecayFactor, c.decayFactor, 1e-9)
-		require.InDelta(t, defaultFanOutPerRequest, c.fanOutPerReq, 1e-9)
-	})
+	tests := []struct {
+		name       string
+		cfg        indexSlotCacheConfig
+		wantMin    int
+		wantMax    int
+		wantTTL    time.Duration
+		wantDecay  float64
+		wantPerReq float64
+	}{
+		{
+			name:    "defaults",
+			wantMin: defaultMinFanOut, wantMax: defaultMaxFanOut, wantTTL: defaultIdleEvictionTTL,
+			wantDecay: defaultDecayFactor, wantPerReq: defaultFanOutPerRequest,
+		},
+		{
+			name: "custom values preserved",
+			cfg: indexSlotCacheConfig{
+				minFanOut: 3, maxFanOut: 10, idleEvictionTTL: 5 * time.Minute, decayFactor: 0.99, fanOutPerReq: 100,
+			},
+			wantMin: 3, wantMax: 10, wantTTL: 5 * time.Minute, wantDecay: 0.99, wantPerReq: 100,
+		},
+		{
+			name:    "a decay above 1 is clamped to the default",
+			cfg:     indexSlotCacheConfig{decayFactor: 1.5},
+			wantMin: defaultMinFanOut, wantMax: defaultMaxFanOut, wantTTL: defaultIdleEvictionTTL,
+			wantDecay: defaultDecayFactor, wantPerReq: defaultFanOutPerRequest,
+		},
+		{
+			name:    "a negative decay is clamped to the default",
+			cfg:     indexSlotCacheConfig{decayFactor: -0.5},
+			wantMin: defaultMinFanOut, wantMax: defaultMaxFanOut, wantTTL: defaultIdleEvictionTTL,
+			wantDecay: defaultDecayFactor, wantPerReq: defaultFanOutPerRequest,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("custom values preserved", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			minFanOut:       3,
-			maxFanOut:       10,
-			idleEvictionTTL: 5 * time.Minute,
-			decayFactor:     0.99,
-			fanOutPerReq:    100,
+			c := newIndexSlotCache(tt.cfg)
+			require.Equal(t, tt.wantMin, c.minFanOut)
+			require.Equal(t, tt.wantMax, c.maxFanOut)
+			require.Equal(t, tt.wantTTL, c.idleEvictionTTL)
+			require.InDelta(t, tt.wantDecay, c.decayFactor, 1e-9)
+			require.InDelta(t, tt.wantPerReq, c.fanOutPerReq, 1e-9)
 		})
-		require.Equal(t, 3, c.minFanOut)
-		require.Equal(t, 10, c.maxFanOut)
-		require.Equal(t, 5*time.Minute, c.idleEvictionTTL)
-		require.InDelta(t, 0.99, c.decayFactor, 1e-9)
-		require.InDelta(t, 100.0, c.fanOutPerReq, 1e-9)
-	})
-
-	t.Run("invalid decay clamped to default", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{decayFactor: 1.5})
-		require.InDelta(t, defaultDecayFactor, c.decayFactor, 1e-9)
-
-		c = newIndexSlotCache(indexSlotCacheConfig{decayFactor: -0.5})
-		require.InDelta(t, defaultDecayFactor, c.decayFactor, 1e-9)
-	})
+	}
 }
 
 func TestIndexSlotCacheGetOrCreate(t *testing.T) {
@@ -194,93 +206,80 @@ func TestIndexSlotCacheRegister(t *testing.T) {
 func TestIndexSlotCacheEffectiveFanOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("per-index override wins", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			overrides: map[string]int{"special": 5},
+	tests := []struct {
+		name string
+		cfg  indexSlotCacheConfig
+		// shardNodeCount and requestDecay are stored on the slot when non-zero.
+		shardNodeCount int32
+		requestDecay   float64
+		index          string
+		active         int
+		want           int
+	}{
+		{
+			name: "per-index override wins", cfg: indexSlotCacheConfig{overrides: map[string]int{"special": 5}},
+			index: "special", active: 100, want: 5,
+		},
+		{
+			name: "override clamped to active nodes", cfg: indexSlotCacheConfig{overrides: map[string]int{"special": 10}},
+			index: "special", active: 3, want: 3,
+		},
+		{name: "shard floor raises fan-out", cfg: indexSlotCacheConfig{minFanOut: 1}, shardNodeCount: 4, index: "idx", active: 10, want: 4},
+		{
+			name: "shard floor capped by maxFanOut", cfg: indexSlotCacheConfig{minFanOut: 1, maxFanOut: 8},
+			shardNodeCount: 100, index: "idx", active: 200, want: 8,
+		},
+		{name: "default maxFanOut caps pathological shard count", shardNodeCount: 100, index: "idx", active: 200, want: defaultMaxFanOut},
+		{
+			// A decay of 500 at 100 per request gives a rate fan-out of 6.
+			name: "maxFanOut caps result", cfg: indexSlotCacheConfig{maxFanOut: 3, fanOutPerReq: 100},
+			requestDecay: 500, index: "idx", active: 100, want: 3,
+		},
+		{
+			// 500/100 + 1 = 6.
+			name: "rate-driven fan-out from decay counter", cfg: indexSlotCacheConfig{fanOutPerReq: 100, minFanOut: 1},
+			requestDecay: 500, index: "idx", active: 20, want: 6,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := newIndexSlotCache(tt.cfg)
+			slot := &indexSlot{}
+			if tt.shardNodeCount != 0 {
+				slot.shardNodeCount.Store(tt.shardNodeCount)
+			}
+			if tt.requestDecay != 0 {
+				slot.requestDecay.store(tt.requestDecay)
+			}
+
+			require.Equal(t, tt.want, c.effectiveFanOut(slot, tt.index, tt.active))
 		})
-		slot := &indexSlot{}
-		require.Equal(t, 5, c.effectiveFanOut(slot, "special", 100))
-	})
-
-	t.Run("override clamped to active nodes", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			overrides: map[string]int{"special": 10},
-		})
-		slot := &indexSlot{}
-		require.Equal(t, 3, c.effectiveFanOut(slot, "special", 3))
-	})
-
-	t.Run("shard floor raises fan-out", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			minFanOut: 1,
-		})
-		slot := &indexSlot{}
-		slot.shardNodeCount.Store(4) // 4 shard-hosting nodes
-
-		// Fan-out should be at least the shard node count.
-		require.Equal(t, 4, c.effectiveFanOut(slot, "idx", 10))
-	})
-
-	t.Run("shard floor capped by maxFanOut", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			minFanOut: 1,
-			maxFanOut: 8,
-		})
-		slot := &indexSlot{}
-		slot.shardNodeCount.Store(100) // pathological: 100 shard-hosting nodes
-
-		// shardFloor=100 but maxFanOut=8 caps it.
-		require.Equal(t, 8, c.effectiveFanOut(slot, "idx", 200))
-	})
-
-	t.Run("default maxFanOut caps pathological shard count", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{}) // defaultMaxFanOut = 32
-		slot := &indexSlot{}
-		slot.shardNodeCount.Store(100)
-
-		require.Equal(t, 32, c.effectiveFanOut(slot, "idx", 200))
-	})
-
-	t.Run("maxFanOut caps result", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			maxFanOut:    3,
-			fanOutPerReq: 100,
-		})
-		slot := &indexSlot{}
-		slot.requestDecay.store(500.0) // Would give rateFanOut = 6
-
-		require.Equal(t, 3, c.effectiveFanOut(slot, "idx", 100))
-	})
-
-	t.Run("rate-driven fan-out from decay counter", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			fanOutPerReq: 100,
-			minFanOut:    1,
-		})
-		slot := &indexSlot{}
-		// Simulate high request rate.
-		slot.requestDecay.store(500.0) // 500/100 + 1 = 6
-
-		got := c.effectiveFanOut(slot, "idx", 20)
-		require.Equal(t, 6, got)
-	})
+	}
 }
 
 func TestClampFanOut(t *testing.T) {
 	t.Parallel()
 
-	require.Equal(t, 1, clampFanOut(0, 10))
-	require.Equal(t, 1, clampFanOut(-5, 10))
-	require.Equal(t, 5, clampFanOut(5, 10))
-	require.Equal(t, 3, clampFanOut(5, 3))
-	require.Equal(t, 5, clampFanOut(5, 0))
+	tests := []struct {
+		name         string
+		n, maxFanOut int
+		want         int
+	}{
+		{name: "zero is raised to one", n: 0, maxFanOut: 10, want: 1},
+		{name: "a negative is raised to one", n: -5, maxFanOut: 10, want: 1},
+		{name: "within the maximum", n: 5, maxFanOut: 10, want: 5},
+		{name: "capped at the maximum", n: 5, maxFanOut: 3, want: 3},
+		{name: "no maximum", n: 5, maxFanOut: 0, want: 5},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, clampFanOut(tt.n, tt.maxFanOut))
+		})
+	}
 }
 
 func TestIndexSlotCacheUpdateFromDiscovery(t *testing.T) {
@@ -545,136 +544,117 @@ func TestIndexSlotShardNodeNameSet(t *testing.T) {
 func TestIndexSlotShardNodeInfoFor(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil pointer returns nil", func(t *testing.T) {
-		t.Parallel()
-		slot := &indexSlot{}
-		require.Nil(t, slot.shardNodeInfoFor("any-node"))
-	})
+	stored := map[string]*shardNodeInfo{
+		"primary": {Primaries: 3},
+		"replica": {Replicas: 2},
+		"mixed":   {Primaries: 1, Replicas: 4},
+	}
 
-	t.Run("unknown node returns nil", func(t *testing.T) {
-		t.Parallel()
-		slot := &indexSlot{}
-		info := map[string]*shardNodeInfo{"node1": {Primaries: 1}}
-		slot.shardNodeNames.Store(&info)
-		require.Nil(t, slot.shardNodeInfoFor("unknown-node"))
-	})
+	tests := []struct {
+		name string
+		// stored is the slot's node info; nil leaves the slot without any.
+		stored map[string]*shardNodeInfo
+		node   string
+		want   *shardNodeInfo
+	}{
+		{name: "nil pointer returns nil", node: "any-node"},
+		{name: "unknown node returns nil", stored: stored, node: "unknown-node"},
+		{name: "a node holding primaries", stored: stored, node: "primary", want: &shardNodeInfo{Primaries: 3}},
+		{name: "a node holding replicas", stored: stored, node: "replica", want: &shardNodeInfo{Replicas: 2}},
+		{name: "a node holding both", stored: stored, node: "mixed", want: &shardNodeInfo{Primaries: 1, Replicas: 4}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("returns correct info", func(t *testing.T) {
-		t.Parallel()
-		slot := &indexSlot{}
-		info := map[string]*shardNodeInfo{
-			"primary": {Primaries: 3},
-			"replica": {Replicas: 2},
-			"mixed":   {Primaries: 1, Replicas: 4},
-		}
-		slot.shardNodeNames.Store(&info)
+			slot := &indexSlot{}
+			if tt.stored != nil {
+				slot.shardNodeNames.Store(&tt.stored)
+			}
 
-		got := slot.shardNodeInfoFor("primary")
-		require.NotNil(t, got)
-		require.Equal(t, 3, got.Primaries)
-		require.Equal(t, 0, got.Replicas)
-
-		got = slot.shardNodeInfoFor("replica")
-		require.NotNil(t, got)
-		require.Equal(t, 0, got.Primaries)
-		require.Equal(t, 2, got.Replicas)
-
-		got = slot.shardNodeInfoFor("mixed")
-		require.NotNil(t, got)
-		require.Equal(t, 1, got.Primaries)
-		require.Equal(t, 4, got.Replicas)
-	})
+			got := slot.shardNodeInfoFor(tt.node)
+			if tt.want == nil {
+				require.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			require.Equal(t, tt.want.Primaries, got.Primaries)
+			require.Equal(t, tt.want.Replicas, got.Replicas)
+		})
+	}
 }
 
 func TestIndexSlotCacheCompaction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("compacts when live count drops to 50% of HWM", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			idleEvictionTTL: 1 * time.Millisecond,
-		})
+	tests := []struct {
+		name string
+		// evict is how many of the 10 entries go idle before the second discovery.
+		evict         int
+		wantCompacted bool
+	}{
+		// 4 left <= 10/2: compact.
+		{name: "compacts when live count drops to 50% of HWM", evict: 6, wantCompacted: true},
+		// 7 left > 10/2: no compaction.
+		{name: "no compaction when above threshold", evict: 3},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			c := newIndexSlotCache(indexSlotCacheConfig{
+				idleEvictionTTL: 1 * time.Millisecond,
+			})
 
-		// Create 10 entries to establish a high-water mark.
-		for i := range 10 {
-			name := "index-" + string(rune('a'+i))
-			slot := c.getOrCreate(name)
-			slot.requestDecay.store(100.0) // active
-		}
-
-		// First discovery: establishes HWM = 10.
-		c.updateFromDiscovery(nil, 10, time.Now())
-		require.Equal(t, int64(10), c.highWaterMark.Load())
-
-		// Mark 6 entries as idle and expired so they get evicted.
-		oldMapPtr := c.entries.Load()
-		evicted := 0
-		oldMapPtr.Range(func(key, value any) bool {
-			if evicted >= 6 {
-				return false
+			// Create 10 entries to establish a high-water mark.
+			for i := range 10 {
+				name := "index-" + string(rune('a'+i))
+				slot := c.getOrCreate(name)
+				slot.requestDecay.store(100.0) // active
 			}
-			slot := value.(*indexSlot)
-			slot.requestDecay.store(0.1)
-			slot.idleSince.Store(time.Now().Add(-1 * time.Hour).UnixNano())
-			evicted++
-			return true
-		})
 
-		// Second discovery: evicts 6, leaving 4 live. 4 <= 10/2 -> compact.
-		c.updateFromDiscovery(nil, 10, time.Now())
+			// First discovery: establishes HWM = 10.
+			c.updateFromDiscovery(nil, 10, time.Now())
+			require.Equal(t, int64(10), c.highWaterMark.Load())
 
-		// HWM should be reset to the new live count.
-		require.Equal(t, int64(4), c.highWaterMark.Load())
+			// Mark evict entries as idle and expired so they get evicted.
+			oldMapPtr := c.entries.Load()
+			evicted := 0
+			oldMapPtr.Range(func(key, value any) bool {
+				if evicted >= tt.evict {
+					return false
+				}
+				slot := value.(*indexSlot)
+				slot.requestDecay.store(0.1)
+				slot.idleSince.Store(time.Now().Add(-1 * time.Hour).UnixNano())
+				evicted++
+				return true
+			})
 
-		// The entries map should be a different pointer (compacted).
-		require.NotSame(t, oldMapPtr, c.entries.Load(),
-			"entries should be a new sync.Map after compaction")
+			c.updateFromDiscovery(nil, 10, time.Now())
 
-		// Surviving entries should still be accessible.
-		var liveCount int
-		c.entries.Load().Range(func(_, _ any) bool {
-			liveCount++
-			return true
-		})
-		require.Equal(t, 4, liveCount, "should have exactly the surviving entries")
-	})
-
-	t.Run("no compaction when above threshold", func(t *testing.T) {
-		t.Parallel()
-		c := newIndexSlotCache(indexSlotCacheConfig{
-			idleEvictionTTL: 1 * time.Millisecond,
-		})
-
-		// Create 10 entries.
-		for i := range 10 {
-			name := "index-" + string(rune('a'+i))
-			slot := c.getOrCreate(name)
-			slot.requestDecay.store(100.0) // active
-		}
-
-		// Establish HWM.
-		c.updateFromDiscovery(nil, 10, time.Now())
-		mapPtr := c.entries.Load()
-
-		// Evict only 3 (leaving 7). 7 > 10/2 -> no compaction.
-		evicted := 0
-		mapPtr.Range(func(key, value any) bool {
-			if evicted >= 3 {
-				return false
+			if !tt.wantCompacted {
+				require.Same(t, oldMapPtr, c.entries.Load(),
+					"entries should be the same sync.Map when above threshold")
+				return
 			}
-			slot := value.(*indexSlot)
-			slot.requestDecay.store(0.1)
-			slot.idleSince.Store(time.Now().Add(-1 * time.Hour).UnixNano())
-			evicted++
-			return true
+
+			live := int64(10 - tt.evict)
+			// HWM should be reset to the new live count.
+			require.Equal(t, live, c.highWaterMark.Load())
+
+			// The entries map should be a different pointer (compacted).
+			require.NotSame(t, oldMapPtr, c.entries.Load(),
+				"entries should be a new sync.Map after compaction")
+
+			// Surviving entries should still be accessible.
+			var liveCount int64
+			c.entries.Load().Range(func(_, _ any) bool {
+				liveCount++
+				return true
+			})
+			require.Equal(t, live, liveCount, "should have exactly the surviving entries")
 		})
-
-		c.updateFromDiscovery(nil, 10, time.Now())
-
-		// Same map pointer -- no compaction occurred.
-		require.Same(t, mapPtr, c.entries.Load(),
-			"entries should be the same sync.Map when above threshold")
-	})
+	}
 
 	t.Run("getOrCreate works after compaction", func(t *testing.T) {
 		t.Parallel()
