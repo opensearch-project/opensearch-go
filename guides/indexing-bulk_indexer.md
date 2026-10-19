@@ -35,7 +35,7 @@ Creating an indexer per job throws away what the controllers learned about the n
 
 | Term | Meaning |
 | --- | --- |
-| **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. It reaches a final state exactly once: `OnSuccess` or `OnFailure`. |
+| **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. Exactly one of its callbacks runs, once: `OnSuccess` or `OnFailure`. |
 | **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
 | **Node window** | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it. |
@@ -62,7 +62,7 @@ An item travels through it like this:
 4. An item that was rejected, or whose whole request failed, is classified by scope and kind (see [Retrying failed items](#retrying-failed-items)). With a retry policy that asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnFailure`. See [Three kinds of failure](#three-kinds-of-failure) for how to read its arguments.
 5. Every completed request also teaches the controllers: the latency of the request feeds the shard's controller, and a 429 feeds the node's.
 
-So `Flush` returning means every item you added has reached its final callback. It does not mean every item succeeded; the callbacks, or `OnError` for an item with no `OnFailure`, say which did not.
+So `Flush` returning means every item you added has had its `OnSuccess` or `OnFailure` called. It does not mean every item succeeded; the callbacks, or `OnError` for an item with no `OnFailure`, say which did not.
 
 Every shard draws on the one `MaxMemoryBytes` limit, and a shard whose requests are slow keeps the bytes it holds until they are answered. So that such a shard cannot take the whole limit, each shard holds no more than an even share of it while other shards are waiting for room, and the waiters of other shards are served past it. While nobody else is waiting, a shard may use the whole limit. A shard that holds nothing may always take one item, so no shard is left with nothing in progress, and the limit can be passed by at most one item for each such shard.
 
@@ -107,7 +107,7 @@ if err := indexer.Flush(ctx); err != nil {
 	return err
 }
 
-// Wait for every item to reach a final state, then release the indexer.
+// Wait until the indexer is done with every item, then release it.
 if err := indexer.Close(ctx); err != nil {
 	return err
 }
@@ -126,7 +126,7 @@ Things to know:
   The order holds across a change in where documents go. A shard that moves to another node keeps its order, and so does one whose node is not known: only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or the router losing the index's shard map, can send a document's next action to a different shard from its last. When `Add` finds that, the items still buffered for the index's shards fail with `ErrShardMapChanged`, through their own `OnFailure`, without being sent, and `Add` waits for the index's requests already out to be answered before it places the item, so that nothing overtakes them. Geometry changes are told by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect one.
 
 - **Callbacks run on the goroutine that sends the request.** A slow callback stalls its buffer, and the shard's next one, but not the rest of the indexer. Do not call `Add`, `Flush`, or `Close` from a callback; `Cancel` is safe.
-- **Every item gets exactly one final callback**: `OnSuccess` or `OnFailure`.
+- **Every item gets exactly one callback**: `OnSuccess` or `OnFailure`.
 
 ## Flush, Close, and Cancel
 
@@ -199,7 +199,7 @@ The indexer also classifies each failure:
 
 ### What the callbacks see
 
-While an item is being retried, neither `OnSuccess` nor `OnFailure` fires for it. Each fires once, when the item reaches a final state: accepted, declined by the policy, or abandoned. A rejected item is sent again in a request with the other items being retried, after the longest delay any of them was given.
+While an item is being retried, neither `OnSuccess` nor `OnFailure` fires for it. Each fires once, when the indexer is done with the item: it was accepted, the policy declined to retry it, or its retries were abandoned. A rejected item is sent again in a request with the other items being retried, after the longest delay any of them was given.
 
 Set `BulkIndexerConfig.Timeout`, the server-side timeout, whenever you set a `RetryPolicy`. Without it, a request that your context abandoned may keep running on the cluster while the retry adds a second one against the same shards; see [Bulk: Timeout Configuration](indexing-bulk.md#timeout-configuration).
 
@@ -479,9 +479,9 @@ These readings follow the cluster and do not change what the indexer does; it go
 | `OnRequestEnd`     | after each bulk request returns, including a retry; carries status, duration, and size |
 | `OnRequestFailure` | when a whole request fails, once per attempt; `Scope` is `ScopeRequest`                |
 | `OnItemFailure`    | when one item fails, once per attempt; `Scope` is `ScopeItem`                          |
-| `OnItemSettled`    | once per item, when it reaches its final state; carries the size of its document       |
+| `OnItemDone`       | once per item, when the indexer is done with it; carries the size of its document      |
 
-`OnRequestEnd` reports the size of the whole request body, which is the buffer the indexer built: the action lines and documents of one shard, before the transport compresses it. `OnItemSettled` reports one document: `BulkItemEvent.Bytes` is the length of the item's `Body`, without the action line, and is the same whether the item succeeded, was rejected or was refused. Use it to find an outlier, which the request's average hides. The size on the wire after compression is the transport's, not the indexer's: the transport observer's `OnRequestStart` event carries the body size before compression and `OnRequestResponse` the `Content-Length` after it.
+`OnRequestEnd` reports the size of the whole request body, which is the buffer the indexer built: the action lines and documents of one shard, before the transport compresses it. `OnItemDone` reports one document: `BulkItemEvent.Bytes` is the length of the item's `Body`, without the action line, and is the same whether the item succeeded, was rejected or was refused. Use it to find an outlier, which the request's average hides. The size on the wire after compression is the transport's, not the indexer's: the transport observer's `OnRequestStart` event carries the body size before compression and `OnRequestResponse` the `Content-Length` after it.
 
 The failure events carry the `FailureKind`, the attempt, and whether the retry policy is retrying. The methods run on the goroutine that sends the request and receive the context of the flush, so keep them quick, do not call back into the indexer, and let a tracing observer link to the flush's span.
 

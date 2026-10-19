@@ -140,7 +140,7 @@ Each call is recorded on the context the indexer's flush runs on, so a tracing S
 | `opensearch.client.bulk.request.size`     | Bulk request body size histogram, in bytes.                                                                                    |
 | `opensearch.client.bulk.failures`         | Failed attempts by `scope` (`request` or `item`), `kind` (`rejected`, `unavailable`, `transport`, `permanent`) and `retrying`. |
 | `opensearch.client.bulk.retries`          | Items sent again after a failure, by `kind`.                                                                                   |
-| `opensearch.client.bulk.items`            | Items that reached a final state, by `outcome` (`succeeded` or `failed`).                                                      |
+| `opensearch.client.bulk.items`            | Items the indexer is done with, by `outcome` (`succeeded` or `failed`).                                                        |
 
 ## Custom observers
 

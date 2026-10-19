@@ -89,7 +89,7 @@ func (k FailureKind) String() string {
 // When retry is true the item is sent again, in a request of its own together
 // with the other items being retried, after the longest delay any of them was
 // given. While an item is being retried neither OnSuccess nor OnFailure fires
-// for it: each fires once, when the item reaches a final state. When retry is
+// for it: each fires once, when the indexer is done with the item. When retry is
 // false the item fails with the failure it was offered, and OnFailure fires.
 //
 // Retry runs on the goroutine that sends the buffer, as the item callbacks do, so
@@ -245,7 +245,7 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Dur
 	return delay, retry
 }
 
-// settleFailed gives an item its final failure: it counts it, tells the item's
+// failItem fails an item for good: it counts it, tells the item's
 // OnFailure and the observer. resp is the response item, and err the error the
 // item failed with (nil for an item the cluster rejected). attempts is the
 // number of requests that carried it.
@@ -253,11 +253,11 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkFailureEvent) (time.Dur
 // An item without an OnFailure of its own returns the error to report instead,
 // so the flush site can surface it through OnError; whether to use it is up to
 // the caller.
-func (w *worker) settleFailed(
+func (w *worker) failItem(
 	ctx context.Context, item BulkIndexerItem, op string, resp opensearchapi.BulkRespItem, err error, attempts int,
 ) error {
 	w.bi.stats.numFailed.Add(1)
-	w.observeSettled(ctx, item, attempts, true, resp, err)
+	w.observeDone(ctx, item, attempts, true, resp, err)
 
 	if item.OnFailure != nil {
 		item.OnFailure(ctx, item, bulkRespItemForOnFailure(resp), err)
@@ -270,8 +270,8 @@ func (w *worker) settleFailed(
 	return err
 }
 
-// observeSettled tells the observer that an item reached its final state.
-func (w *worker) observeSettled(
+// observeDone tells the observer that the indexer is done with an item.
+func (w *worker) observeDone(
 	ctx context.Context, item BulkIndexerItem, attempts int, failed bool, resp opensearchapi.BulkRespItem, err error,
 ) {
 	obs := w.bi.config.Observer
@@ -283,7 +283,7 @@ func (w *worker) observeSettled(
 	if index == "" {
 		index = w.bi.config.Index
 	}
-	obs.OnItemSettled(ctx, BulkItemEvent{
+	obs.OnItemDone(ctx, BulkItemEvent{
 		Index:      index,
 		Action:     item.Action,
 		DocumentID: item.DocumentID,
@@ -300,11 +300,11 @@ func (w *worker) observeSettled(
 // failUnsent fails an item that could not be written to a request, because it
 // does not serialize or has no document id. A retry cannot help, so the policy
 // is not asked. attempts is the number of requests that carried the item
-// before, 0 for an item never sent. It returns what settleFailed does.
+// before, 0 for an item never sent. It returns what failItem does.
 //
 // A cancellation is not a failure of the work, so it is left out of the
 // failure events, whose kinds count what went wrong; the item still reaches
-// OnItemSettled with ErrIndexerCanceled.
+// OnItemDone, with ErrIndexerCanceled.
 func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, err error, attempts int) error {
 	if obs := w.bi.config.Observer; obs != nil && !errors.Is(err, ErrIndexerCanceled) {
 		obs.OnItemFailure(ctx, BulkFailureEvent{
@@ -319,12 +319,12 @@ func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, err error
 		})
 	}
 
-	return w.settleFailed(ctx, item, item.Action, opensearchapi.BulkRespItem{}, err, attempts)
+	return w.failItem(ctx, item, item.Action, opensearchapi.BulkRespItem{}, err, attempts)
 }
 
 // sendWithRetry sends the buffered items and, while the policy asks for it,
-// sends the ones that failed again. It returns once every item has reached a
-// final state; the error is the join of what each request reported.
+// sends the ones that failed again. It returns once it is done with every item;
+// the error is the join of what each request reported.
 func (w *worker) sendWithRetry(ctx context.Context) error {
 	var errs []error
 
@@ -401,7 +401,7 @@ func (w *worker) failPending(ctx context.Context, items []failedItem) error {
 		batchSeen bool
 	)
 	for _, f := range items {
-		err := w.settleFailed(ctx, f.item, f.op, f.resp, f.err, f.attempt)
+		err := w.failItem(ctx, f.item, f.op, f.resp, f.err, f.attempt)
 		switch {
 		case err == nil:
 		case f.err == nil:

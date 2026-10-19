@@ -28,7 +28,7 @@ type nodeObserver struct {
 	mu       sync.Mutex
 	requests []string
 	failures []string
-	settled  []string
+	done     []string
 }
 
 func (o *nodeObserver) OnRequestEnd(_ context.Context, e BulkRequestEvent) {
@@ -45,11 +45,11 @@ func (o *nodeObserver) OnItemFailure(_ context.Context, e BulkFailureEvent) {
 	o.failures = append(o.failures, e.Node)
 }
 
-func (o *nodeObserver) OnItemSettled(_ context.Context, e BulkItemEvent) {
+func (o *nodeObserver) OnItemDone(_ context.Context, e BulkItemEvent) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
-	o.settled = append(o.settled, e.Node)
+	o.done = append(o.done, e.Node)
 }
 
 // TestBulkIndexerObserverEventsNameTheNode: a request event names the node the
@@ -101,8 +101,8 @@ func TestBulkIndexerObserverEventsNameTheNode(t *testing.T) {
 	require.Equal(t, sentTo, reported, "each request event names the node its request went to")
 
 	require.NotEmpty(t, obs.failures)
-	require.Len(t, obs.settled, docs)
-	for _, name := range slices.Concat(obs.failures, obs.settled) {
+	require.Len(t, obs.done, docs)
+	for _, name := range slices.Concat(obs.failures, obs.done) {
 		require.Contains(t, nodes, name)
 	}
 }

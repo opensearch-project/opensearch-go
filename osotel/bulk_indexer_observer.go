@@ -43,7 +43,7 @@ const (
 //   - Failures: a counter by scope (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
-//   - Items: a counter of items that reached a final state, by outcome.
+//   - Items: a counter of items the indexer is done with, by outcome.
 //
 // Each call is recorded on the context the indexer's flush runs on, so a tracing
 // SDK can attach the flush's span as an exemplar. The methods run on the
@@ -56,7 +56,7 @@ type BulkIndexerObserver struct {
 	bytes    metric.Int64Histogram   // bulk request body size
 	failures metric.Int64Counter     // failed attempts by scope, kind, retrying
 	retries  metric.Int64Counter     // items sent again, by kind
-	items    metric.Int64Counter     // items settled, by outcome
+	items    metric.Int64Counter     // items done, by outcome
 }
 
 // NewBulkIndexerObserver returns a BulkIndexerObserver. Call
@@ -108,7 +108,7 @@ func (o *BulkIndexerObserver) Register(meter metric.Meter) error {
 	}
 	o.items, err = meter.Int64Counter(
 		instrumentPrefix+"bulk.items",
-		metric.WithDescription("Items that reached a final state, by outcome."),
+		metric.WithDescription("Items the indexer is done with, by outcome."),
 		metric.WithUnit("{item}"),
 	)
 	return err
@@ -146,8 +146,8 @@ func (o *BulkIndexerObserver) recordFailure(ctx context.Context, e opensearchuti
 	}
 }
 
-// OnItemSettled implements [opensearchutil.BulkIndexerObserver].
-func (o *BulkIndexerObserver) OnItemSettled(ctx context.Context, e opensearchutil.BulkItemEvent) {
+// OnItemDone implements [opensearchutil.BulkIndexerObserver].
+func (o *BulkIndexerObserver) OnItemDone(ctx context.Context, e opensearchutil.BulkItemEvent) {
 	outcome := outcomeSucceeded
 	if e.Failed {
 		outcome = outcomeFailed

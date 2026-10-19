@@ -30,7 +30,7 @@ var retryOnce = RetryPolicyFunc(
 
 // TestBulkIndexerReleasesLentDocumentsAfterTheFinalAttempt: a document lent to
 // the indexer is still in use while a retry may send it again, so it is released
-// once, after the attempt that settles it, and not after the first.
+// once, after its last attempt, and not after the first.
 func TestBulkIndexerReleasesLentDocumentsAfterTheFinalAttempt(t *testing.T) {
 	t.Parallel()
 
@@ -83,7 +83,7 @@ func TestBulkIndexerReleasesLentDocumentsAfterTheFinalAttempt(t *testing.T) {
 	defer mu.Unlock()
 
 	require.Equal(t, []int{0, 0}, releasedAtArrive, "nothing is released while a retry may still send it")
-	require.Equal(t, docs, released, "and each document is released once, when it is settled")
+	require.Equal(t, docs, released, "and each document is released once, when the indexer is done with it")
 	require.EqualValues(t, docs, succeeded.Load())
 	require.Len(t, server.requests(), 2)
 }

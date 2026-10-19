@@ -48,22 +48,22 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 	})
 
 	tests := []struct {
-		name         string
-		policy       RetryPolicy
-		fingerprint  DocumentFingerprinter
-		item         BulkIndexerItem
-		outcomes     []bulkOutcome
-		wantSent     [][]string // action lines of each request
-		wantFailErr  error      // OnFailure err, matched with errors.Is
-		wantSettled  []string   // ids passed to OnSuccess
-		wantNotCalls bool       // the fingerprinter must not have run
+		name          string
+		policy        RetryPolicy
+		fingerprint   DocumentFingerprinter
+		item          BulkIndexerItem
+		outcomes      []bulkOutcome
+		wantSent      [][]string // action lines of each request
+		wantFailErr   error      // OnFailure err, matched with errors.Is
+		wantSucceeded []string   // ids passed to OnSuccess
+		wantNotCalls  bool       // the fingerprinter must not have run
 	}{
 		{
-			name:        "no id without a policy goes to the cluster as before",
-			item:        BulkIndexerItem{Body: strings.NewReader(`{"a":1}`)},
-			outcomes:    []bulkOutcome{outcomeOK},
-			wantSent:    [][]string{{"index:"}},
-			wantSettled: []string{""},
+			name:          "no id without a policy goes to the cluster as before",
+			item:          BulkIndexerItem{Body: strings.NewReader(`{"a":1}`)},
+			outcomes:      []bulkOutcome{outcomeOK},
+			wantSent:      [][]string{{"index:"}},
+			wantSucceeded: []string{""},
 		},
 		{
 			name:        "no id with a policy is refused and never sent",
@@ -73,21 +73,21 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			wantFailErr: ErrMissingDocumentID,
 		},
 		{
-			name:        "the fingerprinter supplies an id without a policy",
-			fingerprint: bodyHash,
-			item:        BulkIndexerItem{Body: strings.NewReader(`{"a":1}`)},
-			outcomes:    []bulkOutcome{outcomeOK},
-			wantSent:    [][]string{{"index:015abd7f"}},
-			wantSettled: []string{"015abd7f"},
+			name:          "the fingerprinter supplies an id without a policy",
+			fingerprint:   bodyHash,
+			item:          BulkIndexerItem{Body: strings.NewReader(`{"a":1}`)},
+			outcomes:      []bulkOutcome{outcomeOK},
+			wantSent:      [][]string{{"index:015abd7f"}},
+			wantSucceeded: []string{"015abd7f"},
 		},
 		{
-			name:        "the fingerprinter satisfies a policy and the id survives a retry",
-			policy:      retry,
-			fingerprint: bodyHash,
-			item:        BulkIndexerItem{Body: strings.NewReader(`{"a":1}`)},
-			outcomes:    []bulkOutcome{outcomeTooManyRequests, outcomeOK},
-			wantSent:    [][]string{{"index:015abd7f"}, {"index:015abd7f"}},
-			wantSettled: []string{"015abd7f"},
+			name:          "the fingerprinter satisfies a policy and the id survives a retry",
+			policy:        retry,
+			fingerprint:   bodyHash,
+			item:          BulkIndexerItem{Body: strings.NewReader(`{"a":1}`)},
+			outcomes:      []bulkOutcome{outcomeTooManyRequests, outcomeOK},
+			wantSent:      [][]string{{"index:015abd7f"}, {"index:015abd7f"}},
+			wantSucceeded: []string{"015abd7f"},
 		},
 		{
 			name:        "a fingerprinter error fails the item",
@@ -104,14 +104,14 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			wantFailErr: ErrMissingDocumentID,
 		},
 		{
-			name:         "an item with an id is not fingerprinted",
-			policy:       retry,
-			fingerprint:  func(context.Context, BulkIndexerItem) (string, error) { return "wrong", nil },
-			item:         BulkIndexerItem{DocumentID: "mine", Body: strings.NewReader(`{"a":1}`)},
-			outcomes:     []bulkOutcome{outcomeOK},
-			wantSent:     [][]string{{"index:mine"}},
-			wantSettled:  []string{"mine"},
-			wantNotCalls: true,
+			name:          "an item with an id is not fingerprinted",
+			policy:        retry,
+			fingerprint:   func(context.Context, BulkIndexerItem) (string, error) { return "wrong", nil },
+			item:          BulkIndexerItem{DocumentID: "mine", Body: strings.NewReader(`{"a":1}`)},
+			outcomes:      []bulkOutcome{outcomeOK},
+			wantSent:      [][]string{{"index:mine"}},
+			wantSucceeded: []string{"mine"},
+			wantNotCalls:  true,
 		},
 	}
 
@@ -123,11 +123,11 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
 
 			var (
-				calls    atomic.Int64
-				failErrs []error
-				settled  []string
-				onErrors []error
-				log      = &eventLog{}
+				calls     atomic.Int64
+				failErrs  []error
+				succeeded []string
+				onErrors  []error
+				log       = &eventLog{}
 			)
 			cfg := BulkIndexerConfig{
 				NumWorkers:  1,
@@ -147,7 +147,7 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			item := tt.item
 			item.Action = "index"
 			item.OnSuccess = func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
-				settled = append(settled, item.DocumentID)
+				succeeded = append(succeeded, item.DocumentID)
 			}
 			item.OnFailure = func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
 				failErrs = append(failErrs, err)
@@ -157,7 +157,7 @@ func TestBulkIndexerDocumentID(t *testing.T) {
 			require.NoError(t, bi.Close(t.Context()))
 
 			require.Equal(t, tt.wantSent, seq.requests(), "requests sent")
-			require.Equal(t, tt.wantSettled, settled, "OnSuccess")
+			require.Equal(t, tt.wantSucceeded, succeeded, "OnSuccess")
 			if tt.wantFailErr == nil {
 				require.Empty(t, failErrs)
 			} else {

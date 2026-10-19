@@ -22,17 +22,19 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// finals counts the callbacks each item received, so a case can assert that
-// every item reached exactly one final state and see what it was.
-type finals struct {
+// callbackCounts counts the callbacks each item received, so a case can assert that
+// every item got exactly one, and see which.
+type callbackCounts struct {
 	succeeded atomic.Int64
 	failed    atomic.Int64
 	errs      chan error
 }
 
-func newFinals(capacity int) *finals { return &finals{errs: make(chan error, capacity)} }
+func newCallbackCounts(capacity int) *callbackCounts {
+	return &callbackCounts{errs: make(chan error, capacity)}
+}
 
-func (f *finals) item(id string) BulkIndexerItem {
+func (f *callbackCounts) item(id string) BulkIndexerItem {
 	return BulkIndexerItem{
 		Action:     "index",
 		DocumentID: id,
@@ -62,7 +64,7 @@ func TestBulkIndexerCloseWaitsForBackoff(t *testing.T) {
 		}),
 	})
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 	require.NoError(t, bi.Close(t.Context()))
 
@@ -90,7 +92,7 @@ func TestBulkIndexerCloseEscalatesWhenContextEnds(t *testing.T) {
 		}),
 	})
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -123,7 +125,7 @@ func TestBulkIndexerCancelInterruptsRequestInFlight(t *testing.T) {
 	}), withoutTransportRetry)
 	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client})
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 
 	// The flush context never ends on its own, so only Cancel can free the request.
@@ -151,7 +153,7 @@ func TestBulkIndexerCancelFailsUnsentItems(t *testing.T) {
 	// when Cancel arrives.
 	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 4, Client: client})
 
-	f := newFinals(numItems + 1)
+	f := newCallbackCounts(numItems + 1)
 	for i := range numItems {
 		require.NoError(t, bi.Add(t.Context(), f.item(strings.Repeat("d", i+1))))
 	}
@@ -178,12 +180,12 @@ func TestBulkIndexerCancelFromCallback(t *testing.T) {
 	client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
 	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client})
 
-	var settled atomic.Int64
+	var succeeded atomic.Int64
 	for _, id := range []string{"a", "b"} {
 		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 			Action: "index", DocumentID: id, Body: strings.NewReader(`{"a":1}`),
 			OnSuccess: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) {
-				settled.Add(1)
+				succeeded.Add(1)
 				bi.Cancel() // runs under the worker's lock; must not deadlock
 			},
 		}))
@@ -197,7 +199,7 @@ func TestBulkIndexerCancelFromCallback(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("Close hung after Cancel was called from a callback")
 	}
-	require.Equal(t, int64(2), settled.Load(), "both items had already been answered")
+	require.Equal(t, int64(2), succeeded.Load(), "both items had already been answered")
 }
 
 func TestBulkIndexerCloseWithEndedContextFailsWaitingItems(t *testing.T) {
@@ -207,7 +209,7 @@ func TestBulkIndexerCloseWithEndedContextFailsWaitingItems(t *testing.T) {
 	client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
 	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 2, Client: client})
 
-	f := newFinals(4)
+	f := newCallbackCounts(4)
 	for _, id := range []string{"a", "b", "c", "d"} {
 		require.NoError(t, bi.Add(t.Context(), f.item(id)))
 	}
@@ -235,11 +237,11 @@ func TestBulkIndexerConstructionContextEndedLeavesNoItemBehind(t *testing.T) {
 	cancel()
 	<-bi.(*bulkIndexer).flusherDone
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 	require.NoError(t, bi.Close(t.Context()))
 
-	require.Equal(t, int64(1), f.succeeded.Load()+f.failed.Load(), "exactly one final callback")
+	require.Equal(t, int64(1), f.succeeded.Load()+f.failed.Load(), "exactly one callback")
 }
 
 func TestBulkIndexerCancelDoesNotCountARetry(t *testing.T) {
@@ -269,7 +271,7 @@ func TestBulkIndexerCancelDoesNotCountARetry(t *testing.T) {
 		}),
 	})
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 
 	go func() { _ = bi.Flush(t.Context()) }()
@@ -304,7 +306,7 @@ func recordingItem(id string, calls *[]failureCall) BulkIndexerItem {
 // TestWorkerFailCanceled: a canceled worker fails every buffered item with
 // ErrIndexerCanceled and sends nothing. An item with an OnFailure hears of it
 // there; one without is reported through the returned error. The observer sees
-// each item settle, but no failure event, since a cancel is not a failure.
+// OnItemDone for each item, but no failure event, since a cancel is not a failure.
 func TestWorkerFailCanceled(t *testing.T) {
 	t.Parallel()
 
@@ -336,7 +338,7 @@ func TestWorkerFailCanceled(t *testing.T) {
 		}
 
 		require.Equal(t, uint64(4), w.bi.stats.numFailed.Load())
-		require.Equal(t, int64(4), obs.settled.Load())
+		require.Equal(t, int64(4), obs.done.Load())
 		require.Equal(t, int64(4), obs.canceled.Load())
 		require.Zero(t, obs.failures.Load())
 	})
@@ -367,14 +369,14 @@ type cancelObserver struct {
 	BaseBulkIndexerObserver
 
 	failures atomic.Int64
-	settled  atomic.Int64
+	done     atomic.Int64
 	canceled atomic.Int64
 }
 
 func (o *cancelObserver) OnItemFailure(context.Context, BulkFailureEvent) { o.failures.Add(1) }
 
-func (o *cancelObserver) OnItemSettled(_ context.Context, ev BulkItemEvent) {
-	o.settled.Add(1)
+func (o *cancelObserver) OnItemDone(_ context.Context, ev BulkItemEvent) {
+	o.done.Add(1)
 	if ev.Failed && errors.Is(ev.Err, ErrIndexerCanceled) {
 		o.canceled.Add(1)
 	}
@@ -388,7 +390,7 @@ func TestBulkIndexerCancelIsNotReportedAsAFailureKind(t *testing.T) {
 	obs := &cancelObserver{}
 	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, Observer: obs})
 
-	f := newFinals(2)
+	f := newCallbackCounts(2)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 	bi.Cancel()
 	// Added after Cancel, so refused on the caller's goroutine.
@@ -396,7 +398,7 @@ func TestBulkIndexerCancelIsNotReportedAsAFailureKind(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 
 	require.Equal(t, int64(2), f.failed.Load())
-	require.Equal(t, int64(2), obs.settled.Load(), "each item is settled")
+	require.Equal(t, int64(2), obs.done.Load(), "each item is done")
 	require.Equal(t, int64(2), obs.canceled.Load(), "with ErrIndexerCanceled")
 	require.Zero(t, obs.failures.Load(), "and none is a failure of any kind")
 }

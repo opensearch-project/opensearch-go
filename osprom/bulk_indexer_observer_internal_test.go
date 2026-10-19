@@ -42,9 +42,9 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 	o.OnItemFailure(ctx, opensearchutil.BulkFailureEvent{
 		Scope: opensearchutil.ScopeItem, Kind: opensearchutil.FailurePermanent, Items: 1,
 	})
-	o.OnItemSettled(ctx, opensearchutil.BulkItemEvent{})
-	o.OnItemSettled(ctx, opensearchutil.BulkItemEvent{Failed: true})
-	o.OnItemSettled(ctx, opensearchutil.BulkItemEvent{Failed: true})
+	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{})
+	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
+	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
 
 	tests := []struct {
 		name string
@@ -58,7 +58,7 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 		{"item failure final", testutil.ToFloat64(o.failures.WithLabelValues("item", "permanent", "false")), 1},
 		{"retries by kind counts items, request scope", testutil.ToFloat64(o.retries.WithLabelValues("transport")), 3},
 		{"retries by kind counts items, item scope", testutil.ToFloat64(o.retries.WithLabelValues("rejected")), 1},
-		{"a final failure is not a retry", testutil.ToFloat64(o.retries.WithLabelValues("permanent")), 0},
+		{"a failure that is not retried is not counted as a retry", testutil.ToFloat64(o.retries.WithLabelValues("permanent")), 0},
 		{"items succeeded", testutil.ToFloat64(o.items.WithLabelValues("succeeded")), 1},
 		{"items failed", testutil.ToFloat64(o.items.WithLabelValues("failed")), 2},
 	}
@@ -142,9 +142,9 @@ func TestBulkIndexerObserverWithIndexer(t *testing.T) {
 	require.InDelta(t, 0, testutil.ToFloat64(o.items.WithLabelValues("failed")), 0)
 }
 
-// TestBulkIndexerObserverItemSize: every settled item adds its document size to one
-// histogram, whether it was accepted or failed, with no labels and buckets that span
-// a small document to one large enough to flag.
+// TestBulkIndexerObserverItemSize: every item the indexer is done with adds its
+// document size to one histogram, whether it was accepted or failed, with no labels
+// and buckets that span a small document to one large enough to flag.
 func TestBulkIndexerObserverItemSize(t *testing.T) {
 	t.Parallel()
 
@@ -154,7 +154,7 @@ func TestBulkIndexerObserverItemSize(t *testing.T) {
 
 	sizes := []int{100, 2048, 5 << 20, 700}
 	for i, size := range sizes {
-		o.OnItemSettled(t.Context(), opensearchutil.BulkItemEvent{Bytes: size, Failed: i == len(sizes)-1})
+		o.OnItemDone(t.Context(), opensearchutil.BulkItemEvent{Bytes: size, Failed: i == len(sizes)-1})
 	}
 
 	families, err := reg.Gather()

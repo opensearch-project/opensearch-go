@@ -138,7 +138,7 @@ func TestBulkIndexerSinkFillsTheNearestNodeAndMovesOnWhenItIsFull(t *testing.T) 
 			}
 
 			// The requests the windows let out are held at the gate, so where they
-			// went is settled.
+			// went is decided.
 			wantTotal := 0
 			for _, n := range tt.wantFirstWave {
 				wantTotal += n

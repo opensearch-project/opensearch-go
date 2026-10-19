@@ -174,7 +174,7 @@ type BulkIndexer interface {
 	// the bulk requests run on ctx.
 	//
 	// When Flush returns without a context error, every item it covered has
-	// reached its final state and had its OnSuccess or OnFailure called: the
+	// had its OnSuccess or OnFailure called: the
 	// callbacks run before the drain is reported done, so a caller may commit
 	// an external position, such as a stream offset, from what the callbacks
 	// recorded the moment Flush returns. Callers rely on this ordering.
@@ -194,7 +194,7 @@ type BulkIndexer interface {
 	// After Close it returns ErrBulkIndexerClosed.
 	Flush(context.Context) error
 
-	// Close waits until every added item has reached its final state, which
+	// Close waits until the indexer is done with every added item, which
 	// includes waiting out requests in flight and retry backoff, and closes the
 	// indexer. It blocks for as long as that takes, bounded only by the client's
 	// own request timeouts and by when the retry policy gives up.
@@ -282,8 +282,8 @@ type BulkIndexerConfig struct {
 	OnAddBlocked AddBlockedFunc
 
 	// RetryPolicy, when set, decides whether an item that failed is sent again.
-	// With it set, OnSuccess and OnFailure fire once per item, when the item
-	// reaches a final state, never for an attempt that is going to be retried.
+	// With it set, OnSuccess and OnFailure fire once per item, when the indexer is
+	// done with it, never for an attempt that is going to be retried.
 	// When nil, an item that fails is not retried. Retrying requires every
 	// item to carry a DocumentID, which the indexer enforces; see [RetryPolicy].
 	RetryPolicy RetryPolicy
@@ -512,7 +512,7 @@ type BulkIndexerItem struct {
 	// request and the indexer never reads it. It comes back unchanged in the
 	// BulkIndexerItem handed to OnSuccess and OnFailure, so a callback can
 	// recover it without a closure per item. The indexer keeps the value
-	// referenced until the item reaches a final state.
+	// referenced until its OnSuccess or OnFailure has run.
 	Metadata any
 
 	// bodyBytes is the length of Body, for BulkItemEvent.Bytes. It is set by Add
@@ -992,7 +992,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 		return bi.refuse(ctx, item, err)
 	}
 
-	// Measured here, before any path that settles the item, so that all of them
+	// Measured here, before any path that finishes the item, so that all of them
 	// report the same size. Nothing else reads it, so without an Observer it is
 	// not measured.
 	if bi.config.Observer != nil {
@@ -1403,8 +1403,8 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 	return bi.sched.drain(ctx, ctx, true)
 }
 
-// Close stops the periodic flush, sends everything that is buffered, waits for
-// every added item to reach its final state, which includes the requests in
+// Close stops the periodic flush, sends everything that is buffered, waits until
+// it is done with every added item, which includes the requests in
 // flight and the retry backoff, and stops the indexer. If ctx ends first, Close
 // cancels the indexer, as Cancel does, waits for the requests to unwind, and
 // returns ctx's error.
@@ -1676,8 +1676,7 @@ func (w *worker) observeResponse(blk *opensearchapi.BulkResp, err error, size in
 }
 
 // sendBuffer serializes and sends one buffer, retrying what the policy asks to,
-// and reports the outcome to the scheduler once every item has reached its final
-// state.
+// and reports the outcome to the scheduler once it is done with every item.
 func (w *worker) sendBuffer(b *buffer) {
 	bi := w.bi
 	ctx := b.ctx
@@ -2178,7 +2177,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 //
 // With a RetryPolicy set, a failure the policy asks to retry is not reported:
 // the item comes back in the returned retryBatch instead, and neither its
-// callback nor the failure count sees it until a later attempt settles it.
+// callback nor the failure count sees it until a later attempt finishes it.
 // attempt is the number of requests the items in w.items have been through,
 // counting this one.
 func (w *worker) processBulkResp(
@@ -2195,7 +2194,7 @@ func (w *worker) processBulkResp(
 	// of results than w.items means the response cannot be paired positionally:
 	// more would make the loop below read w.items[i] past the end and panic, and
 	// fewer would leave the extra items without a callback, so Flush would
-	// return nil with items unsettled. Even the results that line up may belong
+	// return nil with items unfinished. Even the results that line up may belong
 	// to other items. Fail every serialized item instead.
 	if got, want := len(blk.Items), len(w.items); got != want {
 		mismatch := fmt.Errorf("flush: %w", &bulkResponseMismatchError{got: got, want: want})
@@ -2248,7 +2247,7 @@ func (w *worker) processBulkResp(
 			// A rejected item goes to its own OnFailure; one without falls back
 			// to OnError so the failure is not swallowed. A nil result is
 			// dropped by errors.Join below.
-			errs = append(errs, w.settleFailed(ctx, item, op, info, nil, attempt))
+			errs = append(errs, w.failItem(ctx, item, op, info, nil, attempt))
 		} else {
 			w.bi.stats.numFlushed.Add(1)
 
@@ -2263,7 +2262,7 @@ func (w *worker) processBulkResp(
 				w.bi.stats.numUpdated.Add(1)
 			}
 
-			w.observeSettled(ctx, item, attempt, false, info, nil)
+			w.observeDone(ctx, item, attempt, false, info, nil)
 			if item.OnSuccess != nil {
 				item.OnSuccess(ctx, item, info)
 			}
@@ -2273,7 +2272,7 @@ func (w *worker) processBulkResp(
 	return retry, errors.Join(errs...)
 }
 
-// handleBulkError settles a request that failed as a whole. The policy is asked
+// handleBulkError deals with a request that failed as a whole. The policy is asked
 // once, for the request: every item in it drew the same failure. When it asks
 // for a retry the items come back in the retryBatch and nothing is reported;
 // otherwise each item fails with err, and so does the flush. status is the HTTP
@@ -2300,7 +2299,7 @@ func (w *worker) handleBulkError(
 
 	// Each item's own OnFailure hears of it; the flush reports err once, below.
 	for _, item := range w.items {
-		_ = w.settleFailed(ctx, item, item.Action, opensearchapi.BulkRespItem{}, err, attempt) //nolint:errcheck // err is returned below
+		_ = w.failItem(ctx, item, item.Action, opensearchapi.BulkRespItem{}, err, attempt) //nolint:errcheck // err is returned below
 	}
 
 	return retryBatch{}, err

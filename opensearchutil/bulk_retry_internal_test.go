@@ -342,7 +342,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		}, policy, "a", "b", "c")
 
 		require.NoError(t, run.flushErr)
-		require.Equal(t, []string{"a", "c", "b"}, run.succeeded, "a and c settle on the first request, b on the second")
+		require.Equal(t, []string{"a", "c", "b"}, run.succeeded, "a and c succeed on the first request, b on the second")
 		require.Empty(t, run.failed)
 		require.Equal(t, []policyCall{{Scope: ScopeItem, Attempt: 1, Kind: FailureRejected, Status: http.StatusTooManyRequests}},
 			policy.recorded())
@@ -375,7 +375,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Equal(t, uint64(3), run.stats.NumRequests)
 	})
 
-	t.Run("an item that settles drops out of later requests", func(t *testing.T) {
+	t.Run("an item that is done drops out of later requests", func(t *testing.T) {
 		t.Parallel()
 
 		policy := &recordingPolicy{decide: func(attempt int, kind FailureKind) (time.Duration, bool) {
@@ -391,7 +391,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 			{Scope: ScopeItem, Attempt: 1, Kind: FailureRejected, Status: http.StatusTooManyRequests},
 			{Scope: ScopeItem, Attempt: 1, Kind: FailurePermanent, Status: http.StatusConflict},
 			{Scope: ScopeItem, Attempt: 2, Kind: FailureUnavailable, Status: http.StatusServiceUnavailable},
-		}, policy.recorded(), "b settles on the first request and is not offered again")
+		}, policy.recorded(), "b fails for good on the first request and is not offered again")
 		require.Equal(t, [][]string{{"index:a", "index:b"}, {"index:a"}, {"index:a"}}, run.seq.requests())
 		require.Equal(t, []string{"a"}, run.succeeded)
 		require.Equal(t, []string{"b"}, run.failed)
@@ -580,14 +580,14 @@ func TestWorkerFailPending(t *testing.T) {
 	})
 }
 
-// attemptObserver records the attempts of the items it sees settle as failed.
+// attemptObserver records the attempts of the items it sees fail for good.
 type attemptObserver struct {
 	BaseBulkIndexerObserver
 
 	attempts []int
 }
 
-func (o *attemptObserver) OnItemSettled(_ context.Context, ev BulkItemEvent) {
+func (o *attemptObserver) OnItemDone(_ context.Context, ev BulkItemEvent) {
 	if ev.Failed {
 		o.attempts = append(o.attempts, ev.Attempts)
 	}

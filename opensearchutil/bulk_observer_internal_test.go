@@ -63,8 +63,8 @@ func (l *eventLog) OnItemFailure(_ context.Context, e BulkFailureEvent) {
 		e.Scope, e.Attempt, e.Kind, e.DocumentID, e.StatusCode, e.Retrying, e.Delay, e.Err != nil))
 }
 
-func (l *eventLog) OnItemSettled(_ context.Context, e BulkItemEvent) {
-	l.add(fmt.Sprintf("settled id=%s attempts=%d failed=%t status=%d err=%t meta=%v",
+func (l *eventLog) OnItemDone(_ context.Context, e BulkItemEvent) {
+	l.add(fmt.Sprintf("done id=%s attempts=%d failed=%t status=%d err=%t meta=%v",
 		e.DocumentID, e.Attempts, e.Failed, e.Resp.Status, e.Err != nil, e.Metadata))
 }
 
@@ -97,8 +97,8 @@ func TestBulkIndexerObserver(t *testing.T) {
 				"request-end a=1 items=2 status=429 err=true",
 				"request-failure scope=request a=1 kind=rejected items=2 status=429 retry=true delay=1ns err=true",
 				"request-end a=2 items=2 status=200 err=false",
-				"settled id=a attempts=2 failed=false status=201 err=false meta=<nil>",
-				"settled id=b attempts=2 failed=false status=201 err=false meta=<nil>",
+				"done id=a attempts=2 failed=false status=201 err=false meta=<nil>",
+				"done id=b attempts=2 failed=false status=201 err=false meta=<nil>",
 			},
 			wantStat: [numFailureKinds]uint64{FailureRejected: 2},
 		},
@@ -109,22 +109,22 @@ func TestBulkIndexerObserver(t *testing.T) {
 			items:    []BulkIndexerItem{{DocumentID: "a"}, {DocumentID: "b", Metadata: 7}},
 			want: []string{
 				"request-end a=1 items=2 status=200 err=false",
-				"settled id=a attempts=1 failed=false status=201 err=false meta=<nil>",
+				"done id=a attempts=1 failed=false status=201 err=false meta=<nil>",
 				"item-failure scope=item a=1 kind=rejected id=b status=429 retry=true delay=" + nanosecond + " err=false",
 				"request-end a=2 items=1 status=200 err=false",
-				"settled id=b attempts=2 failed=false status=201 err=false meta=7",
+				"done id=b attempts=2 failed=false status=201 err=false meta=7",
 			},
 			wantStat: [numFailureKinds]uint64{FailureRejected: 1},
 		},
 		{
-			name:     "a request failure with no policy settles every item",
+			name:     "a request failure with no policy fails every item",
 			outcomes: []bulkOutcome{outcomeConnectionError},
 			items:    []BulkIndexerItem{{DocumentID: "a"}, {DocumentID: "b"}},
 			want: []string{
 				"request-end a=1 items=2 status=0 err=true",
 				"request-failure scope=request a=1 kind=transport items=2 status=0 retry=false delay=0s err=true",
-				"settled id=a attempts=1 failed=true status=0 err=true meta=<nil>",
-				"settled id=b attempts=1 failed=true status=0 err=true meta=<nil>",
+				"done id=a attempts=1 failed=true status=0 err=true meta=<nil>",
+				"done id=b attempts=1 failed=true status=0 err=true meta=<nil>",
 			},
 		},
 		{
@@ -134,7 +134,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 			want: []string{
 				"request-end a=1 items=1 status=200 err=false",
 				"item-failure scope=item a=1 kind=permanent id=a status=409 retry=false delay=0s err=false",
-				"settled id=a attempts=1 failed=true status=409 err=false meta=<nil>",
+				"done id=a attempts=1 failed=true status=409 err=false meta=<nil>",
 			},
 		},
 		{
@@ -143,7 +143,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 			items:    []BulkIndexerItem{{DocumentID: "a", WaitForActiveShards: math.NaN()}},
 			want: []string{
 				"item-failure scope=item a=0 kind=permanent id=a status=0 retry=false delay=0s err=true",
-				"settled id=a attempts=0 failed=true status=0 err=true meta=<nil>",
+				"done id=a attempts=0 failed=true status=0 err=true meta=<nil>",
 			},
 		},
 	}
@@ -211,14 +211,14 @@ func TestFailureScopeString(t *testing.T) {
 	}
 }
 
-// settledCounter overrides one observer method and inherits the rest.
-type settledCounter struct {
+// doneCounter overrides one observer method and inherits the rest.
+type doneCounter struct {
 	BaseBulkIndexerObserver
 
-	settled atomic.Int64
+	done atomic.Int64
 }
 
-func (o *settledCounter) OnItemSettled(context.Context, BulkItemEvent) { o.settled.Add(1) }
+func (o *doneCounter) OnItemDone(context.Context, BulkItemEvent) { o.done.Add(1) }
 
 // TestBaseBulkIndexerObserver: an observer that embeds the base type and overrides
 // one method is a complete observer; the methods it inherits do nothing.
@@ -228,7 +228,7 @@ func TestBaseBulkIndexerObserver(t *testing.T) {
 	t.Run("the inherited methods are safe to call", func(t *testing.T) {
 		t.Parallel()
 
-		o := &settledCounter{}
+		o := &doneCounter{}
 		var obs BulkIndexerObserver = o
 
 		require.NotPanics(t, func() {
@@ -236,10 +236,10 @@ func TestBaseBulkIndexerObserver(t *testing.T) {
 			obs.OnRequestFailure(t.Context(), BulkFailureEvent{})
 			obs.OnItemFailure(t.Context(), BulkFailureEvent{})
 		})
-		require.Zero(t, o.settled.Load(), "only the overridden method counts")
+		require.Zero(t, o.done.Load(), "only the overridden method counts")
 
-		obs.OnItemSettled(t.Context(), BulkItemEvent{})
-		require.Equal(t, int64(1), o.settled.Load())
+		obs.OnItemDone(t.Context(), BulkItemEvent{})
+		require.Equal(t, int64(1), o.done.Load())
 	})
 
 	t.Run("an indexer drives every method of it", func(t *testing.T) {
@@ -247,7 +247,7 @@ func TestBaseBulkIndexerObserver(t *testing.T) {
 
 		seq := &bulkSequence{outcomes: []bulkOutcome{outcomeTooManyRequests, outcomeOK}}
 		client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
-		o := &settledCounter{}
+		o := &doneCounter{}
 		bi := newBulkIndexer(t, BulkIndexerConfig{
 			NumWorkers: 1,
 			Client:     client,
@@ -259,12 +259,12 @@ func TestBaseBulkIndexerObserver(t *testing.T) {
 			}),
 		})
 
-		f := newFinals(1)
+		f := newCallbackCounts(1)
 		require.NoError(t, bi.Add(t.Context(), f.item("a")))
 		require.NoError(t, bi.Close(t.Context()))
 
 		require.Equal(t, int64(1), f.succeeded.Load())
-		require.Equal(t, int64(1), o.settled.Load(), "the item settles once, after its retry")
+		require.Equal(t, int64(1), o.done.Load(), "the item is done once, after its retry")
 		require.Len(t, seq.requests(), 2)
 	})
 }
@@ -369,7 +369,7 @@ func (o *ctxObserver) record(ctx context.Context) {
 }
 
 func (o *ctxObserver) OnRequestEnd(ctx context.Context, _ BulkRequestEvent) { o.record(ctx) }
-func (o *ctxObserver) OnItemSettled(ctx context.Context, _ BulkItemEvent)   { o.record(ctx) }
+func (o *ctxObserver) OnItemDone(ctx context.Context, _ BulkItemEvent)      { o.record(ctx) }
 
 // TestBulkIndexerObserverReceivesFlushContext pins that observer calls run on
 // the context OnFlushStart returned, so a tracing observer can join the flush's
@@ -396,5 +396,5 @@ func TestBulkIndexerObserverReceivesFlushContext(t *testing.T) {
 
 	obs.mu.Lock()
 	defer obs.mu.Unlock()
-	require.Equal(t, []any{"span", "span"}, obs.values, "request end and item settled")
+	require.Equal(t, []any{"span", "span"}, obs.values, "request end and item done")
 }

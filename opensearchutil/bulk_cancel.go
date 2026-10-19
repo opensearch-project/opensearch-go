@@ -23,8 +23,8 @@ import (
 var ErrIndexerCanceled = fmt.Errorf("opensearchutil: bulk indexer canceled: %w", context.Canceled)
 
 // Cancel stops the indexer immediately. Requests in flight are canceled, retry
-// backoff ends, and every item that has not reached a final state fails through
-// its own OnFailure exactly once: with ErrIndexerCanceled for an item that was
+// backoff ends, and every item the indexer is not yet done with fails through its
+// own OnFailure exactly once: with ErrIndexerCanceled for an item that was
 // never sent, and with the request's error for one that was in flight. Items
 // added after Cancel fail the same way, with Add returning nil.
 //
@@ -82,8 +82,8 @@ func (s *scheduler) flushCanceled(canceled context.Context) {
 
 // failStranded fails the items of buffers that were never dispatched, which
 // happens when the construction context ends and the scheduler stops sending. It
-// runs after the requests in flight have finished, so every item still reaches a
-// final state and every Flush waiting on a buffer is answered.
+// runs after the requests in flight have finished, so every item still gets its
+// callback and every Flush waiting on a buffer is answered.
 func (bi *bulkIndexer) failStranded(ctx context.Context) {
 	s := bi.sched
 

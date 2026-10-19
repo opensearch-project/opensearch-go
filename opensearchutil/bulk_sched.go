@@ -667,7 +667,7 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 // abortIndex fails, with err, the items of the buffers of index's shards that have
 // not been sent, and returns every buffer of those shards that is not complete, for
 // the caller to wait on. A buffer is failed by the worker that would have sent it, so
-// that it settles as any other does, and after the shard's earlier request has been
+// that it finishes as any other does, and after the shard's earlier request has been
 // answered. Buffers of documents that belong to no shard are not touched.
 func (s *scheduler) abortIndex(index string, err error) []*buffer {
 	s.Lock()

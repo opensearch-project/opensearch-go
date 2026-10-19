@@ -68,9 +68,9 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 	o.OnItemFailure(ctx, opensearchutil.BulkFailureEvent{
 		Scope: opensearchutil.ScopeItem, Kind: opensearchutil.FailurePermanent, Items: 1,
 	})
-	o.OnItemSettled(ctx, opensearchutil.BulkItemEvent{})
-	o.OnItemSettled(ctx, opensearchutil.BulkItemEvent{Failed: true})
-	o.OnItemSettled(ctx, opensearchutil.BulkItemEvent{Failed: true})
+	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{})
+	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
+	o.OnItemDone(ctx, opensearchutil.BulkItemEvent{Failed: true})
 
 	rm := collect()
 	const failures = "opensearch.client.bulk.failures"
@@ -87,7 +87,7 @@ func TestBulkIndexerObserverRecordsEvents(t *testing.T) {
 		{"item failure final", failures, map[string]string{"scope": "item", "kind": "permanent", "retrying": "false"}, 1},
 		{"retries count items, request scope", "opensearch.client.bulk.retries", map[string]string{"kind": "transport"}, 3},
 		{"retries count items, item scope", "opensearch.client.bulk.retries", map[string]string{"kind": "rejected"}, 1},
-		{"a final failure is not a retry", "opensearch.client.bulk.retries", map[string]string{"kind": "permanent"}, 0},
+		{"a failure that is not retried is not counted as a retry", "opensearch.client.bulk.retries", map[string]string{"kind": "permanent"}, 0},
 		{"items succeeded", "opensearch.client.bulk.items", map[string]string{"outcome": "succeeded"}, 1},
 		{"items failed", "opensearch.client.bulk.items", map[string]string{"outcome": "failed"}, 2},
 	}

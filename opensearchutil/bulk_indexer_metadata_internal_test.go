@@ -27,7 +27,7 @@ type streamPosition struct {
 }
 
 // TestBulkIndexerItemMetadata checks that Metadata reaches whichever callback
-// settles the item, unchanged, and that it is not part of the request.
+// the item gets, unchanged, and that it is not part of the request.
 func TestBulkIndexerItemMetadata(t *testing.T) {
 	t.Parallel()
 
@@ -40,7 +40,7 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 		outcomes       []bulkOutcome
 		policy         *recordingPolicy
 		unserializable bool // add an item that cannot be serialized
-		wantOK         bool // OnSuccess settles the item, otherwise OnFailure
+		wantOK         bool // OnSuccess is called, otherwise OnFailure
 		wantBodies     []string
 	}{
 		{name: "accepted", outcomes: []bulkOutcome{outcomeOK}, wantOK: true, wantBodies: []string{wantBody}},
@@ -60,7 +60,7 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 			unserializable: true,
 		},
 		{
-			name:       "settled after a retry",
+			name:       "accepted after a retry",
 			outcomes:   []bulkOutcome{outcomeTooManyRequests, outcomeOK},
 			policy:     &recordingPolicy{decide: func(int, FailureKind) (time.Duration, bool) { return 0, true }},
 			wantOK:     true,

@@ -70,14 +70,14 @@ type BulkIndexerObserver interface {
 	// before any retry. It is called for an item the cluster rejected and for
 	// an item that was never sent, but not for one failed by [BulkIndexer.Cancel]
 	// or a Close that escalated: a cancellation is no failure of the work, and
-	// the item's [BulkIndexerObserver.OnItemSettled] carries [ErrIndexerCanceled].
+	// the item's [BulkIndexerObserver.OnItemDone] carries [ErrIndexerCanceled].
 	// The event's Scope is [ScopeItem].
 	OnItemFailure(ctx context.Context, event BulkFailureEvent)
 
-	// OnItemSettled is called once per item, when it reaches its final state:
-	// accepted, or failed with no retry left. It fires at the same moment as
-	// the item's OnSuccess or OnFailure callback.
-	OnItemSettled(ctx context.Context, event BulkItemEvent)
+	// OnItemDone is called once per item, when the indexer is done with it: it
+	// was accepted, or it failed and will not be retried. It fires at the same
+	// moment as the item's OnSuccess or OnFailure callback.
+	OnItemDone(ctx context.Context, event BulkItemEvent)
 }
 
 // BaseBulkIndexerObserver is an embeddable no-op [BulkIndexerObserver]. Embed it
@@ -93,8 +93,8 @@ func (BaseBulkIndexerObserver) OnRequestFailure(context.Context, BulkFailureEven
 // OnItemFailure implements BulkIndexerObserver (no-op).
 func (BaseBulkIndexerObserver) OnItemFailure(context.Context, BulkFailureEvent) {}
 
-// OnItemSettled implements BulkIndexerObserver (no-op).
-func (BaseBulkIndexerObserver) OnItemSettled(context.Context, BulkItemEvent) {}
+// OnItemDone implements BulkIndexerObserver (no-op).
+func (BaseBulkIndexerObserver) OnItemDone(context.Context, BulkItemEvent) {}
 
 // BulkRequestEvent describes one bulk request that has returned.
 type BulkRequestEvent struct {
@@ -177,7 +177,7 @@ type BulkFailureEvent struct {
 	Delay time.Duration
 }
 
-// BulkItemEvent describes an item that reached its final state.
+// BulkItemEvent describes an item the indexer is done with.
 type BulkItemEvent struct {
 	// Index is the index the item targeted, falling back to the default index
 	// of the indexer.
@@ -210,7 +210,7 @@ type BulkItemEvent struct {
 	Node string
 
 	// Attempts is the number of requests that carried the item: 1 when it
-	// settled on its first, more after retries, and 0 when it was never sent.
+	// was done after its first, more after retries, and 0 when it was never sent.
 	Attempts int
 
 	// Failed is true when the item failed, and false when it was accepted.

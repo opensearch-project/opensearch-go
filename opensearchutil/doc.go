@@ -44,7 +44,7 @@ A [BulkIndexerConfig] can also set:
   - Fingerprinter, a [DocumentFingerprinter] that derives an id for an item that has none.
   - Sizing, a [BulkSizing] that tunes how the size of the batches follows what each node can take.
   - Observer, a [BulkIndexerObserver] that receives an event for each request, each failure, and each
-    item's final state, for statistics and metrics.
+    item once it is done, for statistics and metrics.
 
 [BulkIndexerItem].Metadata carries opaque data, such as a stream offset, back to the callbacks
 without being sent to the cluster.

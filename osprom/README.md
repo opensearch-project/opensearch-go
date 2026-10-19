@@ -144,8 +144,8 @@ Labels are low-cardinality (`result`, `scope`, `kind`, `retrying`, `outcome`); n
 | `opensearch_client_bulk_request_size_bytes`       | Bulk request body size histogram.                                                                                              |
 | `opensearch_client_bulk_failures_total`           | Failed attempts by `scope` (`request` or `item`), `kind` (`rejected`, `unavailable`, `transport`, `permanent`) and `retrying`. |
 | `opensearch_client_bulk_retries_total`            | Items sent again after a failure, by `kind`.                                                                                   |
-| `opensearch_client_bulk_items_total`              | Items that reached a final state, by `outcome` (`succeeded` or `failed`).                                                      |
-| `opensearch_client_bulk_item_size_bytes`          | Document size of each item that reached a final state, in bytes, without the action line. Histogram of 100 B to 10 MiB.        |
+| `opensearch_client_bulk_items_total`              | Items the indexer is done with, by `outcome` (`succeeded` or `failed`).                                                        |
+| `opensearch_client_bulk_item_size_bytes`          | Document size of each item the indexer is done with, in bytes, without the action line. Histogram of 100 B to 10 MiB.          |
 
 ## Custom observers
 

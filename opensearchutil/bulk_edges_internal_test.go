@@ -47,7 +47,7 @@ func TestBulkIndexerCloseReportsAnEndedContextToOnError(t *testing.T) {
 		},
 	})
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -175,7 +175,7 @@ func TestBulkIndexerRetryFailsAnItemWhoseBodyCannotBeReadAgain(t *testing.T) {
 		}),
 	})
 
-	f := newFinals(1)
+	f := newCallbackCounts(1)
 	item := f.item("a")
 	item.Body = &rereadFails{Reader: strings.NewReader(`{"a":1}`)}
 	require.NoError(t, bi.Add(t.Context(), item))

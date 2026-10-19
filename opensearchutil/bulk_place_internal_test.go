@@ -102,6 +102,6 @@ func TestBaseBulkIndexerObserverIgnoresEveryEvent(t *testing.T) {
 		obs.OnRequestEnd(t.Context(), BulkRequestEvent{})
 		obs.OnRequestFailure(t.Context(), BulkFailureEvent{})
 		obs.OnItemFailure(t.Context(), BulkFailureEvent{})
-		obs.OnItemSettled(t.Context(), BulkItemEvent{})
+		obs.OnItemDone(t.Context(), BulkItemEvent{})
 	})
 }

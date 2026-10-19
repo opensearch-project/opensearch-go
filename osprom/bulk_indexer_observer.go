@@ -42,7 +42,7 @@ const (
 //   - Failures: a counter by scope (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
-//   - Items: a counter of items that reached a final state, by outcome, and a
+//   - Items: a counter of items the indexer is done with, by outcome, and a
 //     histogram of their document sizes (bulk_item_size_bytes, in bytes, from
 //     [opensearchutil.BulkItemEvent].Bytes: the document alone, without the action
 //     line). It has no labels, so one series gives the average (sum over count) and,
@@ -58,8 +58,8 @@ type BulkIndexerObserver struct {
 	bytes    prometheus.Histogram   // bulk request body size
 	failures *prometheus.CounterVec // failed attempts by scope, kind, retrying
 	retries  *prometheus.CounterVec // items sent again, by kind
-	items    *prometheus.CounterVec // items settled, by outcome
-	itemSize prometheus.Histogram   // document size of items settled
+	items    *prometheus.CounterVec // items done, by outcome
+	itemSize prometheus.Histogram   // document size of items done
 }
 
 // NewBulkIndexerObserver returns a BulkIndexerObserver. Call
@@ -104,13 +104,13 @@ func NewBulkIndexerObserver() *BulkIndexerObserver {
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_items_total",
-			Help:      "Items that reached a final state, by outcome.",
+			Help:      "Items the indexer is done with, by outcome.",
 		}, []string{labelOutcome}),
 		itemSize: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_item_size_bytes",
-			Help: "Size of the document of each item that reached a final state, in bytes, excluding the action line. " +
+			Help: "Size of the document of each item the indexer is done with, in bytes, excluding the action line. " +
 				"Sum over count is the average document size; the upper buckets show outliers.",
 			Buckets: []float64{100, 512, 1 << 10, 4 << 10, 16 << 10, 64 << 10, 256 << 10, 1 << 20, 4 << 20, 10 << 20},
 		}),
@@ -155,8 +155,8 @@ func (o *BulkIndexerObserver) recordFailure(e opensearchutil.BulkFailureEvent) {
 	}
 }
 
-// OnItemSettled implements [opensearchutil.BulkIndexerObserver].
-func (o *BulkIndexerObserver) OnItemSettled(_ context.Context, e opensearchutil.BulkItemEvent) {
+// OnItemDone implements [opensearchutil.BulkIndexerObserver].
+func (o *BulkIndexerObserver) OnItemDone(_ context.Context, e opensearchutil.BulkItemEvent) {
 	outcome := outcomeSucceeded
 	if e.Failed {
 		outcome = outcomeFailed

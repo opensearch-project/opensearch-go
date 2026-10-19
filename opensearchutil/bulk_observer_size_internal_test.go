@@ -21,8 +21,8 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// settledSizes records the Bytes of each item that settles, by document id.
-type settledSizes struct {
+// doneSizes records the Bytes of each item the indexer is done with, by document id.
+type doneSizes struct {
 	BaseBulkIndexerObserver
 
 	mu     sync.Mutex
@@ -30,7 +30,7 @@ type settledSizes struct {
 	failed map[string]bool
 }
 
-func (s *settledSizes) OnItemSettled(_ context.Context, e BulkItemEvent) {
+func (s *doneSizes) OnItemDone(_ context.Context, e BulkItemEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -40,9 +40,9 @@ func (s *settledSizes) OnItemSettled(_ context.Context, e BulkItemEvent) {
 	s.bytes[e.DocumentID], s.failed[e.DocumentID] = e.Bytes, e.Failed
 }
 
-// TestBulkItemEventBytes: an item settles with the length of its document, whether it
-// was accepted, rejected by the cluster, or refused before it was buffered, and
-// whatever position its reader was handed in at.
+// TestBulkItemEventBytes: an item's OnItemDone carries the length of its document,
+// whether it was accepted, rejected by the cluster, or refused before it was
+// buffered, and whatever position its reader was handed in at.
 func TestBulkItemEventBytes(t *testing.T) {
 	t.Parallel()
 
@@ -58,7 +58,7 @@ func TestBulkItemEventBytes(t *testing.T) {
 		return reply(http.StatusCreated)(r, body)
 	}
 
-	sizes := &settledSizes{}
+	sizes := &doneSizes{}
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter, Observer: sizes})
 
 	add := func(item BulkIndexerItem) {
@@ -100,14 +100,14 @@ func TestBulkItemEventBytes(t *testing.T) {
 	require.True(t, sizes.failed["rejected"], "the size is the same on the failure path")
 }
 
-// TestBulkItemEventBytesOfARefusedItem: an item refused before it is buffered settles
-// with its size too.
+// TestBulkItemEventBytesOfARefusedItem: an item refused before it is buffered reports
+// its size too.
 func TestBulkItemEventBytesOfARefusedItem(t *testing.T) {
 	t.Parallel()
 
 	const doc = `{"title":"never sent"}`
 
-	sizes := &settledSizes{}
+	sizes := &doneSizes{}
 	bi := newClusterIndexer(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{
 		ShardRouter: NoShardRouter,
 		Observer:    sizes,
