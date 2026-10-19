@@ -397,11 +397,11 @@ lint.local.version:
 		exit 1; \
 	fi
 
-package := "prettier"
+prettier := "prettier"
 PRETTIER_ARGS := --prose-wrap never --print-width 300 "**/*.md"
 
 lint.markdown:  ## Reformat markdown files with prettier
-	npx $(package) $(PRETTIER_ARGS) --write
+	npx $(prettier) $(PRETTIER_ARGS) --write
 
 
 backport: ## Backport one or more commits from main into version branches
