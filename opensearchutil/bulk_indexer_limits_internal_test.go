@@ -61,8 +61,8 @@ func TestBulkIndexerJobLimitCountsWhatItemsReallyCost(t *testing.T) {
 	blocked := make(chan struct{}, 4)
 	indexer := bi.(*bulkIndexer)
 	relieve := indexer.budget.onBlock
-	indexer.budget.onBlock = func(key shardKey) {
-		relieve(key)
+	indexer.budget.onBlock = func() {
+		relieve()
 		blocked <- struct{}{}
 	}
 

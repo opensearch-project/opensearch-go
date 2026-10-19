@@ -74,8 +74,8 @@ func TestBulkIndexerStalledRequestsBlockAdd(t *testing.T) {
 	indexer.budget.now = fakeClock(tick)
 	blocked := make(chan struct{}, totalItems)
 	relieve := indexer.budget.onBlock
-	indexer.budget.onBlock = func(key shardKey) {
-		relieve(key)
+	indexer.budget.onBlock = func() {
+		relieve()
 		blocked <- struct{}{}
 	}
 
@@ -161,8 +161,8 @@ func TestBulkIndexerReportsEachBlockedAdd(t *testing.T) {
 
 	blocked := make(chan struct{}, totalItems)
 	relieve := indexer.budget.onBlock
-	indexer.budget.onBlock = func(key shardKey) {
-		relieve(key)
+	indexer.budget.onBlock = func() {
+		relieve()
 		blocked <- struct{}{}
 	}
 
