@@ -23,14 +23,19 @@ import (
 // Two controllers work, each on one thing and each on one signal.
 //
 // The size of a shard's buffer, the bytes it collects before it is sent, follows how
-// fast the node serves that shard's requests. The service rate, bytes sent per second
-// of time on the node (the round trip less the network distance), is compared with the
-// best rate seen recently. While the rate stays within Headroom of that best, the size
-// grows by StepBytes per flush. When the node slows by more than that, the size is cut
-// in proportion to how far past Headroom it is, long before the node starts rejecting,
-// so that bulk traffic gives way to the other requests a node is serving. A PID
-// controller (Kp, Ki, Kd) on the normalized slowdown sets how hard each step is,
-// unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
+// fast the node serves that shard's requests. Each flush's time on the node (the round
+// trip less the network distance) is compared with what the node's best recent self
+// would need for a request of that size: a fixed cost per request, learned from small
+// requests where it is a visible part of the time, plus the bytes at the best service
+// rate seen recently. The comparison is smoothed over the last several flushes, since
+// one slow flush is noise and the cuts are multiplicative while the growth is
+// additive, so a controller that believed every sample would be walked to the floor
+// by variance alone. While the smoothed time stays within Headroom of the expected,
+// the size grows by StepBytes per flush. When the node slows past that, the size is
+// cut in proportion to how far past Headroom it is, long before the node starts
+// rejecting, so that bulk traffic gives way to the other requests a node is serving.
+// A PID controller (Kp, Ki, Kd) on the normalized slowdown sets how hard each step
+// is, unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
 // shard's buffer reads nothing else: not a request the node rejected with a 429, which
 // was answered quickly because no work was done, not a request that failed without an
 // answer, and not one in which no item was indexed. A shard that starts on a node is
@@ -125,13 +130,15 @@ const (
 	// the size may grow again.
 	sizingHoldFlushes = 3
 	// sizingBaseDecay is how fast the memory of the best rate fades per sample while
-	// the size is above the floor. It is slow because a node slows gradually as the
-	// batches grow, and a memory that faded as fast as that would never notice.
-	sizingBaseDecay = 0.9999
-	// sizingFloorDecay is how fast it fades while the size is at the floor. A node
-	// that is slow even for the smallest batches has not been made slow by them, so
-	// it is how the node is now, and the size is allowed to climb back after a few
-	// hundred flushes instead of staying cut forever.
+	// the batches are large. It is slow because a node slows gradually as the
+	// batches grow, and a memory that faded as fast as that would never notice; it
+	// is not slower, because the best is a running maximum of a noisy signal, and
+	// the longer it is held the further above an honest flush it creeps.
+	sizingBaseDecay = 0.999
+	// sizingFloorDecay is how fast it fades when the requests are small, at or near
+	// the smallest batch. A node that is slow even for the smallest batches has not
+	// been made slow by them, so it is how the node is now, and the size is allowed
+	// to climb back after a few hundred flushes instead of staying cut forever.
 	sizingFloorDecay = 0.995
 	// sizingMinSampleFraction is the part of the current target a flush must
 	// carry for its rate to say anything: the last, partial batch of a burst is
@@ -141,6 +148,32 @@ const (
 	// trip, so a round trip shorter than the measured distance cannot give an
 	// absurd rate.
 	sizingMinServiceFraction = 0.25
+	// sizingSignalAlpha is how much one flush moves the smoothed service rate and
+	// the smoothed slowdown. One flush's time is mostly noise: queueing, a GC, a
+	// merge. The cuts are multiplicative and the growth additive, so a controller
+	// that believed every sample would be walked to the floor by variance alone.
+	sizingSignalAlpha = 0.08
+	// sizingOverheadAlpha is how fast the fixed per-request cost is believed as
+	// small requests show it. It is slower than the signal, so that a node's bad
+	// spell is read as a slowdown first and as a cost of smallness only when it
+	// keeps not going away.
+	sizingOverheadAlpha = 0.05
+	// sizingOverheadDecay fades the learned cost, so a cost the node has stopped
+	// charging is forgotten within a few hundred flushes.
+	sizingOverheadDecay = 0.999
+	// sizingSlackSmoothed and sizingSlackRaw widen the headroom by this many of
+	// the signal's own smoothed absolute deviations before a slowdown counts: the
+	// smoothed signal the PID reads has most of the noise averaged out of it, so
+	// it needs little slack, while the raw per-flush signal AIMD reads needs the
+	// full spread. A steady node has no deviation and gets no slack.
+	sizingSlackSmoothed = 0.5
+	sizingSlackRaw      = 2.5
+	// sizingOverheadZone is the largest request, in multiples of the smallest
+	// batch, that teaches the fixed cost. In larger requests the cost is lost in
+	// the byte time, and a controller that read the residue of large requests as
+	// fixed cost would absorb a node slowing under its own batches and ride the
+	// ceiling.
+	sizingOverheadZone = 2.0
 )
 
 // resolvedSizing is BulkSizing with its defaults applied.
@@ -282,7 +315,11 @@ type sizer struct {
 	cfg resolvedSizing
 
 	target   float64
-	baseRate float64 // best recent bytes per nanosecond
+	baseRate float64 // best recent smoothed bytes per nanosecond
+	rateS    float64 // smoothed service rate; 0 until the first flush
+	overhead float64 // fixed cost a request pays before its bytes count, ns
+	normS    float64 // smoothed service time over the envelope's; 0 until the first flush
+	devS     float64 // smoothed absolute deviation of the signal around normS
 	integral float64
 	prevErr  float64
 }
@@ -333,14 +370,22 @@ func (s *sizer) seed(rate float64) {
 	}
 }
 
-// rate is the node's service rate for the flush, in bytes per nanosecond of time
-// on the node (the round trip less the distance, but not less than a part of it),
-// and false when the flush says nothing about it.
-func (f flushSample) rate() (float64, bool) {
+// serviceTime is the part of the round trip spent on the node: the latency less
+// the distance, but never less than a part of the whole, so that a trip shorter
+// than the measured distance cannot read as instant.
+func (f flushSample) serviceTime() time.Duration {
 	service := f.latency - f.distance
 	if floor := time.Duration(float64(f.latency) * sizingMinServiceFraction); service < floor {
 		service = floor
 	}
+
+	return service
+}
+
+// rate is the node's service rate for the flush, in bytes per nanosecond of time
+// on the node, and false when the flush says nothing about it.
+func (f flushSample) rate() (float64, bool) {
+	service := f.serviceTime()
 	if service <= 0 {
 		return 0, false
 	}
@@ -355,19 +400,48 @@ func (s *sizer) steer(f flushSample) {
 		return
 	}
 
+	s.rateS = smoothInto(s.rateS, rate)
+
 	decay := sizingBaseDecay
-	if s.target <= s.cfg.min {
+	if s.target <= s.cfg.min || float64(f.bytes) <= s.cfg.min*sizingOverheadZone {
+		// A small request is the gentlest the indexer can send, so a node that is
+		// slow for one has not been made slow by it: that is how the node is now,
+		// and the memory of its better days fades fast enough for the size to
+		// climb back, instead of keeping it cut forever.
 		decay = sizingFloorDecay
 	}
-	s.baseRate = math.Max(rate, s.baseRate*decay)
+	s.baseRate = math.Max(s.rateS, s.baseRate*decay)
 
-	// slowdown is 0 at the best rate seen and 1 when the node takes twice as long
-	// for the same bytes.
-	slowdown := s.baseRate/rate - 1
+	s.learnOverhead(f)
+
+	// expected is what the node's best recent self would need for this request:
+	// its fixed cost, then the bytes at the best rate. Without the fixed cost a
+	// small request would be judged against the bytes-per-second of large ones,
+	// which it cannot reach on any healthy node, and a controller that read that
+	// as the node slowing would answer every cut with another cut.
+	expected := s.overhead + float64(f.bytes)/s.baseRate
+	n := float64(f.serviceTime()) / expected
+	if s.normS != 0 {
+		s.devS += sizingSignalAlpha * (math.Abs(n-s.normS) - s.devS)
+	}
+	s.normS = smoothInto(s.normS, n)
+
+	// slowdown is 0 at the node's best and 1 when requests take twice what the
+	// best self would need. The PID reads it smoothed; AIMD is chosen for being
+	// predictable and reads each flush as it is. Each is allowed the slack its
+	// own signal's noise calls for: a jittery node must slow by more than its
+	// jitter before the slowing means anything, while a steady node gets no
+	// slack at all, and is held to the headroom alone.
+	slowdown := s.normS - 1
+	slack := sizingSlackSmoothed * s.devS
+	if s.cfg.aimd {
+		slowdown = n - 1
+		slack = sizingSlackRaw * s.devS
+	}
 
 	// e is +1 for a node as quick as ever, 0 at the headroom, and -1 or below
 	// (clamped) when it has slowed by twice the headroom or more.
-	e := math.Min(math.Max((s.cfg.headroom-slowdown)/s.cfg.headroom, -1), 1)
+	e := math.Min(math.Max((s.cfg.headroom+slack-slowdown)/s.cfg.headroom, -1), 1)
 	if f.overloaded {
 		e = math.Min(e, 0)
 	}
@@ -390,6 +464,36 @@ func (s *sizer) steer(f flushSample) {
 	default:
 		s.target *= 1 + math.Max(u, -sizingMaxCut)
 	}
+}
+
+// learnOverhead reads the fixed per-request cost out of small requests, where it
+// is a visible part of the service time: whatever is left once the bytes at the
+// best rate are paid for. It is this cost that makes a small request carry fewer
+// bytes per second than a large one on the same healthy node, so a controller that
+// did not account for it would take the price of smallness for the node slowing.
+// Only requests close to the smallest batch teach it; in larger ones the residue
+// is dominated by load, and reading load as fixed cost would absorb a node slowing
+// under its own batches.
+func (s *sizer) learnOverhead(f flushSample) {
+	s.overhead *= sizingOverheadDecay
+	if float64(f.bytes) > s.cfg.min*sizingOverheadZone {
+		return
+	}
+
+	resid := float64(f.serviceTime()) - float64(f.bytes)/s.baseRate
+	if resid < 0 {
+		resid = 0
+	}
+	s.overhead += sizingOverheadAlpha * (resid - s.overhead)
+}
+
+// smoothInto folds one sample into a smoothed signal, seeding an empty one.
+func smoothInto(old, v float64) float64 {
+	if old == 0 {
+		return v
+	}
+
+	return old + sizingSignalAlpha*(v-old)
 }
 
 // aimd steers by additive increase, multiplicative decrease alone: e is above 0

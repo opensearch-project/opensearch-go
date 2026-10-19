@@ -350,3 +350,79 @@ func TestSizerSeedOnlyFillsAnEmptyBaseline(t *testing.T) {
 	s.seed(7)
 	require.InDelta(t, 3, s.baseRate, 0, "a baseline the sizer has is not replaced")
 }
+
+// TestSizerHoldsThroughNoise: service times vary around a steady node, as they do on
+// any real one. The variance says nothing about the node, so the size must hold near
+// the ceiling instead of being walked to the floor, which is where a controller that
+// believes every sample ends up: its cuts are multiplicative and its growth additive,
+// so noise alone pulls it down.
+func TestSizerHoldsThroughNoise(t *testing.T) {
+	t.Parallel()
+
+	for seed := int64(1); seed <= 5; seed++ {
+		rng := rand.New(rand.NewSource(seed))
+		s := newTestSizer(BulkSizing{})
+
+		var tail float64
+		const flushes, window = 3000, 500
+		for i := range flushes {
+			f := flushOf(s.bytes(), 100e6)
+			f.latency = time.Duration(float64(f.latency) * math.Exp(0.3*rng.NormFloat64()))
+			s.observe(f)
+			if i >= flushes-window {
+				tail += float64(s.bytes())
+			}
+		}
+
+		require.Greater(t, tail/window, float64(testCeiling)*0.7,
+			"seed %d: a steady node's noise must not walk the size down", seed)
+	}
+}
+
+// TestSizerClimbsOutOfAFixedCost: every request costs the node a fixed time before
+// its bytes count, so a small request moves fewer bytes per second than a large one
+// on the same healthy node. After a cut, the controller must read that for what it
+// is, the price of smallness, and climb back out, not take it for the node slowing
+// and pin itself to the floor.
+func TestSizerClimbsOutOfAFixedCost(t *testing.T) {
+	t.Parallel()
+
+	const (
+		bandwidth = 100e6 // bytes per second the node moves once a request is parsed.
+		overhead  = 5 * time.Millisecond
+	)
+	affine := func(bytes int64) flushSample {
+		service := overhead + time.Duration(float64(bytes)/bandwidth*float64(time.Second))
+
+		return flushSample{bytes: bytes, latency: service + testDistance, distance: testDistance, served: true}
+	}
+
+	s := newTestSizer(BulkSizing{})
+	for range 200 {
+		s.observe(affine(s.bytes()))
+	}
+	require.EqualValues(t, testCeiling, s.bytes(), "the fixed cost alone is no reason to stay small")
+
+	// The node has a bad spell: an eighth of its rate for a stretch.
+	for range 20 {
+		f := affine(s.bytes())
+		f.latency = (f.latency-testDistance)*8 + testDistance
+		s.observe(f)
+	}
+	require.Less(t, s.bytes(), int64(testCeiling)/4, "the bad spell must have cut the size")
+
+	// The node is itself again. The small requests it now gets carry the fixed
+	// cost as most of their time, which is not the node slowing.
+	recovered := -1
+	for i := range 150 {
+		s.observe(affine(s.bytes()))
+		if s.bytes() >= testCeiling/2 {
+			recovered = i
+
+			break
+		}
+	}
+
+	require.GreaterOrEqual(t, recovered, 0, "the size must climb back once the node recovers")
+	require.LessOrEqual(t, recovered, 100, "and within a bounded number of flushes, not a decay's half-life")
+}
