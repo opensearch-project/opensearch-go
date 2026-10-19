@@ -265,7 +265,7 @@ By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` 
 
 |                                              | Controls                                                   | From                                                | Answers                                                                  |
 | -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
-| **Shard-buffer controller** (PID on latency) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests | a node that is slowing down: smaller buffers, before it rejects anything |
+| **Shard-buffer controller** (PID on latency) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests, next to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
 | **Node-window controller** (AIMD on 429s)    | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429      | a node that is full: less in flight, then a slow climb back              |
 
 ### Why it is adaptive
@@ -273,16 +273,16 @@ By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` 
 A single indexer cannot know how much a cluster can take. The cluster is shared by many writers, its capacity changes as other work comes and goes, and a batch that is right for one node at one moment overloads it at another. A fleet of fixed-size writers either leaves capacity unused or fills the write queues and draws 429s. So the indexer measures instead, with two signals that need no coordination between clients:
 
 - **429 responses** are the server's hard limit, the point at which its write queue is full. The indexer reacts to them with additive increase, multiplicative decrease (AIMD), the same scheme TCP uses to find a network's capacity: probe upward in small steps while the node accepts writes, and cut sharply when it refuses one.
-- **Write latency** moves before a queue fills. A PID controller watches how quickly each node is serving a shard's requests and gives the shard smaller buffers as the node slows, so bulk traffic gives way before anything is rejected, and larger buffers while the node keeps up.
+- **Write latency** tells shards apart. A PID controller watches how quickly each node is serving a shard's requests next to the node's other shards, and gives a shard that is slower than the rest smaller buffers, so a hot or costly shard does not take the node's time from the others. A slowdown the whole node shares is the node's load: no shard is cut for it, and the node is sent as much as it takes until it rejects.
 
 Together they aim to keep a node busy without queueing it into rejections, and since every client in the fleet makes the same adjustments from the same signals, the load they add together stays near what the cluster can take.
 
 #### The shard-buffer controller
 
-Its input is how long each request spent on the node: the round trip less the network distance. A request carries one shard, so this is that shard's own speed. The controller compares that time with what the node's best recent self would need for a request of the same size: a fixed cost per request, plus the bytes at the best service rate seen recently. The fixed cost is learned from small requests, where it is a visible part of the time. Without it, a small request would be judged against the throughput of large ones, which it cannot reach on a healthy node. The comparison is smoothed over the last several flushes, because one flush's time is mostly noise: queueing, a garbage collection, a merge.
+Its input is how long each request spent on the node: the round trip less the network distance. A request carries one shard, so this is that shard's own speed. The controller compares that time with what the node's best recent self would need for a request of the same size: a fixed cost per request, plus the bytes at the best service rate seen recently. The fixed cost is learned from small requests, where it is a visible part of the time. Without it, a small request would be judged against the throughput of large ones, which it cannot reach on a healthy node. The comparison is smoothed over the last several flushes, because one flush's time is mostly noise: queueing, a garbage collection, a merge. The smoothed level is then read against the mean level of the node's other shards. A shard alone on its node, such as the buffer for documents that belong to no shard, is read against itself and keeps its size.
 
 - While the smoothed time stays within `Headroom` of the expected time, the buffer grows by `StepBytes` per flush.
-- When the node slows by more than that, the buffer is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
+- When the shard is slower than the rest of its node by more than that, its buffer is cut in proportion to how far past `Headroom` it is, so that it gives way to the node's other shards.
 - `Headroom` is widened by the signal's own noise. A node whose times vary must slow by more than its usual variation before the slowdown counts, and a steady node is held to `Headroom` alone.
 - The memory of the best rate fades slowly while requests are large, and faster while they are small. A node that is slow even for small requests was not made slow by them, so the buffer can climb back on a node that has changed.
 
@@ -304,7 +304,7 @@ The only signal is a 429: an answer in which the node rejected the request, or a
 - **It does not remember where the last 429 was.** A 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the window keeps probing and settles into a sawtooth around whatever the server accepts now.
 - **A request that fails with no answer is not a 429**, and does not cut it.
 
-So a node that slows down without rejecting gets smaller buffers and keeps its window, and a node that rejects has less in flight, whatever its speed.
+So a node that slows down without rejecting keeps its shards' buffers and its window, a shard slower than the rest of its node gets smaller buffers, and a node that rejects has less in flight, whatever its speed.
 
 #### Starting a shard
 

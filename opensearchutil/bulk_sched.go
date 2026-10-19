@@ -98,6 +98,8 @@ type buffer struct {
 // buffers are waiting or out, and how large its buffers should be.
 type shardState struct {
 	key shardKey
+	// levelNode is the node whose levels hold this shard's, nil until it has one.
+	levelNode *nodeState
 	// ordered is false for the buffers of documents that belong to no shard, which
 	// have no order to keep and may have several requests out at once.
 	ordered bool
@@ -138,6 +140,10 @@ type nodeState struct {
 	// the size of its shards' buffers as a fraction of the most they get, and how much
 	// longer than expected the node takes for its requests. Guarded by the scheduler's lock.
 	bufferFrac, slowdown float64
+	// levels holds the smoothed level of each shard the node serves: its flushes'
+	// time over what they would need. A shard is measured against the others'.
+	// Guarded by the scheduler's lock.
+	levels map[*shardState]float64
 	// win is how many bytes may be out to the node at once. It starts wide open and
 	// is cut by a 429; see byteWindow.
 	win *byteWindow
@@ -162,6 +168,27 @@ func (ns *nodeState) window(unreported int) int {
 	}
 
 	return n
+}
+
+// peerLevel is what the shard is measured against: the mean level of the node's
+// other shards, so that a slowdown the whole node shares reads as none for any of
+// them. A shard alone on its node, the sink of documents that belong to no shard
+// among them, is measured against itself, and so keeps its size until the node
+// rejects. It is 0 when there is nothing to measure against yet.
+func (ns *nodeState) peerLevel(ss *shardState) float64 {
+	var sum float64
+	others := 0
+	for other, level := range ns.levels {
+		if other != ss {
+			sum += level
+			others++
+		}
+	}
+	if others == 0 {
+		return ss.sizer.normS
+	}
+
+	return sum / float64(others)
 }
 
 // hasRoom reports whether another request to the node would go out now.
@@ -558,10 +585,12 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// the node is degraded does not take that for the best it can do.
 	ss.sizer.seed(ns.rate.base)
 	ns.rate.learn(sample)
+	sample.peer = ns.peerLevel(ss)
 	if n, ok := ss.sizer.observe(sample); ok {
 		// The node's slowdown is the sizer's own: the flush's time on the node over
 		// what the node needs for a request of that size, fixed cost included.
 		ns.slowdown = smooth(ns.slowdown, math.Max(n-1, 0))
+		s.recordLevel(ss, ns)
 	}
 	if sample.tooLarge > 0 {
 		s.capRequests(sample.tooLarge)
@@ -701,6 +730,20 @@ func (s *scheduler) abandon(collect bool, buffers []*buffer) {
 	}
 }
 
+// recordLevel notes the shard's level on the node that served it, and drops it
+// from the node it was on before, so a shard that moved is not counted where it
+// no longer is. It must be called with the lock held.
+func (s *scheduler) recordLevel(ss *shardState, ns *nodeState) {
+	if ss.levelNode != nil && ss.levelNode != ns {
+		delete(ss.levelNode.levels, ss)
+	}
+	if ns.levels == nil {
+		ns.levels = map[*shardState]float64{}
+	}
+	ns.levels[ss] = ss.sizer.normS
+	ss.levelNode = ns
+}
+
 // evictIdle forgets the shards that have had nothing buffered and nothing in
 // flight for a good while, with what was learned about them, so that an indexer
 // that moves from index to index does not keep a record of every shard it has
@@ -713,6 +756,9 @@ func (s *scheduler) evictIdle() {
 	for key, ss := range s.shards {
 		if ss.open == nil && ss.pending == 0 && ss.idleSince.Before(cutoff) {
 			delete(s.shards, key)
+			if ss.levelNode != nil {
+				delete(ss.levelNode.levels, ss)
+			}
 		}
 	}
 }

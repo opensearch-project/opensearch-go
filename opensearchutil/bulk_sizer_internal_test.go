@@ -429,3 +429,57 @@ func TestSizerClimbsOutOfAFixedCost(t *testing.T) {
 	require.GreaterOrEqual(t, recovered, 0, "the size must climb back once the node recovers")
 	require.LessOrEqual(t, recovered, 100, "and within a bounded number of flushes, not a decay's half-life")
 }
+
+// peerNode stands for a node that serves one shard: with no other shard to measure
+// it against, the shard is measured against its own level, as the scheduler does.
+type peerNode struct{}
+
+func (peerNode) observe(s *sizer, f flushSample) {
+	f.peer = s.normS
+	s.observe(f)
+}
+
+// TestSizerHoldsThroughASlowdownItsPeersShare: the whole node slows, as it does when
+// it is busy, and every shard on it slows alike. That is the node's load, which its
+// window answers when the node rejects; a shard that is no slower than the rest of
+// the node keeps its size, so that the node is sent as much as it takes until it
+// says it is full.
+func TestSizerHoldsThroughASlowdownItsPeersShare(t *testing.T) {
+	t.Parallel()
+
+	node := peerNode{}
+	s := newTestSizer(BulkSizing{})
+	for range 200 {
+		node.observe(s, flushOf(s.bytes(), 100e6))
+	}
+	require.EqualValues(t, testCeiling, s.bytes())
+
+	for range 200 {
+		node.observe(s, flushOf(s.bytes(), 20e6)) // Five times slower, all of it.
+	}
+	require.EqualValues(t, testCeiling, s.bytes(), "a slowdown the shard shares with its node is not the shard's to answer")
+}
+
+// TestSizerBacksOffAShardSlowerThanItsPeers: the rest of the node is as quick as
+// ever and this shard alone slows, as a hot shard or one with costly documents does.
+// It must shrink, so that it does not take the node's time from the others.
+func TestSizerBacksOffAShardSlowerThanItsPeers(t *testing.T) {
+	t.Parallel()
+
+	s := newTestSizer(BulkSizing{})
+	healthy := func(bytes int64, rate float64) flushSample {
+		f := flushOf(bytes, rate)
+		f.peer = 1 // The node's other shards are at their best.
+
+		return f
+	}
+	for range 200 {
+		s.observe(healthy(s.bytes(), 100e6))
+	}
+	before := s.bytes()
+
+	for range 10 {
+		s.observe(healthy(s.bytes(), 20e6))
+	}
+	require.Less(t, s.bytes(), before/2, "a shard five times slower than its node's others must shrink")
+}

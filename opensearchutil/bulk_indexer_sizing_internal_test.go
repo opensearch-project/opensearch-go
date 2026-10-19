@@ -290,11 +290,13 @@ func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 	require.Greater(t, h.window("n0"), windowAfter, "growth resumes after the hold")
 }
 
-// TestBulkIndexerBacksOffAsANodeSlowsDown is the bulk indexer giving way before
-// anything is rejected: the node only gets slower, as when it is busy with other
-// requests, and its shards' buffers shrink, then grow back when it recovers. The
-// node's window does not shrink: only a rejection cuts it.
-func TestBulkIndexerBacksOffAsANodeSlowsDown(t *testing.T) {
+// TestBulkIndexerHoldsWhileTheWholeNodeSlows: the node only gets slower, as when it
+// is busy with other requests, and nothing is rejected. That is the node's load,
+// which the indexer answers when the node says it is full: until a rejection cuts
+// the node's window, the node is sent as much as it takes, and its shard keeps its
+// size. A shard gives way only when it is slower than the rest of its node; see
+// TestBulkIndexerSlowShardShrinksAlone.
+func TestBulkIndexerHoldsWhileTheWholeNodeSlows(t *testing.T) {
 	t.Parallel()
 
 	const ceilingDocs = 400
@@ -315,18 +317,11 @@ func TestBulkIndexerBacksOffAsANodeSlowsDown(t *testing.T) {
 	require.Equal(t, int64(h.bi.(*bulkIndexer).sizing.max), shardHealthy, "a healthy shard ends up at the ceiling")
 
 	setRate(20e6) // Five times slower. Nothing is rejected.
-	for range 6 {
+	for range 40 {
 		h.round("n0")
 	}
-	require.Less(t, h.shardTarget("n0"), shardHealthy/2, "buffers must shrink well before the node rejects anything")
-	require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "a slow node is not a rejecting one, so its window is not cut")
-
-	setRate(100e6)
-	for range 120 {
-		h.round("n0")
-	}
-	require.Equal(t, shardHealthy, h.shardTarget("n0"), "and grow back when it recovers")
-	require.GreaterOrEqual(t, h.window("n0"), windowHealthy)
+	require.Equal(t, shardHealthy, h.shardTarget("n0"), "a node that slows without rejecting keeps being sent full buffers")
+	require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "and a slow node is not a rejecting one, so its window is not cut")
 }
 
 // TestBulkIndexerSlowShardShrinksAlone: a shard that is slow, as a hot one is,

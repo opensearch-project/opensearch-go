@@ -23,15 +23,20 @@ import (
 // Two controllers work, each on one thing and each on one signal.
 //
 // The size of a shard's buffer, the bytes it collects before it is sent, follows how
-// fast the node serves that shard's requests. Each flush's time on the node (the round
-// trip less the network distance) is compared with what the node's best recent self
-// would need for a request of that size: a fixed cost per request, learned from small
-// requests where it is a visible part of the time, plus the bytes at the best service
-// rate seen recently. The comparison is smoothed over the last several flushes (see
-// sizingSignalAlpha). While the smoothed time stays within Headroom of the expected,
-// the size grows by StepBytes per flush. When the node slows past that, the size is
-// cut in proportion to how far past Headroom it is, long before the node starts
-// rejecting, so that bulk traffic gives way to the other requests a node is serving.
+// fast the node serves that shard's requests next to the node's other shards. Each
+// flush's time on the node (the round trip less the network distance) is compared
+// with what the shard's best recent self would need for a request of that size: a
+// fixed cost per request, learned from small requests where it is a visible part of
+// the time, plus the bytes at the best service rate seen recently. That level is
+// smoothed over the last several flushes (see sizingSignalAlpha) and read against the
+// mean level of the node's other shards, so a slowdown the whole node shares, which
+// is the node's load, cuts no shard: the node is sent as much as it takes until it
+// rejects, and its window answers that. A shard alone on its node, such as the sink
+// of documents that belong to no shard, is read against itself and keeps its size.
+// While a shard stays within Headroom of the rest of its node, its size grows by
+// StepBytes per flush. When it is slower than that, as a hot shard or one with costly
+// documents is, its size is cut in proportion to how far past Headroom it is, so that
+// it does not take the node's time from the others.
 // A PID controller (Kp, Ki, Kd) on the normalized slowdown sets how hard each step
 // is, unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
 // shard's buffer reads nothing else: not a request the node rejected with a 429, which
@@ -91,8 +96,8 @@ type BulkSizing struct {
 	// Defaults to FlushBytes/16.
 	StepBytes int
 
-	// Headroom is how much longer than the expected time a node may take before
-	// the size is cut: 0.25 allows the time to rise to 125% of the expected. Defaults
+	// Headroom is how much slower than the rest of its node a shard may be before
+	// its size is cut: 0.25 allows its time to rise to 125% of the others'. Defaults
 	// to 0.25.
 	Headroom float64
 	// Backoff is the factor the size is multiplied by when the node rejects a
@@ -298,6 +303,12 @@ type flushSample struct {
 	tooLarge int64
 	// overloaded is set when the transport sees the node's write pool rejecting.
 	overloaded bool
+	// peer is the node's level: its flushes' time over what they would need, smoothed
+	// over every shard the node serves, or 0 when the node has served none yet. A
+	// shard is measured against it, so that a slowdown the whole node shares, which
+	// is the node's load and is answered by its window when it rejects, does not
+	// shrink any shard, and only a shard slower than the rest of its node gives way.
+	peer float64
 }
 
 // timed reports whether the flush's duration measures how fast the node indexes:
@@ -433,10 +444,16 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 	// own signal's noise calls for: a jittery node must slow by more than its
 	// jitter before the slowing means anything, while a steady node gets no
 	// slack at all, and is held to the headroom alone.
-	slowdown := s.normS - 1
+	level, raw := s.normS, n
+	if f.peer > 0 {
+		// Against the rest of the node rather than the shard's own best: a node
+		// that slows for every shard alike is loaded, not slowed by this shard.
+		level, raw = level/f.peer, raw/f.peer
+	}
+	slowdown := level - 1
 	slack := sizingSlackSmoothed * s.devS
 	if s.cfg.aimd {
-		slowdown = n - 1
+		slowdown = raw - 1
 		slack = sizingSlackRaw * s.devS
 	}
 
