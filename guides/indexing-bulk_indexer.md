@@ -64,7 +64,7 @@ An item travels through it like this:
 
 So `Flush` returning means every item you added has reached its final callback. It does not mean every item succeeded; the callbacks, or `OnError` for an item with no `OnFailure`, say which did not.
 
-> **Known limitation:** every shard draws on the one `MaxMemoryBytes` pool, and a shard whose requests are not being answered keeps the bytes it holds. A shard that stalls, because its documents are slow to index or its primary is busy, can come to hold the whole pool, and `Add` then waits for every shard until the stalled one is answered.
+Every shard draws on the one `MaxMemoryBytes` limit, and a shard whose requests are slow keeps the bytes it holds until they are answered. So that such a shard cannot take the whole limit, each shard holds no more than an even share of it while other shards are waiting for room, and the waiters of other shards are served past it. While nobody else is waiting, a shard may use the whole limit. A shard that holds nothing may always take one item, so no shard is left with nothing in progress, and the limit can be passed by at most one item for each such shard.
 
 ## Basic use
 
@@ -314,37 +314,37 @@ A shard that starts on a node, such as the first document for a new index, is gi
 
 A PID controller is the idea behind a car's cruise control. You pick a speed. The controller measures the actual speed, finds the difference (the _error_), and decides how hard to press the throttle. It does that with three terms, each scaled by a _gain_:
 
-| Term             | Gain | Reacts to                            | In plain terms                                                                                                                                                                    |
-| ---------------- | ---- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P**roportional | `Kp` | the error now                        | How far off are we? The further off, the harder the correction.                                                                                                                   |
-| **I**ntegral     | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and pushes harder, so the controller does not settle for "a little slow" forever.                        |
-| **D**erivative   | `Kd` | how fast the error is changing       | Is it getting better or worse, and how fast? A node that suddenly slows is cut harder, before the proportional term catches up; one that is recovering is given more room sooner. |
+| Term             | Gain | Reacts to                            | In plain terms                                                                                                                                                                            |
+| ---------------- | ---- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P**roportional | `Kp` | the error now                        | How far off are we? The further off, the harder the correction.                                                                                                                           |
+| **I**ntegral     | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and pushes harder, so the controller does not settle for "a little slow" forever.                                |
+| **D**erivative   | `Kd` | how fast the error is changing       | Is it getting better or worse, and how fast? A shard that suddenly falls behind is cut harder, before the proportional term catches up; one that is recovering is given more room sooner. |
 
 The three results are added up into one number, `u`, and `u` decides the step.
 
-Here the thing being steered is the size of one shard's buffer, and the measurement is the _service time_ of the node: the time it spent on the request, against what its best recent self would need for a request that size, smoothed over the last several flushes. The error `e` is 1 for a node as fast as its expected time, 0 when it has slowed by `Headroom` (25% by default, widened by the node's own noise, called the slack below), and -1 when it has slowed by twice `Headroom` plus the slack or more. The slack is added once, so the slowdown that reaches -1 is `2 × Headroom + slack`:
+Here the thing being steered is the size of one shard's buffer, and the measurement is the shard's _level_: the time the node spent on its requests, against what the shard's best recent self would need for a request that size, smoothed over the last several flushes, and read against the level of the node's other shards. A shard alone on its node is read against itself. The error `e` is 1 for a shard as fast as the rest of its node, 0 when it is slower by `Headroom` (25% by default, widened by the signal's own noise, called the slack below), and -1 when it is slower by twice `Headroom` plus the slack or more. The slack is added once, so the slowdown that reaches -1 is `2 × Headroom + slack`:
 
 ```
  e
-+1 ●━━━━━━━╲                       node as fast as expected
++1 ●━━━━━━━╲                       shard as fast as the rest of its node
            ╲
  0 ┈┈┈┈┈┈┈┈┈┈●┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈  slowdown = Headroom + slack: hold the size
                 ╲
 -1               ●━━━━━━━━━━━━━━━  slowdown of 2 × Headroom + slack or worse (clamped)
    └──────┬───────┬───────┬──────── slowdown
-          0      0.25    0.5       (0 = as fast as expected, 1 = twice as slow; shown for slack = 0)
+          0      0.25    0.5       (0 = as fast as the rest of the node, 1 = twice as slow; shown for slack = 0)
 ```
 
-The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never takes away more than half. Over time the buffer climbs while the node keeps up and gives way as it slows:
+The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never takes away more than half. Over time the buffer climbs while the shard keeps up with the rest of its node and gives way as it falls behind:
 
 ```
 buffer size
 FlushBytes ┤            ●━━━━━━━●                      ceiling
            │          ╱         ╲
-           │        ╱            ╲        ╱╲          node slows past Headroom:
+           │        ╱            ╲        ╱╲          shard falls behind past Headroom:
            │      ╱               ╲      ╱  ╲╱━━━━     steps down in proportion,
-           │    ╱                  ●╲  ╱               then settles where the
-           │  ╱                       ●                node keeps up
+           │    ╱                  ●╲  ╱               then settles where it
+           │  ╱                       ●                keeps up
  start     ┤●
            └─────────────────────────────────────── flushes
 ```
@@ -367,7 +367,7 @@ A gain of `0` turns that term off. The operator overrides are listed in [Changin
 | Mode | Set with | Behavior |
 | --- | --- | --- |
 | Adaptive, PID (default) | nothing | The size follows the node; each step is shaped by the PID controller, which reads the smoothed signal. |
-| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | A shard's buffer takes plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. It reads each flush as it is, with more slack for noise than the PID controller gets. The PID gains are ignored. The node window is unchanged. |
+| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | A shard's buffer takes plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the shard behind the rest of its node past `Headroom`. It reads each flush as it is, with more slack for noise than the PID controller gets. The PID gains are ignored. The node window is unchanged. |
 | Fixed | `Sizing.Fixed`, or `OPENSEARCH_GO_BULK_MODE=fixed` | The controllers are off: every batch is `FlushBytes`, and a node's window stays where it started (`NodeBytes`, or `MaxMemoryBytes`). |
 
 To soften the PID controller without dropping it, set a gain to `0`: `Ki` and `Kd` at `0` leave a proportional controller. Setting all three to `0` makes every PID step zero, so the size then changes only on a rejection or a failure; to drop the PID controller, use AIMD instead.
@@ -442,13 +442,13 @@ typical := stats.Slowdown.Median    // how much longer than expected the typical
 pushedBack := stats.NumRejections   // only grows: compare with the last reading
 ```
 
-| Reading         | Moves when                                                     | Use it to                                                                                       |
-| --------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `BudgetFill()`  | the indexer holds more than the cluster takes                  | slow down smoothly, well before `Add` blocks                                                    |
-| `NumRejections` | a node answers 429                                             | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
-| `NodeWindow`    | a node answers 429 (down) or takes writes again (up)           | tell congestion from relief: 1 is clear                                                         |
-| `Slowdown`      | a node takes longer for its requests than it needs to          | read slowness directly, before any node rejects anything: 0 is as expected, 1 is twice as long  |
-| `BufferSize`    | the indexer finds a node slow (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches                                   |
+| Reading         | Moves when                                                                                    | Use it to                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `BudgetFill()`  | the indexer holds more than the cluster takes                                                 | slow down smoothly, well before `Add` blocks                                                    |
+| `NumRejections` | a node answers 429                                                                            | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
+| `NodeWindow`    | a node answers 429 (down) or takes writes again (up)                                          | tell congestion from relief: 1 is clear                                                         |
+| `Slowdown`      | a node takes longer for its requests than it needs to                                         | read slowness directly, before any node rejects anything: 0 is as expected, 1 is twice as long  |
+| `BufferSize`    | the indexer finds a node's shards slower than the rest of it (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches                                   |
 
 `NodeWindow`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
 

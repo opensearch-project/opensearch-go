@@ -52,8 +52,9 @@ without being sent to the cluster.
 # Batch sizing
 
 Unless told otherwise, the indexer treats FlushBytes as a ceiling and sizes the buffer of each shard
-by how fast the node serves it: a node that slows past its headroom, by more than its own usual
-variation, is given smaller batches before it rejects anything, by a PID controller. Separately,
+by how fast the node serves it next to the node's other shards: a shard slower than the rest of its
+node, past its headroom and by more than its own usual variation, is given smaller batches by a PID
+controller, so it gives way to the others. A slowdown the whole node shares is its load. Separately,
 each node has a window, the number of bytes the indexer will have out to it at once, which starts
 wide open and is cut when the node answers 429: to half of what was out when the 429 arrived, and
 then it grows back slowly. A buffer that would take a node past its window waits for the requests
