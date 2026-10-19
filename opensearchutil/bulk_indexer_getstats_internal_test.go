@@ -294,7 +294,8 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 
 				require.Greater(t, stats.Slowdown.Max, 0.5, "the outlier is the maximum")
 				require.Less(t, stats.Slowdown.Median, 0.1, "the median is the other four")
-				require.Less(t, stats.BufferSize.Min, stats.BufferSize.Median, "its buffers are the smallest")
+				// A node slowing for all its shards is load, which only a rejection answers.
+				require.InDelta(t, stats.BufferSize.Median, stats.BufferSize.Min, 1e-9, "its buffers keep their size")
 				require.InDelta(t, 1.0, stats.NodeWindow.Min, 1e-9, "a slow node is not a rejecting one")
 				require.Zero(t, stats.NumRejections)
 			},
