@@ -240,6 +240,44 @@ func TestBulkIndexerGetStatsWhileAdding(t *testing.T) {
 	wg.Wait()
 }
 
+// TestBulkIndexerGetStatsTakesNoLock: GetStats is documented to load every value from
+// an atomic, so a caller that polls it to steer its input does not contend with Add
+// for the byte budget's lock. It returns while that lock is held, and still sees what
+// is buffered.
+func TestBulkIndexerGetStatsTakesNoLock(t *testing.T) {
+	t.Parallel()
+
+	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0")
+	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
+	addDoc(t, bi, "idx", "doc", 1) // Buffered, not sent.
+
+	budget := bi.(*bulkIndexer).budget
+	budget.mu.Lock()
+	unlocked := false
+	t.Cleanup(func() {
+		if !unlocked {
+			budget.mu.Unlock()
+		}
+	})
+
+	var stats BulkIndexerStats
+	done := make(chan error, 1)
+	go func() { done <- bi.GetStats(&stats) }()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("GetStats waited for the byte budget's lock")
+	}
+	budget.mu.Unlock()
+	unlocked = true
+
+	require.Positive(t, stats.BufferedBytes, "the buffered item is counted")
+	require.EqualValues(t, budget.inUse(), stats.BufferedBytes+stats.InFlightBytes)
+	require.NoError(t, bi.Close(t.Context()))
+}
+
 func TestBulkIndexerStatsBudgetFill(t *testing.T) {
 	t.Parallel()
 

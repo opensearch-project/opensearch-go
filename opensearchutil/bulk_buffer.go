@@ -391,9 +391,13 @@ func (b *chunkBuffer) String() string {
 type byteBudget struct {
 	limit int64
 
+	// used is the bytes taken. It is written with mu held, so that admission reads a
+	// figure no write is changing, and is read without it by inUse, which GetStats
+	// calls and which must not contend with Add.
+	used atomic.Int64
+
 	mu struct {
 		sync.Mutex
-		used int64
 		// held is what each shard holds; a shard holding nothing has no entry.
 		held    map[shardKey]int64
 		waiters []*budgetWaiter
@@ -530,12 +534,12 @@ func (b *byteBudget) release(key shardKey, n int64) {
 // take and give move n bytes of the shard key in and out of use; they must be
 // called with the lock held.
 func (b *byteBudget) take(key shardKey, n int64) {
-	b.mu.used += n
+	b.used.Add(n)
 	b.mu.held[key] += n
 }
 
 func (b *byteBudget) give(key shardKey, n int64) {
-	b.mu.used -= n
+	b.used.Add(-n)
 	if left := b.mu.held[key] - n; left > 0 {
 		b.mu.held[key] = left
 	} else {
@@ -570,7 +574,7 @@ func (b *byteBudget) admits(key shardKey, n int64) budgetAdmission {
 		return budgetOverShare
 	}
 
-	if b.mu.used+n > b.limit {
+	if b.used.Load()+n > b.limit {
 		return budgetFull
 	}
 
@@ -660,16 +664,13 @@ func (b *byteBudget) waiting() int {
 	return len(b.mu.waiters)
 }
 
-// inUse returns the bytes currently taken.
+// inUse returns the bytes currently taken. It takes no lock.
 func (b *byteBudget) inUse() int64 {
 	if b == nil {
 		return 0
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	return b.mu.used
+	return b.used.Load()
 }
 
 // blockedStats returns how many acquires had to wait and for how long in total.
