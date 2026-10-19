@@ -189,6 +189,18 @@ type BulkItemEvent struct {
 	// DocumentID is the item's id.
 	DocumentID string
 
+	// Bytes is the size of the item's document, as [BulkIndexerItem].Body supplies
+	// it: the length of Body from its start, in bytes. It does not include the
+	// action and metadata line, the newline that ends the document, or the
+	// indexer's own bookkeeping for the item, so it is not the item's share of
+	// [BulkRequestEvent].Bytes. It is 0 for an item with no Body, such as a delete.
+	// For an update it is the whole Body, normally the {"doc": ...} wrapper.
+	//
+	// It is measured when Add takes the item, and only when the indexer has an
+	// Observer, so every item reports the same figure whether it succeeded, was
+	// rejected, or was refused before it was buffered.
+	Bytes int
+
 	// Metadata is the item's [BulkIndexerItem].Metadata, unchanged.
 	Metadata any
 

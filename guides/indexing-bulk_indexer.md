@@ -479,7 +479,9 @@ These readings follow the cluster and do not change what the indexer does; it go
 | `OnRequestEnd`     | after each bulk request returns, including a retry; carries status, duration, and size |
 | `OnRequestFailure` | when a whole request fails, once per attempt; `Scope` is `ScopeRequest`                |
 | `OnItemFailure`    | when one item fails, once per attempt; `Scope` is `ScopeItem`                          |
-| `OnItemSettled`    | once per item, when it reaches its final state                                         |
+| `OnItemSettled`    | once per item, when it reaches its final state; carries the size of its document       |
+
+`OnRequestEnd` reports the size of the whole request body, which is the buffer the indexer built: the action lines and documents of one shard, before the transport compresses it. `OnItemSettled` reports one document: `BulkItemEvent.Bytes` is the length of the item's `Body`, without the action line, and is the same whether the item succeeded, was rejected or was refused. Use it to find an outlier, which the request's average hides. The size on the wire after compression is the transport's, not the indexer's: the transport observer's `OnRequestStart` event carries the body size before compression and `OnRequestResponse` the `Content-Length` after it.
 
 The failure events carry the `FailureKind`, the attempt, and whether the retry policy is retrying. The methods run on the goroutine that sends the request and receive the context of the flush, so keep them quick, do not call back into the indexer, and let a tracing observer link to the flush's span.
 

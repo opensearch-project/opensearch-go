@@ -515,6 +515,10 @@ type BulkIndexerItem struct {
 	// referenced until the item reaches a final state.
 	Metadata any
 
+	// bodyBytes is the length of Body, for BulkItemEvent.Bytes. It is set by Add
+	// when the indexer has an Observer.
+	bodyBytes int64
+
 	OnSuccess func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem)        // Per item
 	OnFailure func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) // Per item
 }
@@ -982,14 +986,21 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 		return bi.addFailed(ctx, err)
 	}
 
-	if bi.canceled() {
-		return bi.refuse(ctx, item, ErrIndexerCanceled)
-	}
-
 	// Every read the indexer makes of the body starts at 0: its size, the
 	// fingerprint, and each attempt to send it.
 	if err := rewindBody(item.Body); err != nil {
 		return bi.refuse(ctx, item, err)
+	}
+
+	// Measured here, before any path that settles the item, so that all of them
+	// report the same size. Nothing else reads it, so without an Observer it is
+	// not measured.
+	if bi.config.Observer != nil {
+		item.bodyBytes = bodyLen(item.Body)
+	}
+
+	if bi.canceled() {
+		return bi.refuse(ctx, item, ErrIndexerCanceled)
 	}
 
 	item, err := bi.ensureDocumentID(ctx, item)

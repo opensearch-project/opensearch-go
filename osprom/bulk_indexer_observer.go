@@ -42,7 +42,11 @@ const (
 //   - Failures: a counter by scope (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
-//   - Items: a counter of items that reached a final state, by outcome.
+//   - Items: a counter of items that reached a final state, by outcome, and a
+//     histogram of their document sizes (bulk_item_size_bytes, in bytes, from
+//     [opensearchutil.BulkItemEvent].Bytes: the document alone, without the action
+//     line). It has no labels, so one series gives the average (sum over count) and,
+//     in the upper buckets, the outliers.
 //
 // Its methods run on the indexer's worker goroutines and only update
 // Prometheus collectors, which do not block.
@@ -55,6 +59,7 @@ type BulkIndexerObserver struct {
 	failures *prometheus.CounterVec // failed attempts by scope, kind, retrying
 	retries  *prometheus.CounterVec // items sent again, by kind
 	items    *prometheus.CounterVec // items settled, by outcome
+	itemSize prometheus.Histogram   // document size of items settled
 }
 
 // NewBulkIndexerObserver returns a BulkIndexerObserver. Call
@@ -101,12 +106,20 @@ func NewBulkIndexerObserver() *BulkIndexerObserver {
 			Name:      "bulk_items_total",
 			Help:      "Items that reached a final state, by outcome.",
 		}, []string{labelOutcome}),
+		itemSize: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
+			Name:      "bulk_item_size_bytes",
+			Help: "Size of the document of each item that reached a final state, in bytes, excluding the action line. " +
+				"Sum over count is the average document size; the upper buckets show outliers.",
+			Buckets: []float64{100, 512, 1 << 10, 4 << 10, 16 << 10, 64 << 10, 256 << 10, 1 << 20, 4 << 20, 10 << 20},
+		}),
 	}
 }
 
 // Register adds the observer's collectors to reg.
 func (o *BulkIndexerObserver) Register(reg prometheus.Registerer) error {
-	for _, c := range []prometheus.Collector{o.requests, o.duration, o.bytes, o.failures, o.retries, o.items} {
+	for _, c := range []prometheus.Collector{o.requests, o.duration, o.bytes, o.failures, o.retries, o.items, o.itemSize} {
 		if err := reg.Register(c); err != nil {
 			return err
 		}
@@ -149,4 +162,5 @@ func (o *BulkIndexerObserver) OnItemSettled(_ context.Context, e opensearchutil.
 		outcome = outcomeFailed
 	}
 	o.items.WithLabelValues(outcome).Inc()
+	o.itemSize.Observe(float64(e.Bytes))
 }

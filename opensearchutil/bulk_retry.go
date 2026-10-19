@@ -287,6 +287,7 @@ func (w *worker) observeSettled(
 		Index:      index,
 		Action:     item.Action,
 		DocumentID: item.DocumentID,
+		Bytes:      int(item.bodyBytes),
 		Metadata:   item.Metadata,
 		Node:       w.node.Name,
 		Attempts:   attempts,

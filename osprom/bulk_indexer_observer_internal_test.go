@@ -141,3 +141,41 @@ func TestBulkIndexerObserverWithIndexer(t *testing.T) {
 	require.InDelta(t, 1, testutil.ToFloat64(o.items.WithLabelValues("succeeded")), 0)
 	require.InDelta(t, 0, testutil.ToFloat64(o.items.WithLabelValues("failed")), 0)
 }
+
+// TestBulkIndexerObserverItemSize: every settled item adds its document size to one
+// histogram, whether it was accepted or failed, with no labels and buckets that span
+// a small document to one large enough to flag.
+func TestBulkIndexerObserverItemSize(t *testing.T) {
+	t.Parallel()
+
+	reg := prometheus.NewRegistry()
+	o := NewBulkIndexerObserver()
+	require.NoError(t, o.Register(reg))
+
+	sizes := []int{100, 2048, 5 << 20, 700}
+	for i, size := range sizes {
+		o.OnItemSettled(t.Context(), opensearchutil.BulkItemEvent{Bytes: size, Failed: i == len(sizes)-1})
+	}
+
+	families, err := reg.Gather()
+	require.NoError(t, err)
+
+	var found bool
+	for _, family := range families {
+		if family.GetName() != metricNamespace+"_"+metricSubsystem+"_bulk_item_size_bytes" {
+			continue
+		}
+		found = true
+
+		require.Len(t, family.GetMetric(), 1, "one series, whatever the index, id or outcome")
+		h := family.GetMetric()[0].GetHistogram()
+		require.Empty(t, family.GetMetric()[0].GetLabel(), "no labels")
+		require.EqualValues(t, len(sizes), h.GetSampleCount())
+		require.InDelta(t, float64(100+2048+5<<20+700), h.GetSampleSum(), 0)
+
+		bounds := h.GetBucket()
+		require.LessOrEqual(t, bounds[0].GetUpperBound(), 100.0, "the first bucket holds a 100 B document")
+		require.GreaterOrEqual(t, bounds[len(bounds)-1].GetUpperBound(), float64(10<<20), "and the last holds 10 MiB")
+	}
+	require.True(t, found, "bulk_item_size_bytes is registered")
+}
