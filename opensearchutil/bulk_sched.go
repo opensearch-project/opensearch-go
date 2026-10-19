@@ -44,7 +44,9 @@ type shardKey struct {
 
 // unplacedKey is the key of the documents that belong to no shard: they share each
 // node's sink, and the job's memory counts them as one shard.
-var unplacedKey = shardKey{shard: -1}
+func unplacedKey() shardKey {
+	return shardKey{shard: -1}
+}
 
 // buffer is the documents bound for one bulk request, which carries the
 // documents of one shard (or, for documents that belong to no shard, of one node)
@@ -251,7 +253,7 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 
 		bufferFrac: s.bi.sizing.initial / s.bi.sizing.max,
 	}
-	ns.sink = &shardState{key: unplacedKey, sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
+	ns.sink = &shardState{key: unplacedKey(), sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
 
 	return ns
@@ -443,18 +445,26 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	s.pump()
 }
 
-// sealFullest seals the fullest open buffer of any node, if there is one.
+// sealFullest seals the fullest open buffer of any node, if there is one: of those
+// that can go out now if any can, since a buffer whose shard has a request out
+// would only queue, and frees nothing until that request is answered.
 func (s *scheduler) sealFullest(trigger flushTrigger) {
-	var fullest *buffer
+	var fullest, fullestReady *buffer
 
 	for _, n := range s.nodes {
 		for b := range n.opens {
 			if fullest == nil || b.bytes > fullest.bytes {
 				fullest = b
 			}
+			if !b.shard.blocked() && (fullestReady == nil || b.bytes > fullestReady.bytes) {
+				fullestReady = b
+			}
 		}
 	}
 
+	if fullestReady != nil {
+		fullest = fullestReady
+	}
 	if fullest != nil {
 		s.seal(fullest, trigger, s.bi.config.Context)
 	}
@@ -583,10 +593,10 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 		s.sealIfFull(ss.open)
 	}
 
-	// If Add is still waiting for memory this request did not free enough, send
-	// what the waiting shards have collected, or the next fullest buffer.
-	if keys := s.bi.budget.waitingKeys(); len(keys) > 0 {
-		s.relieveShards(keys)
+	// If Add is still waiting for memory this request did not free enough, send the
+	// next fullest buffer.
+	if s.bi.budget.waiting() > 0 {
+		s.sealFullest(flushPressure)
 	}
 
 	s.pump()
@@ -600,54 +610,14 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	}
 }
 
-// relieve runs when an Add starts waiting for memory for the shard key. The job's
-// memory comes back as requests finish, so a request is started now in place of
-// waiting for a size or an interval that may be far off: the waiting shard's own
-// buffer when it can go out, which is the request that gives the waiter room, or
-// failing that the fullest buffer of any shard.
-func (s *scheduler) relieve(key shardKey) {
+// relieve runs when an Add starts waiting for memory. The job's memory comes back
+// as requests finish, so the fullest buffer is sent now to start one, in place of
+// waiting for a size or an interval that may be far off.
+func (s *scheduler) relieve() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.relieveShards([]shardKey{key})
-}
-
-// relieveShards seals the open buffer of each of the shards that can send one now,
-// or the fullest open buffer when none of them can. It must be called with the
-// lock held.
-func (s *scheduler) relieveShards(keys []shardKey) {
-	sealed := false
-	for _, key := range keys {
-		if b := s.openOf(key); b != nil && !b.shard.blocked() {
-			s.seal(b, flushPressure, s.bi.config.Context)
-			sealed = true
-		}
-	}
-
-	if !sealed {
-		s.sealFullest(flushPressure)
-	}
-}
-
-// openOf returns the open buffer of the shard key: the shard's own, or for the
-// documents that belong to no shard, the fullest open sink of any node.
-func (s *scheduler) openOf(key shardKey) *buffer {
-	if key != unplacedKey {
-		if ss := s.shards[key]; ss != nil {
-			return ss.open
-		}
-
-		return nil
-	}
-
-	var fullest *buffer
-	for _, ns := range s.nodes {
-		if b := ns.sink.open; b != nil && (fullest == nil || b.bytes > fullest.bytes) {
-			fullest = b
-		}
-	}
-
-	return fullest
+	s.sealFullest(flushPressure)
 }
 
 // drain seals every open buffer and waits for every buffer that exists to

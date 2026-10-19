@@ -415,9 +415,8 @@ type byteBudget struct {
 	blockedTime atomic.Int64 // Nanoseconds.
 }
 
-// budgetBlockFunc is called each time a byteBudget acquire begins to wait, with
-// the shard the acquire is for.
-type budgetBlockFunc func(key shardKey)
+// budgetBlockFunc is called each time a byteBudget acquire begins to wait.
+type budgetBlockFunc func()
 
 type budgetWaiter struct {
 	key     shardKey
@@ -462,7 +461,7 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, key shar
 
 	b.blocked.Add(1)
 	if b.onBlock != nil {
-		b.onBlock(key)
+		b.onBlock()
 	}
 
 	start := b.now()
@@ -646,25 +645,6 @@ func (b *byteBudget) grant() {
 		// wanting room, so the waiters are looked at again from the oldest.
 		i, held, full = 0, nil, false
 	}
-}
-
-// waitingKeys returns the shards that have an acquire waiting, oldest first.
-func (b *byteBudget) waitingKeys() []shardKey {
-	if b == nil {
-		return nil
-	}
-
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	var keys []shardKey
-	for _, w := range b.mu.waiters {
-		if !slices.Contains(keys, w.key) {
-			keys = append(keys, w.key)
-		}
-	}
-
-	return keys
 }
 
 // waiting returns the number of acquires waiting for room.

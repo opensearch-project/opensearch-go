@@ -387,7 +387,7 @@ var testBudgetKey = shardKey{index: "idx", shard: 0}
 func budgetWith() (*byteBudget, <-chan struct{}) {
 	b := newByteBudget(testBudgetLimit)
 	blocked := make(chan struct{}, 8)
-	b.onBlock = func(shardKey) { blocked <- struct{}{} }
+	b.onBlock = func() { blocked <- struct{}{} }
 
 	return b, blocked
 }

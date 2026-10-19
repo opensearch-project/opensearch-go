@@ -917,7 +917,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 	size := estimateItemBytes(item)
 	held := itemHeldBytes(item, size)
 
-	budgetKey := unplacedKey
+	budgetKey := unplacedKey()
 	if key != nil {
 		budgetKey = *key
 	}
