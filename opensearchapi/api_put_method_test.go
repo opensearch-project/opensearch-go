@@ -7,7 +7,6 @@
 package opensearchapi_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,15 +22,15 @@ import (
 // TestClientSendsPutForCreateOrReplace checks the HTTP method the client
 // actually sends for create-or-replace operations.
 func TestClientSendsPutForCreateOrReplace(t *testing.T) {
-	var (
-		mu   sync.Mutex
-		seen string
-	)
+	var seen struct {
+		sync.Mutex
+		method string
+	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet { // skip the client's product-check requests
-			mu.Lock()
-			seen = r.Method
-			mu.Unlock()
+			seen.Lock()
+			seen.method = r.Method
+			seen.Unlock()
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"acknowledged":true}`))
@@ -40,7 +39,8 @@ func TestClientSendsPutForCreateOrReplace(t *testing.T) {
 
 	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
 	require.NoError(t, err)
-	ctx := context.Background()
+	t.Cleanup(func() { _ = client.Close() })
+	ctx := t.Context()
 	body := func() *strings.Reader { return strings.NewReader("{}") }
 
 	tests := []struct {
@@ -71,13 +71,13 @@ func TestClientSendsPutForCreateOrReplace(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mu.Lock()
-			seen = ""
-			mu.Unlock()
+			seen.Lock()
+			seen.method = ""
+			seen.Unlock()
 			_ = tt.call() // response shape is irrelevant; only the method matters
-			mu.Lock()
-			defer mu.Unlock()
-			require.Equal(t, tt.want, seen)
+			seen.Lock()
+			defer seen.Unlock()
+			require.Equal(t, tt.want, seen.method)
 		})
 	}
 }

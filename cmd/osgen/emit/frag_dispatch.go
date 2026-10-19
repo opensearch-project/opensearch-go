@@ -875,7 +875,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		err  error
 	)
 {{- if $op.PutOnlyPathFields}}
-	method := http.MethodPost
+	method := {{methodConst (primaryMethod $op)}}
 	if {{putCondition $op}} {
 		method = http.MethodPut
 	}

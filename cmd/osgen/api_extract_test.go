@@ -1120,3 +1120,98 @@ func TestClassifyRespShape(t *testing.T) {
 		})
 	}
 }
+
+func TestResolvePut(t *testing.T) {
+	t.Parallel()
+
+	type variant struct{ method, url string }
+	pathParams := func(url string) openapi3.Parameters {
+		matches := pathParamRE.FindAllStringSubmatch(url, -1)
+		params := make(openapi3.Parameters, 0, len(matches))
+		for _, m := range matches {
+			params = append(params, &openapi3.ParameterRef{Value: openapi3.NewPathParameter(m[1])})
+		}
+		return params
+	}
+
+	tests := []struct {
+		name          string
+		variants      []variant
+		methods       []string
+		isNDJSON      bool
+		wantPreferPut bool
+		wantConds     []ir.PathCaseCondition
+		wantErr       bool
+	}{
+		{
+			name:          "every path allows PUT",
+			variants:      []variant{{"POST", "/_scripts/{id}"}, {"PUT", "/_scripts/{id}"}},
+			methods:       []string{http.MethodPost, http.MethodPut},
+			wantPreferPut: true,
+		},
+		{
+			name: "PUT only on paths with a distinguishing field",
+			variants: []variant{
+				{"POST", "/{index}/_doc"},
+				{"POST", "/{index}/_doc/{id}"},
+				{"PUT", "/{index}/_doc/{id}"},
+			},
+			methods:   []string{http.MethodPost, http.MethodPut},
+			wantConds: []ir.PathCaseCondition{{Field: "ID"}},
+		},
+		{
+			name: "no field distinguishes the PUT paths",
+			variants: []variant{
+				{"POST", "/{index}/_a"},
+				{"PUT", "/{index}/_b"},
+			},
+			methods: []string{http.MethodPost, http.MethodPut},
+			wantErr: true,
+		},
+		{
+			name:     "NDJSON keeps spec order",
+			variants: []variant{{"POST", "/_bulk"}, {"PUT", "/_bulk"}},
+			methods:  []string{http.MethodPost, http.MethodPut},
+			isNDJSON: true,
+		},
+		{
+			name:     "GET alternative keeps spec order",
+			variants: []variant{{"GET", "/_x"}, {"POST", "/_x"}, {"PUT", "/_x"}},
+			methods:  []string{http.MethodGet, http.MethodPost, http.MethodPut},
+		},
+		{
+			name:     "POST only",
+			variants: []variant{{"POST", "/_x"}},
+			methods:  []string{http.MethodPost},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ops := make([]struct {
+				method string
+				op     *openapi3.Operation
+				path   *openapi3.PathItem
+				url    string
+			}, 0, len(tt.variants))
+			for _, v := range tt.variants {
+				ops = append(ops, struct {
+					method string
+					op     *openapi3.Operation
+					path   *openapi3.PathItem
+					url    string
+				}{v.method, &openapi3.Operation{Parameters: pathParams(v.url)}, &openapi3.PathItem{}, v.url})
+			}
+
+			preferPut, conds, err := resolvePut("test.op", ops, tt.methods, tt.isNDJSON)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPreferPut, preferPut)
+			require.Equal(t, tt.wantConds, conds)
+		})
+	}
+}

@@ -14,6 +14,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Send `PUT` instead of `POST` for operations where the spec allows both, as v4 did. The spec lists methods alphabetically, so the generator picked `POST`, which is rejected with a 404 in OpenSearch Serverless. `cmd/osgen` now prefers `PUT`, and `Index` selects it from the `ID` path field. This affects Index, Create, Indices.PutMapping, Indices.Clone/Shrink/Split, Snapshot.Create, Snapshot.CreateRepository, PutScript, and the three template-creation calls (Cluster.PutComponentTemplate, Indices.PutIndexTemplate and Indices.PutTemplate). NDJSON `Bulk` operations are unchanged ([#1218](https://github.com/opensearch-project/opensearch-go/pull/1218))
+
 ### Security
 
 ### Dependencies
@@ -41,7 +43,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `cmd/osapilint`: keep the fields a struct promotes through an embedded type alias when generating a surface, and regenerate the v5 surfaces from v5.0.2. v5 moved `Pretty`, `Human`, `ErrorTrace`, `FilterPath`, the cat `H` and `V`, and the timeout params into the aliased `DebugParams` and `TimeoutParams`, and the generator dropped them, so the v5 surface was missing fields that exist. The v4 -> v5 run aborted with an `osapilint bug` error on v4 code that used one of these on a Params type that keeps its name (for example `SearchParams{Pretty: true}`) or `H` or `V` on a cat params type. The run now completes. A selector such as `p.Pretty = true` compiles on v5. A composite-literal key does not compile below Go 1.27 and has to move into `DebugParams: opensearchapi.DebugParams{...}` or `TimeoutParams: opensearchapi.TimeoutParams{...}`, which the v4 -> v5 follow-up line now says
 
 - Fix godoc and guide defaults that disagreed with the code: `MaxRetries` defaults to 6, not 3; `HealthCheckTimeout` to 5s, not 3s; `HealthCheckMaxRetries` to 6, not 3; and `HealthCheckJitter` to 0.1, not 0.2. A negative `HealthCheckMaxRetries` disables health check retries, leaving one attempt, rather than disabling health checks ([#1211](https://github.com/opensearch-project/opensearch-go/pull/1211))
-- Send `PUT` instead of `POST` for operations where the spec allows both, as v4 did: The spec lists methods alphabetically, so the generator picked `POST`, which is rejected with a 404 in Opensearch Serverless. `cmd/osgen` now prefers `PUT`, and `Index` selects it from the `ID` path field. This affects Index, Create, Indices.PutMapping, Indices.Clone/Shrink/Split,Snapshot.Create, Snapshot.CreateRepository, PutScript, and the three template-creation calls (Cluster.PutComponentTemplate, Indices.PutIndexTemplate and Indices.PutTemplate). NDJSON `Bulk` operations are unchanged.
 
 ## [5.0.2]
 

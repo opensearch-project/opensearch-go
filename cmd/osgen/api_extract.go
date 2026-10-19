@@ -550,7 +550,7 @@ func resolvePut(group string, ops []struct {
 		}
 	}
 	if len(putOnlyParams) == 0 {
-		return false, nil, fmt.Errorf("%s: some paths allow PUT and others are POST-only, but no path field distinguishes them", group)
+		return false, nil, fmt.Errorf("%q: some paths allow PUT and others are POST-only, but no path field distinguishes them", group)
 	}
 
 	conditions := make([]ir.PathCaseCondition, 0, len(putOnlyParams))
