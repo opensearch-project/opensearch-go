@@ -53,14 +53,9 @@ type apiOperation struct {
 	TypePrefix      string
 	PathBuilderName string
 
-	// HTTPMethods lists all valid HTTP methods for this operation. The first
-	// element is always the primary method (from the primary/shortest path
-	// variant in the spec); remaining methods are sorted alphabetically.
-	// For [GET, POST] operations with a body, POST is used when Body != nil.
-	HTTPMethods []string
-
-	// PreferPut and PutOnlyPathFields decide between POST and PUT; see resolvePut.
-	PreferPut         bool
+	// HTTPMethods and PutOnlyPathFields carry the same contract as their
+	// ir.Operation counterparts; resolvePut sets the PUT-related parts.
+	HTTPMethods       []string
 	PutOnlyPathFields []ir.PathCaseCondition
 
 	PrimaryPath string // canonical URL path pattern (e.g. "/{index}/_refresh")
@@ -364,7 +359,7 @@ func buildAPIOperation(group string, ops []struct {
 	}
 
 	var err error
-	if apiOp.PreferPut, apiOp.PutOnlyPathFields, err = resolvePut(group, ops, apiOp.HTTPMethods, apiOp.IsNDJSON); err != nil {
+	if apiOp.HTTPMethods, apiOp.PutOnlyPathFields, err = resolvePut(group, ops, apiOp.HTTPMethods, apiOp.IsNDJSON); err != nil {
 		return apiOperation{}, nil, err
 	}
 
@@ -500,21 +495,22 @@ func buildAPIOperation(group string, ops []struct {
 // create-or-replace operations. NDJSON bulk operations and operations that also
 // allow GET keep the spec's order.
 //
-// When every path variant allows PUT, preferPut is true. When only some do
-// (e.g. index: PUT on /{index}/_doc/{id}, POST-only on /{index}/_doc), the
-// client sends PUT when all path fields carried only by the PUT variants are
-// set, returned as the second value. Generation fails if no such field exists,
-// rather than guessing.
+// When every path variant allows PUT, it returns methods with PUT moved to the
+// front, so PUT becomes the primary method. When only some do (e.g. index: PUT
+// on /{index}/_doc/{id}, POST-only on /{index}/_doc), methods is returned
+// unchanged together with the path fields carried only by the PUT variants;
+// the client sends PUT when all of them are set. Generation fails if no such
+// field exists, rather than guessing.
 func resolvePut(group string, ops []struct {
 	method string
 	op     *openapi3.Operation
 	path   *openapi3.PathItem
 	url    string
 }, methods []string, isNDJSON bool,
-) (bool, []ir.PathCaseCondition, error) {
+) ([]string, []ir.PathCaseCondition, error) {
 	if isNDJSON || !slices.Contains(methods, http.MethodPut) ||
 		!slices.Contains(methods, http.MethodPost) || slices.Contains(methods, http.MethodGet) {
-		return false, nil, nil
+		return methods, nil, nil
 	}
 
 	// Split the URL variants into those that allow PUT and those that don't,
@@ -523,12 +519,13 @@ func resolvePut(group string, ops []struct {
 	allowsPut := make(set[string])
 	for _, o := range ops {
 		paramsByURL[o.url] = extractPathParams(o.path, o.op, o.url)
-		if strings.EqualFold(o.method, http.MethodPut) {
+		if strings.ToUpper(o.method) == http.MethodPut {
 			allowsPut.add(o.url)
 		}
 	}
 	if len(allowsPut) == len(paramsByURL) {
-		return true, nil, nil
+		rest := slices.DeleteFunc(slices.Clone(methods), func(m string) bool { return m == http.MethodPut })
+		return append([]string{http.MethodPut}, rest...), nil, nil
 	}
 
 	// A parameter tells the variants apart if every PUT variant has it and
@@ -550,14 +547,14 @@ func resolvePut(group string, ops []struct {
 		}
 	}
 	if len(putOnlyParams) == 0 {
-		return false, nil, fmt.Errorf("%q: some paths allow PUT and others are POST-only, but no path field distinguishes them", group)
+		return nil, nil, fmt.Errorf("%q: some paths allow PUT and others are POST-only, but no path field distinguishes them", group)
 	}
 
 	conditions := make([]ir.PathCaseCondition, 0, len(putOnlyParams))
 	for _, p := range putOnlyParams {
 		conditions = append(conditions, ir.PathCaseCondition{Field: pathFieldNameList(p.name, p.isList), IsList: p.isList})
 	}
-	return false, conditions, nil
+	return methods, conditions, nil
 }
 
 type pathParam struct {

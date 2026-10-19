@@ -27,8 +27,9 @@ type PluginClientOp struct {
 	TypePrefix        string
 	IsPointerReq      bool
 	IsNoBody          bool
-	HTTPMethod        string           // Go expression for the primary HTTP method (e.g. "http.MethodGet")
-	SubClient         *PluginSubClient // nil for root Client ops; set for sub-client dispatch
+	HTTPMethod        string                 // Go expression for the primary HTTP method (e.g. "http.MethodGet")
+	PutOnlyPathFields []ir.PathCaseCondition // must be empty: plugin dispatch has no method switch
+	SubClient         *PluginSubClient       // nil for root Client ops; set for sub-client dispatch
 	Group             string
 	Description       string
 	HTTPMethods       []string
@@ -66,6 +67,12 @@ func (f *PluginClientFragment) Body() (string, error) {
 	// Split ops into root-level and sub-client-dispatched.
 	var rootOps, subClientOps []PluginClientOp
 	for _, op := range f.Ops {
+		// Plugin dispatch has no method switch, so fail rather than send the
+		// primary method to every path; add the switch to the plugin
+		// templates when a plugin op needs it.
+		if len(op.PutOnlyPathFields) > 0 {
+			return "", fmt.Errorf("%q: plugin dispatch cannot switch to PUT on path fields", op.Group)
+		}
 		if op.SubClient == nil {
 			rootOps = append(rootOps, op)
 		} else {
@@ -382,6 +389,7 @@ func NewPluginClientFile(outDir, pkg string, ops []*ir.Operation, byGroup map[st
 			IsPointerReq:      op.IsPointerReq,
 			IsNoBody:          op.IsNoBody,
 			HTTPMethod:        HTTPMethodConst(PrimaryMethod(op)),
+			PutOnlyPathFields: op.PutOnlyPathFields,
 			SubClient:         byGroup[op.Group],
 			Group:             op.Group,
 			Description:       op.Description,

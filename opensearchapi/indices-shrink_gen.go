@@ -29,7 +29,7 @@ import (
 //
 // Path: /{index}/_shrink/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -193,7 +193,7 @@ type IndicesShrinkBody struct {
 //
 // Path: /{index}/_shrink/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

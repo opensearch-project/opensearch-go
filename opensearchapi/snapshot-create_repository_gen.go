@@ -28,7 +28,7 @@ import (
 //
 // Path: /_snapshot/{repository}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -158,7 +158,7 @@ type SnapshotCreateRepositoryBody struct {
 //
 // Path: /_snapshot/{repository}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

@@ -28,7 +28,7 @@ import (
 //
 // Path: /_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -183,7 +183,7 @@ type IndicesPutTemplateBody struct {
 //
 // Path: /_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

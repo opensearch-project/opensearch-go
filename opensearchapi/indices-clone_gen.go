@@ -29,7 +29,7 @@ import (
 //
 // Path: /{index}/_clone/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -183,7 +183,7 @@ type IndicesCloneBody struct {
 //
 // Path: /{index}/_clone/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

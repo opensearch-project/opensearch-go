@@ -30,7 +30,7 @@ import (
 //
 // Path: /{index}/_mapping
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -347,7 +347,7 @@ func (u IndicesPutMappingBodyDynamicTemplates) MarshalJSON() ([]byte, error) {
 //
 // Path: /{index}/_mapping
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

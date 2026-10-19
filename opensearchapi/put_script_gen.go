@@ -27,7 +27,7 @@ import (
 //
 // Path: /_scripts/{id}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -158,7 +158,7 @@ type PutScriptBody struct {
 //
 // Path: /_scripts/{id}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

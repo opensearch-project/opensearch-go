@@ -68,6 +68,38 @@ func TestClientSendsPutForCreateOrReplace(t *testing.T) {
 			_, err := client.PutScript(ctx, opensearchapi.PutScriptReq{ID: "s", BodyReader: body()})
 			return err
 		}, http.MethodPut},
+		{"clone", func() error {
+			_, err := client.Indices.Clone(ctx, opensearchapi.IndicesCloneReq{Index: "i", Target: "t", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"shrink", func() error {
+			_, err := client.Indices.Shrink(ctx, opensearchapi.IndicesShrinkReq{Index: "i", Target: "t", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"split", func() error {
+			_, err := client.Indices.Split(ctx, opensearchapi.IndicesSplitReq{Index: "i", Target: "t", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"snapshot create", func() error {
+			_, err := client.Snapshot.Create(ctx, opensearchapi.SnapshotCreateReq{Repository: "r", Snapshot: "s", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"snapshot create repository", func() error {
+			_, err := client.Snapshot.CreateRepository(ctx, opensearchapi.SnapshotCreateRepositoryReq{Repository: "r", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"put component template", func() error {
+			_, err := client.Cluster.PutComponentTemplate(ctx, opensearchapi.ClusterPutComponentTemplateReq{Name: "n", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"put index template", func() error {
+			_, err := client.Indices.PutIndexTemplate(ctx, opensearchapi.IndicesPutIndexTemplateReq{Name: "n", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"put template", func() error {
+			_, err := client.Indices.PutTemplate(ctx, opensearchapi.IndicesPutTemplateReq{Name: "n", BodyReader: body()})
+			return err
+		}, http.MethodPut},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

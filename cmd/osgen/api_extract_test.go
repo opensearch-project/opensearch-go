@@ -1135,19 +1135,19 @@ func TestResolvePut(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		variants      []variant
-		methods       []string
-		isNDJSON      bool
-		wantPreferPut bool
-		wantConds     []ir.PathCaseCondition
-		wantErr       bool
+		name        string
+		variants    []variant
+		methods     []string
+		isNDJSON    bool
+		wantMethods []string
+		wantConds   []ir.PathCaseCondition
+		wantErr     bool
 	}{
 		{
-			name:          "every path allows PUT",
-			variants:      []variant{{"POST", "/_scripts/{id}"}, {"PUT", "/_scripts/{id}"}},
-			methods:       []string{http.MethodPost, http.MethodPut},
-			wantPreferPut: true,
+			name:        "every path allows PUT",
+			variants:    []variant{{"POST", "/_scripts/{id}"}, {"PUT", "/_scripts/{id}"}},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodPut, http.MethodPost},
 		},
 		{
 			name: "PUT only on paths with a distinguishing field",
@@ -1156,8 +1156,9 @@ func TestResolvePut(t *testing.T) {
 				{"POST", "/{index}/_doc/{id}"},
 				{"PUT", "/{index}/_doc/{id}"},
 			},
-			methods:   []string{http.MethodPost, http.MethodPut},
-			wantConds: []ir.PathCaseCondition{{Field: "ID"}},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+			wantConds:   []ir.PathCaseCondition{{Field: "ID"}},
 		},
 		{
 			name: "no field distinguishes the PUT paths",
@@ -1169,20 +1170,23 @@ func TestResolvePut(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:     "NDJSON keeps spec order",
-			variants: []variant{{"POST", "/_bulk"}, {"PUT", "/_bulk"}},
-			methods:  []string{http.MethodPost, http.MethodPut},
-			isNDJSON: true,
+			name:        "NDJSON keeps spec order",
+			variants:    []variant{{"POST", "/_bulk"}, {"PUT", "/_bulk"}},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			isNDJSON:    true,
+			wantMethods: []string{http.MethodPost, http.MethodPut},
 		},
 		{
-			name:     "GET alternative keeps spec order",
-			variants: []variant{{"GET", "/_x"}, {"POST", "/_x"}, {"PUT", "/_x"}},
-			methods:  []string{http.MethodGet, http.MethodPost, http.MethodPut},
+			name:        "GET alternative keeps spec order",
+			variants:    []variant{{"GET", "/_x"}, {"POST", "/_x"}, {"PUT", "/_x"}},
+			methods:     []string{http.MethodGet, http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut},
 		},
 		{
-			name:     "POST only",
-			variants: []variant{{"POST", "/_x"}},
-			methods:  []string{http.MethodPost},
+			name:        "POST only",
+			variants:    []variant{{"POST", "/_x"}},
+			methods:     []string{http.MethodPost},
+			wantMethods: []string{http.MethodPost},
 		},
 	}
 	for _, tt := range tests {
@@ -1204,13 +1208,13 @@ func TestResolvePut(t *testing.T) {
 				}{v.method, &openapi3.Operation{Parameters: pathParams(v.url)}, &openapi3.PathItem{}, v.url})
 			}
 
-			preferPut, conds, err := resolvePut("test.op", ops, tt.methods, tt.isNDJSON)
+			methods, conds, err := resolvePut("test.op", ops, tt.methods, tt.isNDJSON)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.wantPreferPut, preferPut)
+			require.Equal(t, tt.wantMethods, methods)
 			require.Equal(t, tt.wantConds, conds)
 		})
 	}

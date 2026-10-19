@@ -28,7 +28,7 @@ import (
 //
 // Path: /_component_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -168,7 +168,7 @@ type ClusterPutComponentTemplateBody struct {
 //
 // Path: /_component_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //

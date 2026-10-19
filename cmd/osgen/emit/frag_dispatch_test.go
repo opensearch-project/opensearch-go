@@ -8,6 +8,7 @@ package emit_test
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -231,6 +232,41 @@ func TestDispatchFragment_Body(t *testing.T) {
 			contains: []string{"data.PartialFailures(c.apiClient.errorMask())"},
 		},
 		{
+			name: "PUT-only string path field switches the method",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:             "index",
+					TypePrefix:        "Index",
+					HTTPMethods:       []string{http.MethodPost, http.MethodPut},
+					PutOnlyPathFields: []ir.PathCaseCondition{{Field: "ID"}},
+					PrimaryPath:       "/{index}/_doc",
+					Response:          newRespType("Index"),
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "DocumentClient", MethodName: "Index", TopLevel: false},
+					},
+				}
+			},
+			contains: []string{"method := http.MethodPost", "if req.ID != \"\" {\n\t\tmethod = http.MethodPut"},
+		},
+		{
+			name: "PUT-only list path field is tested like hasNonEmpty",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:             "test.op",
+					TypePrefix:        "TestOp",
+					HTTPMethods:       []string{http.MethodPost, http.MethodPut},
+					PutOnlyPathFields: []ir.PathCaseCondition{{Field: "Indices", IsList: true}},
+					PrimaryPath:       "/_test",
+					Response:          newRespType("TestOp"),
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "TestOp", TopLevel: true},
+					},
+				}
+			},
+			contains:    []string{`if slices.ContainsFunc(req.Indices, func(s string) bool { return s != "" }) {`},
+			notContains: []string{"len(req.Indices)"},
+		},
+		{
 			name: "msearch group wraps slice in MSearchErrors when 2+ wrappers fire",
 			buildOp: func(reg *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
@@ -384,6 +420,34 @@ func TestDispatchFragment_Imports(t *testing.T) {
 				}
 			}
 			require.Equal(t, tt.wantErrmaskImp, found)
+		})
+	}
+}
+
+func TestDispatchFragment_ImportsSlicesForListPutSwitch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		conds []ir.PathCaseCondition
+		want  bool
+	}{
+		{name: "list field", conds: []ir.PathCaseCondition{{Field: "Indices", IsList: true}}, want: true},
+		{name: "string field", conds: []ir.PathCaseCondition{{Field: "ID"}}, want: false},
+		{name: "no switch", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			op := &ir.Operation{
+				Group:             "test.op",
+				TypePrefix:        "TestOp",
+				HTTPMethods:       []string{http.MethodPost, http.MethodPut},
+				PutOnlyPathFields: tt.conds,
+				DispatchRoutes:    []ir.DispatchRoute{{ReceiverType: "Client", MethodName: "TestOp", TopLevel: true}},
+			}
+			imps := (&emit.DispatchFragment{Op: op, Registry: newRegistry()}).Imports()
+			require.Equal(t, tt.want, slices.ContainsFunc(imps, func(i emit.Import) bool { return i.Path == "slices" }))
 		})
 	}
 }
