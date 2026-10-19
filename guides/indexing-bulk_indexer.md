@@ -64,6 +64,8 @@ An item travels through it like this:
 
 So `Flush` returning means every item you added has reached its final callback. It does not mean every item succeeded; the callbacks, or `OnError` for an item with no `OnFailure`, say which did not.
 
+> **Known limitation:** every shard draws on the one `MaxMemoryBytes` pool, and a shard whose requests are not being answered keeps the bytes it holds. A shard that stalls, because its documents are slow to index or its primary is busy, can come to hold the whole pool, and `Add` then waits for every shard until the stalled one is answered.
+
 ## Basic use
 
 ```go
@@ -277,10 +279,12 @@ Together they aim to keep a node busy without queueing it into rejections, and s
 
 #### The shard-buffer controller
 
-Its one input is how long a request took, as a service rate: bytes sent per second of time on the node, which is the round trip less the network distance. A request carries one shard, so this is that shard's own speed. It compares the rate with the best rate seen recently.
+Its input is how long each request spent on the node: the round trip less the network distance. A request carries one shard, so this is that shard's own speed. The controller compares that time with what the node's best recent self would need for a request of the same size: a fixed cost per request, plus the bytes at the best service rate seen recently. The fixed cost is learned from small requests, where it is a visible part of the time. Without it, a small request would be judged against the throughput of large ones, which it cannot reach on a healthy node. The comparison is smoothed over the last several flushes, because one flush's time is mostly noise: queueing, a garbage collection, a merge.
 
-- While the rate stays within `Headroom` of that best, the buffer grows by `StepBytes` per flush.
+- While the smoothed time stays within `Headroom` of the expected time, the buffer grows by `StepBytes` per flush.
 - When the node slows by more than that, the buffer is cut in proportion to how far past `Headroom` it is, long before the node starts rejecting, so that bulk traffic gives way to the other requests the node is serving.
+- `Headroom` is widened by the signal's own noise. A node whose times vary must slow by more than its usual variation before the slowdown counts, and a steady node is held to `Headroom` alone.
+- The memory of the best rate fades slowly while requests are large, and faster while they are small. A node that is slow even for small requests was not made slow by them, so the buffer can climb back on a node that has changed.
 
 It reads a request only if the node indexed at least one of its items. It does not read the duration of anything else, because none of it measures how fast the node indexes: a 429, which a node answers at once because it did no work; a request that failed without an answer, or with a 5xx or a 4xx that says nothing about this shard; and a request in which every item failed, such as a shard whose primary is not active, which fails only after waiting out the bulk `timeout`. A controller that took those for a slow or fast flush would shrink or grow the buffer for a reason the buffer cannot fix. Items refused for their own sake, a version conflict or a mapping error, do not stop a request being read, as long as some other item was indexed.
 
@@ -290,7 +294,7 @@ How hard each step is comes from a PID controller on the node's normalized slowd
 
 #### The node-window controller
 
-The window is a number of bytes: the sum of the sizes of the requests the indexer has sent to a node and not yet had answered. A sealed buffer that would take the node past the window waits for requests to come back, and goes when it fits. When nothing is out to the node, one buffer is sent whatever its size, so a node is never starved. A waiting buffer still counts against `MaxMemoryBytes`, which is what makes `Add` wait. The window is about how much is in flight, not about how large any buffer is, and it is separate from how many requests are out at once, which the client's transport limits.
+The window is a number of bytes: the sum of the sizes of the requests the indexer has sent to a node and not yet had answered. A sealed buffer that would take the node past the window waits for requests to come back, and goes when it fits. When nothing is out to the node, one buffer is sent whatever its size, so a node is never starved. A waiting buffer still counts against `MaxMemoryBytes`, which is what makes `Add` wait. The window is about how much is in flight, not about how large any buffer is, and it is separate from how many requests are out at once. That follows the node's write thread pool as the client's transport tracks it. A node the transport reports no pool for, such as the one that stands for the whole cluster when the indexer knows no shard map, has `NumWorkers` requests out at once, or one per CPU when `NumWorkers` is 0.
 
 The only signal is a 429: an answer in which the node rejected the request, or any item in it.
 
@@ -318,17 +322,17 @@ A PID controller is the idea behind a car's cruise control. You pick a speed. Th
 
 The three results are added up into one number, `u`, and `u` decides the step.
 
-Here the thing being steered is the size of one shard's buffer, and the measurement is the _service rate_ of the node: bytes sent per second of time the node spent on the request, compared with the best rate seen recently. The error `e` is 1 for a node as fast as its best, 0 when it has slowed by `Headroom` (25% by default), and -1 when it has slowed by twice that or more:
+Here the thing being steered is the size of one shard's buffer, and the measurement is the _service time_ of the node: the time it spent on the request, against what its best recent self would need for a request that size, smoothed over the last several flushes. The error `e` is 1 for a node as fast as its best, 0 when it has slowed by `Headroom` (25% by default, widened by the node's own noise), and -1 when it has slowed by twice that or more:
 
 ```
  e
-+1 ●━━━━━━━╲                       node as fast as its best recent rate
++1 ●━━━━━━━╲                       node as fast as its best recent self
            ╲
  0 ┈┈┈┈┈┈┈┈┈┈●┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈  slowdown = Headroom: hold the size
                 ╲
 -1               ●━━━━━━━━━━━━━━━  slowdown of 2 × Headroom or worse (clamped)
    └──────┬───────┬───────┬──────── slowdown
-          0      0.25    0.5       (0 = best rate seen, 1 = twice as slow)
+          0      0.25    0.5       (0 = as fast as its best, 1 = twice as slow)
 ```
 
 The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never takes away more than half. Over time the buffer climbs while the node keeps up and gives way as it slows:
@@ -362,8 +366,8 @@ A gain of `0` turns that term off. The operator overrides are listed in [Changin
 
 | Mode | Set with | Behavior |
 | --- | --- | --- |
-| Adaptive, PID (default) | nothing | The size follows the node; each step is shaped by the PID controller. |
-| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | A shard's buffer takes plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. The PID gains are ignored. The node window is unchanged. |
+| Adaptive, PID (default) | nothing | The size follows the node; each step is shaped by the PID controller, which reads the smoothed signal. |
+| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | A shard's buffer takes plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the node slowing past `Headroom`. It reads each flush as it is, with more slack for noise than the PID controller gets. The PID gains are ignored. The node window is unchanged. |
 | Fixed | `Sizing.Fixed`, or `OPENSEARCH_GO_BULK_MODE=fixed` | The controllers are off: every batch is `FlushBytes`, and a node's window stays where it started (`NodeBytes`, or `MaxMemoryBytes`). |
 
 To soften the PID controller without dropping it, set a gain to `0`: `Ki` and `Kd` at `0` leave a proportional controller. Setting all three to `0` makes every PID step zero, so the size then changes only on a rejection or a failure; to drop the PID controller, use AIMD instead.
