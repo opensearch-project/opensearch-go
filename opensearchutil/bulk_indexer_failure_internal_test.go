@@ -438,7 +438,7 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 			// TryLock only succeeds on a lock nobody holds.
 			record := func(name string) {
 				if !sched.TryLock() {
-					t.Errorf("%s ran with the scheduler lock held", name)
+					t.Errorf("%q ran with the scheduler lock held", name)
 				} else {
 					sched.Unlock()
 				}

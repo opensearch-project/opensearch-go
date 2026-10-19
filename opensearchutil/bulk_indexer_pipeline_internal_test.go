@@ -60,10 +60,10 @@ func TestBulkIndexerSendsEachShardToItsNode(t *testing.T) {
 	requests := server.requests()
 
 	total := 0
-	nodes := map[string]bool{}
+	nodes := map[string]struct{}{}
 	shards := map[shardKey]int{}
 	for _, r := range requests {
-		nodes[r.node] = true
+		nodes[r.node] = struct{}{}
 		total += len(r.actions)
 
 		// A request carries one shard, and goes to the node hosting it.
@@ -554,8 +554,8 @@ func TestBulkIndexerRetriedRequestKeepsItsBody(t *testing.T) {
 	retried := 0
 	for key, tries := range seen {
 		for _, docs := range tries {
-			require.NotEmpty(t, docs, "%s: a try carried no documents", key)
-			require.Equal(t, tries[0], docs, "%s: every try carries the same documents", key)
+			require.NotEmpty(t, docs, "%q: a try carried no documents", key)
+			require.Equal(t, tries[0], docs, "%q: every try carries the same documents", key)
 		}
 		if len(tries) > 1 {
 			retried++

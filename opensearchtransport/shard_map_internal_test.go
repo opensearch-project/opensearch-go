@@ -516,7 +516,7 @@ func (h *pinHarness) node(t *testing.T, host string) *Connection {
 			return conn
 		}
 	}
-	t.Fatalf("no ready connection for %s", host)
+	require.Failf(t, "no ready connection", "host %q", host)
 
 	return nil
 }

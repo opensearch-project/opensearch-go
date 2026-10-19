@@ -29,7 +29,7 @@ func counterValue(t *testing.T, rm metricdata.ResourceMetrics, name string, want
 				continue
 			}
 			sum, ok := m.Data.(metricdata.Sum[int64])
-			require.True(t, ok, "metric %s is an Int64 sum", name)
+			require.True(t, ok, "metric %q is an Int64 sum", name)
 			for _, dp := range sum.DataPoints {
 				match := true
 				for k, v := range want {

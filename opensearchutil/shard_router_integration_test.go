@@ -233,7 +233,7 @@ func TestShardRouterPlacesDocumentsOnTheirPrimary_Integration(t *testing.T) {
 	awaitShardTarget(t, ctx, client, index, "warm-up")
 	router := opensearchutil.ClientShardRouter(client)
 
-	nodes := map[string]bool{}
+	nodes := map[string]struct{}{}
 	for i := range 60 {
 		routing := "doc-" + strconv.Itoa(i)
 
@@ -244,7 +244,7 @@ func TestShardRouterPlacesDocumentsOnTheirPrimary_Integration(t *testing.T) {
 		wantShard, wantNode := primaryNodeOf(t, ctx, client, index, routing)
 		require.Equal(t, wantShard, target.Shard, "shard of %q", routing)
 		require.Equal(t, wantNode, target.Node.Name, "the node hosting the primary of %q", routing)
-		nodes[target.Node.Name] = true
+		nodes[target.Node.Name] = struct{}{}
 	}
 
 	t.Run("shards spread across nodes", func(t *testing.T) {
@@ -412,16 +412,16 @@ func TestBulkIndexerSendsEachBatchToItsPrimary_Integration(t *testing.T) {
 
 	// Each request went to a node that hosts shards of the index, and every such
 	// node was written to.
-	wantHosts := map[string]bool{}
+	wantHosts := map[string]struct{}{}
 	for _, host := range hostOf {
-		wantHosts[host] = true
+		wantHosts[host] = struct{}{}
 	}
 	gotHosts := map[string]int{}
 	for _, host := range observer.seen() {
 		gotHosts[strings.TrimPrefix(strings.TrimPrefix(host, "https://"), "http://")]++
 	}
 	for host := range gotHosts {
-		require.True(t, wantHosts[host], "a bulk request went to %q, which hosts no shard of the index", host)
+		require.Contains(t, wantHosts, host, "a bulk request went to %q, which hosts no shard of the index", host)
 	}
 	require.Len(t, gotHosts, len(wantHosts), "every node hosting shards must have been written to")
 
@@ -604,7 +604,7 @@ func TestBulkIndexerSendsOneShardsBatchesToItsPrimary_Integration(t *testing.T) 
 		index, wantHost string
 	}
 	indexes := make([]sent, 0, numIndexes)
-	primaries := map[string]bool{}
+	primaries := map[string]struct{}{}
 	for range numIndexes {
 		index := transporttestutil.MustUniqueString(t, "bulk-one-shard")
 		createShardTestIndex(t, ctx, client, index, `{"index":{"number_of_shards":1,"number_of_replicas":0}}`)
@@ -614,7 +614,7 @@ func TestBulkIndexerSendsOneShardsBatchesToItsPrimary_Integration(t *testing.T) 
 		require.Equal(t, primary, target.Node.Name)
 
 		indexes = append(indexes, sent{index: index, wantHost: target.Node.Conn.URL.Host})
-		primaries[primary] = true
+		primaries[primary] = struct{}{}
 	}
 	require.Greater(t, len(primaries), 1, "the indexes' primaries must be on different nodes for the test to mean anything")
 

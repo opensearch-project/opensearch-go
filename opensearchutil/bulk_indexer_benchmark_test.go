@@ -78,7 +78,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 			Client:     client,
 			FlushBytes: 1024,
 		})
-		defer bi.Close(context.Background())
+		defer bi.Close(b.Context())
 
 		docID := make([]byte, 0, 16)
 		var docIDBuf bytes.Buffer
@@ -87,7 +87,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 		for i := 0; b.Loop(); i++ {
 			docID = strconv.AppendInt(docID, int64(i), 10)
 			docIDBuf.Write(docID)
-			bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+			bi.Add(b.Context(), opensearchutil.BulkIndexerItem{
 				Action:     "index",
 				DocumentID: docIDBuf.String(),                  // 1x alloc
 				Body:       strings.NewReader(`{"foo":"bar"}`), // 1x alloc
@@ -111,20 +111,20 @@ func BenchmarkBulkIndexer(b *testing.B) {
 			client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransp{}}})
 			b.Cleanup(func() { _ = client.Close() })
 			bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{Client: client, FlushBytes: 1 << 20})
-			defer bi.Close(context.Background())
+			defer bi.Close(b.Context())
 
 			b.SetBytes(int64(len(doc)))
 
 			for i := 0; b.Loop(); i++ {
 				item := opensearchutil.BulkIndexerItem{Action: "index", DocumentID: strconv.Itoa(i)}
 				if lend {
-					_ = opensearchutil.AddZeroCopy(context.Background(), bi, opensearchutil.BulkIndexerZeroCopyItem{BulkIndexerItem: item, Data: doc})
+					_ = opensearchutil.AddZeroCopy(b.Context(), bi, opensearchutil.BulkIndexerZeroCopyItem{BulkIndexerItem: item, Data: doc})
 
 					continue
 				}
 
 				item.Body = bytes.NewReader(doc)
-				_ = bi.Add(context.Background(), item)
+				_ = bi.Add(b.Context(), item)
 			}
 		})
 	}
@@ -170,7 +170,7 @@ func BenchmarkBulkIndexerRoundTrip(b *testing.B) {
 	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &echoTransp{}}})
 	b.Cleanup(func() { _ = client.Close() })
 	bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{Client: client, FlushBytes: 1 << 20})
-	defer bi.Close(context.Background())
+	defer bi.Close(b.Context())
 
 	var done atomic.Int64
 	onSuccess := func(context.Context, opensearchutil.BulkIndexerItem, opensearchapi.BulkRespItem) { done.Add(1) }
@@ -179,7 +179,7 @@ func BenchmarkBulkIndexerRoundTrip(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; b.Loop(); i++ {
-		_ = bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+		_ = bi.Add(b.Context(), opensearchutil.BulkIndexerItem{
 			Action:     "index",
 			DocumentID: strconv.Itoa(i),
 			Body:       bytes.NewReader(body),
@@ -187,10 +187,10 @@ func BenchmarkBulkIndexerRoundTrip(b *testing.B) {
 		})
 
 		if i%batch == batch-1 {
-			_ = bi.Flush(context.Background())
+			_ = bi.Flush(b.Context())
 		}
 	}
-	_ = bi.Flush(context.Background())
+	_ = bi.Flush(b.Context())
 
 	if got := done.Load(); got != int64(b.N) {
 		b.Fatalf("%d callbacks for %d items", got, b.N)

@@ -42,7 +42,7 @@ func FuzzSequenceTracker(f *testing.F) {
 
 	type model struct {
 		next int64
-		done map[int64]bool
+		done map[int64]struct{}
 	}
 
 	f.Fuzz(func(t *testing.T, program []byte) {
@@ -57,14 +57,17 @@ func FuzzSequenceTracker(f *testing.F) {
 			switch op {
 			case 0:
 				tracker.Begin(stream, seq)
-				models[stream] = &model{next: seq, done: map[int64]bool{}}
+				models[stream] = &model{next: seq, done: map[int64]struct{}{}}
 			case 1:
 				tracker.Complete(stream, seq)
 				if m == nil || seq < m.next {
 					break
 				}
-				m.done[seq] = true
-				for m.done[m.next] {
+				m.done[seq] = struct{}{}
+				for {
+					if _, ok := m.done[m.next]; !ok {
+						break
+					}
 					delete(m.done, m.next)
 					m.next++
 				}
@@ -193,7 +196,7 @@ func FuzzItemMeta(f *testing.F) {
 			t.Helper()
 
 			got, present := fields[key]
-			require.Equal(t, set, present, "%s present", key)
+			require.Equal(t, set, present, "%q present", key)
 			if set {
 				require.Equal(t, want, got, key)
 			}
@@ -280,7 +283,7 @@ func FuzzBulkSizingEnv(f *testing.F) {
 
 		r := BulkSizing{}.resolve(testCeiling)
 		for name, gain := range map[string]float64{"kp": r.kp, "ki": r.ki, "kd": r.kd} {
-			require.False(t, math.IsNaN(gain) || math.IsInf(gain, 0) || gain < 0, "%s = %v", name, gain)
+			require.False(t, math.IsNaN(gain) || math.IsInf(gain, 0) || gain < 0, "%q = %v", name, gain)
 		}
 		require.LessOrEqual(t, r.min, r.initial)
 		require.LessOrEqual(t, r.initial, r.max)

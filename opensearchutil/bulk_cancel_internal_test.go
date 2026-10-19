@@ -64,7 +64,7 @@ func TestBulkIndexerCloseWaitsForBackoff(t *testing.T) {
 
 	f := newFinals(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
-	require.NoError(t, bi.Close(context.Background()))
+	require.NoError(t, bi.Close(t.Context()))
 
 	require.Equal(t, int64(1), f.succeeded.Load(), "the retry landed before Close returned")
 	require.Zero(t, f.failed.Load())

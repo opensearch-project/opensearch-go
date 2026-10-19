@@ -473,20 +473,17 @@ func TestByteBudgetWaiterGivesUp(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		ctx     func() (context.Context, context.CancelFunc)
 		stop    <-chan struct{}
 		trigger func(cancel context.CancelFunc)
 		wantErr error
 	}{
 		{
 			name:    "context cancelled",
-			ctx:     func() (context.Context, context.CancelFunc) { return context.WithCancel(context.Background()) },
 			trigger: func(cancel context.CancelFunc) { cancel() },
 			wantErr: context.Canceled,
 		},
 		{
 			name:    "indexer stopped",
-			ctx:     func() (context.Context, context.CancelFunc) { return context.WithCancel(context.Background()) },
 			stop:    stopped,
 			trigger: func(context.CancelFunc) { close(stopped) },
 			wantErr: errBudgetStopped,
@@ -501,7 +498,7 @@ func TestByteBudgetWaiterGivesUp(t *testing.T) {
 			_, err := b.acquire(t.Context(), nil, 100)
 			require.NoError(t, err)
 
-			ctx, cancel := tt.ctx()
+			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
 			done := make(chan error, 1)

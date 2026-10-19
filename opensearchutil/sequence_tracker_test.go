@@ -20,9 +20,9 @@ import (
 
 // lowestIncomplete returns the lowest sequence in [base, base+n) that is not in
 // done, or base+n when all of them are.
-func lowestIncomplete(base int64, n int, done map[int64]bool) int64 {
+func lowestIncomplete(base int64, n int, done map[int64]struct{}) int64 {
 	for seq := base; seq < base+int64(n); seq++ {
-		if !done[seq] {
+		if _, ok := done[seq]; !ok {
 			return seq
 		}
 	}
@@ -242,11 +242,11 @@ func TestSequenceTrackerCompletionOrder(t *testing.T) {
 			var tracker opensearchutil.SequenceTracker[int]
 			tracker.Begin(0, base)
 
-			done := make(map[int64]bool)
+			done := make(map[int64]struct{})
 			for _, i := range tt.order(tt.n, rng) {
 				seq := base + int64(i)
 				tracker.Complete(0, seq)
-				done[seq] = true
+				done[seq] = struct{}{}
 
 				got, ok := tracker.Safe(0)
 				require.True(t, ok)
@@ -282,7 +282,7 @@ func FuzzSequenceTrackerNeverPassesAGap(f *testing.F) {
 		var tracker opensearchutil.SequenceTracker[string]
 		tracker.Begin("p", base)
 
-		done := make(map[int64]bool)
+		done := make(map[int64]struct{})
 		for _, b := range data[1:] {
 			seq := base + int64(int(b)%n)
 			if b&0x80 != 0 {
@@ -291,7 +291,7 @@ func FuzzSequenceTrackerNeverPassesAGap(f *testing.F) {
 			}
 
 			tracker.Complete("p", seq)
-			done[seq] = true
+			done[seq] = struct{}{}
 
 			got, ok := tracker.Safe("p")
 			require.True(t, ok)

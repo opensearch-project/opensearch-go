@@ -36,6 +36,8 @@ func TestBulkIndexerBacksOffAsANodeSlowsDownInABubble(t *testing.T) {
 		setRate := func(bytesPerSecond float64) { rate.Store(uint64(bytesPerSecond)) }
 		setRate(100e6)
 		h.server.advance = func(r sentRequest) {
+			// The bubble's clock is virtual: this Sleep advances it by the time the
+			// request needs, and costs no real time.
 			time.Sleep(time.Duration(float64(r.bytes) / float64(rate.Load()) * float64(time.Second)))
 		}
 
