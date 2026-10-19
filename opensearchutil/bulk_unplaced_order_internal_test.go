@@ -46,8 +46,9 @@ func TestBulkIndexerKeepsOrderOfDocumentsWithoutAShard(t *testing.T) {
 		<-server.entered
 		addDoc(t, bi, "idx", "a", 2)
 
-		require.Never(t, func() bool { return len(server.requests()) > 1 },
-			200*time.Millisecond, time.Millisecond, "the second write overtook the first, which is still held")
+		require.Eventually(t, func() bool { return sealedWaiting(bi) == 1 },
+			10*time.Second, 10*time.Millisecond, "the second write waits for the first, which is still held")
+		require.Len(t, server.requests(), 1)
 
 		close(server.gate)
 		require.NoError(t, bi.Close(t.Context()))
@@ -110,51 +111,50 @@ func TestBulkIndexerKeepsOrderOfDocumentsWithoutAShard(t *testing.T) {
 	})
 }
 
-// TestBulkIndexerSendsUnplacedDocumentsAsWidelyAsTheWorkersDid: with no shard map the
+// sealedWaiting is how many sealed buffers the indexer holds back from sending.
+func sealedWaiting(bi BulkIndexer) int {
+	sched := bi.(*bulkIndexer).sched
+	sched.Lock()
+	defer sched.Unlock()
+
+	return len(sched.sealed)
+}
+
+// TestBulkIndexerWithoutAShardMapKeepsOneRequestPerCPUOut: with no shard map the
 // indexer has one node standing for the cluster, and the transport reports no window
-// for it. It must keep as many requests out as NumWorkers, or one per CPU, as the
-// workers did before the indexer knew where shards live, and not one or two, which
-// caps a cluster of any size at what that many requests carry.
-func TestBulkIndexerSendsUnplacedDocumentsAsWidelyAsTheWorkersDid(t *testing.T) {
+// for it. When NumWorkers is not set the node's request window is one per CPU, which
+// is then the only cap on requests out, so a cluster of any size is not held to what
+// one or two requests carry. (With NumWorkers set, the window and the global cap are
+// the same number and cannot be told apart.)
+func TestBulkIndexerWithoutAShardMapKeepsOneRequestPerCPUOut(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name       string
-		numWorkers int
-		want       int
-	}{
-		{name: "one per CPU by default", numWorkers: 0, want: runtime.NumCPU()},
-		{name: "NumWorkers when set", numWorkers: 3, want: 3},
+	want := runtime.NumCPU()
+
+	server := newFakeServer(newFakeCluster(nil, "n0"))
+	server.gate = make(chan struct{})
+	server.entered = make(chan string, want+8)
+
+	// One byte sends every document as a request of its own.
+	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+		ShardRouter: NoShardRouter, FlushBytes: 1, FlushInterval: time.Hour,
+	})
+
+	const extra = 4
+	for i := range want + extra {
+		addDoc(t, bi, "idx", fmt.Sprint("d", i), i)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			server := newFakeServer(newFakeCluster(nil, "n0"))
-			server.gate = make(chan struct{})
-			server.entered = make(chan string, tt.want+8)
-
-			// One byte sends every document as a request of its own.
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{
-				ShardRouter: NoShardRouter, FlushBytes: 1, FlushInterval: time.Hour, NumWorkers: tt.numWorkers,
-			})
-
-			for i := range tt.want + 4 {
-				addDoc(t, bi, "idx", fmt.Sprint("d", i), i)
-			}
-			for i := range tt.want {
-				select {
-				case <-server.entered:
-				case <-time.After(10 * time.Second):
-					require.FailNow(t, "requests must be out together", "only %d of %d", i, tt.want)
-				}
-			}
-			require.Never(t, func() bool { return len(server.entered) > 0 },
-				200*time.Millisecond, time.Millisecond, "and no more than that")
-
-			close(server.gate)
-			require.NoError(t, bi.Close(t.Context()))
-			require.Equal(t, tt.want, server.maxInflight())
-		})
+	for i := range want {
+		select {
+		case <-server.entered:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "requests must be out together", "only %d of %d", i, want)
+		}
 	}
+	require.Eventually(t, func() bool { return sealedWaiting(bi) == extra },
+		10*time.Second, 10*time.Millisecond, "the rest wait for the window")
+
+	close(server.gate)
+	require.NoError(t, bi.Close(t.Context()))
+	require.Equal(t, want, server.maxInflight())
 }
