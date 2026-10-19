@@ -112,7 +112,7 @@ type chunkBuffer struct {
 	active atomic.Int32
 	idleMu struct {
 		sync.Mutex
-		onIdle []func()
+		onIdle []idleFunc
 	}
 }
 
@@ -392,7 +392,7 @@ type byteBudget struct {
 	onBlock budgetBlockFunc
 	// onUnblock, when set, is called with the time an acquire waited, once the
 	// wait is over for whatever reason.
-	onUnblock budgetUnblockFunc
+	onUnblock AddBlockedFunc
 	// now is the clock the blocked time is read from.
 	now func() time.Time
 	// halt, when set, ends every wait for room when it closes, as the indexer's
@@ -405,9 +405,6 @@ type byteBudget struct {
 
 // budgetBlockFunc is called each time a byteBudget acquire begins to wait.
 type budgetBlockFunc func()
-
-// budgetUnblockFunc is called with the time a byteBudget acquire waited.
-type budgetUnblockFunc func(ctx context.Context, waited time.Duration)
 
 type budgetWaiter struct {
 	n       int64
@@ -596,9 +593,12 @@ func (b *chunkBuffer) finishReader() {
 	}
 }
 
+// idleFunc is run by [chunkBuffer.whenIdle] once no reader is active.
+type idleFunc func()
+
 // whenIdle runs f once no reader is active: now, when none is, and otherwise on
 // the goroutine of the last reader to finish.
-func (b *chunkBuffer) whenIdle(f func()) {
+func (b *chunkBuffer) whenIdle(f idleFunc) {
 	b.idleMu.Lock()
 	if b.active.Load() == 0 {
 		b.idleMu.Unlock()

@@ -244,14 +244,14 @@ type BulkIndexerConfig struct {
 	// a transport that cannot say where shards live; the error wraps
 	// [ErrShardRoutingUnavailable] and names the cause. It is not an error that
 	// stops anything, and OnError is not called for it.
-	OnWarning func(context.Context, error)
+	OnWarning WarningFunc
 
 	// OnAddBlocked is called each time an Add had to wait for buffer space, with
 	// how long it waited, once the wait is over, whether Add went on to succeed
 	// or gave up. It runs on the goroutine that called Add. It is where a
 	// caller records the distribution of waits, in a histogram for instance;
 	// BulkIndexerStats carries only their count and total.
-	OnAddBlocked func(context.Context, time.Duration)
+	OnAddBlocked AddBlockedFunc
 
 	// RetryPolicy, when set, decides whether an item that failed is sent again.
 	// With it set, OnSuccess and OnFailure fire once per item, when the item
@@ -417,9 +417,11 @@ type BulkIndexerStats struct {
 	// slowly and larger while it keeps up. Before any node has been used every field
 	// is the size buffers start at.
 	BufferSize NodeSpread
-	// Slowdown is how much slower a node is serving requests than it has at its best,
-	// smoothed over its last few requests: 0 at its best, 1 when it takes twice as
-	// long for the same bytes. It is 0 before any node has been used.
+	// Slowdown is how much longer a node takes for its requests than it needs to,
+	// smoothed over its last few requests: 0 when it takes the expected time, 1 when
+	// it takes twice as long. The expected time is the one the buffer sizing judges a
+	// request by: the node's fixed cost per request plus the request's bytes at the
+	// best rate the node has shown. It is 0 before any node has been used.
 	Slowdown NodeSpread
 }
 
@@ -521,6 +523,13 @@ type BulkIndexerZeroCopyItem struct {
 // ZeroCopyReleaseFunc hands a lent document back to its owner; see
 // [BulkIndexerZeroCopyItem.Release].
 type ZeroCopyReleaseFunc func(data []byte)
+
+// WarningFunc is the type of [BulkIndexerConfig.OnWarning].
+type WarningFunc func(ctx context.Context, err error)
+
+// AddBlockedFunc is the type of [BulkIndexerConfig.OnAddBlocked]; waited is how long
+// the Add waited for buffer space.
+type AddBlockedFunc func(ctx context.Context, waited time.Duration)
 
 // lentBody is the Body of an item whose document the indexer was lent. It reads as
 // the document, so callbacks given the item can read it, and it tells the
