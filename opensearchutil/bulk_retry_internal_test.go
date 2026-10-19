@@ -331,6 +331,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Equal(t, BulkIndexerStats{
 			NumAdded: 2, NumUngroupedItems: 2, NumFlushed: 2, NumIndexed: 2, NumRequests: 2,
 			NumRetries: [numErrorKinds]uint64{KindRejected: 2},
+			Errors:     errorsAt(LayerRequest, KindRejected, 1),
 		}, withoutLoad(run.stats))
 	})
 
@@ -355,6 +356,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Equal(t, BulkIndexerStats{
 			NumAdded: 3, NumUngroupedItems: 3, NumFlushed: 3, NumIndexed: 3, NumRequests: 2,
 			NumRetries: [numErrorKinds]uint64{KindRejected: 1},
+			Errors:     errorsAt(LayerItem, KindRejected, 1),
 		}, withoutLoad(run.stats))
 	})
 

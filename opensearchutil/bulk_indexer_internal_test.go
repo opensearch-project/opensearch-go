@@ -351,6 +351,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				NumDeleted:        1,
 				NumUpdated:        1,
 				NumRequests:       3,
+				Errors:            errorsAt(LayerItem, KindPermanent, 2),
 			},
 		},
 		{
@@ -769,7 +770,9 @@ func TestBulkIndexerPerItemCallbacks(t *testing.T) {
 				NumIndexed:        1,
 				NumUpdated:        1,
 				// Indexer flushes only; the client's info request is not counted.
-				NumRequests: 1,
+				NumRequests:     1,
+				NumCloseFlushes: 1,
+				Errors:          errorsAt(LayerItem, KindPermanent, 2),
 			}, withoutLoad(bi.Stats()))
 
 			require.Equal(t, []testItemCallback{

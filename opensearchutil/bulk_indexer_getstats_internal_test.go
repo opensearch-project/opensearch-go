@@ -19,13 +19,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// withoutLoad clears the fields of the stats that describe the load on the cluster
-// and not what the indexer counted, for a test that compares the counters alone.
+// withoutLoad clears the fields of the stats that describe the load on the cluster,
+// and the sizes and times measured, and not what the indexer counted, for a test
+// that compares the counters alone.
 func withoutLoad(s BulkIndexerStats) BulkIndexerStats {
 	s.MaxMemoryBytes, s.NumRejections, s.NumNodes = 0, 0, 0
 	s.NodeWindow, s.BufferSize, s.Slowdown = JobNodeStats{}, JobNodeStats{}, JobNodeStats{}
+	s.ItemBytes, s.MaxItemBytes, s.RequestBytes = 0, 0, 0
+	s.ItemLatencyNanos, s.MaxItemLatencyNanos = 0, 0
+	s.RequestDurationNanos, s.MaxRequestDurationNanos = 0, 0
 
 	return s
+}
+
+// errorsAt is the Errors of stats that counted n errors of one layer and kind.
+func errorsAt(layer ErrorLayer, kind ErrorKind, n uint64) (errs [numErrorLayers][numErrorKinds]uint64) {
+	errs[layer][kind] = n
+
+	return errs
 }
 
 func TestBulkIndexerGetStatsRefusesNil(t *testing.T) {

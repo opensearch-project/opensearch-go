@@ -307,14 +307,18 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 		name      string
 		first     bulkOutcome
 		wantFlush bool // the first Flush returns an error
+		// layer and kind are where the failure is counted in Errors, errors how often.
+		layer  ErrorLayer
+		kind   ErrorKind
+		errors uint64
 	}{
-		{name: "connection error", first: outcomeConnectionError, wantFlush: true},
-		{name: "whole request refused with 429", first: outcomeTooManyRequests, wantFlush: true},
-		{name: "whole request refused with 503", first: outcomeUnavailable, wantFlush: true},
-		{name: "response cannot be paired with the items", first: outcomeExtraItem, wantFlush: true},
-		{name: "response holds fewer results than the items", first: outcomeMissingItem, wantFlush: true},
+		{name: "connection error", first: outcomeConnectionError, wantFlush: true, layer: LayerRequest, kind: KindTransport, errors: 1},
+		{name: "whole request refused with 429", first: outcomeTooManyRequests, wantFlush: true, layer: LayerRequest, kind: KindRejected, errors: 1},
+		{name: "whole request refused with 503", first: outcomeUnavailable, wantFlush: true, layer: LayerRequest, kind: KindUnavailable, errors: 1},
+		{name: "response cannot be paired with the items", first: outcomeExtraItem, wantFlush: true, layer: LayerRequest, kind: KindPermanent, errors: 1},
+		{name: "response holds fewer results than the items", first: outcomeMissingItem, wantFlush: true, layer: LayerRequest, kind: KindPermanent, errors: 1},
 		// Every rejected item has an OnError, so the drain itself succeeded.
-		{name: "every item rejected", first: outcomeEveryItemRejected, wantFlush: false},
+		{name: "every item rejected", first: outcomeEveryItemRejected, wantFlush: false, layer: LayerItem, kind: KindRejected, errors: 2},
 	}
 
 	for _, tt := range tests {
@@ -369,14 +373,16 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 			require.Equal(t, []string{"c"}, succeeded, "an item added after the failure succeeds")
 			require.Empty(t, onErrors, "an explicit Flush reports through its return value, not OnUnhandledError")
 
-			require.Equal(t, BulkIndexerStats{
+			want := BulkIndexerStats{
 				NumAdded:          3,
 				NumUngroupedItems: 3, // No index, so no shard.
 				NumFailed:         2,
 				NumFlushed:        1,
 				NumIndexed:        1,
 				NumRequests:       2,
-			}, withoutLoad(bi.Stats()))
+			}
+			want.Errors[tt.layer][tt.kind] = tt.errors
+			require.Equal(t, want, withoutLoad(bi.Stats()))
 		})
 	}
 }
