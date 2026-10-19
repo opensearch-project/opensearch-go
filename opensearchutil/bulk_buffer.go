@@ -110,8 +110,10 @@ type chunkBuffer struct {
 	// end of the body nor been closed; see [chunkBuffer.lease]. onIdle runs when it
 	// falls to zero.
 	active atomic.Int32
-	idleMu sync.Mutex
-	onIdle []func()
+	idleMu struct {
+		sync.Mutex
+		onIdle []func()
+	}
 }
 
 var _ body.BufferedReader = (*chunkBuffer)(nil)
@@ -378,9 +380,11 @@ func (b *chunkBuffer) String() string {
 type byteBudget struct {
 	limit int64
 
-	mu      sync.Mutex
-	used    int64
-	waiters []*budgetWaiter
+	mu struct {
+		sync.Mutex
+		used    int64
+		waiters []*budgetWaiter
+	}
 
 	// onBlock, when set, is called without the lock each time an acquire begins
 	// to wait. The indexer uses it to flush buffered data that is not on its way
@@ -424,15 +428,15 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64)
 	n = min(max(n, 0), b.limit)
 
 	b.mu.Lock()
-	if len(b.waiters) == 0 && b.used+n <= b.limit {
-		b.used += n
+	if len(b.mu.waiters) == 0 && b.mu.used+n <= b.limit {
+		b.mu.used += n
 		b.mu.Unlock()
 
 		return n, nil
 	}
 
 	w := &budgetWaiter{n: n, ready: make(chan struct{})}
-	b.waiters = append(b.waiters, w)
+	b.mu.waiters = append(b.mu.waiters, w)
 	b.mu.Unlock()
 
 	b.blocked.Add(1)
@@ -467,14 +471,14 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, n int64)
 	if w.granted {
 		// The grant raced the cancellation and won: give the bytes back rather
 		// than hand them to a caller that has gone.
-		b.used -= n
+		b.mu.used -= n
 		b.grant()
 
 		return 0, err
 	}
 
-	if i := slices.Index(b.waiters, w); i >= 0 {
-		b.waiters = slices.Delete(b.waiters, i, i+1)
+	if i := slices.Index(b.mu.waiters, w); i >= 0 {
+		b.mu.waiters = slices.Delete(b.mu.waiters, i, i+1)
 		// The head may have been the one in the way of those behind it.
 		b.grant()
 	}
@@ -489,7 +493,7 @@ func (b *byteBudget) release(n int64) {
 	}
 
 	b.mu.Lock()
-	b.used -= n
+	b.mu.used -= n
 	b.grant()
 	b.mu.Unlock()
 }
@@ -497,18 +501,18 @@ func (b *byteBudget) release(n int64) {
 // grant serves waiters in order while the head fits; it must be called with the
 // lock held.
 func (b *byteBudget) grant() {
-	for len(b.waiters) > 0 {
-		w := b.waiters[0]
-		if b.used+w.n > b.limit {
+	for len(b.mu.waiters) > 0 {
+		w := b.mu.waiters[0]
+		if b.mu.used+w.n > b.limit {
 			return
 		}
 
-		b.used += w.n
+		b.mu.used += w.n
 		w.granted = true
 		close(w.ready)
 
-		b.waiters[0] = nil
-		b.waiters = b.waiters[1:]
+		b.mu.waiters[0] = nil
+		b.mu.waiters = b.mu.waiters[1:]
 	}
 }
 
@@ -521,7 +525,7 @@ func (b *byteBudget) waiting() int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	return len(b.waiters)
+	return len(b.mu.waiters)
 }
 
 // inUse returns the bytes currently taken.
@@ -533,7 +537,7 @@ func (b *byteBudget) inUse() int64 {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	return b.used
+	return b.mu.used
 }
 
 // blockedStats returns how many acquires had to wait and for how long in total.
@@ -577,8 +581,8 @@ func (b *chunkBuffer) finishReader() {
 	}
 
 	b.idleMu.Lock()
-	callbacks := b.onIdle
-	b.onIdle = nil
+	callbacks := b.idleMu.onIdle
+	b.idleMu.onIdle = nil
 	b.idleMu.Unlock()
 
 	for _, f := range callbacks {
@@ -596,7 +600,7 @@ func (b *chunkBuffer) whenIdle(f func()) {
 
 		return
 	}
-	b.onIdle = append(b.onIdle, f)
+	b.idleMu.onIdle = append(b.idleMu.onIdle, f)
 	b.idleMu.Unlock()
 }
 

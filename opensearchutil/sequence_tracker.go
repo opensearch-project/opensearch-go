@@ -34,16 +34,20 @@ import "sync"
 // and partition. The zero value is ready to use, and a SequenceTracker is safe
 // for concurrent use; it must not be copied after first use.
 type SequenceTracker[K comparable] struct {
-	mu      sync.RWMutex
-	streams map[K]*sequenceStream
+	mu struct {
+		sync.RWMutex
+		streams map[K]*sequenceStream
+	}
 }
 
 // sequenceStream is the state of one stream: next is the lowest sequence not
 // yet complete, and done holds the completed sequences above it.
 type sequenceStream struct {
-	mu   sync.Mutex
-	next int64
-	done map[int64]struct{}
+	mu struct {
+		sync.Mutex
+		next int64
+		done map[int64]struct{}
+	}
 }
 
 // Begin starts tracking the stream k, whose first sequence to track is next:
@@ -57,10 +61,12 @@ func (t *SequenceTracker[K]) Begin(k K, next int64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if t.streams == nil {
-		t.streams = make(map[K]*sequenceStream)
+	if t.mu.streams == nil {
+		t.mu.streams = make(map[K]*sequenceStream)
 	}
-	t.streams[k] = &sequenceStream{next: next}
+	s := &sequenceStream{}
+	s.mu.next = next
+	t.mu.streams[k] = s
 }
 
 // Complete records that the record with sequence seq on stream k is done. It
@@ -69,7 +75,7 @@ func (t *SequenceTracker[K]) Begin(k K, next int64) {
 // that is not tracked, is ignored.
 func (t *SequenceTracker[K]) Complete(k K, seq int64) {
 	t.mu.RLock()
-	s := t.streams[k]
+	s := t.mu.streams[k]
 	t.mu.RUnlock()
 
 	if s == nil {
@@ -80,23 +86,23 @@ func (t *SequenceTracker[K]) Complete(k K, seq int64) {
 	defer s.mu.Unlock()
 
 	switch {
-	case seq < s.next:
+	case seq < s.mu.next:
 		// Already counted.
-	case seq > s.next:
-		if s.done == nil {
-			s.done = make(map[int64]struct{})
+	case seq > s.mu.next:
+		if s.mu.done == nil {
+			s.mu.done = make(map[int64]struct{})
 		}
-		s.done[seq] = struct{}{}
+		s.mu.done[seq] = struct{}{}
 	default:
 		// The lowest missing sequence arrived: move the line past it and past
 		// every contiguous completion that was waiting on it.
-		s.next++
+		s.mu.next++
 		for {
-			if _, ok := s.done[s.next]; !ok {
+			if _, ok := s.mu.done[s.mu.next]; !ok {
 				break
 			}
-			delete(s.done, s.next)
-			s.next++
+			delete(s.mu.done, s.mu.next)
+			s.mu.next++
 		}
 	}
 }
@@ -106,7 +112,7 @@ func (t *SequenceTracker[K]) Complete(k K, seq int64) {
 // The bool is false when k is not tracked.
 func (t *SequenceTracker[K]) Safe(k K) (int64, bool) {
 	t.mu.RLock()
-	s := t.streams[k]
+	s := t.mu.streams[k]
 	t.mu.RUnlock()
 
 	if s == nil {
@@ -116,7 +122,7 @@ func (t *SequenceTracker[K]) Safe(k K) (int64, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.next, true
+	return s.mu.next, true
 }
 
 // SafeAll reports the safe position of every tracked stream, as [SequenceTracker.Safe]
@@ -125,10 +131,10 @@ func (t *SequenceTracker[K]) SafeAll() map[K]int64 {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	safe := make(map[K]int64, len(t.streams))
-	for k, s := range t.streams {
+	safe := make(map[K]int64, len(t.mu.streams))
+	for k, s := range t.mu.streams {
 		s.mu.Lock()
-		safe[k] = s.next
+		safe[k] = s.mu.next
 		s.mu.Unlock()
 	}
 
@@ -162,8 +168,8 @@ func (t *SequenceTracker[K]) SafeAll() map[K]int64 {
 // position so that reading it and ending the tracking are one step.
 func (t *SequenceTracker[K]) Forget(k K) (int64, bool) {
 	t.mu.Lock()
-	s := t.streams[k]
-	delete(t.streams, k)
+	s := t.mu.streams[k]
+	delete(t.mu.streams, k)
 	t.mu.Unlock()
 
 	if s == nil {
@@ -173,5 +179,5 @@ func (t *SequenceTracker[K]) Forget(k K) (int64, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.next, true
+	return s.mu.next, true
 }
