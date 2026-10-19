@@ -46,6 +46,9 @@ func TestBulkIndexerStalledShardDoesNotStarveTheOthers(t *testing.T) {
 	t.Parallel()
 
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(4)}, "n0")
+	// A small window, as a small machine has: the stalled shard's queued buffers must
+	// not take the room the other shards' requests need.
+	cluster.setWindow(2, false)
 	server := newFakeServer(cluster)
 
 	stalled := shardKey{index: "idx", shard: 0}

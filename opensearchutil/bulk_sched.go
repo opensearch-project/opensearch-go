@@ -480,17 +480,20 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	s.pump()
 }
 
-// sealFullest seals the fullest open buffer that can go out now: its shard has no
-// request out, and its node has room for another request and for its bytes. A
-// buffer that could not go out would only queue, freeing nothing until the requests
-// ahead of it are answered, while splitting the batch it was becoming into small
-// requests; when one of those is answered, complete looks again.
+// sealFullest seals the fullest open buffer that can go out now, as pump would send
+// it: its shard has no request out, and its node has fewer requests out than its
+// window and room for its bytes. A buffer that could not go out would only queue,
+// freeing nothing until the requests ahead of it are answered, while splitting the
+// batch it was becoming into small requests; when one of those is answered,
+// complete looks again. Buffers queued behind their own shard's request do not
+// count against the node's room, since they are not going out either: counting
+// them would let one stalled shard's queue keep every other shard's buffers open.
 func (s *scheduler) sealFullest(trigger flushTrigger) {
 	var fullest *buffer
 
 	for _, n := range s.nodes {
 		for b := range n.opens {
-			if b.shard.blocked() || !n.hasRoom(s.unreported) || !n.win.allows(n.flightBytes, b.bytes) {
+			if b.shard.blocked() || n.inflight >= n.window(s.unreported) || !n.win.allows(n.flightBytes, b.bytes) {
 				continue
 			}
 			if fullest == nil || b.bytes > fullest.bytes {
