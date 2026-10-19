@@ -87,7 +87,7 @@ jobs:
 
       - run: make workspace
         # See test-unit.yml.
-        if: contains(github.event.pull_request.labels.*.name, 'pending-root-release')
+        if: contains(github.event.pull_request.labels.*.name, 'pending-next-release')
         working-directory: go-client
 
       - name: Integration test

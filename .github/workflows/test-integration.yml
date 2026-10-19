@@ -21,7 +21,7 @@ jobs:
       - run: go version
       - run: make workspace
         # See test-unit.yml.
-        if: contains(github.event.pull_request.labels.*.name, 'pending-root-release')
+        if: contains(github.event.pull_request.labels.*.name, 'pending-next-release')
       - name: Increase system limits
         run: |
           sudo swapoff -a
@@ -86,7 +86,7 @@ jobs:
       - run: go version
       - run: make workspace
         # See test-unit.yml.
-        if: contains(github.event.pull_request.labels.*.name, 'pending-root-release')
+        if: contains(github.event.pull_request.labels.*.name, 'pending-next-release')
       - name: Increase system limits
         run: |
           sudo swapoff -a
