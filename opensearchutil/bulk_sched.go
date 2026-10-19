@@ -499,9 +499,10 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 // shard, which only waits for an earlier request to be out. A buffer that could not
 // go out would only queue, freeing nothing until the requests ahead of it are
 // answered, while splitting the batch it was becoming into small requests; when one
-// of those is answered, complete looks again. Buffers queued behind their own shard's request do
-// not count against the node's room, since they are not going out either: counting
-// them would let one stalled shard's queue keep every other shard's buffers open.
+// of those is answered, complete looks again. Buffers queued behind their own
+// shard's request do not count against the node's room, since they are not going
+// out either: counting them would let one stalled shard's queue keep every other
+// shard's buffers open.
 func (s *scheduler) sealFullest(trigger flushTrigger) {
 	var fullest *buffer
 
