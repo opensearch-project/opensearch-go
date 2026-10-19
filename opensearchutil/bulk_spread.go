@@ -97,5 +97,10 @@ const smoothing = 0.2
 
 // smooth moves old towards reading.
 func smooth(old, reading float64) float64 {
-	return old + smoothing*(reading-old)
+	return ewma(old, reading, smoothing)
+}
+
+// ewma moves old towards v by the fraction alpha.
+func ewma(old, v, alpha float64) float64 {
+	return old + alpha*(v-old)
 }

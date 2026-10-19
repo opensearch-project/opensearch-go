@@ -9,6 +9,7 @@ package opensearchutil
 import (
 	"context"
 	"errors"
+	"math"
 	"runtime"
 	"slices"
 	"sync"
@@ -19,9 +20,8 @@ import (
 // unreportedNodeWindow is how many bulk requests the indexer keeps in flight to a
 // node whose write pool window the transport has not reported, such as the node that
 // stands for the whole cluster when the indexer knows no shard map: NumWorkers when
-// the caller set it, and otherwise one per CPU, as many as the indexer's workers had
-// out at once before it learned where shards live. A smaller number caps a cluster
-// of many nodes at what one slow request at a time can carry.
+// the caller set it, and otherwise one per CPU. A smaller number caps a cluster of
+// many nodes at what one slow request at a time can carry.
 func unreportedNodeWindow(numWorkers int) int {
 	if numWorkers > 0 {
 		return numWorkers
@@ -130,7 +130,7 @@ type nodeState struct {
 	flightBytes      int64
 	// bufferFrac and slowdown are smoothed readings of the node for the statistics:
 	// the size of its shards' buffers as a fraction of the most they get, and how much
-	// slower than its best the node is serving. Guarded by the scheduler's lock.
+	// longer than expected the node takes for its requests. Guarded by the scheduler's lock.
 	bufferFrac, slowdown float64
 	// win is how many bytes may be out to the node at once. It starts wide open and
 	// is cut by a 429; see byteWindow.
@@ -140,17 +140,16 @@ type nodeState struct {
 	rate rateTracker
 	// sink serves documents that belong to no shard.
 	sink *shardState
-	// unreported is the window when the transport reports none for the node.
-	unreported int
 }
 
 // window is how many requests may be outstanding to the node: the window the
-// transport allows its write pool, and a single request while the pool rejects.
-func (ns *nodeState) window() int {
+// transport allows its write pool, unreported when it reports none, and a single
+// request while the pool rejects.
+func (ns *nodeState) window(unreported int) int {
 	p := ns.node.pool()
 	n := p.Window
 	if n <= 0 {
-		n = ns.unreported
+		n = unreported
 	}
 	if p.Overloaded {
 		n = 1
@@ -160,8 +159,8 @@ func (ns *nodeState) window() int {
 }
 
 // hasRoom reports whether another request to the node would go out now.
-func (ns *nodeState) hasRoom() bool {
-	return ns.inflight+ns.queued < ns.window()
+func (ns *nodeState) hasRoom(unreported int) bool {
+	return ns.inflight+ns.queued < ns.window(unreported)
 }
 
 // scheduler owns every buffer from the moment its first document is added to the
@@ -211,16 +210,19 @@ type scheduler struct {
 	// sink is the node unrouted documents are being filled into.
 	sink *nodeState
 	pass uint64
+	// unreported is the request window of a node whose transport reports none.
+	unreported int
 
 	closed, stopped bool
 }
 
 func newScheduler(bi *bulkIndexer) *scheduler {
 	return &scheduler{
-		bi:     bi,
-		shards: make(map[shardKey]*shardState),
-		nodes:  make(map[string]*nodeState),
-		live:   make(map[*buffer]struct{}),
+		bi:         bi,
+		shards:     make(map[shardKey]*shardState),
+		nodes:      make(map[string]*nodeState),
+		live:       make(map[*buffer]struct{}),
+		unreported: unreportedNodeWindow(bi.config.NumWorkers),
 
 		lastByID: make(map[string]*buffer),
 	}
@@ -244,7 +246,6 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 		rate:  rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
 		bufferFrac: s.bi.sizing.initial / s.bi.sizing.max,
-		unreported: unreportedNodeWindow(s.bi.config.NumWorkers),
 	}
 	ns.sink = &shardState{key: shardKey{shard: -1}, sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
@@ -284,7 +285,7 @@ func (s *scheduler) sinkNode() *nodeState {
 	best := s.nodeFor(nodes[0])
 	for _, n := range nodes {
 		ns := s.nodeFor(n)
-		if ns.hasRoom() {
+		if ns.hasRoom(s.unreported) {
 			best = ns
 
 			break
@@ -478,7 +479,7 @@ func (s *scheduler) pump() {
 	for _, b := range s.sealed {
 		ss, ns := b.shard, b.node
 
-		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window() ||
+		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window(s.unreported) ||
 			!ns.win.allows(ns.flightBytes, b.bytes) {
 			ss.skipped = s.pass
 			remaining = append(remaining, b)
@@ -542,11 +543,12 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// the node learns after this flush is folded in, so that a shard that starts while
 	// the node is degraded does not take that for the best it can do.
 	ss.sizer.seed(ns.rate.base)
-	if slow, ok := ns.rate.slowdown(sample); ok {
-		ns.slowdown = smooth(ns.slowdown, slow)
-	}
 	ns.rate.learn(sample)
-	ss.sizer.observe(sample)
+	if n, ok := ss.sizer.observe(sample); ok {
+		// The node's slowdown is the sizer's own: the flush's time on the node over
+		// what the node needs for a request of that size, fixed cost included.
+		ns.slowdown = smooth(ns.slowdown, math.Max(n-1, 0))
+	}
 	if sample.tooLarge > 0 {
 		s.capRequests(sample.tooLarge)
 	}

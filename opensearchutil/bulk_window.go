@@ -110,7 +110,7 @@ func (w *byteWindow) fraction() float64 {
 }
 
 // rateTracker keeps the best service rate a node has shown, which a shard that starts
-// on the node is measured against, and says how far a flush is from it. The rate is
+// on the node is measured against. The rate is
 // smoothed before the best is taken from it, so that one lucky flush does not become
 // a best no honest flush can match.
 type rateTracker struct {
@@ -133,20 +133,4 @@ func (r *rateTracker) learn(f flushSample) {
 		r.rateS = smoothInto(r.rateS, rate)
 		r.base = math.Max(r.rateS, r.base*sizingBaseDecay)
 	}
-}
-
-// slowdown is how much slower than its best rate the flush shows the node to be: 0 at
-// the best, 1 when it took twice as long for the same bytes. It is false for a flush that
-// says nothing about the rate, or when no best rate is known yet.
-func (r *rateTracker) slowdown(f flushSample) (float64, bool) {
-	if !f.timed() || float64(f.bytes) < r.floor || r.base <= 0 {
-		return 0, false
-	}
-
-	rate, ok := f.rate()
-	if !ok || rate <= 0 {
-		return 0, false
-	}
-
-	return math.Max(r.base/rate-1, 0), true
 }

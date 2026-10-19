@@ -223,39 +223,23 @@ func TestRateTracker(t *testing.T) {
 	fast := flushOf(floor, 100e6)
 	slow := flushOf(floor, 50e6)
 
+	var best rateTracker
+	best.floor = floor
+	best.learn(fast)
+	require.Positive(t, best.base)
+
 	tests := []struct {
-		name string
-		// learn is folded in first, in order.
+		name  string
 		learn []flushSample
-		// probe is measured against what was learned.
-		probe        flushSample
-		wantKnown    bool
-		wantSlowdown float64
+		// learned is whether the flushes leave a best rate; when so, it is the fast one.
+		learned bool
 	}{
-		{name: "nothing learned yet, so nothing to measure against", probe: fast},
-		{name: "at its best", learn: []flushSample{fast}, probe: fast, wantKnown: true, wantSlowdown: 0},
-		{name: "twice as long for the same bytes", learn: []flushSample{fast}, probe: slow, wantKnown: true, wantSlowdown: 1},
-		{
-			name: "the best is kept when a slower flush follows", learn: []flushSample{fast, slow},
-			probe: slow, wantKnown: true, wantSlowdown: 1,
-		},
-		{
-			name: "a rejected flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, rejected: true}},
-			probe: fast,
-		},
-		{
-			name: "a failed flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, failed: true}},
-			probe: fast,
-		},
-		{
-			name: "a flush that indexed nothing is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond}},
-			probe: fast,
-		},
-		{name: "a flush too small to tell is not learned", learn: []flushSample{flushOf(floor/4, 1e12)}, probe: fast},
-		{
-			name: "a rejected flush is not measured", learn: []flushSample{fast},
-			probe: flushSample{bytes: floor, latency: time.Second, served: true, rejected: true},
-		},
+		{name: "a timed flush sets the best", learn: []flushSample{fast}, learned: true},
+		{name: "the best is kept when a slower flush follows", learn: []flushSample{fast, slow}, learned: true},
+		{name: "a rejected flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, rejected: true}}},
+		{name: "a failed flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, failed: true}}},
+		{name: "a flush that indexed nothing is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond}}},
+		{name: "a flush too small to tell is not learned", learn: []flushSample{flushOf(floor/4, 1e12)}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -266,9 +250,12 @@ func TestRateTracker(t *testing.T) {
 				r.learn(f)
 			}
 
-			got, ok := r.slowdown(tt.probe)
-			require.Equal(t, tt.wantKnown, ok)
-			require.InDelta(t, tt.wantSlowdown, got, 0.01)
+			if !tt.learned {
+				require.Zero(t, r.base)
+
+				return
+			}
+			require.InEpsilon(t, best.base, r.base, 0.01)
 		})
 	}
 }

@@ -27,10 +27,8 @@ import (
 // trip less the network distance) is compared with what the node's best recent self
 // would need for a request of that size: a fixed cost per request, learned from small
 // requests where it is a visible part of the time, plus the bytes at the best service
-// rate seen recently. The comparison is smoothed over the last several flushes, since
-// one slow flush is noise and the cuts are multiplicative while the growth is
-// additive, so a controller that believed every sample would be walked to the floor
-// by variance alone. While the smoothed time stays within Headroom of the expected,
+// rate seen recently. The comparison is smoothed over the last several flushes (see
+// sizingSignalAlpha). While the smoothed time stays within Headroom of the expected,
 // the size grows by StepBytes per flush. When the node slows past that, the size is
 // cut in proportion to how far past Headroom it is, long before the node starts
 // rejecting, so that bulk traffic gives way to the other requests a node is serving.
@@ -93,8 +91,8 @@ type BulkSizing struct {
 	// Defaults to FlushBytes/16.
 	StepBytes int
 
-	// Headroom is how much slower than its best recent rate a node may get before
-	// the size is cut: 0.25 allows the rate to fall to 80% of the best. Defaults
+	// Headroom is how much longer than the expected time a node may take before
+	// the size is cut: 0.25 allows the time to rise to 125% of the expected. Defaults
 	// to 0.25.
 	Headroom float64
 	// Backoff is the factor the size is multiplied by when the node rejects a
@@ -351,14 +349,19 @@ func (s *sizer) bytes() int64 {
 // measures how fast the node indexes this shard's documents, and a controller that
 // took a quick refusal for a fast flush would grow the buffer while the node says it
 // is full.
-func (s *sizer) observe(f flushSample) {
+//
+// It returns how many times the expected time the flush took, and false when the flush
+// was not read.
+func (s *sizer) observe(f flushSample) (float64, bool) {
 	if s.cfg.fixed || !f.timed() || float64(f.bytes) < s.sampleFloor() {
-		return
+		return 0, false
 	}
 
-	s.steer(f)
+	n, ok := s.steer(f)
 
 	s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
+
+	return n, ok
 }
 
 // seed gives a sizer that has seen nothing the best rate its node has shown, so
@@ -393,21 +396,19 @@ func (f flushSample) rate() (float64, bool) {
 	return float64(f.bytes) / float64(service), true
 }
 
-// steer applies the PID-modulated step for a flush that completed.
-func (s *sizer) steer(f flushSample) {
+// steer applies the PID-modulated step for a flush that completed, and returns the
+// flush's service time over the expected.
+func (s *sizer) steer(f flushSample) (float64, bool) {
 	rate, ok := f.rate()
 	if !ok {
-		return
+		return 0, false
 	}
 
 	s.rateS = smoothInto(s.rateS, rate)
 
 	decay := sizingBaseDecay
 	if s.target <= s.cfg.min || float64(f.bytes) <= s.cfg.min*sizingOverheadZone {
-		// A small request is the gentlest the indexer can send, so a node that is
-		// slow for one has not been made slow by it: that is how the node is now,
-		// and the memory of its better days fades fast enough for the size to
-		// climb back, instead of keeping it cut forever.
+		// Small requests fade the memory of the best rate faster: see sizingFloorDecay.
 		decay = sizingFloorDecay
 	}
 	s.baseRate = math.Max(s.rateS, s.baseRate*decay)
@@ -422,7 +423,7 @@ func (s *sizer) steer(f flushSample) {
 	expected := s.overhead + float64(f.bytes)/s.baseRate
 	n := float64(f.serviceTime()) / expected
 	if s.normS != 0 {
-		s.devS += sizingSignalAlpha * (math.Abs(n-s.normS) - s.devS)
+		s.devS = ewma(s.devS, math.Abs(n-s.normS), sizingSignalAlpha)
 	}
 	s.normS = smoothInto(s.normS, n)
 
@@ -439,8 +440,8 @@ func (s *sizer) steer(f flushSample) {
 		slack = sizingSlackRaw * s.devS
 	}
 
-	// e is +1 for a node as quick as ever, 0 at the headroom, and -1 or below
-	// (clamped) when it has slowed by twice the headroom or more.
+	// e is +1 for a node as quick as ever, 0 at the headroom plus slack, and -1 or
+	// below (clamped) when it has slowed by twice the headroom plus the slack or more.
 	e := math.Min(math.Max((s.cfg.headroom+slack-slowdown)/s.cfg.headroom, -1), 1)
 	if f.overloaded {
 		e = math.Min(e, 0)
@@ -453,7 +454,7 @@ func (s *sizer) steer(f flushSample) {
 	if s.cfg.aimd {
 		s.aimd(e)
 
-		return
+		return n, true
 	}
 
 	u := s.cfg.kp*e + s.cfg.ki*s.integral + s.cfg.kd*derivative
@@ -464,6 +465,8 @@ func (s *sizer) steer(f flushSample) {
 	default:
 		s.target *= 1 + math.Max(u, -sizingMaxCut)
 	}
+
+	return n, true
 }
 
 // learnOverhead reads the fixed per-request cost out of small requests, where it
@@ -484,7 +487,7 @@ func (s *sizer) learnOverhead(f flushSample) {
 	if resid < 0 {
 		resid = 0
 	}
-	s.overhead += sizingOverheadAlpha * (resid - s.overhead)
+	s.overhead = ewma(s.overhead, resid, sizingOverheadAlpha)
 }
 
 // smoothInto folds one sample into a smoothed signal, seeding an empty one.
@@ -493,7 +496,7 @@ func smoothInto(old, v float64) float64 {
 		return v
 	}
 
-	return old + sizingSignalAlpha*(v-old)
+	return ewma(old, v, sizingSignalAlpha)
 }
 
 // aimd steers by additive increase, multiplicative decrease alone: e is above 0

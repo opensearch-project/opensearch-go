@@ -10,6 +10,7 @@ package opensearchutil
 
 import (
 	"math"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -162,6 +163,46 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			require.Equal(t, counted, stats.NumRejections, "the count only grows")
 		})
 	}
+}
+
+// TestBulkIndexerGetStatsSlowdownCountsTheFixedCostOfARequest: a node that charges a
+// fixed cost per request serves small requests at fewer bytes per second than large
+// ones without being any slower. Its Slowdown must read 0 once the sizer has learned
+// that cost, which is the notion of slowdown the sizer acts on, and must not stay at
+// the gap between the first large request and the small ones that follow.
+func TestBulkIndexerGetStatsSlowdownCountsTheFixedCostOfARequest(t *testing.T) {
+	t.Parallel()
+
+	const perRequest = 3 * time.Millisecond
+
+	h := newSizingHarness(t, 200, 1, "n0")
+	bi := h.bi.(*bulkIndexer)
+	// Hold every buffer at the smallest size the sizer asks for, which is where it
+	// learns the fixed cost.
+	bi.sizing.min = bi.sizing.initial
+	bi.sizing.step = 1
+
+	h.server.advance = func(r sentRequest) {
+		h.clock.advance(perRequest + time.Duration(float64(r.bytes)/100e6*float64(time.Second)))
+	}
+
+	// One large request first: it sets the best rate the small requests are held
+	// against, and is too large to teach the fixed cost.
+	big := strings.Repeat("x", int(bi.sizing.initial)*3)
+	require.NoError(t, h.bi.Add(t.Context(), BulkIndexerItem{
+		Index: "idx", Action: actionIndex, DocumentID: h.idsFor(0, 1)[0],
+		Body: strings.NewReader(`{"p":"` + big + `"}`),
+	}))
+	waitIdle(t, h.bi)
+
+	for range 150 {
+		h.round("n0")
+	}
+	waitIdle(t, h.bi)
+
+	var stats BulkIndexerStats
+	require.NoError(t, h.bi.GetStats(&stats))
+	require.Less(t, stats.Slowdown.Max, 0.1, "slowdown %+v", stats.Slowdown)
 }
 
 // TestBulkIndexerGetStatsWhileAdding reads the statistics from another goroutine
