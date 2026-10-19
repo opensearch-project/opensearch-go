@@ -515,8 +515,12 @@ type BulkIndexerZeroCopyItem struct {
 	// the garbage collector and the caller's pool simply makes another. Release is
 	// not called for an item that was not accepted, which the caller still owns. It
 	// must not block or call Add.
-	Release func(data []byte)
+	Release ZeroCopyReleaseFunc
 }
+
+// ZeroCopyReleaseFunc hands a lent document back to its owner; see
+// [BulkIndexerZeroCopyItem.Release].
+type ZeroCopyReleaseFunc func(data []byte)
 
 // lentBody is the Body of an item whose document the indexer was lent. It reads as
 // the document, so callbacks given the item can read it, and it tells the
@@ -524,10 +528,10 @@ type BulkIndexerZeroCopyItem struct {
 type lentBody struct {
 	data    []byte
 	off     int
-	release func([]byte)
+	release ZeroCopyReleaseFunc
 }
 
-func newLentBody(data []byte, release func([]byte)) *lentBody {
+func newLentBody(data []byte, release ZeroCopyReleaseFunc) *lentBody {
 	return &lentBody{data: data, release: release}
 }
 

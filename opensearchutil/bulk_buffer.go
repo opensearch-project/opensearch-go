@@ -389,10 +389,10 @@ type byteBudget struct {
 	// onBlock, when set, is called without the lock each time an acquire begins
 	// to wait. The indexer uses it to flush buffered data that is not on its way
 	// out already, so the wait does not last until the next flush interval.
-	onBlock func()
+	onBlock budgetBlockFunc
 	// onUnblock, when set, is called with the time an acquire waited, once the
 	// wait is over for whatever reason.
-	onUnblock func(ctx context.Context, waited time.Duration)
+	onUnblock budgetUnblockFunc
 	// now is the clock the blocked time is read from.
 	now func() time.Time
 	// halt, when set, ends every wait for room when it closes, as the indexer's
@@ -402,6 +402,12 @@ type byteBudget struct {
 	blocked     atomic.Uint64
 	blockedTime atomic.Int64 // Nanoseconds.
 }
+
+// budgetBlockFunc is called each time a byteBudget acquire begins to wait.
+type budgetBlockFunc func()
+
+// budgetUnblockFunc is called with the time a byteBudget acquire waited.
+type budgetUnblockFunc func(ctx context.Context, waited time.Duration)
 
 type budgetWaiter struct {
 	n       int64

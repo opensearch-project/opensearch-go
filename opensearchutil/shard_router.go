@@ -34,8 +34,11 @@ type Node struct {
 	// Pool reports the state of the node's write thread pool as the transport
 	// tracks it. When nil, Conn's is used, and a node with neither is treated as
 	// one whose window is unknown.
-	Pool func() opensearchtransport.PoolWindow
+	Pool PoolWindowFunc
 }
+
+// PoolWindowFunc reports the state of a node's write thread pool.
+type PoolWindowFunc func() opensearchtransport.PoolWindow
 
 // pool returns the node's write pool window, or the zero value when unknown.
 func (n Node) pool() opensearchtransport.PoolWindow {
