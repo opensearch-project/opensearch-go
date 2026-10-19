@@ -123,7 +123,7 @@ Behavior to be aware of:
 - **`Add` after `Close` returns `ErrBulkIndexerClosed`.** Otherwise `Add` returns an error only when its context ends before the item is queued. It blocks while the indexer holds `MaxMemoryBytes`, and while its shard holds more than an even share of that limit with other shards waiting.
 - **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` value are written in the order they were added: a shard has one request in flight at a time, and a retry takes place in that request's slot, so a later buffer for the shard is not sent ahead of it. An item that the indexer cannot place in a shard, because there is no shard router or the index's shard map is not yet known, is ordered the same way by its ID: the buffer that holds it is not sent until the earlier buffer holding a document with the same ID has finished, while buffers that share no ID are sent in parallel.
 
-  The order holds across a change in where documents are sent. A shard that moves to another node keeps its order, as does one whose node is unknown; only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or when the router loses the index's shard map, can send a document's next action to a different shard from its previous one. When `Add` detects such a change, the items still buffered for the index's shards fail through their own `OnError` with a `LayerIndex` error that matches `ErrShardMapChanged`, without being sent, and `Add` waits for the index's in-flight requests to be answered before it places the item, so that nothing overtakes them. Geometry changes are signaled by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect them.
+  The order holds across a change in where documents are sent. A shard that moves to another node keeps its order, as does one whose node is unknown; only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or when the router loses the index's shard map, can send a document's next action to a different shard from its previous one. When `Add` detects such a change, the items already added for the index's shards are sent as they are, under the shards they were placed with, since the server routes each document itself, and `Add` waits for all of them to be answered before it places the item, so that nothing overtakes them. No item fails because of the change. Geometry changes are signaled by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect them.
 
 - **Callbacks run on the goroutine that sends the request.** A slow callback delays its buffer and the shard's next buffer, but not the rest of the indexer. Do not call `Add`, `Flush`, or `Close` from a callback; `Cancel` is safe.
 - **Every item receives exactly one callback**: `OnSuccess` or `OnError`.
@@ -155,10 +155,9 @@ After `Cancel`, each item the indexer has not finished fails through its `OnErro
 | The cluster rejected this item (version conflict, mapping error, 429) | `LayerItem`    | by status                                      | `Resp` is the item's response and `Status` its status; `Err` is nil |
 | The item was never sent (cannot serialize, no ID)                     | `LayerItem`    | `KindPermanent`                                | `Err` is the reason                                                 |
 | The whole request failed (network error, 5xx, 429)                    | `LayerRequest` | by status, or `KindTransport` with no response | `Err` wraps the request error, and `Status` is the request's status |
-| The index's shard map changed before the item was sent                | `LayerIndex`   | `KindPermanent`                                | `Err` matches `ErrShardMapChanged`                                  |
 | The indexer was canceled before the item was sent                     | `LayerIndexer` | `KindCanceled`                                 | `Err` matches `ErrIndexerCanceled` and `context.Canceled`           |
 
-`errors.Is` matches the error against the sentinel for its layer (`ErrItemLayer`, `ErrRequestLayer`, `ErrIndexLayer`, `ErrIndexerLayer`), the sentinel for its kind (`ErrRejected`, `ErrUnavailable`, `ErrTransport`, `ErrPermanent`, `ErrIndexerCanceled`), and its cause:
+`errors.Is` matches the error against the sentinel for its layer (`ErrItemLayer`, `ErrRequestLayer`, `ErrIndexerLayer`), the sentinel for its kind (`ErrRejected`, `ErrUnavailable`, `ErrTransport`, `ErrPermanent`, `ErrIndexerCanceled`), and its cause:
 
 ```go
 OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
@@ -199,7 +198,7 @@ A policy is consulted for two layers of error, identified by `err.Layer`:
 - **`LayerRequest`**: the whole request failed. `err.Err` is the request's error. One call covers every item in the request.
 - **`LayerItem`**: the cluster answered and rejected one item. `err.Resp` is that item's response. There is one call per rejected item.
 
-Errors of the other layers, an index whose shard map changed and a canceled indexer, are never retried and are never passed to a policy. The indexer classifies each error by kind:
+Errors of the other layer, a canceled indexer, are never retried and are never passed to a policy. The indexer classifies each error by kind:
 
 | Kind              | Sentinel             | Meaning                                                                                                              | Safe to retry               |
 | ----------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------- |

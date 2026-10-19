@@ -110,19 +110,6 @@ var ErrNilStats = errors.New("opensearchutil: GetStats needs a non-nil BulkIndex
 // configuration it cannot run with, such as a negative byte limit.
 var ErrInvalidConfig = errors.New("opensearchutil: invalid bulk indexer configuration")
 
-// ErrShardMapChanged is wrapped by the error an item fails with when the shard
-// map it was buffered under was lost or replaced before the item was sent: the
-// router stopped answering for the index, or reported a different shard geometry
-// (see [ShardTarget.Generation]), as when the index is recreated, split or shrunk.
-// The item's shard is then no longer where later actions on the same document will
-// go, and sending it could let one of them reach the server first. It fails
-// through its own OnError, or OnUnhandledError if it has none, and was never sent.
-//
-// Only items not yet sent fail. A request already out cannot be recalled; the Add
-// that found the change waits for it to be answered before it proceeds, so that
-// no later action overtakes it.
-var ErrShardMapChanged = errors.New("opensearchutil: shard map changed before the item was sent")
-
 // ErrShardRoutingUnavailable is wrapped by the error passed to OnWarning when
 // the indexer starts without shard-aware buffering because it has no way to
 // learn where shards live.
@@ -137,9 +124,9 @@ var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unava
 // follow what the cluster can take, so that bulk traffic gives way to the rest of
 // what a node is serving. Documents of one shard are written in the order they
 // were added, also when the shard moves to another node. When the router reports
-// that an index's shard geometry changed or stops answering for it, the items still
-// buffered for its shards fail with [ErrShardMapChanged] rather than risk a later
-// action reaching the server first.
+// that an index's shard geometry changed or stops answering for it, the items
+// already added for its shards are sent and answered before any later item for the
+// index is placed, so that no later action reaches the server first.
 //
 // The limits delay work and never stop it. A shard's buffer is never asked to be
 // smaller than 1 byte (BulkSizing.MinBytes is held to at least 1, also with
@@ -1372,9 +1359,10 @@ func geometryChanged(from, to uint64) bool {
 // or, with lost set, it stopped answering at all. A document may now belong to a
 // different shard than its earlier actions went to, and a shard's buffers wait
 // only for each other, so a later action could reach the server before an earlier
-// one. The buffers of the index's shards that have not been sent fail their items
-// with [ErrShardMapChanged], and the Add that found the change waits for the
-// requests already out to be answered, so that nothing it places overtakes them.
+// one. The buffers of the index's shards are sealed and sent as they are, each under
+// the shard its documents were placed with, which the server still routes to the
+// right place, and the Add that found the change waits for every one of them to be
+// answered, so that nothing it places overtakes them. Nothing fails for the change.
 //
 // Like firstPlacement it holds the placement lock for the wait, and Add must not be
 // called from a callback.
@@ -1388,8 +1376,7 @@ func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, gener
 		return nil
 	}
 
-	err := fmt.Errorf("%w: index %q", ErrShardMapChanged, index)
-	for _, b := range bi.sched.abortIndex(index, err) {
+	for _, b := range bi.sched.sealIndex(index) {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -1883,17 +1870,9 @@ func (w *worker) sendBuffer(b *buffer) {
 	w.sent, w.busy = 0, 0
 	w.retired = nil
 
-	var aborted []error
 	for _, item := range b.items {
 		if bi.canceled() {
 			_ = w.failUnsent(ctx, item, ErrIndexerCanceled, 0) //nolint:errcheck // a canceled item is not an OnUnhandledError matter
-
-			continue
-		}
-
-		if b.abort != nil {
-			// An item without an OnError is reported to OnUnhandledError with the buffer's.
-			aborted = append(aborted, w.failUnsent(ctx, item, b.abort, 0))
 
 			continue
 		}
@@ -1909,7 +1888,7 @@ func (w *worker) sendBuffer(b *buffer) {
 		w.items = append(w.items, item)
 	}
 
-	err := errors.Join(append(aborted, w.flush(withBatchNode(ctx, w.node)))...)
+	err := w.flush(withBatchNode(ctx, w.node))
 
 	clear(w.items)
 	w.items = w.items[:0]

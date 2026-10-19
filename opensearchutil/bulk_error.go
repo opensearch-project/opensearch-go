@@ -34,10 +34,6 @@ const (
 	// whether the batch landed.
 	LayerRequest
 
-	// LayerIndex is an error of every unsent item of one index: its shard map
-	// changed or was lost before they were sent; see [ErrShardMapChanged].
-	LayerIndex
-
 	// LayerIndexer is an error of every item the indexer still held: it was
 	// canceled, by [BulkIndexer.Cancel] or by a Close whose context ended; see
 	// [ErrIndexerCanceled].
@@ -55,8 +51,6 @@ func (l ErrorLayer) String() string {
 		return "item"
 	case LayerRequest:
 		return "request"
-	case LayerIndex:
-		return "index"
 	case LayerIndexer:
 		return "indexer"
 	default:
@@ -92,8 +86,8 @@ const (
 
 	// KindPermanent means the same work would fail the same way: a mapping error,
 	// a version conflict, any other 4xx, a response that cannot be paired with the
-	// items sent, an item that cannot be serialized or has no document ID, or an
-	// item whose index's shard map changed. Retrying cannot succeed.
+	// items sent, or an item that cannot be serialized or has no document ID.
+	// Retrying cannot succeed.
 	KindPermanent
 
 	// KindCanceled means the indexer was canceled before the work was sent; see
@@ -128,7 +122,6 @@ func (k ErrorKind) String() string {
 var (
 	ErrItemLayer    = errors.New("opensearchutil: bulk item error")
 	ErrRequestLayer = errors.New("opensearchutil: bulk request error")
-	ErrIndexLayer   = errors.New("opensearchutil: bulk index error")
 	ErrIndexerLayer = errors.New("opensearchutil: bulk indexer error")
 )
 
@@ -144,7 +137,7 @@ var (
 //nolint:gochecknoglobals // Lookup tables for BulkError.Is.
 var (
 	layerSentinels = [numErrorLayers]error{
-		LayerItem: ErrItemLayer, LayerRequest: ErrRequestLayer, LayerIndex: ErrIndexLayer, LayerIndexer: ErrIndexerLayer,
+		LayerItem: ErrItemLayer, LayerRequest: ErrRequestLayer, LayerIndexer: ErrIndexerLayer,
 	}
 	kindSentinels = [numErrorKinds]error{
 		KindRejected: ErrRejected, KindUnavailable: ErrUnavailable, KindTransport: ErrTransport,
@@ -158,7 +151,7 @@ var (
 // why, and keeps the cause.
 //
 // errors.Is matches it against the sentinel of its layer (ErrItemLayer,
-// ErrRequestLayer, ErrIndexLayer, ErrIndexerLayer) and of its kind (ErrRejected,
+// ErrRequestLayer, ErrIndexerLayer) and of its kind (ErrRejected,
 // ErrUnavailable, ErrTransport, ErrPermanent, ErrIndexerCanceled), and against
 // anything its cause matches.
 type BulkError struct {
@@ -173,8 +166,8 @@ type BulkError struct {
 	// the zero value otherwise.
 	Resp opensearchapi.BulkRespItem
 	// Err is the cause: the request's error, the reason an item was never sent, or
-	// ErrShardMapChanged or ErrIndexerCanceled. It is nil for an item the cluster
-	// rejected, whose reason is in Resp.
+	// ErrIndexerCanceled. It is nil for an item the cluster rejected, whose reason
+	// is in Resp.
 	Err error
 
 	// action is the item's bulk action, for the message of a rejected item.
@@ -224,8 +217,6 @@ func unsentError(item BulkIndexerItem, err error) *BulkError {
 	switch {
 	case errors.Is(err, ErrIndexerCanceled):
 		return &BulkError{Layer: LayerIndexer, Kind: KindCanceled, Err: err, action: item.Action}
-	case errors.Is(err, ErrShardMapChanged):
-		return &BulkError{Layer: LayerIndex, Kind: KindPermanent, Err: err, action: item.Action}
 	default:
 		return &BulkError{Layer: LayerItem, Kind: KindPermanent, Err: err, action: item.Action}
 	}

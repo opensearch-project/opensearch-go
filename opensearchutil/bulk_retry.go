@@ -258,8 +258,8 @@ func (w *worker) observeDone(
 }
 
 // failUnsent fails an item that was never written to a request, for the reason
-// cause: it does not serialize, has no document ID, its index's shard map changed,
-// or the indexer was canceled. A retry cannot help, so the policy is not asked.
+// cause: it does not serialize, has no document ID, or the indexer was canceled.
+// A retry cannot help, so the policy is not asked.
 // attempts is the number of requests that carried the item before, 0 for an item
 // never sent. It returns what failItem does.
 //

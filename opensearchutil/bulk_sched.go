@@ -85,9 +85,6 @@ type buffer struct {
 	after []*buffer
 	// finished is set once the buffer's request has completed.
 	finished bool
-	// abort, when set before the buffer is dispatched, fails its items with it
-	// instead of sending them. Guarded by the scheduler's lock until dispatch.
-	abort error
 
 	sealed     bool
 	dispatched bool
@@ -716,12 +713,12 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	}
 }
 
-// abortIndex fails, with err, the items of the buffers of index's shards that have
-// not been sent, and returns every buffer of those shards that is not complete, for
-// the caller to wait on. A buffer is failed by the worker that would have sent it, so
-// that it finishes as any other does, and after the shard's earlier request has been
-// answered. Buffers of documents that belong to no shard are not touched.
-func (s *scheduler) abortIndex(index string, err error) []*buffer {
+// sealIndex seals the open buffers of index's shards, so that every document added
+// for them goes out under the shard it was placed with, and returns every buffer of
+// those shards that is not complete, for the caller to wait on. Each is sent in its
+// shard's order, after the shard's earlier request has been answered. Buffers of
+// documents that belong to no shard are not touched.
+func (s *scheduler) sealIndex(index string) []*buffer {
 	s.Lock()
 	defer s.Unlock()
 
@@ -729,9 +726,6 @@ func (s *scheduler) abortIndex(index string, err error) []*buffer {
 	for b := range s.live {
 		if !b.shard.ordered || b.shard.key.index != index {
 			continue
-		}
-		if !b.dispatched && b.abort == nil {
-			b.abort = err
 		}
 		pending = append(pending, b)
 	}

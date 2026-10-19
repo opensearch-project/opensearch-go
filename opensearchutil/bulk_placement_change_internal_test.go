@@ -152,42 +152,56 @@ func documentOnDifferentShards(t *testing.T, before, after ShardMap) string {
 	return ""
 }
 
-// TestBulkIndexerFailsBufferedItemsWhenTheShardGeometryChanges: an item still in a
-// buffer for a shard of the old geometry fails with ErrShardMapChanged, as a partial
-// failure, and the item that found the change is sent.
-func TestBulkIndexerFailsBufferedItemsWhenTheShardGeometryChanges(t *testing.T) {
+// TestBulkIndexerSendsBufferedItemsWhenTheShardMapChanges: a document's first action
+// is still in a buffer for its shard when the next action on it finds the index's
+// shard map changed or gone. The buffered action is sent, under the shard it was
+// placed with, and answered before the next one goes out, so neither fails and the
+// server sees them in the order they were added.
+func TestBulkIndexerSendsBufferedItemsWhenTheShardMapChanges(t *testing.T) {
 	t.Parallel()
 
 	before, after := DefaultShardMap(8), DefaultShardMap(4)
-	cluster := newFakeCluster(map[string]ShardMap{"idx": before}, "n0")
-	cluster.setShardMap("idx", before)
-	server := newFakeServer(cluster)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
+	id := documentOnDifferentShards(t, before, after)
 
-	var buffered atomic.Value // error
-	var sent atomic.Int64
-	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1),
-		OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
-			buffered.Store(err)
-		},
-	}), "buffered, not sent")
-	require.Empty(t, server.requests())
+	tests := []struct {
+		name   string
+		change func(c *fakeCluster)
+	}{
+		{name: "the geometry changes", change: func(c *fakeCluster) { c.setShardMap("idx", after) }},
+		{name: "the router stops answering", change: func(c *fakeCluster) { c.setUnknown("idx", true) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	cluster.setShardMap("idx", after)
-	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Index: "idx", Action: actionIndex, DocumentID: "b", Body: seqBody(2),
-		OnSuccess: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) { sent.Add(1) },
-	}))
+			cluster := newFakeCluster(map[string]ShardMap{"idx": before}, "n0")
+			cluster.setShardMap("idx", before)
+			server := newFakeServer(cluster)
+			bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
 
-	err, _ := buffered.Load().(error)
-	require.ErrorIs(t, err, ErrShardMapChanged, "the buffered item fails when the geometry changes")
-	require.Contains(t, err.Error(), `"idx"`)
-	require.Empty(t, server.requests(), "the failed item was never sent")
+			var succeeded, failed atomic.Int64
+			item := func(seq int) BulkIndexerItem {
+				return BulkIndexerItem{
+					Index: "idx", Action: actionIndex, DocumentID: id, Body: seqBody(seq),
+					OnSuccess: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) { succeeded.Add(1) },
+					OnError:   func(context.Context, BulkIndexerItem, *BulkError) { failed.Add(1) },
+				}
+			}
 
-	require.NoError(t, bi.Close(t.Context()))
-	require.EqualValues(t, 1, sent.Load(), "the item that found the change is sent under the new geometry")
-	require.EqualValues(t, 1, bi.Stats().NumFailed)
+			require.NoError(t, bi.Add(t.Context(), item(1)))
+			require.Empty(t, server.requests(), "the first action is buffered, not sent")
+
+			tt.change(cluster)
+			require.NoError(t, bi.Add(t.Context(), item(2)))
+			require.Len(t, server.requests(), 1, "the buffered action is sent before the Add that found the change returns")
+
+			require.NoError(t, bi.Close(t.Context()))
+
+			requireSequence(t, server, 1, 2)
+			require.Zero(t, failed.Load(), "a change in the shard map fails nothing")
+			require.EqualValues(t, 2, succeeded.Load())
+		})
+	}
 }
 
 // TestBulkIndexerIgnoresAChangeAnUnversionedRouterReports: a router that reports

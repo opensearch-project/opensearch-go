@@ -198,7 +198,6 @@ func TestErrorLayerString(t *testing.T) {
 		{LayerUnknown, "unknown"},
 		{LayerItem, "item"},
 		{LayerRequest, "request"},
-		{LayerIndex, "index"},
 		{LayerIndexer, "indexer"},
 		{ErrorLayer(42), "ErrorLayer(42)"},
 	}

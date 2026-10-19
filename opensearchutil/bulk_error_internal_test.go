@@ -11,7 +11,6 @@ package opensearchutil
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -25,7 +24,7 @@ import (
 func TestBulkErrorIs(t *testing.T) {
 	t.Parallel()
 
-	layers := []error{ErrItemLayer, ErrRequestLayer, ErrIndexLayer, ErrIndexerLayer}
+	layers := []error{ErrItemLayer, ErrRequestLayer, ErrIndexerLayer}
 	kinds := []error{ErrRejected, ErrUnavailable, ErrTransport, ErrPermanent, ErrIndexerCanceled}
 	cause := errors.New("the cause")
 
@@ -58,12 +57,6 @@ func TestBulkErrorIs(t *testing.T) {
 			err:       &BulkError{Layer: LayerRequest, Kind: KindTransport},
 			wantLayer: ErrRequestLayer,
 			wantKind:  ErrTransport,
-		},
-		{
-			name:      "an index whose shard map changed",
-			err:       &BulkError{Layer: LayerIndex, Kind: KindPermanent},
-			wantLayer: ErrIndexLayer,
-			wantKind:  ErrPermanent,
 		},
 		{
 			name:      "a canceled indexer",
@@ -137,12 +130,6 @@ func TestUnsentError(t *testing.T) {
 		wantKind  ErrorKind
 	}{
 		{name: "the indexer was canceled", cause: ErrIndexerCanceled, wantLayer: LayerIndexer, wantKind: KindCanceled},
-		{
-			name:      "the index's shard map changed",
-			cause:     fmt.Errorf("%w: index %q", ErrShardMapChanged, "idx"),
-			wantLayer: LayerIndex,
-			wantKind:  KindPermanent,
-		},
 		{name: "the item has no ID", cause: ErrMissingDocumentID, wantLayer: LayerItem, wantKind: KindPermanent},
 		{name: "the body cannot be read", cause: errors.New("read: broken pipe"), wantLayer: LayerItem, wantKind: KindPermanent},
 	}
