@@ -2140,6 +2140,221 @@ func TestMetaEncoderFailure(t *testing.T) {
 	}
 }
 
+// TestBulkIndexerOrderKey: items that share an order key are written in the order
+// they were added. The key is the document id, else the item's routing, else the
+// indexer's routing; an item with none has no order to keep.
+func TestBulkIndexerOrderKey(t *testing.T) {
+	t.Parallel()
+
+	itemRouting, empty := "item-routing", ""
+
+	tests := []struct {
+		name          string
+		item          BulkIndexerItem
+		configRouting string
+		want          string
+	}{
+		{name: "document id", item: BulkIndexerItem{DocumentID: "doc-1"}, want: "doc-1"},
+		{
+			name: "document id outranks both routings",
+			item: BulkIndexerItem{DocumentID: "doc-1", Routing: &itemRouting}, configRouting: "config-routing", want: "doc-1",
+		},
+		{name: "item routing", item: BulkIndexerItem{Routing: &itemRouting}, want: "item-routing"},
+		{
+			name: "item routing outranks the indexer's",
+			item: BulkIndexerItem{Routing: &itemRouting}, configRouting: "config-routing", want: "item-routing",
+		},
+		{
+			name: "an empty item routing falls through to the indexer's",
+			item: BulkIndexerItem{Routing: &empty}, configRouting: "config-routing", want: "config-routing",
+		},
+		{name: "indexer routing", configRouting: "config-routing", want: "config-routing"},
+		{name: "nothing to order by", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			bi := &bulkIndexer{config: BulkIndexerConfig{Routing: tt.configRouting}}
+
+			require.Equal(t, tt.want, bi.orderKey(tt.item))
+		})
+	}
+}
+
+// seekScript is a body with no Len whose Seek fails on the call numbered failAt
+// (1-based), or never when failAt is 0.
+type seekScript struct {
+	io.ReadSeeker
+
+	failAt int
+	calls  int
+}
+
+var errSeek = errors.New("seek failed")
+
+func (s *seekScript) Seek(offset int64, whence int) (int64, error) {
+	s.calls++
+	if s.calls == s.failAt {
+		return 0, errSeek
+	}
+
+	return s.ReadSeeker.Seek(offset, whence)
+}
+
+func TestBodyLen(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no body is empty", func(t *testing.T) {
+		t.Parallel()
+
+		require.Zero(t, bodyLen(nil))
+	})
+
+	t.Run("a reader that knows its length is not touched", func(t *testing.T) {
+		t.Parallel()
+
+		r := strings.NewReader("0123456789")
+		_, err := r.Seek(4, io.SeekStart)
+		require.NoError(t, err)
+
+		require.EqualValues(t, 6, bodyLen(r), "the unread bytes")
+		require.Equal(t, 6, r.Len(), "the position is where it was")
+	})
+
+	t.Run("any other seeker is measured from its position and left there", func(t *testing.T) {
+		t.Parallel()
+
+		s := &seekScript{ReadSeeker: strings.NewReader("0123456789")}
+		_, err := s.Seek(4, io.SeekStart)
+		require.NoError(t, err)
+		s.calls = 0
+
+		require.EqualValues(t, 6, bodyLen(s))
+
+		rest, err := io.ReadAll(s.ReadSeeker)
+		require.NoError(t, err)
+		require.Equal(t, "456789", string(rest), "the position is where it was")
+	})
+
+	tests := []struct {
+		name   string
+		failAt int
+	}{
+		{name: "the position cannot be read", failAt: 1},
+		{name: "the end cannot be reached", failAt: 2},
+		{name: "the position cannot be restored", failAt: 3},
+	}
+
+	for _, tt := range tests {
+		t.Run("0 when "+tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := &seekScript{ReadSeeker: strings.NewReader("0123456789"), failAt: tt.failAt}
+
+			require.Zero(t, bodyLen(s))
+		})
+	}
+}
+
+func TestBulkIndexerWorkersDone(t *testing.T) {
+	t.Parallel()
+
+	t.Run("an indexer without a construction context never signals", func(t *testing.T) {
+		t.Parallel()
+
+		require.Nil(t, (&bulkIndexer{}).workersDone())
+	})
+
+	t.Run("the construction context ends the workers", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(t.Context())
+		bi := &bulkIndexer{config: BulkIndexerConfig{Context: ctx}}
+		done := bi.workersDone()
+
+		select {
+		case <-done:
+			t.Fatal("workersDone closed before the context ended")
+		default:
+		}
+
+		cancel()
+		receive(t, done)
+	})
+}
+
+func TestIsThrottled(t *testing.T) {
+	t.Parallel()
+
+	withItems := func(statuses ...int) *opensearchapi.BulkResp {
+		blk := &opensearchapi.BulkResp{}
+		for _, status := range statuses {
+			blk.Items = append(blk.Items, opensearchapi.BulkItem{Index: &opensearchapi.BulkRespItem{Status: status}})
+		}
+
+		return blk
+	}
+
+	tests := []struct {
+		name string
+		blk  *opensearchapi.BulkResp
+		err  error
+		want bool
+	}{
+		{name: "no response and no error", want: false},
+		{name: "no response and a plain error", err: errors.New("connection reset"), want: false},
+		{name: "a structured 429", err: &opensearch.StructError{Status: http.StatusTooManyRequests}, want: true},
+		{
+			name: "a wrapped structured 429",
+			err:  fmt.Errorf("bulk: %w", &opensearch.StructError{Status: http.StatusTooManyRequests}),
+			want: true,
+		},
+		{name: "a structured 400", err: &opensearch.StructError{Status: http.StatusBadRequest}, want: false},
+		{name: "a string 429", err: &opensearch.StringError{Status: http.StatusTooManyRequests}, want: true},
+		{
+			name: "a wrapped string 429",
+			err:  fmt.Errorf("bulk: %w", &opensearch.StringError{Status: http.StatusTooManyRequests}),
+			want: true,
+		},
+		{name: "a string 500", err: &opensearch.StringError{Status: http.StatusInternalServerError}, want: false},
+		{name: "an item rejected with 429", blk: withItems(http.StatusCreated, http.StatusTooManyRequests), want: true},
+		{name: "items that all succeeded", blk: withItems(http.StatusCreated, http.StatusOK), want: false},
+		{name: "items rejected for their own sake", blk: withItems(http.StatusConflict, http.StatusBadRequest), want: false},
+		{name: "a response without items", blk: &opensearchapi.BulkResp{}, want: false},
+		{
+			name: "429 on a delete item",
+			blk: &opensearchapi.BulkResp{Items: []opensearchapi.BulkItem{
+				{Delete: &opensearchapi.BulkRespItem{Status: http.StatusTooManyRequests}},
+			}},
+			want: true,
+		},
+		{
+			name: "429 on an update item",
+			blk: &opensearchapi.BulkResp{Items: []opensearchapi.BulkItem{
+				{Update: &opensearchapi.BulkRespItem{Status: http.StatusTooManyRequests}},
+			}},
+			want: true,
+		},
+		{
+			name: "429 on a create item",
+			blk: &opensearchapi.BulkResp{Items: []opensearchapi.BulkItem{
+				{Create: &opensearchapi.BulkRespItem{Status: http.StatusTooManyRequests}},
+			}},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, isThrottled(tt.blk, tt.err))
+		})
+	}
+}
+
 func BenchmarkWriteMeta(b *testing.B) {
 	bi := &bulkIndexer{
 		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,

@@ -35,6 +35,46 @@ func newTestSizer(cfg BulkSizing) *sizer {
 	return newSizer(cfg.resolve(testCeiling))
 }
 
+// TestSizerFraction: the fraction is the target as a part of the ceiling, and is 0
+// for a sizer that has no ceiling to measure against.
+func TestSizerFraction(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		target, max float64
+		want        float64
+	}{
+		{name: "at the ceiling", target: 4 << 20, max: 4 << 20, want: 1},
+		{name: "half way", target: 2 << 20, max: 4 << 20, want: 0.5},
+		{name: "empty", target: 0, max: 4 << 20, want: 0},
+		{name: "no ceiling", target: 1 << 20, max: 0, want: 0},
+		{name: "a negative ceiling", target: 1 << 20, max: -1, want: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := newSizer(resolvedSizing{max: tt.max, initial: tt.target})
+
+			require.InDelta(t, tt.want, s.fraction(), 1e-9)
+		})
+	}
+
+	t.Run("follows the target as it moves", func(t *testing.T) {
+		t.Parallel()
+
+		s := newTestSizer(BulkSizing{})
+		before := s.fraction()
+		require.Positive(t, before)
+		require.LessOrEqual(t, before, 1.0)
+
+		s.target = float64(s.ceiling())
+		require.InDelta(t, 1.0, s.fraction(), 1e-9)
+	})
+}
+
 func TestBulkSizingResolve(t *testing.T) {
 	t.Parallel()
 

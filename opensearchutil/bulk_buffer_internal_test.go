@@ -335,6 +335,237 @@ func TestChunkBufferLendsSlices(t *testing.T) {
 	require.Equal(t, snapshot, lent)
 }
 
+// limitedWriter accepts at most limit bytes in total. Past that it writes what
+// room is left and fails with err, or, when err is nil, reports the short write
+// without an error as a misbehaving io.Writer may.
+type limitedWriter struct {
+	buf   bytes.Buffer
+	limit int
+	err   error
+}
+
+func (w *limitedWriter) Write(p []byte) (int, error) {
+	room := max(w.limit-w.buf.Len(), 0)
+	if len(p) <= room {
+		return w.buf.Write(p)
+	}
+
+	n, _ := w.buf.Write(p[:room])
+
+	return n, w.err
+}
+
+// TestChunkBufferWriteToFromPosition: WriteTo writes the bytes not read yet, and
+// leaves the buffer read to its end, so what a partial Read consumed is not
+// written twice.
+func TestChunkBufferWriteToFromPosition(t *testing.T) {
+	t.Parallel()
+
+	content := strings.Repeat("0123456789", 3) // Four chunks, the last partial.
+
+	tests := []struct {
+		name string
+		// consume is how many bytes are read before WriteTo.
+		consume int
+	}{
+		{name: "nothing read", consume: 0},
+		{name: "inside the first chunk", consume: 3},
+		{name: "on a chunk boundary", consume: testChunkSize * 2},
+		{name: "inside a later chunk", consume: testChunkSize*2 + 5},
+		{name: "all but one byte", consume: len(content) - 1},
+		{name: "everything", consume: len(content)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := newTestChunkBuffer()
+			b.appendRef([]byte(content[:5]))
+			_, _ = b.WriteString(content[5:])
+			_, err := io.ReadFull(b, make([]byte, tt.consume))
+			require.NoError(t, err)
+
+			var out bytes.Buffer
+			n, err := b.WriteTo(&out)
+			require.NoError(t, err)
+			require.EqualValues(t, len(content)-tt.consume, n)
+			require.Equal(t, content[tt.consume:], out.String())
+			require.Zero(t, b.Len(), "written bytes are consumed")
+
+			// A second write has nothing left to send.
+			n, err = b.WriteTo(&out)
+			require.NoError(t, err)
+			require.Zero(t, n)
+			require.Equal(t, content[tt.consume:], out.String())
+		})
+	}
+}
+
+// TestChunkBufferWriteToWriterFailure: when the writer fails or accepts less than
+// it was given, WriteTo reports the bytes the writer took and the cause, and the
+// buffer keeps the rest unread, so a later write continues where this one stopped.
+func TestChunkBufferWriteToWriterFailure(t *testing.T) {
+	t.Parallel()
+
+	content := strings.Repeat("0123456789", 3)
+	errClosed := errors.New("connection closed")
+
+	tests := []struct {
+		name    string
+		limit   int
+		err     error
+		wantErr error
+	}{
+		{name: "error mid chunk", limit: 11, err: errClosed, wantErr: errClosed},
+		{name: "error on a chunk boundary", limit: testChunkSize * 2, err: errClosed, wantErr: errClosed},
+		{name: "error before any byte", limit: 0, err: errClosed, wantErr: errClosed},
+		{name: "short write without an error", limit: 11, wantErr: io.ErrShortWrite},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := newTestChunkBuffer()
+			_, _ = b.WriteString(content)
+
+			w := &limitedWriter{limit: tt.limit, err: tt.err}
+			n, err := b.WriteTo(w)
+			require.ErrorIs(t, err, tt.wantErr)
+			require.EqualValues(t, tt.limit, n)
+			require.Equal(t, content[:tt.limit], w.buf.String())
+			require.Equal(t, len(content)-tt.limit, b.Len())
+
+			var rest bytes.Buffer
+			_, err = b.WriteTo(&rest)
+			require.NoError(t, err)
+			require.Equal(t, content[tt.limit:], rest.String(), "the unwritten bytes are still there")
+		})
+	}
+}
+
+// TestChunkBufferTruncateKeepsReadPosition: truncating a buffer that has been read
+// partway leaves the unread bytes that are still within the content, and puts the
+// position at the new end when the content no longer reaches it.
+func TestChunkBufferTruncateKeepsReadPosition(t *testing.T) {
+	t.Parallel()
+
+	content := strings.Repeat("abcdefghij", 3) // Four chunks.
+
+	tests := []struct {
+		name     string
+		consume  int
+		truncate int
+		want     string
+	}{
+		{name: "cut after the position, same chunk", consume: 10, truncate: 12, want: content[10:12]},
+		{name: "cut after the position, later chunk", consume: 3, truncate: 20, want: content[3:20]},
+		{name: "position on a chunk boundary", consume: testChunkSize, truncate: 25, want: content[testChunkSize:25]},
+		{name: "cut at the position", consume: 10, truncate: 10, want: ""},
+		{name: "cut before the position", consume: 20, truncate: 9, want: ""},
+		{name: "cut to empty", consume: 5, truncate: 0, want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := newTestChunkBuffer()
+			_, _ = b.WriteString(content)
+			_, err := io.ReadFull(b, make([]byte, tt.consume))
+			require.NoError(t, err)
+
+			b.Truncate(tt.truncate)
+			require.Equal(t, len(tt.want), b.Len())
+			require.Equal(t, tt.want, b.String())
+
+			got, err := io.ReadAll(b)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, string(got))
+
+			// A write after the cut is read next, from the new end.
+			_, _ = b.WriteString("Z")
+			got, err = io.ReadAll(b)
+			require.NoError(t, err)
+			require.Equal(t, "Z", string(got))
+		})
+	}
+}
+
+// TestLeasedReaderWriteTo: a replay of a leased body is written out whole, from the
+// start, whatever the first attempt read; it finishes only when the write
+// succeeds, so a failed write leaves the buffer held until the reader is closed.
+func TestLeasedReaderWriteTo(t *testing.T) {
+	t.Parallel()
+
+	const content = "0123456789abcdefghij0123456789"
+
+	newLeased := func(t *testing.T) (*chunkBuffer, *leasedBody) {
+		t.Helper()
+
+		buf := newTestChunkBuffer()
+		_, _ = buf.WriteString(content)
+		body := buf.lease()
+		_, err := io.ReadAll(body)
+		require.NoError(t, err)
+		require.True(t, buf.idle())
+
+		return buf, body
+	}
+
+	t.Run("writes the whole content and finishes", func(t *testing.T) {
+		t.Parallel()
+
+		buf, body := newLeased(t)
+		replay := body.NewReader()
+		require.False(t, buf.idle())
+
+		wt, ok := replay.(io.WriterTo)
+		require.True(t, ok)
+
+		var out bytes.Buffer
+		n, err := wt.WriteTo(&out)
+		require.NoError(t, err)
+		require.EqualValues(t, len(content), n)
+		require.Equal(t, content, out.String())
+		require.True(t, buf.idle(), "a completed write ends the replay")
+
+		// Closing afterwards does not release the buffer a second time.
+		closer, ok := replay.(io.Closer)
+		require.True(t, ok)
+		require.NoError(t, closer.Close())
+		require.True(t, buf.idle())
+		require.Zero(t, buf.active.Load())
+	})
+
+	t.Run("a failed write keeps the buffer held until close", func(t *testing.T) {
+		t.Parallel()
+
+		buf, body := newLeased(t)
+		replay := body.NewReader()
+
+		wt, ok := replay.(io.WriterTo)
+		require.True(t, ok)
+
+		errClosed := errors.New("connection closed")
+		n, err := wt.WriteTo(&limitedWriter{limit: 12, err: errClosed})
+		require.ErrorIs(t, err, errClosed)
+		require.EqualValues(t, 12, n)
+		require.False(t, buf.idle(), "the segments may still be read")
+
+		ran := false
+		buf.whenIdle(func() { ran = true })
+		require.False(t, ran)
+
+		closer, ok := replay.(io.Closer)
+		require.True(t, ok)
+		require.NoError(t, closer.Close())
+		require.True(t, buf.idle())
+		require.True(t, ran, "close releases what waited for the buffer")
+	})
+}
+
 // TestChunkPoolReusesChunks fills and resets a buffer repeatedly and requires
 // that chunks are taken from the pool far more often than they are made.
 func TestChunkPoolReusesChunks(t *testing.T) {

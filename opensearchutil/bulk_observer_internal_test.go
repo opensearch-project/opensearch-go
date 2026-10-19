@@ -14,6 +14,7 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -189,6 +190,85 @@ func TestBulkIndexerObserver(t *testing.T) {
 
 // TestBulkIndexerObserverScopes pins that the two failure levels reach separate
 // observer methods with their own scope and counts.
+func TestFailureScopeString(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		scope FailureScope
+		want  string
+	}{
+		{ScopeRequest, "request"},
+		{ScopeItem, "item"},
+		{FailureScope(42), "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, tt.scope.String())
+		})
+	}
+}
+
+// settledCounter overrides one observer method and inherits the rest.
+type settledCounter struct {
+	BaseBulkIndexerObserver
+
+	settled atomic.Int64
+}
+
+func (o *settledCounter) OnItemSettled(context.Context, BulkItemEvent) { o.settled.Add(1) }
+
+// TestBaseBulkIndexerObserver: an observer that embeds the base type and overrides
+// one method is a complete observer; the methods it inherits do nothing.
+func TestBaseBulkIndexerObserver(t *testing.T) {
+	t.Parallel()
+
+	t.Run("the inherited methods are safe to call", func(t *testing.T) {
+		t.Parallel()
+
+		o := &settledCounter{}
+		var obs BulkIndexerObserver = o
+
+		require.NotPanics(t, func() {
+			obs.OnRequestEnd(t.Context(), BulkRequestEvent{})
+			obs.OnRequestFailure(t.Context(), BulkFailureEvent{})
+			obs.OnItemFailure(t.Context(), BulkFailureEvent{})
+		})
+		require.Zero(t, o.settled.Load(), "only the overridden method counts")
+
+		obs.OnItemSettled(t.Context(), BulkItemEvent{})
+		require.Equal(t, int64(1), o.settled.Load())
+	})
+
+	t.Run("an indexer drives every method of it", func(t *testing.T) {
+		t.Parallel()
+
+		seq := &bulkSequence{outcomes: []bulkOutcome{outcomeTooManyRequests, outcomeOK}}
+		client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
+		o := &settledCounter{}
+		bi := newBulkIndexer(t, BulkIndexerConfig{
+			NumWorkers: 1,
+			Client:     client,
+			Observer:   o,
+			RetryPolicy: RetryPolicyFunc(func(
+				attempt int, _ FailureScope, _ FailureKind, _ opensearchapi.BulkRespItem, _ error,
+			) (time.Duration, bool) {
+				return time.Nanosecond, attempt < 2
+			}),
+		})
+
+		f := newFinals(1)
+		require.NoError(t, bi.Add(t.Context(), f.item("a")))
+		require.NoError(t, bi.Close(t.Context()))
+
+		require.Equal(t, int64(1), f.succeeded.Load())
+		require.Equal(t, int64(1), o.settled.Load(), "the item settles once, after its retry")
+		require.Len(t, seq.requests(), 2)
+	})
+}
+
 func TestBulkIndexerObserverScopes(t *testing.T) {
 	t.Parallel()
 

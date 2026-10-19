@@ -214,6 +214,12 @@ func TestChainShardRouter(t *testing.T) {
 		require.Equal(t, []opensearchutil.Node{{Name: "n1"}, {Name: "n2"}}, got)
 	})
 
+	t.Run("no write nodes when no router has any", func(t *testing.T) {
+		t.Parallel()
+
+		require.Nil(t, opensearchutil.ChainShardRouter(cluster(false), &recordingRouter{}).WriteNodes())
+	})
+
 	t.Run("nil routers are skipped and none disables routing", func(t *testing.T) {
 		t.Parallel()
 

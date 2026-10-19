@@ -59,6 +59,58 @@ func TestBytesReadsAndReplays(t *testing.T) {
 	}
 }
 
+func TestBytesRead(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reads in pieces and ends with EOF", func(t *testing.T) {
+		t.Parallel()
+
+		b := body.New([]byte("abcde"))
+		p := make([]byte, 2)
+
+		for _, want := range []string{"ab", "cd", "e"} {
+			n, err := b.Read(p)
+			require.NoError(t, err)
+			require.Equal(t, want, string(p[:n]))
+		}
+
+		n, err := b.Read(p)
+		require.Zero(t, n)
+		require.ErrorIs(t, err, io.EOF)
+		require.Zero(t, b.Len())
+	})
+
+	t.Run("an empty body is at EOF", func(t *testing.T) {
+		t.Parallel()
+
+		n, err := body.New(nil).Read(make([]byte, 4))
+		require.Zero(t, n)
+		require.ErrorIs(t, err, io.EOF)
+	})
+
+	t.Run("a zero-length read at the end is not EOF", func(t *testing.T) {
+		t.Parallel()
+
+		b := body.New([]byte("a"))
+		_, err := io.ReadAll(b)
+		require.NoError(t, err)
+
+		n, err := b.Read(nil)
+		require.Zero(t, n)
+		require.NoError(t, err)
+	})
+
+	t.Run("a zero-length read before the end consumes nothing", func(t *testing.T) {
+		t.Parallel()
+
+		b := body.New([]byte("abc"))
+		n, err := b.Read(nil)
+		require.Zero(t, n)
+		require.NoError(t, err)
+		require.Equal(t, 3, b.Len())
+	})
+}
+
 func TestReadAll(t *testing.T) {
 	t.Parallel()
 

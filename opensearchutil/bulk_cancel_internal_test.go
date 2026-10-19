@@ -283,6 +283,85 @@ func TestBulkIndexerCancelDoesNotCountARetry(t *testing.T) {
 	require.Equal(t, [numFailureKinds]uint64{}, bi.Stats().NumRetries, "no retry was sent, so none is counted")
 }
 
+// failureCall is what one item's OnFailure was handed.
+type failureCall struct {
+	ID   string
+	Resp opensearchapi.BulkRespItem
+	Err  error
+}
+
+// recordingItem returns an item whose OnFailure appends to calls.
+func recordingItem(id string, calls *[]failureCall) BulkIndexerItem {
+	return BulkIndexerItem{
+		Action:     "index",
+		DocumentID: id,
+		OnFailure: func(_ context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+			*calls = append(*calls, failureCall{ID: item.DocumentID, Resp: resp, Err: err})
+		},
+	}
+}
+
+// TestWorkerFailCanceled: a canceled worker fails every buffered item with
+// ErrIndexerCanceled and sends nothing. An item with an OnFailure hears of it
+// there; one without is reported through the returned error. The observer sees
+// each item settle, but no failure event, since a cancel is not a failure.
+func TestWorkerFailCanceled(t *testing.T) {
+	t.Parallel()
+
+	t.Run("items with and without OnFailure", func(t *testing.T) {
+		t.Parallel()
+
+		var calls []failureCall
+		obs := &cancelObserver{}
+		w := newTestWorker()
+		w.bi.config.Observer = obs
+		w.items = []BulkIndexerItem{
+			recordingItem("a", &calls),
+			{Action: "index", DocumentID: "b"},
+			recordingItem("c", &calls),
+			{Action: "index", DocumentID: "d"},
+		}
+
+		err := w.failCanceled(t.Context())
+
+		require.ErrorIs(t, err, ErrIndexerCanceled)
+		require.ErrorIs(t, err, context.Canceled)
+		require.Equal(t, 2, strings.Count(err.Error(), ErrIndexerCanceled.Error()), "once for each item without an OnFailure")
+
+		require.Len(t, calls, 2)
+		for i, id := range []string{"a", "c"} {
+			require.Equal(t, id, calls[i].ID)
+			require.ErrorIs(t, calls[i].Err, ErrIndexerCanceled)
+			require.NotNil(t, calls[i].Resp.Error, "OnFailure always gets an error cause")
+		}
+
+		require.Equal(t, uint64(4), w.bi.stats.numFailed.Load())
+		require.Equal(t, int64(4), obs.settled.Load())
+		require.Equal(t, int64(4), obs.canceled.Load())
+		require.Zero(t, obs.failures.Load())
+	})
+
+	t.Run("items that all have OnFailure leave nothing to report", func(t *testing.T) {
+		t.Parallel()
+
+		var calls []failureCall
+		w := newTestWorker()
+		w.items = []BulkIndexerItem{recordingItem("a", &calls), recordingItem("b", &calls)}
+
+		require.NoError(t, w.failCanceled(t.Context()))
+		require.Len(t, calls, 2)
+	})
+
+	t.Run("an empty buffer has nothing to fail", func(t *testing.T) {
+		t.Parallel()
+
+		w := newTestWorker()
+
+		require.NoError(t, w.failCanceled(t.Context()))
+		require.Zero(t, w.bi.stats.numFailed.Load())
+	})
+}
+
 // cancelObserver counts what the observer hears of canceled items.
 type cancelObserver struct {
 	BaseBulkIndexerObserver

@@ -476,6 +476,123 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 	})
 }
 
+// TestWorkerFailPending: items whose retry was abandoned fail with the failure they
+// last drew. Each item with an OnFailure hears of it. For the ones without, a
+// request failure is reported once however many items it took down, and a
+// rejection by the cluster once for each item, since each has its own cause.
+func TestWorkerFailPending(t *testing.T) {
+	t.Parallel()
+
+	itemID := func(id string) *string { return &id }
+	rejected := func(id, reason string) opensearchapi.BulkRespItem {
+		return opensearchapi.BulkRespItem{
+			ID:     itemID(id),
+			Status: http.StatusBadRequest,
+			Error:  &opensearchapi.ErrorCause{Type: "mapper_parsing_exception", Reason: &reason},
+		}
+	}
+	errTimeout := errors.New("request timed out")
+
+	t.Run("request failure reaches every OnFailure and is reported once", func(t *testing.T) {
+		t.Parallel()
+
+		var calls []failureCall
+		w := newTestWorker()
+		noCallback := func(id string) BulkIndexerItem { return BulkIndexerItem{Action: "index", DocumentID: id} }
+
+		err := w.failPending(t.Context(), []failedItem{
+			{item: recordingItem("a", &calls), err: errTimeout, attempt: 2},
+			{item: noCallback("b"), err: errTimeout, attempt: 2},
+			{item: recordingItem("c", &calls), err: errTimeout, attempt: 2},
+			{item: noCallback("d"), err: errTimeout, attempt: 2},
+		})
+
+		require.ErrorIs(t, err, errTimeout)
+		require.Equal(t, 1, strings.Count(err.Error(), errTimeout.Error()), "one report for the request")
+
+		require.Len(t, calls, 2)
+		for i, id := range []string{"a", "c"} {
+			require.Equal(t, id, calls[i].ID)
+			require.Equal(t, errTimeout, calls[i].Err)
+		}
+		require.Equal(t, uint64(4), w.bi.stats.numFailed.Load())
+	})
+
+	t.Run("each rejected item without OnFailure is reported with its own cause", func(t *testing.T) {
+		t.Parallel()
+
+		var calls []failureCall
+		w := newTestWorker()
+
+		err := w.failPending(t.Context(), []failedItem{
+			{item: BulkIndexerItem{Action: "index", DocumentID: "a"}, op: "index", resp: rejected("a", "bad a"), attempt: 3},
+			{item: recordingItem("b", &calls), op: "index", resp: rejected("b", "bad b"), attempt: 3},
+			{item: BulkIndexerItem{Action: "index", DocumentID: "c"}, op: "index", resp: rejected("c", "bad c"), attempt: 3},
+		})
+
+		require.ErrorContains(t, err, `"index" "a" rejected: "mapper_parsing_exception": "bad a"`)
+		require.ErrorContains(t, err, `"index" "c" rejected: "mapper_parsing_exception": "bad c"`)
+		require.NotContains(t, err.Error(), "bad b", "b has an OnFailure of its own")
+
+		require.Len(t, calls, 1)
+		require.Equal(t, "b", calls[0].ID)
+		require.NoError(t, calls[0].Err, "a rejection by the cluster carries no request error")
+		require.Equal(t, http.StatusBadRequest, calls[0].Resp.Status)
+		require.Equal(t, uint64(3), w.bi.stats.numFailed.Load())
+	})
+
+	t.Run("items that all have OnFailure leave nothing to report", func(t *testing.T) {
+		t.Parallel()
+
+		var calls []failureCall
+		w := newTestWorker()
+
+		err := w.failPending(t.Context(), []failedItem{
+			{item: recordingItem("a", &calls), err: errTimeout, attempt: 2},
+			{item: recordingItem("b", &calls), resp: rejected("b", "bad b"), attempt: 2},
+		})
+
+		require.NoError(t, err)
+		require.Len(t, calls, 2)
+	})
+
+	t.Run("the observer sees the attempts the item took", func(t *testing.T) {
+		t.Parallel()
+
+		obs := &attemptObserver{}
+		w := newTestWorker()
+		w.bi.config.Observer = obs
+
+		require.NoError(t, w.failPending(t.Context(), []failedItem{
+			{item: recordingItem("a", new([]failureCall)), err: errTimeout, attempt: 4},
+		}))
+
+		require.Equal(t, []int{4}, obs.attempts)
+	})
+
+	t.Run("nothing pending fails nothing", func(t *testing.T) {
+		t.Parallel()
+
+		w := newTestWorker()
+
+		require.NoError(t, w.failPending(t.Context(), nil))
+		require.Zero(t, w.bi.stats.numFailed.Load())
+	})
+}
+
+// attemptObserver records the attempts of the items it sees settle as failed.
+type attemptObserver struct {
+	BaseBulkIndexerObserver
+
+	attempts []int
+}
+
+func (o *attemptObserver) OnItemSettled(_ context.Context, ev BulkItemEvent) {
+	if ev.Failed {
+		o.attempts = append(o.attempts, ev.Attempts)
+	}
+}
+
 func TestRetryPolicyFunc(t *testing.T) {
 	t.Parallel()
 
