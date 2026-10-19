@@ -43,7 +43,7 @@ func TestBulkSizingEnvMode(t *testing.T) {
 			require.Equal(t, tt.wantFixed, r.fixed)
 			if tt.wantFixed {
 				require.InDelta(t, testCeiling, r.initial, 0, "a fixed size starts at the ceiling")
-				require.InDelta(t, testCeiling, r.min, 0)
+				require.InDelta(t, testCeiling/sizingMinDivisor, r.min, 0, "a fixed size keeps the minimum the controller would use")
 			}
 		})
 	}

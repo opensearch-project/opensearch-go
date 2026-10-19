@@ -116,6 +116,24 @@ func TestBulkSizingResolve(t *testing.T) {
 			},
 		},
 		{
+			name:    "fixed pins the start to the ceiling and keeps the adaptive minimum",
+			sizing:  BulkSizing{Fixed: true},
+			ceiling: testCeiling,
+			want: resolved{
+				min: testCeiling / 32, initial: testCeiling, max: testCeiling, step: testCeiling / 16,
+				headroom: 0.25, backoff: 0.5, kp: sizingDefaultKp, ki: sizingDefaultKi, kd: sizingDefaultKd,
+			},
+		},
+		{
+			name:    "fixed keeps the minimum at least 1 on a tiny ceiling",
+			sizing:  BulkSizing{Fixed: true},
+			ceiling: 1,
+			want: resolved{
+				min: 1, initial: 1, max: 1, step: 1.0 / 16,
+				headroom: 0.25, backoff: 0.5, kp: sizingDefaultKp, ki: sizingDefaultKi, kd: sizingDefaultKd,
+			},
+		},
+		{
 			name:    "a tiny ceiling still works",
 			ceiling: 1,
 			want: resolved{
@@ -146,6 +164,32 @@ func TestSizerFixed(t *testing.T) {
 
 	s.observe(flushOf(testCeiling, 1e6))
 	require.EqualValues(t, testCeiling, s.bytes(), "a fixed size ignores every signal")
+}
+
+// TestSizerFixedReportsASustainedSlowdown: a fixed size reads the node for the slowdown
+// it reports, and a node that stays 5x slower is still reported as slow after many
+// flushes. The fixed size is not the smallest batch the controller would ask for: if it
+// were, every request would teach the fixed cost of a request and the memory of the
+// best rate would fade at the rate for small requests, and the slowdown would be
+// absorbed as that cost.
+func TestSizerFixedReportsASustainedSlowdown(t *testing.T) {
+	t.Parallel()
+
+	s := newTestSizer(BulkSizing{Fixed: true})
+	for range 200 {
+		s.observe(flushOf(s.bytes(), 100e6))
+	}
+
+	var slowdown float64
+	for range 51 {
+		n, ok := s.observe(flushOf(s.bytes(), 20e6))
+		require.True(t, ok)
+		slowdown = n - 1
+	}
+
+	// The node is 5x slower than at its best, which is 4 over the expected time.
+	require.Greater(t, slowdown, 3.0, "the slowdown must survive 51 flushes of a node that stays slow")
+	require.EqualValues(t, testCeiling, s.bytes())
 }
 
 func TestSizerGrowsWhileTheNodeKeepsUp(t *testing.T) {

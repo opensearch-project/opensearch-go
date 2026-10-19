@@ -228,8 +228,14 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 	r.initial = math.Min(math.Max(r.initial, r.min), ceiling)
 	r.backoff = math.Min(math.Max(r.backoff, 0.05), 0.95)
 
+	// A fixed size starts, and stays, at the ceiling. It keeps the minimum the
+	// controller would use, because the minimum is also how the sizer tells a small
+	// request, which teaches the fixed cost of a request and fades the memory of the
+	// best rate faster, from a large one. Pinned to the ceiling it would make every
+	// request small, and the slowdown a fixed size reports would be absorbed as that
+	// cost.
 	if r.fixed {
-		r.min, r.initial = ceiling, ceiling
+		r.initial = ceiling
 	}
 
 	return r

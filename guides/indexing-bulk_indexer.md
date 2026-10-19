@@ -66,6 +66,16 @@ So `Flush` returning means every item you added has reached its final callback. 
 
 Every shard draws on the one `MaxMemoryBytes` limit, and a shard whose requests are slow keeps the bytes it holds until they are answered. So that such a shard cannot take the whole limit, each shard holds no more than an even share of it while other shards are waiting for room, and the waiters of other shards are served past it. While nobody else is waiting, a shard may use the whole limit. A shard that holds nothing may always take one item, so no shard is left with nothing in progress, and the limit can be passed by at most one item for each such shard.
 
+### Progress guarantees
+
+The limits above delay work; none of them can stop it. Each of these holds whatever the cluster is doing:
+
+- A shard's buffer is never asked to be smaller than 1 byte (`MinBytes` is held to at least 1, also under `Fixed`) and is sealed once it holds `FlushBytes`, so a buffer that holds an item has always reached the smallest size it can be asked for, and none waits for a size it cannot reach. An item larger than the size is sent alone.
+- A shard that holds nothing may always take one item, past `MaxMemoryBytes` if need be.
+- When nothing is out to a node, one sealed buffer is sent whatever its size, past the node's window if need be.
+
+So the memory limit and a node's window make a caller wait for requests to come back, and never ask for a shard or a node to be sent nothing.
+
 ## Basic use
 
 ```go

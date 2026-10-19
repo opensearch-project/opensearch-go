@@ -120,6 +120,13 @@ var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unava
 // follow what the cluster can take, so that bulk traffic gives way to the rest of
 // what a node is serving. Documents of one shard are written in the order they
 // were added.
+//
+// The limits delay work and never stop it. A shard's buffer is never asked to be
+// smaller than 1 byte (BulkSizing.MinBytes is held to at least 1, also with
+// BulkSizing.Fixed) and is sealed once it holds FlushBytes, so no buffer waits for
+// a size it cannot reach; a shard that holds nothing may always take one item, past
+// MaxMemoryBytes if need be; and when nothing is out to a node, one sealed buffer
+// is sent whatever its size, past NodeBytes if need be.
 type BulkIndexer interface {
 	// Add adds an item to the indexer. It returns an error when the item cannot be added.
 	// Use the OnSuccess and OnFailure callbacks to get the operation result for the item.

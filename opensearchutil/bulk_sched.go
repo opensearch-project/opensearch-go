@@ -854,7 +854,12 @@ type loadWork struct {
 // that no request should be larger than half of it, and no smaller than the least a
 // shard's buffer gets. Guarded by the scheduler's lock.
 func (s *scheduler) capRequests(refused int64) {
-	limit := max(int64(float64(refused)*s.bi.sizing.backoff), int64(s.bi.sizing.min))
+	floor := s.bi.sizing.min
+	if s.bi.sizing.fixed {
+		// A fixed size is not cut.
+		floor = s.bi.sizing.max
+	}
+	limit := max(int64(float64(refused)*s.bi.sizing.backoff), int64(floor))
 	if s.maxRequest == 0 || limit < s.maxRequest {
 		s.maxRequest = limit
 	}
