@@ -308,7 +308,7 @@ So a node that slows down without rejecting gets smaller buffers and keeps its w
 
 #### Starting a shard
 
-A shard's buffer is compared with the best rate the node has shown, and the node keeps that best rate for all its shards. A shard that starts on a node, such as the first document for a new index, therefore starts from what the node has done and not from its own first flush, so a shard that starts while the node is busy does not take the busy rate for the best it can do. The first shard on a node to send anything has no such history and learns its own.
+A shard that starts on a node, such as the first document for a new index, is given the best service rate the node has shown, and the node keeps that rate for all its shards. Only the rate is carried over: the shard learns its own fixed cost per request. Its first flushes are then judged against the expected time for a request of that size, not against its own first flush, so a shard that starts while the node is busy does not take the busy rate for the best it can do. The first shard on a node to send anything has no such history and learns its own.
 
 ### How the PID controller works
 
@@ -322,17 +322,17 @@ A PID controller is the idea behind a car's cruise control. You pick a speed. Th
 
 The three results are added up into one number, `u`, and `u` decides the step.
 
-Here the thing being steered is the size of one shard's buffer, and the measurement is the _service time_ of the node: the time it spent on the request, against what its best recent self would need for a request that size, smoothed over the last several flushes. The error `e` is 1 for a node as fast as its best, 0 when it has slowed by `Headroom` (25% by default, widened by the node's own noise), and -1 when it has slowed by twice that or more:
+Here the thing being steered is the size of one shard's buffer, and the measurement is the _service time_ of the node: the time it spent on the request, against what its best recent self would need for a request that size, smoothed over the last several flushes. The error `e` is 1 for a node as fast as its expected time, 0 when it has slowed by `Headroom` (25% by default, widened by the node's own noise, called the slack below), and -1 when it has slowed by twice `Headroom` plus the slack or more. The slack is added once, so the slowdown that reaches -1 is `2 × Headroom + slack`:
 
 ```
  e
-+1 ●━━━━━━━╲                       node as fast as its best recent self
++1 ●━━━━━━━╲                       node as fast as expected
            ╲
- 0 ┈┈┈┈┈┈┈┈┈┈●┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈  slowdown = Headroom: hold the size
+ 0 ┈┈┈┈┈┈┈┈┈┈●┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈  slowdown = Headroom + slack: hold the size
                 ╲
--1               ●━━━━━━━━━━━━━━━  slowdown of 2 × Headroom or worse (clamped)
+-1               ●━━━━━━━━━━━━━━━  slowdown of 2 × Headroom + slack or worse (clamped)
    └──────┬───────┬───────┬──────── slowdown
-          0      0.25    0.5       (0 = as fast as its best, 1 = twice as slow)
+          0      0.25    0.5       (0 = as fast as expected, 1 = twice as slow; shown for slack = 0)
 ```
 
 The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never takes away more than half. Over time the buffer climbs while the node keeps up and gives way as it slows:
@@ -384,7 +384,7 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 They are two ways of taking the same step for a shard's buffer, and a flush uses one or the other, never both. The node window is not affected by the choice: it is always additive increase and multiplicative decrease on 429s. Everything around the step is shared:
 
-- Both read the same signal, from the same requests: the node's rate against the best recent rate, as a slowdown measured against `Headroom`. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
+- Both judge a flush by the same measure: its time on the node over the expected time (the learned cost per request plus the bytes at the best smoothed rate), as a slowdown measured against `Headroom`. The PID controller reads that time smoothed over the last several flushes and widens `Headroom` by half of the signal's deviation. AIMD reads each flush as it is and widens `Headroom` by two and a half times the deviation. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
 - Neither reads a 429, a failed request or a request in which no item was indexed, and both keep the size between `MinBytes` and the ceiling.
 
 What differs is the size of the step for a flush that was read:
@@ -438,7 +438,7 @@ if err := indexer.GetStats(&stats); err != nil {
 }
 
 fill := stats.BudgetFill()          // 0 to 1: how much of MaxMemoryBytes is held
-typical := stats.Slowdown.Median    // how much slower than its best the typical node is
+typical := stats.Slowdown.Median    // how much longer than expected the typical node takes
 pushedBack := stats.NumRejections   // only grows: compare with the last reading
 ```
 
@@ -447,7 +447,7 @@ pushedBack := stats.NumRejections   // only grows: compare with the last reading
 | `BudgetFill()`  | the indexer holds more than the cluster takes                  | slow down smoothly, well before `Add` blocks                                                    |
 | `NumRejections` | a node answers 429                                             | back off at once; a rise since your last reading means the cluster pushed back, however briefly |
 | `NodeWindow`    | a node answers 429 (down) or takes writes again (up)           | tell congestion from relief: 1 is clear                                                         |
-| `Slowdown`      | a node serves requests more slowly than it did at its best     | read slowness directly, before any node rejects anything: 0 is at its best, 1 is twice as slow  |
+| `Slowdown`      | a node takes longer for its requests than it needs to          | read slowness directly, before any node rejects anything: 0 is as expected, 1 is twice as long  |
 | `BufferSize`    | the indexer finds a node slow (smaller) or keeping up (larger) | see how much the indexer has already cut back its own batches                                   |
 
 `NodeWindow`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
