@@ -107,17 +107,60 @@ func TestStreamClosesBodyOnErrNoConnections(t *testing.T) {
 		require.EqualValues(t, 0, closesAtSend, "the body must still be open when it is sent")
 		require.EqualValues(t, 1, body.closes.Load(), "the transport closes it once, and nothing closes it again")
 	})
+
+	t.Run("seed fallback signing fails after GetBody replaced the body", func(t *testing.T) {
+		tp := newNoConnectionsTransport(t, func(*http.Request) (*http.Response, error) {
+			t.Error("a request that failed to sign must not be sent")
+			return nil, io.EOF
+		}, withFailingSigner)
+
+		body := newCloseCountBody()
+		req := newBodyRequest(t, body)
+		var replacement *closeCountBody
+		req.GetBody = func() (io.ReadCloser, error) {
+			replacement = newCloseCountBody()
+			return replacement, nil
+		}
+
+		res, err := tp.Stream(req) //nolint:bodyclose // error path: res is nil
+		require.Error(t, err)
+		require.Nil(t, res)
+
+		require.NotNil(t, replacement, "the fallback must have asked GetBody for a body")
+		require.EqualValues(t, 1, replacement.closes.Load(), "the body that was not sent must be closed")
+		require.EqualValues(t, 1, body.closes.Load(), "the caller's body must be closed")
+	})
+
+	t.Run("seed fallback signing fails without GetBody", func(t *testing.T) {
+		tp := newNoConnectionsTransport(t, func(*http.Request) (*http.Response, error) {
+			t.Error("a request that failed to sign must not be sent")
+			return nil, io.EOF
+		}, withFailingSigner)
+
+		body := newCloseCountBody()
+		req := newBodyRequest(t, body)
+
+		res, err := tp.Stream(req) //nolint:bodyclose // error path: res is nil
+		require.Error(t, err)
+		require.Nil(t, res)
+		require.EqualValues(t, 1, body.closes.Load(), "the body must be closed once, not twice")
+	})
+}
+
+// withFailingSigner configures a signer whose every signature fails.
+func withFailingSigner(cfg *Config) {
+	cfg.Signer = &mockSigner{ReturnError: true}
 }
 
 // newNoConnectionsTransport returns a transport whose router never yields a
 // connection, so every request falls through to the seed fallback.
-func newNoConnectionsTransport(t *testing.T, rt func(*http.Request) (*http.Response, error)) *Transport {
+func newNoConnectionsTransport(t *testing.T, rt func(*http.Request) (*http.Response, error), opts ...func(*Config)) *Transport {
 	t.Helper()
 
 	seedURL, err := url.Parse("http://seed-node:9200")
 	require.NoError(t, err)
 
-	tp, err := New(Config{
+	cfg := Config{
 		URLs:                  []*url.URL{seedURL},
 		SkipConnectionShuffle: true,
 		HealthCheck:           NoOpHealthCheck,
@@ -125,7 +168,12 @@ func newNoConnectionsTransport(t *testing.T, rt func(*http.Request) (*http.Respo
 		Router:                &emptyRouter{},
 		DisableRetry:          true,
 		Transport:             mockhttp.NewRoundTripFunc(t, rt),
-	})
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	tp, err := New(cfg)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tp.Close() })
 

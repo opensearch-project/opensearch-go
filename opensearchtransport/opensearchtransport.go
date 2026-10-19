@@ -2257,6 +2257,9 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	}
 
 	if err := tr.signRequest(attemptReq); err != nil {
+		if replacedBody {
+			closeRequestBody(attemptReq)
+		}
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
 
