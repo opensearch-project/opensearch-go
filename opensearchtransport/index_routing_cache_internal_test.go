@@ -115,6 +115,82 @@ func TestIndexSlotCacheGetOrCreate(t *testing.T) {
 	})
 }
 
+// TestIndexSlotCacheRegister: register gives an index a slot without counting a
+// request against it, and callers racing to register or use the same index all
+// end up with the one slot.
+func TestIndexSlotCacheRegister(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates a slot that has seen no request", func(t *testing.T) {
+		t.Parallel()
+
+		c := newIndexSlotCache(indexSlotCacheConfig{minFanOut: 3})
+
+		slot := c.register("idx")
+		require.NotNil(t, slot)
+		require.EqualValues(t, 3, slot.fanOut.Load())
+		require.InDelta(t, 0.0, slot.requestDecay.load(), 1e-9)
+		require.Same(t, slot, c.slotFor("idx"), "the slot is the cache's slot for the index")
+	})
+
+	t.Run("an existing slot keeps its request count", func(t *testing.T) {
+		t.Parallel()
+
+		c := newIndexSlotCache(indexSlotCacheConfig{})
+		slot := c.getOrCreate("idx")
+		before := slot.requestDecay.load()
+
+		require.Same(t, slot, c.register("idx"))
+		require.InDelta(t, before, slot.requestDecay.load(), 1e-9, "register is not a request")
+	})
+
+	t.Run("indexes have slots of their own", func(t *testing.T) {
+		t.Parallel()
+
+		c := newIndexSlotCache(indexSlotCacheConfig{})
+		require.NotSame(t, c.register("a"), c.register("b"))
+	})
+
+	t.Run("concurrent register and use share one slot", func(t *testing.T) {
+		t.Parallel()
+
+		const (
+			registrars = 16
+			users      = 16
+		)
+		c := newIndexSlotCache(indexSlotCacheConfig{})
+
+		start := make(chan struct{})
+		slots := make([]*indexSlot, registrars+users)
+
+		var wg sync.WaitGroup
+		for i := range registrars + users {
+			wg.Go(func() {
+				<-start
+				if i < registrars {
+					slots[i] = c.register("contended-index")
+				} else {
+					slots[i] = c.getOrCreate("contended-index")
+				}
+			})
+		}
+		close(start)
+		wg.Wait()
+
+		for _, slot := range slots {
+			require.Same(t, slots[0], slot, "every caller shares the same slot")
+		}
+
+		// Each getOrCreate counted one request on the shared slot, whichever of
+		// them created it, and no register counted any.
+		var want float64
+		for range users {
+			want = want*c.decayFactor + 1
+		}
+		require.InDelta(t, want, slots[0].requestDecay.load(), 1e-6)
+	})
+}
+
 func TestIndexSlotCacheEffectiveFanOut(t *testing.T) {
 	t.Parallel()
 

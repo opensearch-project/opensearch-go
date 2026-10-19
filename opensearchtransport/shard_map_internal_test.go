@@ -376,6 +376,101 @@ func TestTransportWriteNodes(t *testing.T) {
 	}
 }
 
+func TestSingleServerPoolConnectionByName(t *testing.T) {
+	t.Parallel()
+
+	conn := routableConn(t, "only", time.Millisecond)
+	pool := newSingleServerPool(conn, nil)
+
+	tests := []struct {
+		name string
+		node string
+		want *Connection
+	}{
+		{name: "the pool's node", node: "only", want: conn},
+		{name: "another node", node: "other"},
+		{name: "a name that only shares a prefix", node: "on"},
+		{name: "no name", node: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := pool.connectionByName(tt.node)
+			if tt.want == nil {
+				require.Nil(t, got)
+				return
+			}
+			require.Same(t, tt.want, got)
+		})
+	}
+}
+
+// TestTransportShardRoutingOverSingleServerPool: a transport with one connection,
+// which keeps a single-server pool, answers shard lookups and ranks write nodes
+// as it does with a pool of many.
+func TestTransportShardRoutingOverSingleServerPool(t *testing.T) {
+	t.Parallel()
+
+	const routing = "doc-1"
+	m := ShardMap{RoutingNumShards: 640, PrimaryShards: 5}
+	shard := m.Shard(routing)
+
+	tests := []struct {
+		name string
+		// primary is the node the cached placement names for the shard.
+		primary string
+		// ready is false for a connection the pool cannot hand a request to.
+		ready    bool
+		wantNode string
+	}{
+		{name: "the shard's primary is the pool's node", primary: "only", ready: true, wantNode: "only"},
+		{name: "the shard's primary is another node", primary: "other", ready: true},
+		{name: "the pool's node is not ready", primary: "only", ready: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conn := routableConn(t, "only", time.Millisecond)
+			tr, r := shardMapTransport()
+			tr.mu.connectionPool = newSingleServerPool(conn, nil)
+			if !tt.ready {
+				conn.clearLifecycleBit(lcActive)
+			}
+
+			r.cache.getOrCreate("idx").shardMap.Store(&indexShardMap{
+				NumberOfPrimaryShards: m.PrimaryShards,
+				RoutingNumShards:      m.RoutingNumShards,
+				Shards:                map[int]*shardNodes{shard: {Primary: tt.primary}},
+			})
+
+			target, ok := tr.LookupShard("idx", routing)
+			require.True(t, ok)
+			require.Equal(t, shard, target.Shard)
+			if tt.wantNode == "" {
+				require.Nil(t, target.Node)
+			} else {
+				require.NotNil(t, target.Node)
+				require.Equal(t, tt.wantNode, target.Node.Name)
+			}
+
+			conns := tr.WriteNodes()
+			nodes := make([]string, 0, len(conns))
+			for _, c := range conns {
+				nodes = append(nodes, c.Name)
+			}
+			if tt.ready {
+				require.Equal(t, []string{"only"}, nodes)
+			} else {
+				require.Empty(t, nodes)
+			}
+		})
+	}
+}
+
 func TestConnectionWritePool(t *testing.T) {
 	t.Parallel()
 
