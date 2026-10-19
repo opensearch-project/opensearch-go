@@ -20,14 +20,21 @@ import (
 // unreportedNodeWindow is how many bulk requests the indexer keeps in flight to a
 // node whose write pool window the transport has not reported, such as the node that
 // stands for the whole cluster when the indexer knows no shard map: NumWorkers when
-// the caller set it, and otherwise one per CPU. A smaller number caps a cluster of
+// the caller set it, and otherwise GOMAXPROCS. A smaller number caps a cluster of
 // many nodes at what one slow request at a time can carry.
+//
+// GOMAXPROCS and not runtime.NumCPU, because NumCPU is the machine's CPUs, or the
+// process's affinity mask, and ignores a container's CPU limit: a pod held to two
+// CPUs on a large host would keep dozens of requests out. GOMAXPROCS follows a
+// cgroup CPU quota by default since Go 1.25, when the program's go.mod says 1.25 or
+// later, and it follows the GOMAXPROCS variable and anything that sets it, such as
+// automaxprocs. It is read each time, so an indexer follows a limit that changes.
 func unreportedNodeWindow(numWorkers int) int {
 	if numWorkers > 0 {
 		return numWorkers
 	}
 
-	return runtime.NumCPU()
+	return runtime.GOMAXPROCS(0)
 }
 
 // idleShardIntervals is how many flush intervals a shard may sit with nothing
@@ -250,8 +257,8 @@ type scheduler struct {
 	// sink is the node unrouted documents are being filled into.
 	sink *nodeState
 	pass uint64
-	// unreported is the request window of a node whose transport reports none.
-	unreported int
+	// numWorkers is the caller's NumWorkers, from which unreportedWindow is had.
+	numWorkers int
 
 	closed, stopped bool
 }
@@ -262,7 +269,7 @@ func newScheduler(bi *bulkIndexer) *scheduler {
 		shards:     make(map[shardKey]*shardState),
 		nodes:      make(map[string]*nodeState),
 		live:       make(map[*buffer]struct{}),
-		unreported: unreportedNodeWindow(bi.config.NumWorkers),
+		numWorkers: bi.config.NumWorkers,
 
 		lastByID: make(map[string]*buffer),
 	}
@@ -305,6 +312,12 @@ func (s *scheduler) shardFor(key shardKey) *shardState {
 	return ss
 }
 
+// unreportedWindow is the request window of a node whose transport reports none;
+// see unreportedNodeWindow.
+func (s *scheduler) unreportedWindow() int {
+	return unreportedNodeWindow(s.numWorkers)
+}
+
 // sinkNode picks the node for documents that belong to no shard: it keeps filling
 // the buffer it has, and starts the next on the nearest node with room, moving on
 // to the next nearest only when the nearest has all the requests out it is
@@ -325,7 +338,7 @@ func (s *scheduler) sinkNode() *nodeState {
 	best := s.nodeFor(nodes[0])
 	for _, n := range nodes {
 		ns := s.nodeFor(n)
-		if ns.hasRoom(s.unreported) {
+		if ns.hasRoom(s.unreportedWindow()) {
 			best = ns
 
 			break
@@ -493,7 +506,7 @@ func (s *scheduler) sealFullest(trigger flushTrigger) {
 
 	for _, n := range s.nodes {
 		for b := range n.opens {
-			if b.shard.blocked() || n.inflight >= n.window(s.unreported) || !n.win.allows(n.flightBytes, b.bytes) {
+			if b.shard.blocked() || n.inflight >= n.window(s.unreportedWindow()) || !n.win.allows(n.flightBytes, b.bytes) {
 				continue
 			}
 			if fullest == nil || b.bytes > fullest.bytes {
@@ -530,7 +543,7 @@ func (s *scheduler) pump() {
 	for _, b := range s.sealed {
 		ss, ns := b.shard, b.node
 
-		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window(s.unreported) ||
+		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window(s.unreportedWindow()) ||
 			!ns.win.allows(ns.flightBytes, b.bytes) {
 			ss.skipped = s.pass
 			remaining = append(remaining, b)

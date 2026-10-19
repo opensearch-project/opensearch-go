@@ -209,8 +209,9 @@ type BulkIndexerConfig struct {
 	// as the window the transport allows its write pool, which follows the pool's
 	// own statistics. A node the transport reports no window for, such as the one
 	// that stands for the cluster when the indexer knows no shard map, has as many
-	// as NumWorkers, or one per CPU when NumWorkers is 0. A cap of 1 sends one
-	// request at a time, and runs callbacks on one goroutine at a time.
+	// as NumWorkers, or GOMAXPROCS when NumWorkers is 0. GOMAXPROCS follows a
+	// container's CPU limit since Go 1.25, where runtime.NumCPU does not. A cap of
+	// 1 sends one request at a time, and runs callbacks on one goroutine at a time.
 	NumWorkers int
 
 	// FlushBytes is the largest buffer the indexer keeps for a shard, and so the

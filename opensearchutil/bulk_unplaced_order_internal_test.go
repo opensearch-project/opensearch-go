@@ -122,14 +122,15 @@ func sealedWaiting(bi BulkIndexer) int {
 
 // TestBulkIndexerWithoutAShardMapKeepsOneRequestPerCPUOut: with no shard map the
 // indexer has one node standing for the cluster, and the transport reports no window
-// for it. When NumWorkers is not set the node's request window is one per CPU, which
+// for it. When NumWorkers is not set the node's request window is GOMAXPROCS, the CPUs
+// the program may use, which follows a container's CPU limit, and that window
 // is then the only cap on requests out, so a cluster of any size is not held to what
 // one or two requests carry. (With NumWorkers set, the window and the global cap are
 // the same number and cannot be told apart.)
 func TestBulkIndexerWithoutAShardMapKeepsOneRequestPerCPUOut(t *testing.T) {
 	t.Parallel()
 
-	want := runtime.NumCPU()
+	want := runtime.GOMAXPROCS(0)
 
 	server := newFakeServer(newFakeCluster(nil, "n0"))
 	server.gate = make(chan struct{})
