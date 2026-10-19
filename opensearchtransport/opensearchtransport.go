@@ -1665,6 +1665,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// back on each copy. Two string headers, no allocation.
 	origPath, origRawPath := req.URL.Path, req.URL.RawPath
 
+	// bodyOpen is set when the loop gives up before any attempt is sent, leaving
+	// req.Body open for whatever runs next to send or close.
+	var bodyOpen bool
+
 	for i := 0; i <= tr.maxRetries; i++ {
 		// Retry from a copy, rebinding req so routing, the rest of the loop, and
 		// the seed fallback after it all work on this attempt's request. Clone
@@ -1734,6 +1738,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 				// hard transport failure) invariant holds when seed fallback
 				// is unavailable.
 				res = nil
+				// On the first attempt the body is still the caller's, open and
+				// unsent. On a retry it is the previous attempt's, which the
+				// round trip closed.
+				bodyOpen = i == 0
 				break
 			}
 			if i == 0 {
@@ -2048,7 +2056,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// attempt could not obtain a connection, which happens before setReqURL runs;
 	// a retry restores the caller path before routing for the same reason.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
-		res, err = tr.performSeedFallback(req.Context(), req, &sr)
+		res, err = tr.performSeedFallback(req.Context(), req, bodyOpen, &sr)
+	} else if bodyOpen {
+		// Nothing will send the body, so close it as a RoundTripper does for a
+		// request it fails.
+		closeRequestBody(req)
 	}
 
 	// Wrap the error with the request method and a credential-redacted URL so
@@ -2197,7 +2209,20 @@ func (tr *Transport) roundTripAttempt(
 // expedite full cluster rediscovery.
 // On failure: marks the seed connection as failed so the pool's resurrection
 // timer can schedule retries.
-func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request, sr *streamResult) (*http.Response, error) {
+//
+// bodyOpen says req.Body is still the caller's open, unsent body. The fallback
+// then owns closing it: a body replaced from GetBody is closed here, and one
+// handed to the transport is closed by it, so no return path leaves it open.
+func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request, bodyOpen bool, sr *streamResult) (*http.Response, error) {
+	handedOver := false
+	if bodyOpen {
+		defer func() {
+			if !handedOver {
+				closeRequestBody(req)
+			}
+		}()
+	}
+
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -2221,17 +2246,22 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	sr.sentReq = attemptReq     // carries the seed node URL, for the error wrap
 
 	// Reset body for the fallback attempt.
+	replacedBody := false
 	if attemptReq.Body != nil && attemptReq.Body != http.NoBody && attemptReq.GetBody != nil {
 		body, err := attemptReq.GetBody()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get request body for seed fallback: %w", err)
 		}
 		attemptReq.Body = body
+		replacedBody = true
 	}
 
 	if err := tr.signRequest(attemptReq); err != nil {
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
+
+	// Without a replacement the transport sends the caller's own body and closes it.
+	handedOver = !replacedBody
 
 	start := time.Now()
 
