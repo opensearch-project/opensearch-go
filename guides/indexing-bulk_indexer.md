@@ -516,19 +516,19 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 `GetStats` provides the inputs for RED (rate, errors, duration) and USE (utilization, saturation, errors) metrics without an observer, and is suitable for a periodic gauge callback. Each field of `BulkIndexerStats` is documented as a COUNTER, which is monotonic, or a GAUGE, which reports the current value. Derive a rate from the difference between two readings of a counter, and a mean by dividing one counter by another.
 
-| Metric                            | Fields                                                                       |
-| --------------------------------- | ---------------------------------------------------------------------------- |
-| Item and request rate             | `NumFlushed`, `NumFailed`, `NumRequests`                                     |
-| Batches by flush trigger          | `NumByteFlushes`, `NumTimerFlushes`, `NumPressureFlushes`, `NumCloseFlushes` |
-| Errors by layer and kind          | `Errors[layer][kind]`, for example `Errors[LayerRequest][KindRejected]`      |
-| Mean and maximum item latency     | `ItemLatencyNanos / (NumFlushed + NumFailed)`, `MaxItemLatencyNanos`         |
-| Mean and maximum request duration | `RequestDurationNanos / NumRequests`, `MaxRequestDurationNanos`              |
-| Mean and maximum document size    | `ItemBytes / NumAdded`, `MaxItemBytes`                                       |
-| Mean request size                 | `RequestBytes / NumRequests`                                                 |
-| Utilization                       | `InFlightRequests`, `InFlightBytes`, `BufferedBytes`, `BudgetFill()`         |
-| Saturation                        | `QueuedBuffers`, `BlockedShards`, `NumBlockedAdds`, `BlockedAddDuration`     |
+| Metric                            | Fields                                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------- |
+| Item and request rate             | `NumFlushed`, `NumFailed`, `NumRequests`                                                      |
+| Batches by flush trigger          | `NumByteFlushes`, `NumTimerFlushes`, `NumPressureFlushes`, `NumCloseFlushes`                  |
+| Errors by layer and kind          | `Errors[layer][kind]`, for example `Errors[LayerRequest][KindRejected]`                       |
+| Mean and maximum item latency     | `ItemLatencyNanos / (NumFlushed + NumFailed)`, `MaxItemLatencyNanos`                          |
+| Mean and maximum request duration | `RequestDurationNanos / NumRequests`, `MaxRequestDurationNanos`                               |
+| Mean and maximum document size    | `ItemBytes / NumAdded`, `MaxItemBytes`                                                        |
+| Mean request size                 | `RequestBytes / NumRequests`                                                                  |
+| Utilization                       | `InFlightRequests`, `InFlightBytes`, `BufferedBytes`, `BudgetFill()`                          |
+| Saturation                        | `QueuedBuffers`, `BlockedShards`, `RetryBackoffItems`, `NumBlockedAdds`, `BlockedAddDuration` |
 
-Item latency runs from `Add` to the item's outcome, across every attempt. It includes time spent in a buffer and in the queue, so it exceeds request duration; the difference is queueing delay. `BlockedShards` counts the shards that have a request in flight and further documents waiting behind it. `GetStats` loads each value separately, so the values are not a snapshot of a single instant.
+Item latency runs from `Add` to the item's outcome, across every attempt. It includes time spent in a buffer and in the queue, so it exceeds request duration; the difference is queueing delay. `BlockedShards` counts the shards that have a request in flight and further documents waiting behind it. `RetryBackoffItems` counts the items waiting out a retry policy's delay; their buffer keeps its request slot while they wait. `GetStats` loads each value separately, so the values are not a snapshot of a single instant.
 
 `GetNodeStats` reports the same readings for each node: in-flight requests and bytes, queued buffers, held bytes, rejections, window, buffer size and slowdown. It identifies the node behind an outlier in `NodeWindow`, `BufferSize` or `Slowdown`. Pass back the slice it returned to avoid allocating:
 

@@ -293,7 +293,11 @@ func (w *worker) sendWithRetry(ctx context.Context) error {
 	errs = append(errs, err)
 
 	for attempt := 2; len(retry.items) > 0; attempt++ {
-		if waitErr := waitForRetry(ctx, retry.delay); waitErr != nil {
+		waiting := int64(len(retry.items))
+		w.bi.stats.retryBackoffItems.Add(waiting)
+		waitErr := waitForRetry(ctx, retry.delay)
+		w.bi.stats.retryBackoffItems.Add(-waiting)
+		if waitErr != nil {
 			// Out of time: the items still waiting fail with the failure that
 			// put them there, and the caller learns the drain was cut short.
 			errs = append(errs, waitErr, w.failPending(ctx, retry.items))

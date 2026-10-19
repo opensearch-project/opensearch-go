@@ -519,6 +519,11 @@ type BulkIndexerStats struct {
 	InFlightRequests uint64
 	QueuedBuffers    uint64
 	BlockedShards    uint64
+	// RetryBackoffItems is the number of items a RetryPolicy is sending again that
+	// are waiting out the delay before their next attempt (GAUGE, items). Their
+	// buffer keeps its request slot while they wait, so a rise here with
+	// BlockedShards says retries are holding shards back.
+	RetryBackoffItems uint64
 
 	// MaxMemoryBytes is the limit BufferedBytes and InFlightBytes count against
 	// (GAUGE, bytes; it does not change).
@@ -896,7 +901,9 @@ type bulkIndexerStats struct {
 	// inFlightRequests, queuedBuffers and blockedShards are gauges the scheduler
 	// keeps under its lock.
 	inFlightRequests, queuedBuffers, blockedShards atomic.Int64
-	errorCounts                                    [numErrorLayers][numErrorKinds]atomic.Uint64
+	// retryBackoffItems is a gauge the workers keep around a retry's delay.
+	retryBackoffItems atomic.Int64
+	errorCounts       [numErrorLayers][numErrorKinds]atomic.Uint64
 }
 
 // storeMax raises m to v when v is larger. Once m has stopped rising it costs a load.
@@ -1678,6 +1685,7 @@ func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 		InFlightRequests:        uint64(max(bi.stats.inFlightRequests.Load(), 0)),
 		QueuedBuffers:           uint64(max(bi.stats.queuedBuffers.Load(), 0)),
 		BlockedShards:           uint64(max(bi.stats.blockedShards.Load(), 0)),
+		RetryBackoffItems:       uint64(max(bi.stats.retryBackoffItems.Load(), 0)),
 
 		BufferedBytes:      uint64(max(bi.budget.inUse()-inFlight, 0)),
 		InFlightBytes:      uint64(inFlight),

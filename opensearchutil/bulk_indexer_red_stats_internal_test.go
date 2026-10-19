@@ -352,3 +352,40 @@ func TestBulkIndexerStatsCountsPressureFlushes(t *testing.T) {
 	require.Zero(t, stats.NumByteFlushes, "no batch reached its size")
 	require.Equal(t, stats.NumRequests, stats.NumPressureFlushes+stats.NumCloseFlushes)
 }
+
+// TestBulkIndexerStatsCountsItemsInRetryBackoff: the items a retry policy holds
+// back are counted while they wait, whether the cluster rejected them one by one
+// or with their whole request, and not once the wait ends.
+func TestBulkIndexerStatsCountsItemsInRetryBackoff(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		respond func(sentRequest, string) (int, string)
+	}{
+		{name: "items rejected", respond: func(r sentRequest, _ string) (int, string) { return 200, rejectingResponse(len(r.actions)) }},
+		{name: "request rejected", respond: func(sentRequest, string) (int, string) { return 429, `{"error":"busy"}` }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := newFakeServer(newFakeCluster(nil))
+			server.respond = tt.respond
+			waitLong := RetryPolicyFunc(func(int, *BulkError) (time.Duration, bool) { return time.Hour, true })
+			bi, _ := newTimedIndexer(t, server, BulkIndexerConfig{RetryPolicy: waitLong}, 0)
+
+			addDoc(t, bi, "idx", "a", 1)
+			addDoc(t, bi, "idx", "b", 2)
+			go func() { _ = bi.Flush(t.Context()) }()
+
+			require.Eventually(t, func() bool { return bi.Stats().RetryBackoffItems == 2 },
+				10*time.Second, time.Millisecond, "both items wait for their next attempt")
+
+			bi.Cancel()
+			require.Eventually(t, func() bool { return bi.Stats().NumFailed == 2 }, 10*time.Second, time.Millisecond)
+			require.Zero(t, bi.Stats().RetryBackoffItems, "a canceled wait counts nothing")
+			_ = bi.Close(t.Context())
+		})
+	}
+}
