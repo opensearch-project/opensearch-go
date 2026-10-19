@@ -23,7 +23,7 @@ import (
 // and not what the indexer counted, for a test that compares the counters alone.
 func withoutLoad(s BulkIndexerStats) BulkIndexerStats {
 	s.MaxMemoryBytes, s.NumRejections, s.NumNodes = 0, 0, 0
-	s.NodeWindow, s.BufferSize, s.Slowdown = NodeSpread{}, NodeSpread{}, NodeSpread{}
+	s.NodeWindow, s.BufferSize, s.Slowdown = JobNodeStats{}, JobNodeStats{}, JobNodeStats{}
 
 	return s
 }
@@ -48,7 +48,7 @@ func TestBulkIndexerGetStatsFillsTheCallersStruct(t *testing.T) {
 		{
 			name: "a used struct is replaced entirely, not added to",
 			dirty: BulkIndexerStats{
-				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeWindow: NodeSpread{Min: 0.25},
+				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeWindow: JobNodeStats{Min: 0.25},
 				NumRetries: [numFailureKinds]uint64{1, 2, 3, 4},
 			},
 		},
@@ -395,42 +395,42 @@ func TestSummarize(t *testing.T) {
 		name    string
 		values  []float64
 		weights []float64
-		want    NodeSpread
+		want    JobNodeStats
 	}{
-		{name: "no nodes", want: NodeSpread{}},
-		{name: "one node", values: []float64{0.4}, weights: []float64{10}, want: NodeSpread{Min: 0.4, Median: 0.4, Mean: 0.4, Max: 0.4}},
+		{name: "no nodes", want: JobNodeStats{}},
+		{name: "one node", values: []float64{0.4}, weights: []float64{10}, want: JobNodeStats{Min: 0.4, Median: 0.4, Mean: 0.4, Max: 0.4}},
 		{
 			name: "an odd count has a middle node", values: []float64{1, 0.2, 0.6}, weights: []float64{1, 1, 1},
-			want: NodeSpread{Min: 0.2, Median: 0.6, Mean: 0.6, Max: 1},
+			want: JobNodeStats{Min: 0.2, Median: 0.6, Mean: 0.6, Max: 1},
 		},
 		{
 			name: "an even count takes the middle two", values: []float64{1, 0.2, 0.6, 0.4}, weights: []float64{1, 1, 1, 1},
-			want: NodeSpread{Min: 0.2, Median: 0.5, Mean: 0.55, Max: 1},
+			want: JobNodeStats{Min: 0.2, Median: 0.5, Mean: 0.55, Max: 1},
 		},
 		{
 			name:   "one bad node among ten moves the minimum and not the median",
 			values: []float64{0.05, 1, 1, 1, 1, 1, 1, 1, 1, 1}, weights: []float64{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-			want: NodeSpread{Min: 0.05, Median: 1, Mean: 0.905, Max: 1},
+			want: JobNodeStats{Min: 0.05, Median: 1, Mean: 0.905, Max: 1},
 		},
 		{
 			name:   "a node with little work waiting counts for little in the mean",
 			values: []float64{0.1, 1}, weights: []float64{1, 99},
-			want: NodeSpread{Min: 0.1, Median: 0.55, Mean: 0.991, Max: 1},
+			want: JobNodeStats{Min: 0.1, Median: 0.55, Mean: 0.991, Max: 1},
 		},
 		{
 			name:   "no weights counts each node the same",
 			values: []float64{0, 1}, weights: []float64{0, 0},
-			want: NodeSpread{Min: 0, Median: 0.5, Mean: 0.5, Max: 1},
+			want: JobNodeStats{Min: 0, Median: 0.5, Mean: 0.5, Max: 1},
 		},
 		{
 			name:   "an unusable weight counts as none",
 			values: []float64{0, 1, 1}, weights: []float64{-5, math.Inf(1), 2},
-			want: NodeSpread{Min: 0, Median: 1, Mean: 1, Max: 1},
+			want: JobNodeStats{Min: 0, Median: 1, Mean: 1, Max: 1},
 		},
 		{
 			name:   "missing weights count each node the same",
 			values: []float64{0.2, 0.4},
-			want:   NodeSpread{Min: 0.2, Median: 0.3, Mean: 0.3, Max: 0.4},
+			want:   JobNodeStats{Min: 0.2, Median: 0.3, Mean: 0.3, Max: 0.4},
 		},
 	}
 	for _, tt := range tests {

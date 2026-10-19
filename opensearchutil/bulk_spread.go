@@ -12,11 +12,12 @@ import (
 	"sync/atomic"
 )
 
-// NodeSpread describes one reading across the nodes the indexer writes to, so that a
-// caller can tell a cluster that is slow from one slow node. A single number would hide
-// the difference: the lowest or highest node alone lets one outlier speak for the
-// whole cluster, and an average alone hides the outlier.
-type NodeSpread struct {
+// JobNodeStats describes one reading across the nodes an indexer's job writes to:
+// its lowest, middle, highest and weighted average value. It lets a caller tell a
+// cluster that is slow from one slow node. A single number would hide the
+// difference: the lowest or highest node alone lets one outlier speak for the whole
+// cluster, and an average alone hides the outlier.
+type JobNodeStats struct {
 	// Min and Max are the nodes at either end of the reading.
 	Min, Max float64
 	// Median is the middle node: half the nodes are at or below it. One outlier
@@ -30,15 +31,15 @@ type NodeSpread struct {
 // summarize works out the spread of values, whose weights are weights, using scratch as
 // workspace. It returns the zero spread for no values. When every weight is zero, or a
 // weight is not a usable number, each node counts the same.
-func summarize(values, weights, scratch []float64) NodeSpread {
+func summarize(values, weights, scratch []float64) JobNodeStats {
 	if len(values) == 0 {
-		return NodeSpread{}
+		return JobNodeStats{}
 	}
 
 	scratch = append(scratch[:0], values...)
 	slices.Sort(scratch)
 
-	spread := NodeSpread{Min: scratch[0], Max: scratch[len(scratch)-1]}
+	spread := JobNodeStats{Min: scratch[0], Max: scratch[len(scratch)-1]}
 	if mid := len(scratch) / 2; len(scratch)%2 == 1 {
 		spread.Median = scratch[mid]
 	} else {
@@ -69,21 +70,21 @@ func summarize(values, weights, scratch []float64) NodeSpread {
 	return spread
 }
 
-// spreadBits is a NodeSpread held in atomics, as the bits of its floats, so that it
+// spreadBits is a JobNodeStats held in atomics, as the bits of its floats, so that it
 // can be read without a lock while the scheduler writes it.
 type spreadBits struct {
 	min, median, mean, max atomic.Uint64
 }
 
-func (b *spreadBits) store(s NodeSpread) {
+func (b *spreadBits) store(s JobNodeStats) {
 	b.min.Store(math.Float64bits(s.Min))
 	b.median.Store(math.Float64bits(s.Median))
 	b.mean.Store(math.Float64bits(s.Mean))
 	b.max.Store(math.Float64bits(s.Max))
 }
 
-func (b *spreadBits) load() NodeSpread {
-	return NodeSpread{
+func (b *spreadBits) load() JobNodeStats {
+	return JobNodeStats{
 		Min:    math.Float64frombits(b.min.Load()),
 		Median: math.Float64frombits(b.median.Load()),
 		Mean:   math.Float64frombits(b.mean.Load()),

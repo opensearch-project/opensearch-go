@@ -445,19 +445,19 @@ type BulkIndexerStats struct {
 	// is sent, cut to half of what was out each time it answers 429, and rising slowly
 	// as it takes writes again. A node that is merely slow does not move it; Slowdown
 	// and BufferSize show that. Before any node has been used every field is 1.
-	NodeWindow NodeSpread
+	NodeWindow JobNodeStats
 	// BufferSize is how large the indexer's buffers for a node are, as a fraction of
 	// FlushBytes, averaged over the node's shards and smoothed over its last few
 	// requests. The indexer makes them smaller as a node serves its requests more
 	// slowly and larger while it keeps up. Before any node has been used every field
 	// is the size buffers start at.
-	BufferSize NodeSpread
+	BufferSize JobNodeStats
 	// Slowdown is how much longer a node takes for its requests than it needs to,
 	// smoothed over its last few requests: 0 when it takes the expected time, 1 when
 	// it takes twice as long. The expected time is the one the buffer sizing judges a
 	// request by: the node's fixed cost per request plus the request's bytes at the
 	// best rate the node has shown. It is 0 before any node has been used.
-	Slowdown NodeSpread
+	Slowdown JobNodeStats
 }
 
 // BudgetFill returns how full the indexer's memory is, from 0 to 1: the bytes it
@@ -1548,10 +1548,10 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 		bi.slots = make(chan struct{}, bi.config.NumWorkers)
 	}
 
-	wideOpen := NodeSpread{Min: 1, Median: 1, Mean: 1, Max: 1}
+	wideOpen := JobNodeStats{Min: 1, Median: 1, Mean: 1, Max: 1}
 	bi.stats.nodeWindow.store(wideOpen)
 	initial := bi.sizing.start() / bi.sizing.max
-	bi.stats.bufferSize.store(NodeSpread{Min: initial, Median: initial, Mean: initial, Max: initial})
+	bi.stats.bufferSize.store(JobNodeStats{Min: initial, Median: initial, Mean: initial, Max: initial})
 
 	bi.itemPool.New = func() any { return new([]BulkIndexerItem) }
 	bi.workerPool.New = func() any { return &worker{bi: bi} }
