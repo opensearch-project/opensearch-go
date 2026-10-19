@@ -124,12 +124,40 @@ type shardState struct {
 	idleSince time.Time
 	// skipped marks the shard as passed over in the current dispatch pass.
 	skipped uint64
+	// waiting is whether the shard counts in the BlockedShards statistic; see
+	// trackBlocked.
+	waiting bool
 }
 
 // blocked reports whether a buffer sealed now would have to wait for an earlier
 // one of the same shard.
 func (ss *shardState) blocked() bool {
 	return ss.ordered && ss.pending > 0
+}
+
+// trackBlocked keeps the BlockedShards statistic: the shards with a request out and
+// another buffer, open or sealed, waiting behind it. It runs wherever the answer can
+// change, so the count is kept without walking the shards: when a shard opens a
+// buffer, sends one, or has one answered. Sealing is not among them, as it only
+// moves a waiting buffer from open to sealed. It must be called with the
+// scheduler's lock held.
+func (s *scheduler) trackBlocked(ss *shardState) {
+	waiting := ss.ordered && ss.inflight > 0 && (ss.open != nil || ss.pending > ss.inflight)
+	if waiting == ss.waiting {
+		return
+	}
+	ss.waiting = waiting
+	if waiting {
+		s.bi.stats.blockedShards.Add(1)
+	} else {
+		s.bi.stats.blockedShards.Add(-1)
+	}
+}
+
+// trackQueued keeps the QueuedBuffers statistic: the sealed buffers not yet sent.
+// It must be called with the scheduler's lock held, after s.sealed changes.
+func (s *scheduler) trackQueued() {
+	s.bi.stats.queuedBuffers.Store(int64(len(s.sealed)))
 }
 
 // nodeState is the indexer's view of one node: what is buffered for it and what is
@@ -392,6 +420,9 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 	}
 
 	b.items = append(b.items, item)
+	s.bi.stats.itemBytes.Add(uint64(max(item.bodyBytes, 0)))
+	storeMax(&s.bi.stats.maxItemBytes, uint64(max(item.bodyBytes, 0)))
+	s.trackBlocked(ss)
 	if !ss.ordered && order != "" {
 		s.orderAfterEarlier(b, order)
 	}
@@ -481,13 +512,18 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	ss.pending++
 	s.sealed = append(s.sealed, b)
 	s.sealedPending++
+	s.trackQueued()
 
 	switch trigger {
 	case flushSize:
 		s.bi.stats.numByteFlushes.Add(1)
 	case flushInterval:
 		s.bi.stats.numTimerFlushes.Add(1)
-	case flushRequested, flushPressure:
+	case flushPressure:
+		s.bi.stats.numPressureFlushes.Add(1)
+	case flushClose:
+		s.bi.stats.numCloseFlushes.Add(1)
+	case flushRequested:
 	}
 
 	s.pump()
@@ -570,6 +606,8 @@ func (s *scheduler) pump() {
 		b.dispatched = true
 		b.dest = ns.node
 		s.bi.flushingBytes.Add(b.held)
+		s.bi.stats.inFlightRequests.Add(1)
+		s.trackBlocked(ss)
 
 		s.bi.wg.Add(1)
 		go s.bi.run(b)
@@ -577,6 +615,7 @@ func (s *scheduler) pump() {
 
 	clear(s.sealed[len(remaining):])
 	s.sealed = remaining
+	s.trackQueued()
 }
 
 // complete records that a buffer's request has finished, gives back its memory,
@@ -590,6 +629,8 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	ss.inflight--
 	ss.pending--
 	ns.inflight--
+	s.bi.stats.inFlightRequests.Add(-1)
+	s.trackBlocked(ss)
 
 	// Two controllers, each told what it can use. The node's byte window is told only
 	// whether the node rejected the request, which is the one thing a 429 says: it is
@@ -701,8 +742,8 @@ func (s *scheduler) relieve() {
 	s.sealFullest(flushPressure)
 }
 
-// drain seals every open buffer and waits for every buffer that exists to
-// complete, running those not yet sent on run and waiting under wait. They are the
+// drain seals every open buffer, as sent for trigger, and waits for every buffer
+// that exists to complete, running those not yet sent on run and waiting under wait. They are the
 // same context for a caller who asks to be waited on and may cut the work short, as
 // Flush does; a caller who waits for work that is not only its own passes the
 // indexer's context as run, so that giving up on the wait does not fail what others
@@ -712,9 +753,9 @@ func (s *scheduler) relieve() {
 // not reported to OnUnhandledError: that is how Flush gives its caller the outcome. Without
 // it drain only waits, and each buffer reports its own error to OnUnhandledError as it would
 // had nobody waited.
-func (s *scheduler) drain(run, wait context.Context, collect bool) error {
+func (s *scheduler) drain(trigger flushTrigger, run, wait context.Context, collect bool) error {
 	s.Lock()
-	s.sealAllOpen(flushRequested, run)
+	s.sealAllOpen(trigger, run)
 
 	buffers := make([]*buffer, 0, len(s.live))
 	for b := range s.live {

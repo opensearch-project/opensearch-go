@@ -33,14 +33,14 @@ Creating an indexer per job throws away what the controllers learned about the n
 
 ## How the pieces fit together
 
-| Term | Meaning |
-| --- | --- |
-| **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. Exactly one of its callbacks runs, once: `OnSuccess` or `OnError`. |
-| **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
-| **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
-| **Node window** | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it. |
-| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ shrinks the node window when the node answers with a 429, and grows it back slowly while the node keeps accepting (AIMD), or holds it fixed. Each can be turned off on its own. See [Sizing batches](#sizing-batches). |
-| **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items). |
+| Term             | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Item**         | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. Exactly one of its callbacks runs, once: `OnSuccess` or `OnError`.                                                                                                                                                                                                                                       |
+| **Job**          | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends.                                                                                                                                                                                                                                                                                                                      |
+| **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request.                                                                                                                                                                                                                                                                                                                                   |
+| **Node window**  | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it.                                                                                                                                                              |
+| **Controllers**  | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ shrinks the node window when the node answers with a 429, and grows it back slowly while the node keeps accepting (AIMD), or holds it fixed. Each can be turned off on its own. See [Sizing batches](#sizing-batches). |
+| **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items).                                                                                                                                                                                                                                                                               |
 
 The indexer owns them in this shape:
 
@@ -511,6 +511,24 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 	Observer: bulkObserver,
 })
 ```
+
+### Metrics from GetStats
+
+`GetStats` provides the inputs for RED (rate, errors, duration) and USE (utilization, saturation, errors) metrics without an observer, and is suitable for a periodic gauge callback. Each field of `BulkIndexerStats` is documented as a COUNTER, which is monotonic, or a GAUGE, which reports the current value. Derive a rate from the difference between two readings of a counter, and a mean by dividing one counter by another.
+
+| Metric                            | Fields                                                                       |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| Item and request rate             | `NumFlushed`, `NumFailed`, `NumRequests`                                     |
+| Batches by flush trigger          | `NumByteFlushes`, `NumTimerFlushes`, `NumPressureFlushes`, `NumCloseFlushes` |
+| Errors by layer and kind          | `Errors[layer][kind]`, for example `Errors[LayerRequest][KindRejected]`      |
+| Mean and maximum item latency     | `ItemLatencyNanos / (NumFlushed + NumFailed)`, `MaxItemLatencyNanos`         |
+| Mean and maximum request duration | `RequestDurationNanos / NumRequests`, `MaxRequestDurationNanos`              |
+| Mean and maximum document size    | `ItemBytes / NumAdded`, `MaxItemBytes`                                       |
+| Mean request size                 | `RequestBytes / NumRequests`                                                 |
+| Utilization                       | `InFlightRequests`, `InFlightBytes`, `BufferedBytes`, `BudgetFill()`         |
+| Saturation                        | `QueuedBuffers`, `BlockedShards`, `NumBlockedAdds`, `BlockedAddDuration`     |
+
+Item latency runs from `Add` to the item's outcome, across every attempt. It includes time spent in a buffer and in the queue, so it exceeds request duration; the difference is queueing delay. `BlockedShards` counts the shards that have a request in flight and further documents waiting behind it. `GetStats` loads each value separately, so the values are not a snapshot of a single instant.
 
 ## See also
 

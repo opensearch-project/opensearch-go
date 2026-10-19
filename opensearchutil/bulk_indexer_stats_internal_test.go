@@ -264,7 +264,7 @@ func TestBulkIndexerUserRouterIsNotDiagnosed(t *testing.T) { //nolint:parallelte
 }
 
 // TestBulkIndexerCountsFlushesByTrigger: a batch is counted by what sent it, and
-// a batch a caller asked for is counted as neither.
+// a batch Flush asked for is counted as none of them.
 func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 	t.Parallel()
 
@@ -308,7 +308,7 @@ func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 		require.InDelta(t, 1.0, stats.TimerFlushRatio(), 1e-9)
 	})
 
-	t.Run("flush and close are neither", func(t *testing.T) {
+	t.Run("flush is none, close is a close flush", func(t *testing.T) {
 		t.Parallel()
 
 		server := newFakeServer(newFakeCluster(nil))
@@ -323,6 +323,7 @@ func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 		require.EqualValues(t, 2, stats.NumRequests)
 		require.Zero(t, stats.NumByteFlushes)
 		require.Zero(t, stats.NumTimerFlushes)
+		require.EqualValues(t, 1, stats.NumCloseFlushes, "the batch Close sent, not the one Flush sent")
 	})
 }
 

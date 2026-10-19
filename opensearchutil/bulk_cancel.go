@@ -109,6 +109,7 @@ func (bi *bulkIndexer) failStranded(ctx context.Context) {
 		s.release(b.node, b.held)
 	}
 	s.sealed = nil
+	s.trackQueued()
 	s.Unlock()
 
 	w := worker{bi: bi}

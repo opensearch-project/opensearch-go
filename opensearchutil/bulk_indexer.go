@@ -396,76 +396,152 @@ type BulkIndexerConfig struct {
 
 // BulkIndexerStats represents the indexer statistics.
 type BulkIndexerStats struct {
-	NumAdded         uint64
-	BulkAddFailCount uint64 // Items rejected by Add() because the caller's context was cancelled before the item could be enqueued.
-	NumFlushed       uint64
-	NumFailed        uint64
-	NumIndexed       uint64
-	NumCreated       uint64
-	NumUpdated       uint64
-	NumDeleted       uint64
-	NumRequests      uint64
+	// Each field is a COUNTER, which only grows, so that two readings give a rate,
+	// or a GAUGE, a reading of the moment. Durations are in nanoseconds and sizes in
+	// bytes unless the field says otherwise.
+
+	// NumAdded counts the items Add queued (COUNTER, items).
+	NumAdded uint64
+	// BulkAddFailCount counts the items Add refused because the caller's context
+	// ended before the item could be queued (COUNTER, items).
+	BulkAddFailCount uint64
+	// NumFlushed counts the items the cluster accepted (COUNTER, items).
+	NumFlushed uint64
+	// NumFailed counts the items that failed and will not be retried (COUNTER,
+	// items). Every queued item ends in NumFlushed or NumFailed, once.
+	NumFailed uint64
+	// NumIndexed, NumCreated, NumUpdated and NumDeleted count the accepted items by
+	// action (COUNTER, items).
+	NumIndexed uint64
+	NumCreated uint64
+	NumUpdated uint64
+	NumDeleted uint64
+	// NumRequests counts the bulk requests sent, retries included (COUNTER,
+	// requests).
+	NumRequests uint64
 
 	// NumGroupedItems counts items placed in a shard, and so in that shard's
 	// order, and NumUngroupedItems those that belong to no shard: the shard map of
 	// the index was unknown, or the item had neither a routing value nor a
-	// DocumentID. Without a shard router every item is ungrouped. A high ungrouped
-	// share is efficiency lost, not data lost.
+	// DocumentID (COUNTER, items). Without a shard router every item is ungrouped.
+	// A high ungrouped share is efficiency lost, not data lost.
 	NumGroupedItems   uint64
 	NumUngroupedItems uint64
 
 	// NumByteFlushes counts batches sent because they reached the size chosen for
-	// their node, and NumTimerFlushes those sent by the flush interval. Batches
-	// sent because Flush or Close asked, or because Add ran out of buffer space,
-	// are in neither. See TimerFlushRatio.
-	NumByteFlushes  uint64
-	NumTimerFlushes uint64
+	// their node, NumTimerFlushes those sent by the flush interval, and
+	// NumPressureFlushes those sent early because Add ran out of memory under
+	// MaxMemoryBytes, and NumCloseFlushes those sent by the final drain in Close
+	// (COUNTER, batches). Batches sent because Flush asked are in none of them.
+	// See TimerFlushRatio. A growing NumPressureFlushes says the indexer is short
+	// of memory for the cluster's pace.
+	NumByteFlushes     uint64
+	NumTimerFlushes    uint64
+	NumPressureFlushes uint64
+	NumCloseFlushes    uint64
 
 	// BufferedBytes is the number of bytes counted against MaxMemoryBytes that
 	// are not in a bulk request yet: waiting in a shard buffer. InFlightBytes is the
-	// number in requests being sent.
+	// number in requests being sent (GAUGE, bytes).
 	BufferedBytes uint64
 	InFlightBytes uint64
-	// NumBlockedAdds counts Add calls that had to wait for buffer space.
+	// NumBlockedAdds counts Add calls that had to wait for buffer space (COUNTER,
+	// calls).
 	NumBlockedAdds uint64
 	// BlockedAddDuration is the total time Add calls spent waiting for buffer
-	// space. A value that grows while the cluster is healthy says MaxMemoryBytes
-	// is too small for the workload; one that grows while requests stall says the
-	// limit is doing its job.
+	// space (COUNTER, as a time.Duration). A value that grows while the cluster is
+	// healthy says MaxMemoryBytes is too small for the workload; one that grows while
+	// requests stall says the limit is doing its job.
 	BlockedAddDuration time.Duration
 
-	// NumRetries counts the items sent again after a failure, indexed by the
-	// ErrorKind of the error that caused it. An item retried twice counts
-	// twice.
+	// NumRetries counts the items sent again after an error, indexed by the
+	// ErrorKind of the error that caused it (COUNTER, items). An item retried twice
+	// counts twice. Only kinds a RetryPolicy chose to retry appear, so KindUnknown
+	// and KindCanceled stay 0.
 	NumRetries [numErrorKinds]uint64
 
-	// MaxMemoryBytes is the limit BufferedBytes and InFlightBytes count against.
+	// Errors counts errors as they happen, indexed by ErrorLayer and then ErrorKind,
+	// as Errors[LayerRequest][KindRejected] (COUNTER, occurrences). It counts one
+	// for each failed attempt of a whole request, and one for each item for the
+	// item, index and indexer layers, whether or not the RetryPolicy then retried
+	// it: the same occurrences an Observer's OnRequestError and OnItemError
+	// receive, and osprom's bulk_errors_total counts. Unlike those it also counts
+	// items failed by Cancel (LayerIndexer, KindCanceled), which send no event.
+	// LayerUnknown and KindUnknown are never counted. The three relate as follows:
+	// an item the cluster rejects twice and then accepts counts 2 in
+	// Errors[LayerItem], 2 in NumRetries and 0 in NumFailed; one it rejects for good
+	// counts each attempt in Errors[LayerItem] and 1 in NumFailed. A request that
+	// fails as a whole counts 1 in Errors[LayerRequest] however many items it
+	// carried, and each of them in NumRetries or NumFailed.
+	Errors [numErrorLayers][numErrorKinds]uint64
+
+	// ItemBytes is the total length of the documents of the items Add queued, the
+	// length of each item's Body, without its action line (COUNTER, bytes). Divided
+	// by NumAdded it is the mean document size. MaxItemBytes is the largest single
+	// document seen (bytes, never decreases: it is the largest since the indexer was
+	// built, not lately). For how often documents are large, use an Observer, such
+	// as osprom's bulk_item_size_bytes histogram.
+	ItemBytes    uint64
+	MaxItemBytes uint64
+
+	// ItemLatencyNanos is the total time items took from Add to the moment the
+	// indexer was done with them, accepted or failed for good, waiting for their
+	// buffer to fill, for room on their node, and for retries included (COUNTER,
+	// nanoseconds). Divided by NumFlushed + NumFailed it is the mean latency.
+	// MaxItemLatencyNanos is the longest (nanoseconds, never decreases).
+	ItemLatencyNanos    uint64
+	MaxItemLatencyNanos uint64
+
+	// RequestDurationNanos is the total time bulk requests took, from sending to the
+	// answer, retries included (COUNTER, nanoseconds). Divided by NumRequests it is
+	// the mean. MaxRequestDurationNanos is the longest (nanoseconds, never
+	// decreases). RequestBytes is the total size of the request bodies sent (COUNTER,
+	// bytes), before any compression by the transport.
+	RequestDurationNanos    uint64
+	MaxRequestDurationNanos uint64
+	RequestBytes            uint64
+
+	// InFlightRequests is the number of bulk requests sent and not yet answered
+	// (GAUGE, requests). QueuedBuffers is the number of sealed buffers waiting to be
+	// sent, for room on their node or for an earlier request of their shard (GAUGE,
+	// buffers). BlockedShards is the number of shards with a request out and another
+	// buffer, open or sealed, waiting behind it (GAUGE, shards); a hot shard shows
+	// here first.
+	InFlightRequests uint64
+	QueuedBuffers    uint64
+	BlockedShards    uint64
+
+	// MaxMemoryBytes is the limit BufferedBytes and InFlightBytes count against
+	// (GAUGE, bytes; it does not change).
 	MaxMemoryBytes uint64
 	// NumRejections counts the requests a node answered with a 429, for the whole
-	// request or for any item in it, whether or not a RetryPolicy sent them again.
-	// It only grows, so a caller that samples it sees that the cluster pushed back
-	// since it last looked, however briefly, and can compare two readings for a rate.
+	// request or for any item in it, whether or not a RetryPolicy sent them again
+	// (COUNTER, requests). A caller that samples it sees that the cluster pushed
+	// back since it last looked, however briefly, and can compare two readings for a
+	// rate.
 	NumRejections uint64
-	// NumNodes is the number of nodes the indexer has written to. The three readings
-	// below are taken across them.
+	// NumNodes is the number of nodes the indexer has written to (GAUGE, nodes). The
+	// three readings below are taken across them.
 	NumNodes uint64
 	// NodeWindow is how many bytes the indexer will have out to a node at once, as a
 	// fraction of the most it would allow (NodeBytes): 1 while the node takes what it
 	// is sent, cut to half of what was out each time it answers 429, and rising slowly
-	// as it takes writes again. A node that is merely slow does not move it; Slowdown
-	// and BufferSize show that. Before any node has been used every field is 1.
+	// as it takes writes again (GAUGE, fraction). A node that is merely slow does not
+	// move it; Slowdown and BufferSize show that. Before any node has been used every
+	// field is 1.
 	NodeWindow JobNodeStats
 	// BufferSize is how large the indexer's buffers for a node are, as a fraction of
 	// FlushBytes, averaged over the node's shards and smoothed over its last few
-	// requests. The indexer makes them smaller as a node serves its requests more
-	// slowly and larger while it keeps up. Before any node has been used every field
-	// is the size buffers start at.
+	// requests (GAUGE, fraction). The indexer makes them smaller as a node serves its
+	// requests more slowly and larger while it keeps up. Before any node has been
+	// used every field is the size buffers start at.
 	BufferSize JobNodeStats
 	// Slowdown is how much longer a node takes for its requests than it needs to,
 	// smoothed over its last few requests: 0 when it takes the expected time, 1 when
-	// it takes twice as long. The expected time is the one the buffer sizing judges a
-	// request by: the node's fixed cost per request plus the request's bytes at the
-	// best rate the node has shown. It is 0 before any node has been used.
+	// it takes twice as long (GAUGE, ratio). The expected time is the one the buffer
+	// sizing judges a request by: the node's fixed cost per request plus the
+	// request's bytes at the best rate the node has shown. It is 0 before any node has
+	// been used.
 	Slowdown JobNodeStats
 }
 
@@ -524,9 +600,11 @@ type BulkIndexerItem struct {
 	// referenced until its OnSuccess or OnError has run.
 	Metadata any
 
-	// bodyBytes is the length of Body, for BulkItemEvent.Bytes. It is set by Add
-	// when the indexer has an Observer.
+	// bodyBytes is the length of Body, for BulkItemEvent.Bytes and the ItemBytes
+	// statistic, and addedAt the indexer's clock when Add took the item, for the
+	// ItemLatencyNanos statistic. Add sets both.
 	bodyBytes int64
+	addedAt   time.Duration
 
 	// OnSuccess is called once for an item the cluster accepted, with its response.
 	OnSuccess func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem)
@@ -766,6 +844,8 @@ type bulkIndexer struct {
 
 	// now is the clock request latency is read from.
 	now func() time.Time
+	// epoch is now when the indexer was built; item latency is measured from it.
+	epoch time.Time
 
 	// implicitClient is true when NewBulkIndexer implicitly created the client
 	// (cfg.Client was nil). Close then closes it to release the shared cache
@@ -797,6 +877,47 @@ type bulkIndexerStats struct {
 	// nodeWindow, bufferSize and slowdown are the spreads across the nodes that the
 	// scheduler publishes whenever a request completes.
 	nodeWindow, bufferSize, slowdown spreadBits
+
+	itemBytes, maxItemBytes                       atomic.Uint64
+	itemLatencyNanos, maxItemLatencyNanos         atomic.Uint64
+	requestDurationNanos, maxRequestDurationNanos atomic.Uint64
+	requestBytes                                  atomic.Uint64
+	numPressureFlushes                            atomic.Uint64
+	numCloseFlushes                               atomic.Uint64
+	// inFlightRequests, queuedBuffers and blockedShards are gauges the scheduler
+	// keeps under its lock.
+	inFlightRequests, queuedBuffers, blockedShards atomic.Int64
+	errorCounts                                    [numErrorLayers][numErrorKinds]atomic.Uint64
+}
+
+// storeMax raises m to v when v is larger. Once m has stopped rising it costs a load.
+func storeMax(m *atomic.Uint64, v uint64) {
+	for {
+		cur := m.Load()
+		if v <= cur || m.CompareAndSwap(cur, v) {
+			return
+		}
+	}
+}
+
+// countError counts one occurrence of err at its layer and kind.
+func (st *bulkIndexerStats) countError(err *BulkError) {
+	if int(err.Layer) < numErrorLayers && int(err.Kind) < numErrorKinds {
+		st.errorCounts[err.Layer][err.Kind].Add(1)
+	}
+}
+
+// sinceEpoch is the indexer's clock as a duration since it was built, the form an
+// item's addedAt and the time it is done are compared in.
+func (bi *bulkIndexer) sinceEpoch() time.Duration {
+	return bi.now().Sub(bi.epoch)
+}
+
+// recordDone adds the latency of n items, totaling sum and the longest max, from
+// Add to the moment the indexer was done with them.
+func (bi *bulkIndexer) recordDone(sum, maxLatency time.Duration) {
+	bi.stats.itemLatencyNanos.Add(uint64(max(sum, 0)))
+	storeMax(&bi.stats.maxItemLatencyNanos, uint64(max(maxLatency, 0)))
 }
 
 // NewBulkIndexer creates a new bulk indexer. It returns an error wrapping
@@ -868,6 +989,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		stats:            &bulkIndexerStats{},
 		router:           router,
 		now:              time.Now,
+		epoch:            time.Now(),
 		sizing:           sizing,
 		window:           window,
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
@@ -1027,12 +1149,11 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 		return bi.refuse(ctx, item, err)
 	}
 
-	// Measured here, before any path that finishes the item, so that all of them
-	// report the same size. Nothing else reads it, so without an Observer it is
-	// not measured.
-	if bi.config.Observer != nil {
-		item.bodyBytes = bodyLen(item.Body)
-	}
+	// Measured once, here, before any path that finishes the item, so that all of
+	// them report the same size; the estimate of the item's request bytes reuses it.
+	// Taken here too is the moment its latency is measured from.
+	item.bodyBytes = bodyLen(item.Body)
+	item.addedAt = bi.sinceEpoch()
 
 	if bi.canceled() {
 		return bi.refuse(ctx, item, ErrIndexerCanceled)
@@ -1050,7 +1171,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 
 	// Take the bytes before the item is queued, so a stalled cluster stops the
 	// caller here and not at an ever-growing set of batches.
-	size := estimateItemBytes(item)
+	size := estimateItemBytesWithBody(item, item.bodyBytes)
 	held := itemHeldBytes(item, size)
 
 	budgetKey := unplacedKey()
@@ -1280,7 +1401,7 @@ func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, gener
 // context, as a periodic flush sends it, and ctx only bounds the wait: a caller
 // that gives up must not fail documents whose own callers are still waiting.
 func (bi *bulkIndexer) flushAll(ctx context.Context) error {
-	return bi.sched.drain(bi.config.Context, ctx, false)
+	return bi.sched.drain(flushRequested, bi.config.Context, ctx, false)
 }
 
 // workersDone returns a channel that closes when the workers stop for good
@@ -1337,6 +1458,12 @@ const (
 // escaping, and counts a version only roughly, so a batch can be a few percent
 // off its size.
 func estimateItemBytes(item BulkIndexerItem) int64 {
+	return estimateItemBytesWithBody(item, bodyLen(item.Body))
+}
+
+// estimateItemBytesWithBody is estimateItemBytes for an item whose body is body
+// bytes long, measured already.
+func estimateItemBytesWithBody(item BulkIndexerItem, body int64) int64 {
 	// {"ACTION":{ ... }}
 
 	const framing = len(`{"":{}}`) + len("\n")
@@ -1381,7 +1508,7 @@ func estimateItemBytes(item BulkIndexerItem) int64 {
 
 	total := int64(n)
 	if item.Body != nil {
-		total += bodyLen(item.Body) + 1 // The newline after the body.
+		total += body + 1 // The newline after the body.
 	}
 
 	return total
@@ -1435,7 +1562,7 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 		return ErrBulkIndexerClosed
 	}
 
-	return bi.sched.drain(ctx, ctx, true)
+	return bi.sched.drain(flushRequested, ctx, ctx, true)
 }
 
 // Close stops the periodic flush, sends everything that is buffered, waits until
@@ -1476,7 +1603,7 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	defer stop()
 
 	// Each batch reports its own failure to OnUnhandledError as it finishes.
-	drainErr := bi.sched.drain(ctx, ctx, false)
+	drainErr := bi.sched.drain(flushClose, ctx, ctx, false)
 
 	bi.sched.close()
 	bi.wg.Wait()
@@ -1531,10 +1658,23 @@ func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 		NumDeleted:       bi.stats.numDeleted.Load(),
 		NumRequests:      bi.stats.numRequests.Load(),
 
-		NumGroupedItems:   bi.stats.numGroupedItems.Load(),
-		NumUngroupedItems: bi.stats.numUngroupedItems.Load(),
-		NumByteFlushes:    bi.stats.numByteFlushes.Load(),
-		NumTimerFlushes:   bi.stats.numTimerFlushes.Load(),
+		NumGroupedItems:    bi.stats.numGroupedItems.Load(),
+		NumUngroupedItems:  bi.stats.numUngroupedItems.Load(),
+		NumByteFlushes:     bi.stats.numByteFlushes.Load(),
+		NumTimerFlushes:    bi.stats.numTimerFlushes.Load(),
+		NumPressureFlushes: bi.stats.numPressureFlushes.Load(),
+		NumCloseFlushes:    bi.stats.numCloseFlushes.Load(),
+
+		ItemBytes:               bi.stats.itemBytes.Load(),
+		MaxItemBytes:            bi.stats.maxItemBytes.Load(),
+		ItemLatencyNanos:        bi.stats.itemLatencyNanos.Load(),
+		MaxItemLatencyNanos:     bi.stats.maxItemLatencyNanos.Load(),
+		RequestDurationNanos:    bi.stats.requestDurationNanos.Load(),
+		MaxRequestDurationNanos: bi.stats.maxRequestDurationNanos.Load(),
+		RequestBytes:            bi.stats.requestBytes.Load(),
+		InFlightRequests:        uint64(max(bi.stats.inFlightRequests.Load(), 0)),
+		QueuedBuffers:           uint64(max(bi.stats.queuedBuffers.Load(), 0)),
+		BlockedShards:           uint64(max(bi.stats.blockedShards.Load(), 0)),
 
 		BufferedBytes:      uint64(max(bi.budget.inUse()-inFlight, 0)),
 		InFlightBytes:      uint64(inFlight),
@@ -1551,13 +1691,19 @@ func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 	for i := range bi.stats.numRetries {
 		dst.NumRetries[i] = bi.stats.numRetries[i].Load()
 	}
+	for l := range bi.stats.errorCounts {
+		for k := range bi.stats.errorCounts[l] {
+			dst.Errors[l][k] = bi.stats.errorCounts[l][k].Load()
+		}
+	}
 }
 
 // flushTrigger says what made a batch be sent.
 type flushTrigger uint8
 
 const (
-	// flushRequested is a batch sent because the caller asked: Flush, or Close.
+	// flushRequested is a batch sent because the caller asked: Flush, a cancel, or
+	// the drain before an index's first placed item.
 	flushRequested flushTrigger = iota
 	// flushSize is a batch that reached the size chosen for its node.
 	flushSize
@@ -1565,6 +1711,8 @@ const (
 	flushInterval
 	// flushPressure is a batch sent early because Add ran out of buffer space.
 	flushPressure
+	// flushClose is a batch sent by the final drain in Close.
+	flushClose
 )
 
 // init initializes the bulk indexer.
@@ -2179,6 +2327,9 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 	// the time spent waiting between attempts is left out.
 	w.sent += int64(size)
 	w.busy += elapsed
+	w.bi.stats.requestDurationNanos.Add(uint64(max(elapsed, 0)))
+	storeMax(&w.bi.stats.maxRequestDurationNanos, uint64(max(elapsed, 0)))
+	w.bi.stats.requestBytes.Add(uint64(max(size, 0)))
 	w.observeResponse(blk, err, size)
 
 	if obs := w.bi.config.Observer; obs != nil {
@@ -2242,7 +2393,13 @@ func (w *worker) processBulkResp(
 	var (
 		errs  []error
 		retry retryBatch
+
+		// The latency of the items accepted, summed for the whole response.
+		doneAt              = w.bi.sinceEpoch()
+		latency, latencyMax time.Duration
 	)
+	defer func() { w.bi.recordDone(latency, latencyMax) }()
+
 	for i, blkItem := range blk.Items {
 		var (
 			item BulkIndexerItem
@@ -2296,6 +2453,10 @@ func (w *worker) processBulkResp(
 			case actionUpdate:
 				w.bi.stats.numUpdated.Add(1)
 			}
+
+			l := doneAt - item.addedAt
+			latency += l
+			latencyMax = max(latencyMax, l)
 
 			w.observeDone(ctx, item, attempt, info, nil)
 			if item.OnSuccess != nil {

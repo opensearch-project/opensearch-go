@@ -179,6 +179,8 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkErrorEvent) (time.Durat
 	}
 	delay = max(delay, 0)
 
+	w.bi.stats.countError(ev.Err)
+
 	if retry {
 		w.bi.stats.numRetries[ev.Err.Kind].Add(uint64(ev.Items)) //nolint:gosec // Items is a count, never negative
 		ev.Retrying, ev.Delay = true, delay
@@ -204,6 +206,8 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkErrorEvent) (time.Durat
 // use it is up to the caller. An item with either returns nil.
 func (w *worker) failItem(ctx context.Context, item BulkIndexerItem, err *BulkError, attempts int) error {
 	w.bi.stats.numFailed.Add(1)
+	l := w.bi.sinceEpoch() - item.addedAt
+	w.bi.recordDone(l, l)
 	w.observeDone(ctx, item, attempts, err.Resp, err)
 
 	switch {
@@ -264,6 +268,7 @@ func (w *worker) observeDone(
 // with an error of [KindCanceled].
 func (w *worker) failUnsent(ctx context.Context, item BulkIndexerItem, cause error, attempts int) error {
 	err := unsentError(item, cause)
+	w.bi.stats.countError(err)
 	if obs := w.bi.config.Observer; obs != nil && err.Kind != KindCanceled {
 		obs.OnItemError(ctx, BulkErrorEvent{
 			Err:        err,
