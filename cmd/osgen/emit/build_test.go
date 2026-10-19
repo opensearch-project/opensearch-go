@@ -7,6 +7,8 @@
 package emit_test
 
 import (
+	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -168,6 +170,47 @@ func TestParamTestCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.want, emit.ParamTestCases(tt.param))
+		})
+	}
+}
+
+// TestSynthesizeReqCasesIR_AllPathFieldsMethod checks the method the
+// generated "all path fields" case expects: it sets every path field, so an
+// operation that switches to PUT on path fields expects PUT.
+func TestSynthesizeReqCasesIR_AllPathFieldsMethod(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		methods  []string
+		putConds []ir.PathCaseCondition
+		want     string
+	}{
+		{name: "primary method", methods: []string{http.MethodPost, http.MethodPut}, want: http.MethodPost},
+		{name: "PUT first", methods: []string{http.MethodPut, http.MethodPost}, want: http.MethodPut},
+		{
+			name:     "PUT on path fields",
+			methods:  []string{http.MethodPost, http.MethodPut},
+			putConds: []ir.PathCaseCondition{{Field: "ID"}},
+			want:     http.MethodPut,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			op := &ir.Operation{
+				TypePrefix:        "Index",
+				HTTPMethods:       tt.methods,
+				PutOnlyPathFields: tt.putConds,
+				PathFields: []ir.PathField{
+					{GoName: "Index", WireName: "index", Required: true},
+					{GoName: "ID", WireName: "id"},
+				},
+			}
+			cases := emit.SynthesizeReqCasesIR(op, "opensearchapi", "opensearch")
+			i := slices.IndexFunc(cases, func(c emit.ReqTestCase) bool { return c.Name == "all path fields" })
+			require.GreaterOrEqual(t, i, 0)
+			require.Equal(t, tt.want, cases[i].WantMethod)
 		})
 	}
 }

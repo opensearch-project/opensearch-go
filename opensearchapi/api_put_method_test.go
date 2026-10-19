@@ -64,6 +64,10 @@ func TestClientSendsPutForCreateOrReplace(t *testing.T) {
 			_, err := client.Indices.PutMapping(ctx, &opensearchapi.IndicesPutMappingReq{Indices: []string{"i"}, BodyReader: body()})
 			return err
 		}, http.MethodPut},
+		{"mapping put", func() error {
+			_, err := client.Indices.Mapping.Put(ctx, &opensearchapi.IndicesPutMappingReq{Indices: []string{"i"}, BodyReader: body()})
+			return err
+		}, http.MethodPut},
 		{"put script", func() error {
 			_, err := client.PutScript(ctx, opensearchapi.PutScriptReq{ID: "s", BodyReader: body()})
 			return err
@@ -86,6 +90,10 @@ func TestClientSendsPutForCreateOrReplace(t *testing.T) {
 		}, http.MethodPut},
 		{"snapshot create repository", func() error {
 			_, err := client.Snapshot.CreateRepository(ctx, opensearchapi.SnapshotCreateRepositoryReq{Repository: "r", BodyReader: body()})
+			return err
+		}, http.MethodPut},
+		{"repository create", func() error {
+			_, err := client.Snapshot.Repository.Create(ctx, opensearchapi.SnapshotCreateRepositoryReq{Repository: "r", BodyReader: body()})
 			return err
 		}, http.MethodPut},
 		{"put component template", func() error {

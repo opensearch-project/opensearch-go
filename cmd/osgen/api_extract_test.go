@@ -1121,6 +1121,79 @@ func TestClassifyRespShape(t *testing.T) {
 	}
 }
 
+// TestExtractOperations_PutChoice runs the PUT/POST decision through a spec
+// file, so the result reaches the apiOperation and a refusal fails
+// extractOperations.
+func TestExtractOperations_PutChoice(t *testing.T) {
+	t.Parallel()
+
+	pathOp := func(params ...string) map[string]any {
+		ps := make([]any, 0, len(params))
+		for _, p := range params {
+			ps = append(ps, map[string]any{"name": p, "in": "path", "required": true, "schema": map[string]any{"type": "string"}})
+		}
+		return map[string]any{
+			"x-operation-group": "test.op",
+			"x-version-added":   "1.0",
+			"parameters":        ps,
+			"responses":         map[string]any{"200": map[string]any{"description": "OK"}},
+		}
+	}
+
+	tests := []struct {
+		name        string
+		paths       map[string]any
+		wantMethods []string
+		wantConds   []ir.PathCaseCondition
+		wantErr     string
+	}{
+		{
+			name: "every path allows PUT",
+			paths: map[string]any{
+				"/_scripts/{id}": map[string]any{"post": pathOp("id"), "put": pathOp("id")},
+			},
+			wantMethods: []string{http.MethodPut, http.MethodPost},
+		},
+		{
+			name: "PUT only with the id",
+			paths: map[string]any{
+				"/{index}/_doc":      map[string]any{"post": pathOp("index")},
+				"/{index}/_doc/{id}": map[string]any{"post": pathOp("index", "id"), "put": pathOp("index", "id")},
+			},
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+			wantConds:   []ir.PathCaseCondition{{Field: "ID"}},
+		},
+		{
+			name: "no field distinguishes the PUT paths",
+			paths: map[string]any{
+				"/{index}/_a": map[string]any{"post": pathOp("index")},
+				"/{index}/_b": map[string]any{"put": pathOp("index")},
+			},
+			wantErr: `"test.op": some paths allow PUT and others are POST-only`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			spec := writeTestSpec(t, map[string]any{
+				"openapi": "3.0.3",
+				"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+				"paths":   tt.paths,
+			})
+			ops, _, _, _, err := extractOperations(spec, map[string]bool{"test.op": true}, VersionRange{})
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, ops, 1)
+			require.Equal(t, tt.wantMethods, ops[0].HTTPMethods)
+			require.Equal(t, tt.wantConds, ops[0].PutOnlyPathFields)
+		})
+	}
+}
+
 func TestResolvePut(t *testing.T) {
 	t.Parallel()
 
@@ -1155,6 +1228,17 @@ func TestResolvePut(t *testing.T) {
 				{"POST", "/{index}/_doc"},
 				{"POST", "/{index}/_doc/{id}"},
 				{"PUT", "/{index}/_doc/{id}"},
+			},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+			wantConds:   []ir.PathCaseCondition{{Field: "ID"}},
+		},
+		{
+			name: "field on only some PUT paths does not distinguish them",
+			variants: []variant{
+				{"POST", "/{index}/_c"},
+				{"PUT", "/_b/{x}/{id}"},
+				{"PUT", "/{index}/_a/{id}"},
 			},
 			methods:     []string{http.MethodPost, http.MethodPut},
 			wantMethods: []string{http.MethodPost, http.MethodPut},
