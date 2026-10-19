@@ -257,19 +257,16 @@ type scheduler struct {
 	// sink is the node unrouted documents are being filled into.
 	sink *nodeState
 	pass uint64
-	// numWorkers is the caller's NumWorkers, from which unreportedWindow is had.
-	numWorkers int
 
 	closed, stopped bool
 }
 
 func newScheduler(bi *bulkIndexer) *scheduler {
 	return &scheduler{
-		bi:         bi,
-		shards:     make(map[shardKey]*shardState),
-		nodes:      make(map[string]*nodeState),
-		live:       make(map[*buffer]struct{}),
-		numWorkers: bi.config.NumWorkers,
+		bi:     bi,
+		shards: make(map[shardKey]*shardState),
+		nodes:  make(map[string]*nodeState),
+		live:   make(map[*buffer]struct{}),
 
 		lastByID: make(map[string]*buffer),
 	}
@@ -315,7 +312,7 @@ func (s *scheduler) shardFor(key shardKey) *shardState {
 // unreportedWindow is the request window of a node whose transport reports none;
 // see unreportedNodeWindow.
 func (s *scheduler) unreportedWindow() int {
-	return unreportedNodeWindow(s.numWorkers)
+	return unreportedNodeWindow(s.bi.config.NumWorkers)
 }
 
 // sinkNode picks the node for documents that belong to no shard: it keeps filling
@@ -493,13 +490,14 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	s.pump()
 }
 
-// sealFullest seals the fullest open buffer that can go out now, as pump would send
-// it: its shard has no request out, and its node has fewer requests out than its
-// window and room for its bytes. A buffer that could not go out would only queue,
-// freeing nothing until the requests ahead of it are answered, while splitting the
-// batch it was becoming into small requests; when one of those is answered,
-// complete looks again. Buffers queued behind their own shard's request do not
-// count against the node's room, since they are not going out either: counting
+// sealFullest seals the fullest open buffer that has a chance to go out at once:
+// its shard has no earlier buffer unfinished, and its node has fewer requests out
+// than its window and room for its bytes. This is stricter than pump's test on the
+// shard, which only waits for an earlier request to be out. A buffer that could not
+// go out would only queue, freeing nothing until the requests ahead of it are answered, while
+// splitting the batch it was becoming into small requests; when one of those is
+// answered, complete looks again. Buffers queued behind their own shard's request do
+// not count against the node's room, since they are not going out either: counting
 // them would let one stalled shard's queue keep every other shard's buffers open.
 func (s *scheduler) sealFullest(trigger flushTrigger) {
 	var fullest *buffer

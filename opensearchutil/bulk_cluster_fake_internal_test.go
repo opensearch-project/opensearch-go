@@ -34,7 +34,7 @@ type fakeCluster struct {
 		// nodes is the ranking WriteNodes returns.
 		nodes []Node
 		// unknown lists indexes LookupShard does not answer for.
-		unknown map[string]bool
+		unknown map[string]struct{}
 		lookups int
 	}
 }
@@ -42,7 +42,7 @@ type fakeCluster struct {
 func newFakeCluster(maps map[string]ShardMap, nodeNames ...string) *fakeCluster {
 	c := &fakeCluster{}
 	c.mu.maps = maps
-	c.mu.unknown = map[string]bool{}
+	c.mu.unknown = map[string]struct{}{}
 	for _, name := range nodeNames {
 		c.mu.nodes = append(c.mu.nodes, Node{Name: name})
 	}
@@ -64,7 +64,7 @@ func (c *fakeCluster) LookupShard(index, routing string) (ShardTarget, bool) {
 
 	c.mu.lookups++
 	m, ok := c.mu.maps[index]
-	if !ok || c.mu.unknown[index] {
+	if _, unknown := c.mu.unknown[index]; !ok || unknown {
 		return ShardTarget{}, false
 	}
 
@@ -120,7 +120,11 @@ func (c *fakeCluster) setUnknown(index string, unknown bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.mu.unknown[index] = unknown
+	if unknown {
+		c.mu.unknown[index] = struct{}{}
+	} else {
+		delete(c.mu.unknown, index)
+	}
 }
 
 // shardOf is the shard a recorded action belongs to, as the server computes it.
