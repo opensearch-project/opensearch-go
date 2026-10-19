@@ -948,31 +948,72 @@ func TestChunkBufferLeaseCountsActiveReaders(t *testing.T) {
 	})
 }
 
-func TestByteBudgetLendsTheWholeLimitToALoneShard(t *testing.T) {
-	t.Parallel()
-
-	b, _ := budgetWith()
-
-	n, err := b.acquire(t.Context(), nil, testBudgetKey, testBudgetLimit)
-	require.NoError(t, err)
-	require.EqualValues(t, testBudgetLimit, n, "with nobody else waiting, one shard may use all of it")
+// budgetTake is bytes a shard takes.
+type budgetTake struct {
+	key shardKey
+	n   int64
 }
 
-func TestByteBudgetAlwaysLetsAShardThatHoldsNothingTakeOneItem(t *testing.T) {
+// TestByteBudgetAdmitsWithoutAnyRelease: an acquire that the budget can serve is
+// served at once, with nothing released first, whatever the other shards hold or
+// wait for.
+func TestByteBudgetAdmitsWithoutAnyRelease(t *testing.T) {
 	t.Parallel()
 
-	b, _ := budgetWith()
-	stalled, other := shardKey{index: "idx", shard: 0}, shardKey{index: "idx", shard: 1}
+	var (
+		a = shardKey{index: "idx", shard: 0}
+		b = shardKey{index: "idx", shard: 1}
+	)
 
-	_, err := b.acquire(t.Context(), nil, stalled, testBudgetLimit)
-	require.NoError(t, err)
+	tests := []struct {
+		name string
+		// holds are taken first, and waits then begin and stay waiting.
+		holds, waits []budgetTake
+		ask          budgetTake
+		wantInUse    int64
+	}{
+		{
+			name:      "with nobody else waiting one shard may use the whole limit",
+			ask:       budgetTake{a, testBudgetLimit},
+			wantInUse: testBudgetLimit,
+		},
+		{
+			name:      "a shard that holds nothing takes one item past a limit another has spent",
+			holds:     []budgetTake{{a, testBudgetLimit}},
+			ask:       budgetTake{b, 30},
+			wantInUse: testBudgetLimit + 30,
+		},
+		{
+			name:      "a shard within its share is served although another shard's request waits ahead",
+			holds:     []budgetTake{{a, 90}, {b, 1}},
+			waits:     []budgetTake{{a, 20}},
+			ask:       budgetTake{b, 2},
+			wantInUse: 93,
+		},
+	}
 
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
-	defer cancel()
-	n, err := b.acquire(ctx, nil, other, 30)
-	require.NoError(t, err, "a shard holding nothing must not wait on a limit another shard has spent")
-	require.EqualValues(t, 30, n)
-	require.EqualValues(t, testBudgetLimit+30, b.inUse(), "past the limit by that one item")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			bud, blocked := budgetWith()
+			for _, h := range tt.holds {
+				_, err := bud.acquire(t.Context(), nil, h.key, h.n)
+				require.NoError(t, err)
+			}
+			for _, w := range tt.waits {
+				go func() { _, _ = bud.acquire(t.Context(), nil, w.key, w.n) }()
+				receive(t, blocked)
+			}
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			defer cancel()
+			n, err := bud.acquire(ctx, nil, tt.ask.key, tt.ask.n)
+			require.NoError(t, err, "the budget can serve this acquire, so it must not wait for a release")
+			require.Equal(t, tt.ask.n, n)
+			require.Equal(t, tt.wantInUse, bud.inUse())
+		})
+	}
 }
 
 // TestByteBudgetServesOtherShardsPastOneHeldToItsShare: a shard over its share waits

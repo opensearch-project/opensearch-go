@@ -373,7 +373,8 @@ func (b *chunkBuffer) String() string {
 // flush that sends them. Add takes bytes before it queues an item, a worker
 // reconciles the amount with what it really wrote, and the flush that ends the
 // item's life gives them back. When the budget is spent Add waits, which is the
-// backpressure: memory stays bounded by the limit however slow the cluster is.
+// backpressure: memory stays near the limit however slow the cluster is. The limit
+// is not a hard bound, though: see the one-item allowance below.
 //
 // The bytes are counted by the shard the item belongs to, so that one shard whose
 // requests are slow cannot take the room every other shard needs. While other
@@ -457,6 +458,14 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, key shar
 
 	w := &budgetWaiter{key: key, n: n, ready: make(chan struct{})}
 	b.mu.waiters = append(b.mu.waiters, w)
+	// The fast path stays out of the way of waiters queued ahead; the grant says
+	// whether this one may nonetheless be served now.
+	b.grant()
+	if w.granted {
+		b.mu.Unlock()
+
+		return n, nil
+	}
 	b.mu.Unlock()
 
 	b.blocked.Add(1)
@@ -603,37 +612,29 @@ func (b *byteBudget) share() int64 {
 // must be called with the lock held.
 func (b *byteBudget) grant() {
 	var (
-		held map[shardKey]bool
-		full bool
+		passed map[shardKey]struct{} // Shards with a waiter passed over, whose later waiters must keep their place.
+		full   bool
 	)
 
 	for i := 0; i < len(b.mu.waiters); {
 		w := b.mu.waiters[i]
-		if held[w.key] || (full && b.mu.held[w.key] > 0) {
+		if _, behind := passed[w.key]; behind || (full && b.mu.held[w.key] > 0) {
 			i++
 
 			continue
 		}
 
-		switch b.admits(w.key, w.n) {
-		case budgetFull:
-			full = true
-			if held == nil {
-				held = map[shardKey]bool{}
+		// The spent limit and the shard's share both pass the waiter over; only
+		// the first holds back the shards behind it.
+		if adm := b.admits(w.key, w.n); adm != budgetAdmit {
+			full = full || adm == budgetFull
+			if passed == nil {
+				passed = map[shardKey]struct{}{}
 			}
-			held[w.key] = true
+			passed[w.key] = struct{}{}
 			i++
 
 			continue
-		case budgetOverShare:
-			if held == nil {
-				held = map[shardKey]bool{}
-			}
-			held[w.key] = true
-			i++
-
-			continue
-		case budgetAdmit:
 		}
 
 		b.take(w.key, w.n)
@@ -643,7 +644,7 @@ func (b *byteBudget) grant() {
 
 		// A waiter passed over for its share may be within it now, or alone in
 		// wanting room, so the waiters are looked at again from the oldest.
-		i, held, full = 0, nil, false
+		i, passed, full = 0, nil, false
 	}
 }
 
