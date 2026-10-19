@@ -89,8 +89,13 @@ type BulkSizing struct {
 	// MinBytes is the smallest batch the controller will ask for. Defaults to
 	// FlushBytes/32, and at least 1.
 	MinBytes int
-	// InitialBytes is the size a node's batches start at. Defaults to
-	// FlushBytes/4.
+	// InitialBytes is where a shard's buffer starts when it starts on a node that
+	// shows load already: its write pool rejecting, or its window cut by a 429 and
+	// not grown back. From there it climbs to full size as the node keeps up. On a
+	// node that shows no load, a shard starts at FlushBytes, the most the node
+	// will be sent, and backs off only when it is slower than the node's other
+	// shards. Set, it is where every shard starts. Defaults to FlushBytes/4. To
+	// send FlushBytes always, with neither the climb nor the backoff, set Fixed.
 	InitialBytes int
 	// StepBytes is the additive increase per healthy flush at full gain.
 	// Defaults to FlushBytes/16.
@@ -181,10 +186,13 @@ const (
 
 // resolvedSizing is BulkSizing with its defaults applied.
 type resolvedSizing struct {
-	fixed      bool
-	aimd       bool
-	min, max   float64
-	initial    float64
+	fixed    bool
+	aimd     bool
+	min, max float64
+	initial  float64
+	// initialSet is whether the caller chose initial, which then holds for every
+	// shard, loaded node or not.
+	initialSet bool
 	step       float64
 	headroom   float64
 	backoff    float64
@@ -196,17 +204,18 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 	ceiling := float64(max(flushBytes, 1))
 
 	r := resolvedSizing{
-		fixed:    c.Fixed,
-		aimd:     c.AIMD,
-		max:      ceiling,
-		min:      pick(float64(c.MinBytes), ceiling/sizingMinDivisor),
-		initial:  pick(float64(c.InitialBytes), ceiling/sizingInitialDivisor),
-		step:     pick(float64(c.StepBytes), ceiling/sizingStepDivisor),
-		headroom: pick(c.Headroom, sizingDefaultHeadroom),
-		backoff:  pick(c.Backoff, sizingDefaultBackoff),
-		kp:       c.Kp,
-		ki:       c.Ki,
-		kd:       c.Kd,
+		fixed:      c.Fixed,
+		aimd:       c.AIMD,
+		max:        ceiling,
+		min:        pick(float64(c.MinBytes), ceiling/sizingMinDivisor),
+		initial:    pick(float64(c.InitialBytes), ceiling/sizingInitialDivisor),
+		initialSet: c.InitialBytes > 0,
+		step:       pick(float64(c.StepBytes), ceiling/sizingStepDivisor),
+		headroom:   pick(c.Headroom, sizingDefaultHeadroom),
+		backoff:    pick(c.Backoff, sizingDefaultBackoff),
+		kp:         c.Kp,
+		ki:         c.Ki,
+		kd:         c.Kd,
 	}
 
 	if c.Kp == 0 && c.Ki == 0 && c.Kd == 0 {
@@ -324,6 +333,7 @@ type sizer struct {
 	cfg resolvedSizing
 
 	target   float64
+	begun    bool    // set once begin has chosen where the shard starts
 	baseRate float64 // best recent smoothed bytes per nanosecond
 	rateS    float64 // smoothed service rate; 0 until the first flush
 	overhead float64 // fixed cost a request pays before its bytes count, ns
@@ -335,6 +345,31 @@ type sizer struct {
 
 func newSizer(cfg resolvedSizing) *sizer {
 	return &sizer{cfg: cfg, target: cfg.initial}
+}
+
+// start is where a shard on a node that shows no load starts: the ceiling, unless
+// the caller chose where shards start.
+func (r resolvedSizing) start() float64 {
+	if r.initialSet {
+		return r.initial
+	}
+
+	return r.max
+}
+
+// begin sets where a shard's buffer starts, the first time it is given one: full
+// size on a node that shows no load, so that a node able to take full requests is
+// sent them from the first, and initial on one that does, so that a shard joining
+// a loaded node climbs to full size instead of adding to the load at once.
+func (s *sizer) begin(loaded bool) {
+	if s.begun {
+		return
+	}
+	s.begun = true
+
+	if !loaded {
+		s.target = s.cfg.start()
+	}
 }
 
 // sampleFloor is the smallest request, in bytes, whose rate means anything.

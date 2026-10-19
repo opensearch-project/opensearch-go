@@ -191,6 +191,13 @@ func (ns *nodeState) peerLevel(ss *shardState) float64 {
 	return sum / float64(others)
 }
 
+// loaded reports whether the node shows load already: its write pool is rejecting,
+// or a 429 has cut its window and it has not grown back. A shard that starts on a
+// loaded node climbs to full size instead of starting there.
+func (ns *nodeState) loaded() bool {
+	return ns.node.pool().Overloaded || ns.win.fraction() < 1
+}
+
 // hasRoom reports whether another request to the node would go out now.
 func (ns *nodeState) hasRoom(unreported int) bool {
 	return ns.inflight+ns.queued < ns.window(unreported)
@@ -278,7 +285,7 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 		win:   newByteWindow(s.bi.window),
 		rate:  rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
-		bufferFrac: s.bi.sizing.initial / s.bi.sizing.max,
+		bufferFrac: s.bi.sizing.start() / s.bi.sizing.max,
 	}
 	ns.sink = &shardState{key: unplacedKey(), sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
@@ -364,6 +371,7 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 
 	b := ss.open
 	if b == nil {
+		ss.sizer.begin(ns.loaded())
 		b = &buffer{shard: ss, node: ns, items: s.bi.getItems(), done: make(chan struct{})}
 		ss.open = b
 		ns.opens[b] = struct{}{}

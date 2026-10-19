@@ -1377,7 +1377,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 
 	wideOpen := NodeSpread{Min: 1, Median: 1, Mean: 1, Max: 1}
 	bi.stats.nodeWindow.store(wideOpen)
-	initial := bi.sizing.initial / bi.sizing.max
+	initial := bi.sizing.start() / bi.sizing.max
 	bi.stats.bufferSize.store(NodeSpread{Min: initial, Median: initial, Mean: initial, Max: initial})
 
 	bi.itemPool.New = func() any { return new([]BulkIndexerItem) }

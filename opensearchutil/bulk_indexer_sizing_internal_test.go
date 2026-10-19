@@ -127,6 +127,15 @@ type sizingHarness struct {
 func newSizingHarness(t *testing.T, ceilingDocs, shardsPerNode int, nodes ...string) *sizingHarness {
 	t.Helper()
 
+	return newSizingHarnessFrom(t, ceilingDocs, 0, shardsPerNode, nodes...)
+}
+
+// newSizingHarnessFrom is newSizingHarness with shards starting at initialDocs
+// documents, or where the indexer starts them when it is 0. A test of whether a
+// flush is read starts them low, where the reading shows as growth.
+func newSizingHarnessFrom(t *testing.T, ceilingDocs, initialDocs, shardsPerNode int, nodes ...string) *sizingHarness {
+	t.Helper()
+
 	itemBytes := estimateItemBytes(BulkIndexerItem{Action: actionIndex, Index: "idx", DocumentID: "doc-0000", Body: seqBody(1000)})
 	shards := len(nodes) * shardsPerNode
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(shards)}, nodes...)
@@ -141,6 +150,7 @@ func newSizingHarness(t *testing.T, ceilingDocs, shardsPerNode int, nodes ...str
 		FlushBytes:    int(itemBytes) * ceilingDocs,
 		NodeBytes:     int(itemBytes) * ceilingDocs * 8,
 		FlushInterval: time.Hour,
+		Sizing:        BulkSizing{InitialBytes: int(itemBytes) * initialDocs},
 	})
 	h.bi.(*bulkIndexer).now = h.clock.Now
 
@@ -177,9 +187,9 @@ func (h *sizingHarness) roundShard(shard int) int {
 
 	target, ok := h.bi.(*bulkIndexer).shardTargetOf("idx", shard)
 	if !ok {
-		// The first buffer of a shard is sized by the initial target, which
-		// sizing.resolve fixes.
-		target = int64(h.bi.(*bulkIndexer).sizing.initial)
+		// The first buffer of a shard on a node that shows no load starts at the
+		// size sizing.start gives: the ceiling, unless InitialBytes is set.
+		target = int64(h.bi.(*bulkIndexer).sizing.start())
 	}
 	docs := int((target + h.itemBytes - 1) / h.itemBytes)
 
@@ -244,7 +254,7 @@ func (h *sizingHarness) window(node string) int64 {
 func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 	t.Parallel()
 
-	h := newSizingHarness(t, 200, 1, "n0")
+	h := newSizingHarnessFrom(t, 200, 50, 1, "n0")
 	bi := h.bi.(*bulkIndexer)
 	var reject atomic.Bool
 	h.server.respond = func(r sentRequest, _ string) (int, string) {
@@ -421,7 +431,7 @@ func TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			h := newSizingHarness(t, 200, 1, "n0")
+			h := newSizingHarnessFrom(t, 200, 50, 1, "n0")
 			h.server.respond = func(r sentRequest, _ string) (int, string) {
 				items := make([]string, len(r.actions))
 				for i := range items {
@@ -581,7 +591,7 @@ func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
 	bi := h.bi.(*bulkIndexer)
 	got, ok := bi.shardTargetOf("idx", newShard)
 	require.True(t, ok)
-	require.Less(t, got, int64(bi.sizing.initial), "its first flush shows a node slower than it was")
+	require.Less(t, got, int64(bi.sizing.start()), "its first flush shows a node slower than it was")
 }
 
 // TestBulkIndexerRejectedRequestsDoNotTeachTheShardController answers every request
@@ -645,4 +655,57 @@ func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
 			require.Less(t, h.window("n0"), windowBefore/4, "while the node's window is cut")
 		})
 	}
+}
+
+// TestBulkIndexerStartsAShardAtFullSizeOnAnIdleNode: a node that shows no sign of load
+// is sent full buffers from the first, and a shard backs off from there only if it
+// turns out slower than the rest of its node. Climbing from a fraction would spend a
+// short job's first requests below what the node could take.
+func TestBulkIndexerStartsAShardAtFullSizeOnAnIdleNode(t *testing.T) {
+	t.Parallel()
+
+	h := newSizingHarness(t, 400, 1, "n0")
+	bi := h.bi.(*bulkIndexer)
+
+	addDoc(t, h.bi, "idx", h.idsFor(0, 1)[0], 1)
+	target, ok := bi.shardTargetOf("idx", 0)
+	require.True(t, ok)
+	require.Equal(t, int64(bi.sizing.max), target, "a shard on an idle node starts at FlushBytes")
+}
+
+// TestBulkIndexerRampsAShardThatStartsOnALoadedNode: a node that is already loaded,
+// its write pool rejecting, is not sent full buffers by a shard that has only just
+// started: the shard starts at InitialBytes and climbs to full as the node keeps up.
+func TestBulkIndexerRampsAShardThatStartsOnALoadedNode(t *testing.T) {
+	t.Parallel()
+
+	h := newSizingHarness(t, 400, 1, "n0")
+	bi := h.bi.(*bulkIndexer)
+	h.server.cluster.setWindow(1, true)
+
+	addDoc(t, h.bi, "idx", h.idsFor(0, 1)[0], 1)
+	target, ok := bi.shardTargetOf("idx", 0)
+	require.True(t, ok)
+	require.Equal(t, int64(bi.sizing.initial), target, "a shard on a loaded node starts at InitialBytes")
+	require.Less(t, target, int64(bi.sizing.max))
+}
+
+// TestBulkIndexerStartsEveryShardAtAnInitialBytesThatIsSet: a caller who sets
+// InitialBytes has said where shards start, loaded node or not.
+func TestBulkIndexerStartsEveryShardAtAnInitialBytesThatIsSet(t *testing.T) {
+	t.Parallel()
+
+	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(1)}, "n0")
+	server := newFakeServer(cluster)
+	itemBytes := docBytes("idx", "doc-0000", 1000)
+	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+		FlushBytes:    int(itemBytes) * 400,
+		Sizing:        BulkSizing{InitialBytes: int(itemBytes) * 100},
+		FlushInterval: time.Hour,
+	}).(*bulkIndexer)
+
+	addDoc(t, bi, "idx", "doc-0000", 1)
+	target, ok := bi.shardTargetOf("idx", 0)
+	require.True(t, ok)
+	require.Equal(t, itemBytes*100, target)
 }
