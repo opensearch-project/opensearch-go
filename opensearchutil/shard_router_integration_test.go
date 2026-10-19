@@ -9,6 +9,7 @@
 package opensearchutil_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -35,15 +36,26 @@ func seqBody(seq int) *strings.Reader {
 }
 
 // createShardTestIndex creates an index with no replicas, waits for it to be
-// usable, and deletes it when the test ends.
+// usable, and deletes it when the test ends. Its shards stay where they are
+// first allocated: a test compares the router's placement with the server's,
+// and a rebalance between the two reads makes them disagree.
 func createShardTestIndex(
 	t *testing.T, ctx context.Context, client *opensearchapi.Client, name string, settings string,
 ) {
 	t.Helper()
 
-	_, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
+	var body struct {
+		Settings map[string]map[string]any `json:"settings"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(settings), &body.Settings))
+	require.Contains(t, body.Settings, "index")
+	body.Settings["index"]["routing.rebalance.enable"] = "none"
+	raw, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	_, err = client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
 		Index:      name,
-		BodyReader: strings.NewReader(fmt.Sprintf(`{"settings":%s}`, settings)),
+		BodyReader: bytes.NewReader(raw),
 	})
 	require.NoError(t, err)
 
