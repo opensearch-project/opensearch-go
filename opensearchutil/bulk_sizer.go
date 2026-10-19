@@ -37,8 +37,8 @@ import (
 // StepBytes per flush. When it is slower than that, as a hot shard or one with costly
 // documents is, its size is cut in proportion to how far past Headroom it is, so that
 // it does not take the node's time from the others.
-// A PID controller (Kp, Ki, Kd) on the normalized slowdown sets how hard each step
-// is, unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
+// A PID controller (Kp, Ki, Kd) on the normalized slowdown sets the size of each
+// step, unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
 // shard's buffer reads nothing else: not a request the node rejected with a 429, which
 // was answered quickly because no work was done, not a request that failed without an
 // answer, and not one in which no item was indexed. A shard that starts on a node is
@@ -82,8 +82,9 @@ type BulkSizing struct {
 	// AIMD replaces the PID-modulated step with plain additive increase,
 	// multiplicative decrease: StepBytes more after a healthy flush, and the size
 	// multiplied by the square root of Backoff after a flush that shows the node
-	// slowing past Headroom. Kp, Ki and Kd are ignored. Rejections and failures are
-	// cut as they always are. OPENSEARCH_GO_BULK_AIMD=on|off overrides it.
+	// slowing past Headroom. Kp, Ki and Kd are ignored. Either way, a request the
+	// node rejected or that failed does not change the size.
+	// OPENSEARCH_GO_BULK_AIMD=on|off overrides it.
 	AIMD bool
 
 	// MinBytes is the smallest batch the controller will ask for. Defaults to

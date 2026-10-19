@@ -39,15 +39,15 @@ Creating an indexer per job throws away what the controllers learned about the n
 | **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
 | **Node window** | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it. |
-| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ sets the node window from the node's 429 responses (AIMD). See [Sizing batches](#sizing-batches). |
+| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ shrinks the node window when the node answers with a 429, and grows it back slowly while the node keeps accepting. See [Sizing batches](#sizing-batches). |
 | **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items). |
 
 The indexer owns them in this shape:
 
 ```
 BulkIndexer
-├── node A                  node window: bytes out to the node at once      (AIMD on 429s)
-│   ├── shard 0 buffer      sent when full; one request in flight per shard (PID on latency, or fixed)
+├── node A                  node window: bytes out to the node at once      (shrinks on the node's 429s)
+│   ├── shard 0 buffer      sent when full; one request in flight per shard (adaptive on latency, or fixed)
 │   └── shard 3 buffer
 ├── node B
 │   └── shard 1 buffer
@@ -121,7 +121,7 @@ The indexer sends its buffered data as bulk requests when a buffer is full, when
 Things to know:
 
 - **`Add` after `Close` returns `ErrBulkIndexerClosed`.** `Add` otherwise returns an error only when the context you pass ends before the item is queued; it blocks while the indexer holds `MaxMemoryBytes`, and while its shard is over an even share of it with other shards waiting.
-- **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` are written in the order you added them: a shard has one request out at a time, and a retry happens in that request's slot, so a later buffer of the shard is not sent ahead of it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is ordered the same way by its id: the buffer holding it is not sent until the earlier buffer that holds a document with the same id has finished, while buffers that share no id are sent in parallel.
+- **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` are written in the order you added them: a shard has one request out at a time, and a retry happens in that request's slot, so a later buffer of the shard is not sent ahead of it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is ordered the same way by its ID: the buffer holding it is not sent until the earlier buffer that holds a document with the same ID has finished, while buffers that share no ID are sent in parallel.
 
   The order holds across a change in where documents go. A shard that moves to another node keeps its order, and so does one whose node is not known: only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or the router losing the index's shard map, can send a document's next action to a different shard from its last. When `Add` finds that, the items still buffered for the index's shards fail with `ErrShardMapChanged`, through their own `OnFailure`, without being sent, and `Add` waits for the index's requests already out to be answered before it places the item, so that nothing overtakes them. Geometry changes are told by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect one.
 
@@ -154,7 +154,7 @@ After `Cancel`, each item that is not yet final fails through its `OnFailure` ex
 | ----------------------------------------------------------- | ----------------------------------- | -------------------------------------- |
 | The cluster rejected this item (version conflict, 429)      | `nil`                               | the item's response, with `Status` set |
 | The whole request failed (network error, 5xx)               | non-nil, wrapping the request error | empty                                  |
-| The item was never sent (cannot serialize, no id, canceled) | non-nil                             | empty                                  |
+| The item was never sent (cannot serialize, no ID, canceled) | non-nil                             | empty                                  |
 
 A request failure is ambiguous: the request may have reached the cluster, in part or in full, before the error. The indexer reports the same thing to every item in the request. If an item has no `OnFailure`, the failure is reported to `BulkIndexerConfig.OnError` instead. An explicit `Flush` reports through its return value and does not call `OnError`.
 
@@ -194,7 +194,7 @@ The indexer also classifies each failure:
 | -------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | `FailureRejected`    | a write queue was full (HTTP 429)                                                                                    | yes                         |
 | `FailureUnavailable` | the cluster or a proxy could not serve it (HTTP 503)                                                                 | yes                         |
-| `FailureTransport`   | the outcome is unknown: no response, a server error other than 503, or an unreadable response                        | only with deterministic ids |
+| `FailureTransport`   | the outcome is unknown: no response, a server error other than 503, or an unreadable response                        | only with deterministic IDs |
 | `FailurePermanent`   | the same request would fail the same way: a mapping error, a version conflict, any other 4xx, an unpairable response | no                          |
 
 ### What the callbacks see
@@ -205,11 +205,11 @@ Set `BulkIndexerConfig.Timeout`, the server-side timeout, whenever you set a `Re
 
 The wait for a retry uses a timer and the context together. It ends early, and the items still waiting fail with the failure they last drew, when the context of the flush ends: the one you passed to `Flush` or `Close`, or `Cancel`. The buffer keeps its request slot while it waits, so the shard's next buffer is held back and the memory stays counted; keep delays short against `FlushInterval`.
 
-## Document ids
+## Document IDs
 
-Retrying a `FailureTransport` failure can write a document twice, because the first attempt may have landed. With a deterministic `_id` the second write replaces the first; with a server-generated one it adds a duplicate. So when a `RetryPolicy` is set, every item must have a `DocumentID`. An item without one is not sent and fails through its own `OnFailure` with `opensearchutil.ErrMissingDocumentID`. `Add` still returns nil, and that `OnFailure` runs on the goroutine that called `Add`. Without a policy, nothing changes and the cluster generates the id.
+Retrying a `FailureTransport` failure can write a document twice, because the first attempt may have landed. With a deterministic `_id` the second write replaces the first; with a server-generated one it adds a duplicate. So when a `RetryPolicy` is set, every item must have a `DocumentID`. An item without one is not sent and fails through its own `OnFailure` with `opensearchutil.ErrMissingDocumentID`. `Add` still returns nil, and that `OnFailure` runs on the goroutine that called `Add`. Without a policy, nothing changes and the cluster generates the ID.
 
-If your documents have no natural id, set `BulkIndexerConfig.Fingerprinter` to derive one:
+If your documents have no natural ID, set `BulkIndexerConfig.Fingerprinter` to derive one:
 
 ```go
 fingerprint := func(ctx context.Context, item opensearchutil.BulkIndexerItem) (string, error) {
@@ -222,7 +222,7 @@ fingerprint := func(ctx context.Context, item opensearchutil.BulkIndexerItem) (s
 }
 ```
 
-The fingerprinter is called by `Add`, only for an item whose `DocumentID` is empty, before the item is placed in a shard, so a generated id routes exactly like an explicit one and per-id ordering holds. It must be deterministic and safe for concurrent use. It may read `Body`; the indexer rewinds it. An error, or an empty id, fails that item through its `OnFailure`.
+The fingerprinter is called by `Add`, only for an item whose `DocumentID` is empty, before the item is placed in a shard, so a generated ID routes exactly like an explicit one and per-ID ordering holds. It must be deterministic and safe for concurrent use. It may read `Body`; the indexer rewinds it. An error, or an empty ID, fails that item through its `OnFailure`.
 
 ## Carrying data with Metadata
 
@@ -276,19 +276,21 @@ What makes this safe is that the flush comes first and the position is read afte
 
 By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` is the most a shard's buffer collects, and two controllers work beneath it, each on one thing and each from one signal. `BulkIndexerConfig.Sizing` tunes them; the zero value selects defaults derived from `FlushBytes`.
 
-|                                              | Controls                                                   | From                                                                          | Answers                                                                  |
-| -------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **Shard-buffer controller** (PID on latency) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests, next to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
-| **Node-window controller** (AIMD on 429s)    | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429                                | a node that is full: less in flight, then a slow climb back              |
+|                                                             | Controls                                                   | From                                                                          | Answers                                                                  |
+| ----------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Shard-buffer controller** (adaptive on latency, or fixed) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests, next to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
+| **Node-window controller** (responds to 429s)               | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429                                | a node that is full: less in flight, then a slow climb back              |
 
 ### Why it is adaptive
 
 A single indexer cannot know how much a cluster can take. The cluster is shared by many writers, its capacity changes as other work comes and goes, and a batch that is right for one node at one moment overloads it at another. A fleet of fixed-size writers either leaves capacity unused or fills the write queues and draws 429s. So the indexer measures instead, with two signals that need no coordination between clients:
 
-- **429 responses** are the server's hard limit, the point at which its write queue is full. The indexer reacts to them with additive increase, multiplicative decrease (AIMD), the same scheme TCP uses to find a network's capacity: probe upward in small steps while the node accepts writes, and cut sharply when it refuses one.
+- **429 responses** are the server saying its write queue is full. When a node answers with one, the indexer cuts how many bytes it keeps in flight to that node, then lets it grow back in small steps while the node keeps accepting writes. (This is additive increase, multiplicative decrease, the scheme TCP uses to find a network's capacity.)
 - **Write latency** tells shards apart. A PID controller watches how quickly each node is serving a shard's requests next to the node's other shards, and gives a shard that is slower than the rest smaller buffers, so a hot or costly shard does not take the node's time from the others. A slowdown the whole node shares is the node's load: no shard is cut for it, and the node is sent as much as it takes until it rejects.
 
 Together they aim to keep a node busy without queueing it into rejections, and since every client in the fleet makes the same adjustments from the same signals, the load they add together stays near what the cluster can take.
+
+The two matter to different workloads. The node window matters to any workload that can fill a node: it is what turns a 429 into less load instead of a burst of retries. The shard-buffer controller only ever compares a shard with the other shards on the same node, so it matters only when shards differ. A hot shard, a shard whose documents are costly to index (large, many fields, heavy ingest pipelines), or a shard on a node that is also merging or recovering, is slower than its neighbours, and full-size requests for it take the node's time from the other shards. The controller gives that shard smaller buffers, so it takes its share of the node's time and no more. When every shard on a node is about as fast as the others, which is typical for one index with evenly spread IDs, nothing is cut: each buffer stays at `FlushBytes`, and adaptive sizing behaves like `Fixed`, except that a shard joining a node that is already loaded starts at `InitialBytes` and climbs.
 
 #### The shard-buffer controller
 
@@ -304,7 +306,7 @@ It reads a request only if the node indexed at least one of its items. It does n
 
 One failure does change a buffer. A **413**, a request refused for being larger than the cluster accepts (`http.max_content_length`), is a fact about the cluster's settings and not about its load. The indexer learns from it that no later request should be larger than half of what was refused, and never raises that limit, so it stops sending what cannot be accepted and does not grow its buffers back to the same size.
 
-How hard each step is comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). If you have not met a PID controller before, [How the PID controller works](#how-the-pid-controller-works) explains it.
+The size of each step comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). If you have not met a PID controller before, [How the PID controller works](#how-the-pid-controller-works) explains it.
 
 #### The node-window controller
 
@@ -328,11 +330,11 @@ A shard that starts on a node, such as the first document for a new index, is gi
 
 A PID controller is the idea behind a car's cruise control. You pick a speed. The controller measures the actual speed, finds the difference (the _error_), and decides how hard to press the throttle. It does that with three terms, each scaled by a _gain_:
 
-| Term             | Gain | Reacts to                            | In plain terms                                                                                                                                                                            |
-| ---------------- | ---- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P**roportional | `Kp` | the error now                        | How far off are we? The further off, the harder the correction.                                                                                                                           |
-| **I**ntegral     | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and pushes harder, so the controller does not settle for "a little slow" forever.                                |
-| **D**erivative   | `Kd` | how fast the error is changing       | Is it getting better or worse, and how fast? A shard that suddenly falls behind is cut harder, before the proportional term catches up; one that is recovering is given more room sooner. |
+| Term             | Gain | Reacts to                            | In plain terms                                                                                                                                                                             |
+| ---------------- | ---- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **P**roportional | `Kp` | the error now                        | How far off are we? The further off, the larger the correction.                                                                                                                            |
+| **I**ntegral     | `Ki` | the error summed over recent flushes | How long have we been off? A small error that will not go away builds up and adds more to each correction, so the controller does not settle for "a little slow" forever.                  |
+| **D**erivative   | `Kd` | how fast the error is changing       | Is it getting better or worse, and how fast? A shard that suddenly falls behind is cut by more, before the proportional term catches up; one that is recovering is given more room sooner. |
 
 The three results are added up into one number, `u`, and `u` decides the step.
 
@@ -369,7 +371,7 @@ The defaults suit most clusters. If you must change them, change one at a time:
 
 | To get                           | Do                             | Watch for                                         |
 | -------------------------------- | ------------------------------ | ------------------------------------------------- |
-| Faster growth and harder cuts    | raise `Kp`                     | oscillation: the size swinging up and down        |
+| Faster growth and larger cuts    | raise `Kp`                     | oscillation: the size swinging up and down        |
 | Less reaction to one noisy flush | lower `Kp`, or set `Kd` to `0` | slower response to a real slowdown                |
 | No memory of past flushes        | set `Ki` to `0`                | a mild, lasting slowdown going uncorrected        |
 | No PID at all                    | `OPENSEARCH_GO_BULK_AIMD=on`   | a sawtooth around `Headroom` instead of an easing |
@@ -416,7 +418,7 @@ This AIMD is unrelated to the AIMD congestion windows the transport keeps for co
 
 ### Changing it without a code change
 
-An operator can override these settings from the environment, which is how to back off the controller on a deployment you cannot rebuild:
+Each of these settings can also be set from the environment, so an operator can change how a deployment sizes its batches without rebuilding it. `NewBulkIndexer` reads the variables once. A variable that is set to a valid value wins over the code; one that is unset, empty or not understood leaves the code's setting in place.
 
 | Variable                                  | Overrides               | Values                                      |
 | ----------------------------------------- | ----------------------- | ------------------------------------------- |
@@ -424,17 +426,23 @@ An operator can override these settings from the environment, which is how to ba
 | `OPENSEARCH_GO_BULK_AIMD`                 | `Sizing.AIMD`           | `on`, `off`                                 |
 | `OPENSEARCH_GO_BULK_PID_KP`, `_KI`, `_KD` | `Sizing.Kp`, `Ki`, `Kd` | non-negative number; `0` turns the term off |
 
-They are read once, when `NewBulkIndexer` builds the indexer, and a variable that is set and valid wins over the code. An empty, unset, or unrecognized value leaves the code's setting in place. The common cases:
+The three gains tune the PID controller, and have no effect with `fixed` or with AIMD on. After each flush the controller works out `e`, how far the shard is from `Headroom` (`+1` as fast as the rest of its node, `0` at `Headroom`, `-1` at twice `Headroom` or slower), and takes a step `u = Kp·e + Ki·(sum of recent e) + Kd·(change in e)`. A positive step grows the buffer by up to `StepBytes`; a negative one shrinks it, by at most half in one flush.
+
+- **`Kp`, the proportional gain (default `1`)**: sets the part of each step that is in proportion to `e`, how far the shard is from `Headroom` on this flush. Doubling `Kp` doubles that part: the buffer grows faster while the shard keeps up and shrinks by more once it falls behind. Halving it makes both changes smaller.
+- **`Ki`, the integral gain (default `0.1`)**: adds to each step in proportion to the sum of `e` over recent flushes, capped at ±2. While the shard stays on one side of `Headroom`, that sum keeps adding to every step, so a slowdown that does not go away shrinks the buffer by more on each flush, and a long run of fast flushes grows it faster. At `0` it adds nothing.
+- **`Kd`, the derivative gain (default `0.25`)**: adds to each step in proportion to the change in `e` since the previous flush. A sudden slowdown adds a shrink on the flush where it appears, before the other two terms have caught up, and a recovery adds growth. Flush-to-flush noise changes `e` too, so a large `Kd` makes the size jitter on a noisy node; lower it, or set it to `0`, if it does.
+
+The common cases:
 
 ```sh
 # Stop adaptive sizing altogether: every batch is FlushBytes.
 export OPENSEARCH_GO_BULK_MODE=fixed
 
-# Keep adaptive sizing, but drop the PID controller.
+# Keep adaptive sizing, but use plain AIMD steps instead of the PID controller.
 export OPENSEARCH_GO_BULK_AIMD=on
 
-# Keep the PID controller, but with no integral or derivative term.
-export OPENSEARCH_GO_BULK_PID_KI=0 OPENSEARCH_GO_BULK_PID_KD=0
+# Stop the buffer size jittering on a noisy node: drop the derivative term.
+export OPENSEARCH_GO_BULK_PID_KD=0
 ```
 
 The [environment variable reference](config-envvars.md#bulk-indexer) lists every value.

@@ -23,7 +23,7 @@ import (
 // and spills into a new one when the last is full.
 //
 //nolint:mnd // Well-known power-of-two chunk size.
-const defaultChunkSize = 64 << 10
+const defaultChunkSize = 64 << 10 // 64 KiB
 
 // chunkPool hands out fixed-size chunks and takes them back, so buffers that
 // fill and flush over and over reuse memory instead of allocating it each time.
