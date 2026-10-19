@@ -263,10 +263,10 @@ What makes this safe is that the flush comes first and the position is read afte
 
 By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` is the most a shard's buffer collects, and two controllers work beneath it, each on one thing and each from one signal. `BulkIndexerConfig.Sizing` tunes them; the zero value selects defaults derived from `FlushBytes`.
 
-|                                              | Controls                                                   | From                                                | Answers                                                                  |
-| -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
+|                                              | Controls                                                   | From                                                                          | Answers                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | **Shard-buffer controller** (PID on latency) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests, next to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
-| **Node-window controller** (AIMD on 429s)    | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429      | a node that is full: less in flight, then a slow climb back              |
+| **Node-window controller** (AIMD on 429s)    | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429                                | a node that is full: less in flight, then a slow climb back              |
 
 ### Why it is adaptive
 

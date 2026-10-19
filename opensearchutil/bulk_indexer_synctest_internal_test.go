@@ -17,12 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBulkIndexerBacksOffAsANodeSlowsDownInABubble is
-// TestBulkIndexerBacksOffAsANodeSlowsDown with the clock of a synctest bubble in place
-// of the hand-written manualClock: the fake server takes the time a request needs by
-// sleeping, the indexer measures it with time.Now, and the bubble moves its clock on when
-// every goroutine in it is waiting.
-func TestBulkIndexerBacksOffAsANodeSlowsDownInABubble(t *testing.T) {
+// TestBulkIndexerHoldsWhileTheWholeNodeSlowsInABubble is
+// TestBulkIndexerHoldsWhileTheWholeNodeSlows with the clock of a synctest bubble in
+// place of the hand-written manualClock: the fake server takes the time a request needs
+// by sleeping, the indexer measures it with time.Now, and the bubble moves its clock on
+// when every goroutine in it is waiting.
+func TestBulkIndexerHoldsWhileTheWholeNodeSlowsInABubble(t *testing.T) {
 	t.Parallel()
 
 	synctest.Test(t, func(t *testing.T) {
@@ -48,18 +48,11 @@ func TestBulkIndexerBacksOffAsANodeSlowsDownInABubble(t *testing.T) {
 		require.Equal(t, int64(bi.sizing.max), shardHealthy, "a healthy shard ends up at the ceiling")
 
 		setRate(20e6) // Five times slower. Nothing is rejected.
-		for range 6 {
+		for range 40 {
 			h.round("n0")
 		}
-		require.Less(t, h.shardTarget("n0"), shardHealthy/2, "buffers must shrink well before the node rejects anything")
-		require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "a slow node is not a rejecting one, so its window is not cut")
-
-		setRate(100e6)
-		for range 120 {
-			h.round("n0")
-		}
-		require.Equal(t, shardHealthy, h.shardTarget("n0"), "and grow back when it recovers")
-		require.GreaterOrEqual(t, h.window("n0"), windowHealthy)
+		require.Equal(t, shardHealthy, h.shardTarget("n0"), "a node that slows without rejecting keeps being sent full buffers")
+		require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "and a slow node is not a rejecting one, so its window is not cut")
 
 		// A bubble ends only when every goroutine in it has, so the indexer is closed
 		// here and not left to a cleanup.
