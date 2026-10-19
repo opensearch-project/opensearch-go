@@ -9,15 +9,26 @@ package opensearchutil
 import (
 	"context"
 	"errors"
+	"runtime"
 	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-// defaultNodeWindow is how many bulk requests the indexer keeps in flight to a
-// node whose write pool window the transport has not reported.
-const defaultNodeWindow = 2
+// unreportedNodeWindow is how many bulk requests the indexer keeps in flight to a
+// node whose write pool window the transport has not reported, such as the node that
+// stands for the whole cluster when the indexer knows no shard map: NumWorkers when
+// the caller set it, and otherwise one per CPU, as many as the indexer's workers had
+// out at once before it learned where shards live. A smaller number caps a cluster
+// of many nodes at what one slow request at a time can carry.
+func unreportedNodeWindow(numWorkers int) int {
+	if numWorkers > 0 {
+		return numWorkers
+	}
+
+	return runtime.NumCPU()
+}
 
 // idleShardIntervals is how many flush intervals a shard may sit with nothing
 // buffered and nothing in flight before the indexer forgets what it learned about
@@ -129,6 +140,8 @@ type nodeState struct {
 	rate rateTracker
 	// sink serves documents that belong to no shard.
 	sink *shardState
+	// unreported is the window when the transport reports none for the node.
+	unreported int
 }
 
 // window is how many requests may be outstanding to the node: the window the
@@ -137,7 +150,7 @@ func (ns *nodeState) window() int {
 	p := ns.node.pool()
 	n := p.Window
 	if n <= 0 {
-		n = defaultNodeWindow
+		n = ns.unreported
 	}
 	if p.Overloaded {
 		n = 1
@@ -231,6 +244,7 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 		rate:  rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
 		bufferFrac: s.bi.sizing.initial / s.bi.sizing.max,
+		unreported: unreportedNodeWindow(s.bi.config.NumWorkers),
 	}
 	ns.sink = &shardState{key: shardKey{shard: -1}, sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
