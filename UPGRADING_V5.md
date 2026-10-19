@@ -626,14 +626,14 @@ The rest of the v5.1 additions are opt-in and change nothing until you set them:
 
 ## `opensearchutil.BulkIndexer` reports errors as `*BulkError`, and `OnFailure` is now `OnError`
 
-In v5.1 every error the indexer reports for failed work is a `*opensearchutil.BulkError`, which says which layer failed (`ErrorLayer`: item, request, index or indexer) and why (`ErrorKind`: rejected, unavailable, transport, permanent or canceled), and keeps the cause. The callbacks that receive it are renamed so that one word, "error", is used throughout:
+In v5.1 every error the indexer reports for failed work is a `*opensearchutil.BulkError`, which says which layer failed (`ErrorLayer`: item, request, index or indexer) and why (`ErrorKind`: rejected, unavailable, transport, permanent or canceled), and keeps the cause. New callbacks receive it, named so that one word, "error", is used throughout. The v5.0 callbacks keep working, deprecated, so code written for v5.0 still builds and behaves as it did; move to the new names when convenient:
 
 | v5.0                                                                                      | v5.1                                                             |
 | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `BulkIndexerItem.OnFailure func(ctx, BulkIndexerItem, opensearchapi.BulkRespItem, error)` | `BulkIndexerItem.OnError func(ctx, BulkIndexerItem, *BulkError)` |
 | `BulkIndexerConfig.OnError func(ctx, error)`                                              | `BulkIndexerConfig.OnUnhandledError func(ctx, error)`            |
 
-The item's response moves into the error, as `err.Resp`, and `err.Status` is its status. For an item the cluster rejected, the old callback got a nil `err`; the new one gets a `*BulkError` with `Layer` `LayerItem` and the cause `err.Err` nil. `err.Resp.Error` is no longer filled in for a rejection that carries a status alone, such as a 404 delete; read `err.Status`, or `err.Error()`, which names the action, the document ID and the cluster's reason or status.
+`OnFailure` is called only when `OnError` is nil, with the v5.0 arguments, and the config's `OnError` only when `OnUnhandledError` is nil; set the new one and the old one is ignored. In the new callback the item's response is in the error, as `err.Resp`, and `err.Status` is its status. For an item the cluster rejected, the old callback got a nil `err`; the new one gets a `*BulkError` with `Layer` `LayerItem` and the cause `err.Err` nil. `err.Resp.Error` is no longer filled in for a rejection that carries a status alone, such as a 404 delete; read `err.Status`, or `err.Error()`, which names the action, the document ID and the cluster's reason or status.
 
 ```go
 // Before (v5.0)
@@ -657,11 +657,11 @@ item.OnError = func(ctx context.Context, item opensearchutil.BulkIndexerItem, er
 cfg.OnUnhandledError = func(ctx context.Context, err error) { log.Print(err) }
 ```
 
-`RetryPolicy` and the observer follow. `RetryPolicy.Retry(attempt, scope, kind, resp, err)` is now `Retry(attempt int, err *BulkError)`; `FailureScope`, `ScopeRequest` and `ScopeItem` are `ErrorLayer`, `LayerRequest` and `LayerItem`; `FailureKind` and its values are `ErrorKind` and `KindRejected`, `KindUnavailable`, `KindTransport` and `KindPermanent`; `BulkFailureEvent` is `BulkErrorEvent`, with the error in `Err`; and `OnRequestFailure` and `OnItemFailure` are `OnRequestError` and `OnItemError`. The `osprom` metric `bulk_failures_total` is `bulk_errors_total` and the `osotel` instrument `bulk.failures` is `bulk.errors`, each with the label `layer` in place of `scope`. These, the retry policy and the observer, are new in v5.1, so only code written against an unreleased build is affected.
+`RetryPolicy` and the observer follow. `RetryPolicy.Retry(attempt, scope, kind, resp, err)` is now `Retry(attempt int, err *BulkError)`; `FailureScope`, `ScopeRequest` and `ScopeItem` are `ErrorLayer`, `LayerRequest` and `LayerItem`; `FailureKind` and its values are `ErrorKind` and `KindRejected`, `KindUnavailable`, `KindTransport` and `KindPermanent`; `BulkFailureEvent` is `BulkErrorEvent`, with the error in `Err`; and `OnRequestFailure` and `OnItemFailure` are `OnRequestError` and `OnItemError`. The `osprom` metric `bulk_failures_total` is `bulk_errors_total` and the `osotel` instrument `bulk.failures` is `bulk.errors`, each with the label `layer` in place of `scope`. The retry policy, the observer and these metrics are new in v5.1, so only code written against an unreleased build is affected, and none of them has a deprecated alias.
 
 ## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
 
-In v5.1 the item callback `OnFailure` is renamed `OnError`, and this callback `OnUnhandledError`; see [above](#opensearchutilbulkindexer-reports-errors-as-bulkerror-and-onfailure-is-now-onerror). This section describes v5.0 under its v5.0 names.
+In v5.1 the item callback `OnFailure` is deprecated in favor of `OnError`, and this callback in favor of `OnUnhandledError`; both still work. See [above](#opensearchutilbulkindexer-reports-errors-as-bulkerror-and-onfailure-is-now-onerror). This section describes v5.0 under its v5.0 names.
 
 When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
 

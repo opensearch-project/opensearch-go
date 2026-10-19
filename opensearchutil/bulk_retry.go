@@ -199,15 +199,25 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkErrorEvent) (time.Durat
 // failItem fails an item for good with err: it counts it, tells the item's OnError
 // and the observer. attempts is the number of requests that carried it.
 //
-// An item without an OnError of its own returns err to report instead, so the
-// flush site can surface it through OnUnhandledError; whether to use it is up to
-// the caller. An item with one returns nil.
+// An item with neither OnError nor the deprecated OnFailure returns err to report
+// instead, so the flush site can surface it through OnUnhandledError; whether to
+// use it is up to the caller. An item with either returns nil.
 func (w *worker) failItem(ctx context.Context, item BulkIndexerItem, err *BulkError, attempts int) error {
 	w.bi.stats.numFailed.Add(1)
 	w.observeDone(ctx, item, attempts, err.Resp, err)
 
-	if item.OnError != nil {
+	switch {
+	case item.OnError != nil:
 		item.OnError(ctx, item, err)
+
+		return nil
+	case item.OnFailure != nil:
+		// The v5.0 callback, with the arguments v5.0 gave it.
+		resp := err.Resp
+		if resp.Error == nil {
+			resp.Error = &opensearchapi.ErrorCause{}
+		}
+		item.OnFailure(ctx, item, resp, err.Err)
 
 		return nil
 	}

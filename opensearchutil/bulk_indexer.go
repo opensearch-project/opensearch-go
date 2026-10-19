@@ -266,8 +266,14 @@ type BulkIndexerConfig struct {
 	// that has no OnError of its own, as a *BulkError, and the indexer's own errors,
 	// such as a flush or a Close cut short by its context.
 	OnUnhandledError func(context.Context, error)
-	OnFlushStart     func(context.Context) context.Context // Called when the flush starts.
-	OnFlushEnd       func(context.Context)                 // Called when the flush ends.
+	// OnError is the v5.0 name of OnUnhandledError, kept so that code written for
+	// v5.0 and earlier still builds. It is called in OnUnhandledError's place when
+	// OnUnhandledError is nil.
+	//
+	// Deprecated: Use OnUnhandledError.
+	OnError      func(context.Context, error)
+	OnFlushStart func(context.Context) context.Context // Called when the flush starts.
+	OnFlushEnd   func(context.Context)                 // Called when the flush ends.
 
 	// OnWarning is called, at most once for each condition and before
 	// NewBulkIndexer returns, when the indexer cannot do something it would do by
@@ -529,6 +535,15 @@ type BulkIndexerItem struct {
 	// Resp when the cluster rejected it; see [BulkError]. An item without
 	// OnError is reported to [BulkIndexerConfig].OnUnhandledError instead.
 	OnError func(context.Context, BulkIndexerItem, *BulkError)
+
+	// OnFailure is the v5.0 name and signature of OnError, kept so that code written
+	// for v5.0 and earlier still builds and behaves as it did. It is called only when
+	// OnError is nil, with the arguments v5.0 gave it: the item's response, whose
+	// Error is never nil, and the cause of the error, which is nil for an item the
+	// cluster rejected.
+	//
+	// Deprecated: Use OnError, which receives the error as a [BulkError].
+	OnFailure func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error)
 }
 
 // ErrZeroCopyBodySet is returned by [AddZeroCopy] for an item that sets Body as well
@@ -802,6 +817,11 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 			return nil, err
 		}
 		implicitClient = true
+	}
+
+	// The deprecated OnError stands in for OnUnhandledError.
+	if cfg.OnUnhandledError == nil {
+		cfg.OnUnhandledError = cfg.OnError
 	}
 
 	// Initialize context if not provided
