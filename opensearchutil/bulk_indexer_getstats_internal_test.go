@@ -88,6 +88,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 		// rate is how fast the node serves, in bytes per second; reject answers 429.
 		rate       float64
 		reject     bool
+		fixed      bool
 		wantReject bool
 		wantCut    bool
 		wantSlow   bool
@@ -97,6 +98,10 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			name: "a node five times slower than it was is slow, and is not a rejecting one",
 			rate: 20e6, wantSlow: true,
 		},
+		{
+			name: "a node five times slower than it was is slow under fixed sizing",
+			rate: 20e6, fixed: true, wantSlow: true,
+		},
 		{name: "a node that rejects", rate: 100e6, reject: true, wantReject: true, wantCut: true},
 	}
 	for _, tt := range tests {
@@ -104,6 +109,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			t.Parallel()
 
 			h := newSizingHarness(t, 200, 1, "n0")
+			h.bi.(*bulkIndexer).sizing.fixed = tt.fixed
 
 			var reject atomic.Bool
 			var rate atomic.Uint64

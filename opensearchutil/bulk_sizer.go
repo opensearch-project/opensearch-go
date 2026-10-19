@@ -394,18 +394,21 @@ func (s *sizer) bytes() int64 {
 // every item failed, and one too small to say anything are not read: none of them
 // measures how fast the node indexes this shard's documents, and a controller that
 // took a quick refusal for a fast flush would grow the buffer while the node says it
-// is full.
+// is full. With fixed sizing the flush is read all the same, for the slowdown it
+// reports, but the buffer's size stays put.
 //
 // It returns how many times the expected time the flush took, and false when the flush
 // was not read.
 func (s *sizer) observe(f flushSample) (float64, bool) {
-	if s.cfg.fixed || !f.timed() || float64(f.bytes) < s.sampleFloor() {
+	if !f.timed() || float64(f.bytes) < s.sampleFloor() {
 		return 0, false
 	}
 
 	n, ok := s.steer(f)
 
-	s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
+	if !s.cfg.fixed {
+		s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
+	}
 
 	return n, ok
 }
@@ -472,6 +475,11 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 		s.devS = ewma(s.devS, math.Abs(n-s.normS), sizingSignalAlpha)
 	}
 	s.normS = smoothInto(s.normS, n)
+
+	// Fixed sizing reads the node but never moves the buffer.
+	if s.cfg.fixed {
+		return n, true
+	}
 
 	// slowdown is 0 at the node's best and 1 when requests take twice what the
 	// best self would need. The PID reads it smoothed; AIMD is chosen for being
