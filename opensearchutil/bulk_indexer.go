@@ -106,6 +106,19 @@ var ErrBulkIndexerClosed = errors.New("opensearchutil: bulk indexer is closed")
 // ErrNilStats is returned by GetStats when it is given no struct to fill.
 var ErrNilStats = errors.New("opensearchutil: GetStats needs a non-nil BulkIndexerStats")
 
+// ErrShardMapChanged is wrapped by the error an item fails with when the shard
+// map it was buffered under was lost or replaced before the item was sent: the
+// router stopped answering for the index, or reported a different shard geometry
+// (see [ShardTarget.Generation]), as when the index is recreated, split or shrunk.
+// The item's shard is then no longer where later actions on the same document will
+// go, and sending it could let one of them reach the server first. It fails
+// through its own OnFailure, or OnError if it has none, and was never sent.
+//
+// Only items not yet sent fail. A request already out cannot be recalled; the Add
+// that found the change waits for it to be answered before it proceeds, so that
+// no later action overtakes it.
+var ErrShardMapChanged = errors.New("opensearchutil: shard map changed before the item was sent")
+
 // ErrShardRoutingUnavailable is wrapped by the error passed to OnWarning when
 // the indexer starts without shard-aware buffering because it has no way to
 // learn where shards live.
@@ -119,7 +132,10 @@ var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unava
 // what is buffered for each node, and a size for each shard's buffer. The last two
 // follow what the cluster can take, so that bulk traffic gives way to the rest of
 // what a node is serving. Documents of one shard are written in the order they
-// were added.
+// were added, also when the shard moves to another node. When the router reports
+// that an index's shard geometry changed or stops answering for it, the items still
+// buffered for its shards fail with [ErrShardMapChanged] rather than risk a later
+// action reaching the server first.
 //
 // The limits delay work and never stop it. A shard's buffer is never asked to be
 // smaller than 1 byte (BulkSizing.MinBytes is held to at least 1, also with
@@ -692,8 +708,9 @@ type bulkIndexer struct {
 	// unplaced to placed, see firstPlacement.
 	placement struct {
 		sync.Mutex
-		// known holds the indexes whose shard map the router has answered for
-		// (string -> struct{}).
+		// known holds the indexes whose shard map the router has answered for, with
+		// the geometry generation it placed them with (string -> uint64; 0 when the
+		// router does not version its answers).
 		known sync.Map
 		// unplaced holds the indexes that had an item buffered without a shard for
 		// want of a shard map (string -> struct{}). Ordering between those items
@@ -1028,14 +1045,25 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 			bi.placement.unplaced.Store(index, struct{}{})
 		}
 		// A shard map that was known and is gone is unknown again, and the next
-		// answer will need the same drain.
-		bi.placement.known.Delete(index)
+		// answer will need the same drain. The documents of its shards, which the
+		// unordered buffers this item now joins do not wait for, are dealt with first.
+		if _, known := bi.placedGeneration(index); known {
+			if err := bi.placementChanged(ctx, index, 0, true); err != nil {
+				return nil, Node{}, err
+			}
+		}
 
 		return nil, Node{}, nil
 	}
 
-	if _, known := bi.placement.known.Load(index); !known {
-		if err := bi.firstPlacement(ctx, index); err != nil {
+	placed, known := bi.placedGeneration(index)
+	switch {
+	case !known:
+		if err := bi.firstPlacement(ctx, index, target.Generation); err != nil {
+			return nil, Node{}, err
+		}
+	case geometryChanged(placed, target.Generation):
+		if err := bi.placementChanged(ctx, index, target.Generation, false); err != nil {
 			return nil, Node{}, err
 		}
 	}
@@ -1054,7 +1082,7 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 //
 // Add must not be called from a callback, as ever, and least of all here: the
 // drain waits for every request, including the one running the callback.
-func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string) error {
+func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string, generation uint64) error {
 	bi.placement.Lock()
 	defer bi.placement.Unlock()
 
@@ -1070,7 +1098,64 @@ func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string) error {
 		bi.placement.unplaced.Delete(index)
 	}
 
-	bi.placement.known.Store(index, struct{}{})
+	bi.placement.known.Store(index, generation)
+
+	return nil
+}
+
+// placedGeneration returns the generation the router placed index with, and whether
+// it has placed it at all.
+func (bi *bulkIndexer) placedGeneration(index string) (uint64, bool) {
+	v, known := bi.placement.known.Load(index)
+	generation, _ := v.(uint64)
+
+	return generation, known
+}
+
+// geometryChanged reports whether a router that placed an index at generation
+// from now places it at to, which is a different shard geometry. A router that does
+// not version its answers reports 0, and a change cannot be told from it.
+func geometryChanged(from, to uint64) bool {
+	return from != 0 && to != 0 && from != to
+}
+
+// placementChanged runs when the router's answer for an index no longer agrees with
+// the one its documents were placed with: its shard geometry changed to generation,
+// or, with lost set, it stopped answering at all. A document may now belong to a
+// different shard than its earlier actions went to, and a shard's buffers wait
+// only for each other, so a later action could reach the server before an earlier
+// one. The buffers of the index's shards that have not been sent fail their items
+// with [ErrShardMapChanged], and the Add that found the change waits for the
+// requests already out to be answered, so that nothing it places overtakes them.
+//
+// Like firstPlacement it holds the placement lock for the wait, and Add must not be
+// called from a callback.
+func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, generation uint64, lost bool) error {
+	bi.placement.Lock()
+	defer bi.placement.Unlock()
+
+	// Another Add may have dealt with the change while this one waited.
+	placed, known := bi.placedGeneration(index)
+	if !known || (!lost && !geometryChanged(placed, generation)) {
+		return nil
+	}
+
+	err := fmt.Errorf("%w: index %q", ErrShardMapChanged, index)
+	for _, b := range bi.sched.abortIndex(index, err) {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-bi.workersDone():
+			return bi.config.Context.Err()
+		case <-b.done:
+		}
+	}
+
+	if lost {
+		bi.placement.known.Delete(index)
+	} else {
+		bi.placement.known.Store(index, generation)
+	}
 
 	return nil
 }
@@ -1529,9 +1614,17 @@ func (w *worker) sendBuffer(b *buffer) {
 	w.sent, w.busy = 0, 0
 	w.retired = nil
 
+	var aborted []error
 	for _, item := range b.items {
 		if bi.canceled() {
 			_ = w.failUnsent(ctx, item, ErrIndexerCanceled, 0) //nolint:errcheck // a canceled item is not an OnError matter
+
+			continue
+		}
+
+		if b.abort != nil {
+			// An item without an OnFailure is reported to OnError with the buffer's.
+			aborted = append(aborted, w.failUnsent(ctx, item, b.abort, 0))
 
 			continue
 		}
@@ -1547,7 +1640,7 @@ func (w *worker) sendBuffer(b *buffer) {
 		w.items = append(w.items, item)
 	}
 
-	err := w.flush(withBatchNode(ctx, w.node))
+	err := errors.Join(append(aborted, w.flush(withBatchNode(ctx, w.node)))...)
 
 	clear(w.items)
 	w.items = w.items[:0]

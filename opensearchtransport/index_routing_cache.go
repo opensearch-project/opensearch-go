@@ -154,6 +154,12 @@ type indexShardMap struct {
 	//   IndexMetadata.java:getRoutingNumShards           -- stored per-index metadata
 	RoutingNumShards int
 
+	// Generation identifies this shard geometry (NumberOfPrimaryShards and
+	// RoutingNumShards): a merge that stores different values gives the map a new
+	// one, and a merge that keeps them keeps it. Zero only on a map built outside
+	// mergeShardMap, which reports it as unversioned.
+	Generation uint64
+
 	// Shards maps shard number -> nodes hosting that shard.
 	Shards map[int]*shardNodes
 }
@@ -468,12 +474,31 @@ func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
 		if slot.shardMap.CompareAndSwap(old, &indexShardMap{
 			NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
 			RoutingNumShards:      placement.RoutingNumShards,
+			Generation:            geometryGeneration(old, placement),
 			Shards:                merged,
 		}) {
 			return
 		}
 	}
 	Debug().Int("attempts", maxRetries).Msg("mergeShardMap: CAS exhausted (concurrent writer wins)")
+}
+
+// lastGeometryGeneration is the last generation given to a shard map. It is shared
+// by every slot so that a generation is never reused: a slot that is evicted and
+// created again must not look like the geometry it had before.
+var lastGeometryGeneration atomic.Uint64 //nolint:gochecknoglobals // Process-wide by design, see above.
+
+// geometryGeneration returns the generation of the map a merge of placement
+// stores over old: old's, when the shard count and the routing factor are the same
+// and old has one, and a new one when they are not.
+func geometryGeneration(old *indexShardMap, placement *indexShardPlacement) uint64 {
+	if old != nil && old.Generation != 0 &&
+		old.NumberOfPrimaryShards == placement.NumberOfPrimaryShards &&
+		old.RoutingNumShards == placement.RoutingNumShards {
+		return old.Generation
+	}
+
+	return lastGeometryGeneration.Add(1)
 }
 
 // carriesForward reports whether old contains any shard keys absent from

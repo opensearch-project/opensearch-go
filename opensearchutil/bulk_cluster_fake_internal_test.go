@@ -35,7 +35,10 @@ type fakeCluster struct {
 		nodes []Node
 		// unknown lists indexes LookupShard does not answer for.
 		unknown map[string]struct{}
-		lookups int
+		// generation is the geometry generation LookupShard reports per index; 0 for
+		// an index setShardMap has not been called for.
+		generation map[string]uint64
+		lookups    int
 	}
 }
 
@@ -43,6 +46,7 @@ func newFakeCluster(maps map[string]ShardMap, nodeNames ...string) *fakeCluster 
 	c := &fakeCluster{}
 	c.mu.maps = maps
 	c.mu.unknown = map[string]struct{}{}
+	c.mu.generation = map[string]uint64{}
 	for _, name := range nodeNames {
 		c.mu.nodes = append(c.mu.nodes, Node{Name: name})
 	}
@@ -69,7 +73,7 @@ func (c *fakeCluster) LookupShard(index, routing string) (ShardTarget, bool) {
 	}
 
 	shard := m.Shard(routing)
-	target := ShardTarget{Shard: shard}
+	target := ShardTarget{Shard: shard, Generation: c.mu.generation[index]}
 	if name := c.mu.place(index, shard); name != "" {
 		target.Node = Node{Name: name, Pool: c.poolOf(name)}
 	}
@@ -113,6 +117,18 @@ func (c *fakeCluster) setWindow(window int, overloaded bool) {
 			return opensearchtransport.PoolWindow{Window: window, MaxWindow: window, Overloaded: overloaded}
 		}
 	}
+}
+
+// setShardMap gives an index a shard map, as the cluster does when the index is
+// created or recreated, and moves its geometry generation on.
+//
+//nolint:unparam // A helper for tests that each use one index.
+func (c *fakeCluster) setShardMap(index string, m ShardMap) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.mu.maps[index] = m
+	c.mu.generation[index]++
 }
 
 //nolint:unparam // A helper for tests that each use one index.

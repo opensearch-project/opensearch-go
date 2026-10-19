@@ -85,6 +85,9 @@ type buffer struct {
 	after []*buffer
 	// finished is set once the buffer's request has completed.
 	finished bool
+	// abort, when set before the buffer is dispatched, fails its items with it
+	// instead of sending them. Guarded by the scheduler's lock until dispatch.
+	abort error
 
 	sealed     bool
 	dispatched bool
@@ -658,6 +661,33 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	if reportToOnError && s.bi.config.OnError != nil {
 		s.bi.config.OnError(b.ctx, err)
 	}
+}
+
+// abortIndex fails, with err, the items of the buffers of index's shards that have
+// not been sent, and returns every buffer of those shards that is not complete, for
+// the caller to wait on. A buffer is failed by the worker that would have sent it, so
+// that it settles as any other does, and after the shard's earlier request has been
+// answered. Buffers of documents that belong to no shard are not touched.
+func (s *scheduler) abortIndex(index string, err error) []*buffer {
+	s.Lock()
+	defer s.Unlock()
+
+	var pending []*buffer
+	for b := range s.live {
+		if !b.shard.ordered || b.shard.key.index != index {
+			continue
+		}
+		if !b.dispatched && b.abort == nil {
+			b.abort = err
+		}
+		pending = append(pending, b)
+	}
+
+	for _, b := range pending {
+		s.seal(b, flushRequested, s.bi.config.Context)
+	}
+
+	return pending
 }
 
 // relieve runs when an Add starts waiting for memory. The job's memory comes back

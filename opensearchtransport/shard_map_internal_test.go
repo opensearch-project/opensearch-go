@@ -708,3 +708,48 @@ func TestWithWriteNode(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeShardMapMovesTheGenerationWithTheGeometry(t *testing.T) {
+	t.Parallel()
+
+	slot := &indexSlot{clock: realClock{}}
+	merge := func(primaries, routing int, primary string) uint64 {
+		slot.mergeShardMap(&indexShardPlacement{
+			NumberOfPrimaryShards: primaries,
+			RoutingNumShards:      routing,
+			ShardToNodes:          map[int]*shardNodes{0: {Primary: primary}},
+		})
+
+		return slot.shardMap.Load().Generation
+	}
+
+	first := merge(5, 640, "n1")
+	require.NotZero(t, first, "a map built by a merge is versioned")
+
+	require.Equal(t, first, merge(5, 640, "n2"), "a shard that moves to another node keeps the geometry")
+
+	resized := merge(10, 640, "n2")
+	require.NotEqual(t, first, resized, "a different shard count is a different geometry")
+
+	reshaped := merge(10, 1280, "n2")
+	require.NotEqual(t, resized, reshaped, "so is a different routing factor")
+
+	require.NotEqual(t, first, merge(5, 640, "n2"), "a geometry that comes back is a new generation, not the old one")
+}
+
+func TestTransportLookupShardReportsTheGeneration(t *testing.T) {
+	t.Parallel()
+
+	tr, r := shardMapTransport(routableConn(t, "n1", time.Millisecond))
+	slot := r.cache.getOrCreate("idx")
+	slot.mergeShardMap(&indexShardPlacement{
+		NumberOfPrimaryShards: 5,
+		RoutingNumShards:      640,
+		ShardToNodes:          map[int]*shardNodes{0: {Primary: "n1"}},
+	})
+
+	target, ok := tr.LookupShard("idx", "doc-1")
+	require.True(t, ok)
+	require.NotZero(t, target.Generation)
+	require.Equal(t, slot.shardMap.Load().Generation, target.Generation)
+}

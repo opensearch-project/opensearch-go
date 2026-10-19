@@ -372,6 +372,19 @@ func TestClientShardRouterAdapter(t *testing.T) {
 		require.Same(t, n1, got.Node.Conn)
 	})
 
+	t.Run("a lookup carries the geometry generation", func(t *testing.T) {
+		t.Parallel()
+
+		r := clientShardRouter{tr: fakeTransportRouter{
+			target: opensearchtransport.ShardTarget{Shard: 3, Generation: 7},
+			found:  true,
+		}}
+
+		got, ok := r.LookupShard("idx", "doc")
+		require.True(t, ok)
+		require.EqualValues(t, 7, got.Generation)
+	})
+
 	t.Run("a shard whose node is unknown has no node", func(t *testing.T) {
 		t.Parallel()
 

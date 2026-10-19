@@ -79,6 +79,11 @@ type ShardTarget struct {
 	// request, or nil when the placement is not known or the node is not usable.
 	// Send to it with [WithWriteNode]; nil leaves the choice to the router.
 	Node *Connection
+	// Generation identifies the shard geometry Shard was computed with: the primary
+	// shard count and the routing factor. It changes when the index's geometry does,
+	// as when the index is recreated, split or shrunk, and not when a shard moves
+	// to another node. It is never 0.
+	Generation uint64
 }
 
 // LookupShard maps a routing value in index to its shard and, when the transport
@@ -100,7 +105,7 @@ func (tr *Transport) LookupShard(index, routing string) (ShardTarget, bool) {
 	}
 
 	shard := shardForRouting(routing, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
-	target := ShardTarget{Shard: shard}
+	target := ShardTarget{Shard: shard, Generation: sm.Generation}
 
 	if nodes := sm.Shards[shard]; nodes != nil && nodes.Primary != "" {
 		if conn := tr.readyConnectionByName(nodes.Primary); conn != nil && !conn.needsCatUpdate() {

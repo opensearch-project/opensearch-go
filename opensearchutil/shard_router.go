@@ -60,6 +60,15 @@ type ShardTarget struct {
 	// known, in which case the indexer sends the document's batch to the node it
 	// chooses.
 	Node Node
+	// Generation identifies the shard geometry the router placed the document
+	// with: the shard count and the routing factor that decide which shard a
+	// routing value belongs to. It changes when the geometry does, as when an index
+	// is recreated, split or shrunk, and it is otherwise stable, whichever node
+	// hosts the shard. The indexer compares it from one lookup to the next to know
+	// that a document may no longer belong to the shard its earlier actions went
+	// to; see [ErrShardMapChanged]. A router that cannot tell reports 0, which the
+	// indexer treats as unversioned and never as a change.
+	Generation uint64
 }
 
 // ShardRouter maps documents to shards and shards to nodes, and ranks nodes for
@@ -249,7 +258,7 @@ func (r clientShardRouter) LookupShard(index, routing string) (ShardTarget, bool
 		return ShardTarget{}, false
 	}
 
-	out := ShardTarget{Shard: target.Shard}
+	out := ShardTarget{Shard: target.Shard, Generation: target.Generation}
 	if target.Node != nil {
 		out.Node = nodeOf(target.Node)
 	}
