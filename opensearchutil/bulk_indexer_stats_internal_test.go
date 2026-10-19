@@ -273,7 +273,8 @@ func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 
 		server := newFakeServer(newFakeCluster(nil))
 		bi := newClusterIndexer(t, server, BulkIndexerConfig{
-			NumWorkers: 1, FlushBytes: 1, Sizing: BulkSizing{Fixed: true}, FlushInterval: time.Hour, ShardRouter: NoShardRouter,
+			NumWorkers: 1, FlushBytes: 1, Sizing: BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+			FlushInterval: time.Hour, ShardRouter: NoShardRouter,
 		})
 
 		const items = 5

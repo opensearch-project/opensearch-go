@@ -31,7 +31,7 @@ import (
 func fixedBatches(itemBytes int64, n int) BulkIndexerConfig {
 	return BulkIndexerConfig{
 		FlushBytes:    int(itemBytes) * n,
-		Sizing:        BulkSizing{Fixed: true},
+		Sizing:        BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 		FlushInterval: time.Hour,
 	}
 }

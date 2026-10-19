@@ -213,7 +213,7 @@ func TestBulkIndexerSpentLimitSealsIdleBatches(t *testing.T) {
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{
 		NumWorkers:     2,
 		FlushBytes:     1 << 20,
-		Sizing:         BulkSizing{Fixed: true},
+		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(itemBytes) * 10,
 	})
@@ -369,7 +369,7 @@ func TestBulkIndexerPressureSealsOnlyWhatCanGoOut(t *testing.T) {
 	itemBytes := docBytes("idx", "doc-0000", 1000)
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{
 		FlushBytes:     int(itemBytes) * perBatch,
-		Sizing:         BulkSizing{Fixed: true},
+		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(itemBytes) * 40,
 	})

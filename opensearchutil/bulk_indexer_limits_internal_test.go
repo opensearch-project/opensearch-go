@@ -51,7 +51,7 @@ func TestBulkIndexerJobLimitCountsWhatItemsReallyCost(t *testing.T) {
 	server := stalledServer()
 	cfg := BulkIndexerConfig{
 		FlushBytes:     1 << 20, // Nothing fills a buffer by size.
-		Sizing:         BulkSizing{Fixed: true},
+		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(held) * limitItems,
 		ShardRouter:    NoShardRouter,
@@ -112,7 +112,7 @@ func TestBulkIndexerJobLimitSendsTheFullestShardFirst(t *testing.T) {
 
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{
 		FlushBytes:     1 << 20,
-		Sizing:         BulkSizing{Fixed: true},
+		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(held) * total,
 	})

@@ -39,7 +39,7 @@ Creating an indexer per job throws away what the controllers learned about the n
 | **Job** | Not a type: the items you add between two calls to `Flush`. `Flush` is how you mark where one ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
 | **Node window** | How many bytes of requests the indexer will have sent to a node and not yet had answered. A buffer that would take the node past it waits, sealed, until requests come back. It is the indexer's answer to a node that rejects writes, and a 429 halves it. |
-| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ shrinks the node window when the node answers with a 429, and grows it back slowly while the node keeps accepting. See [Sizing batches](#sizing-batches). |
+| **Controllers** | The code that sets the two sizes above. The _shard-buffer controller_ chooses when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ shrinks the node window when the node answers with a 429, and grows it back slowly while the node keeps accepting (AIMD), or holds it fixed. Each can be turned off on its own. See [Sizing batches](#sizing-batches). |
 | **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after how long. See [Retrying failed items](#retrying-failed-items). |
 
 The indexer owns them in this shape:
@@ -70,7 +70,7 @@ Every shard draws on the one `MaxMemoryBytes` limit, and a shard whose requests 
 
 The limits above delay work; none of them can stop it. Each of these holds whatever the cluster is doing:
 
-- A shard's buffer is never asked to be smaller than 1 byte (`MinBytes` is held to at least 1, also under `Fixed`) and is sealed once it holds `FlushBytes`, so a buffer that holds an item has always reached the smallest size it can be asked for, and none waits for a size it cannot reach. An item larger than the size is sent alone.
+- A shard's buffer is never asked to be smaller than 1 byte (`MinBytes` is held to at least 1, also under `ShardFixed`) and is sealed once it holds `FlushBytes`, so a buffer that holds an item has always reached the smallest size it can be asked for, and none waits for a size it cannot reach. An item larger than the size is sent alone.
 - A shard that holds nothing may always take one item, past `MaxMemoryBytes` if need be.
 - When nothing is out to a node, one sealed buffer is sent whatever its size, past the node's window if need be.
 
@@ -114,7 +114,7 @@ if err := indexer.Close(ctx); err != nil {
 fmt.Printf("%+v\n", indexer.Stats())
 ```
 
-The indexer sends its buffered data as bulk requests when a buffer is full, when `FlushInterval` (default 30 seconds) passes, and when you call `Flush` or `Close`. What counts as full depends on the sizing mode. By default the indexer is adaptive: a controller picks the size of each shard's buffer from how quickly the node is serving that shard's requests, never more than `FlushBytes` (default 5 MiB). With `Sizing.Fixed`, a buffer is full at exactly `FlushBytes`. See [Sizing batches](#sizing-batches).
+The indexer sends its buffered data as bulk requests when a buffer is full, when `FlushInterval` (default 30 seconds) passes, and when you call `Flush` or `Close`. What counts as full depends on the sizing mode. By default the indexer is adaptive: a controller picks the size of each shard's buffer from how quickly the node is serving that shard's requests, never more than `FlushBytes` (default 5 MiB). With `Sizing.Shard` set to `ShardFixed`, a buffer is full at exactly `FlushBytes`. See [Sizing batches](#sizing-batches).
 
 `Body` is an `io.ReadSeeker`, because the indexer rewinds it. It reads the document from offset 0 whatever the position the reader is handed in at, to size it, to fingerprint it and for each attempt to send it, so every attempt, a retry included, sends the same bytes. A caller that keeps its own position in a reader should pass a reader of just the document, such as an `io.SectionReader`. Add `Index` to an item to send it to an index other than the config default.
 
@@ -276,10 +276,10 @@ What makes this order correct is that the flush comes first and the frontier is 
 
 By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` is the most a shard's buffer collects, and two controllers work beneath it, each on one thing and each from one signal. `BulkIndexerConfig.Sizing` tunes them; the zero value selects defaults derived from `FlushBytes`.
 
-|                                                             | Controls                                                   | From                                                                          | Answers                                                                  |
-| ----------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **Shard-buffer controller** (adaptive on latency, or fixed) | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests, next to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
-| **Node-window controller** (responds to 429s)               | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429                                | a node that is full: less in flight, then a slow climb back              |
+|                                                         | Controls                                                   | From                                                                          | Answers                                                                  |
+| ------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Shard-buffer controller** (PID on latency, or fixed)  | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's last requests, next to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
+| **Node-window controller** (responds to 429s, or fixed) | how many bytes of requests may be out to a node at once    | whether the node answered a request with a 429                                | a node that is full: less in flight, then a slow climb back              |
 
 ### Why it is adaptive
 
@@ -290,13 +290,13 @@ A single indexer cannot know how much a cluster can take. The cluster is shared 
 
 Together they aim to keep a node busy without queueing it into rejections, and since every client in the fleet makes the same adjustments from the same signals, the load they add together stays near what the cluster can take.
 
-The two matter to different workloads. The node window matters to any workload that can fill a node: it is what turns a 429 into less load instead of a burst of retries. The shard-buffer controller only ever compares a shard with the other shards on the same node, so it matters only when shards differ. A hot shard, a shard whose documents are costly to index (large, many fields, heavy ingest pipelines), or a shard on a node that is also merging or recovering, is slower than its neighbours, and full-size requests for it take the node's time from the other shards. The controller gives that shard smaller buffers, so it takes its share of the node's time and no more. When every shard on a node is about as fast as the others, which is typical for one index with evenly spread IDs, nothing is cut: each buffer stays at `FlushBytes`, and adaptive sizing behaves like `Fixed`, except that a shard joining a node that is already loaded starts at `InitialBytes` and climbs.
+The two matter to different workloads. The node window matters to any workload that can fill a node: it is what turns a 429 into less load instead of a burst of retries. The shard-buffer controller only ever compares a shard with the other shards on the same node, so it matters only when shards differ. A hot shard, a shard whose documents are costly to index (large, many fields, heavy ingest pipelines), or a shard on a node that is also merging or recovering, is slower than its neighbours, and full-size requests for it take the node's time from the other shards. The controller gives that shard smaller buffers, so it takes its share of the node's time and no more. When every shard on a node is about as fast as the others, which is typical for one index with evenly spread IDs, nothing is cut: each buffer stays at `FlushBytes`, and adaptive sizing behaves like `ShardFixed`, except that a shard joining a node that is already loaded starts at `InitialBytes` and climbs.
 
 #### The shard-buffer controller
 
 Its input is how long each request spent on the node: the round trip less the network distance. A request carries one shard, so this is that shard's own speed. The controller compares that time with what the node's best recent self would need for a request of the same size: a fixed cost per request, plus the bytes at the best service rate seen recently. The fixed cost is learned from small requests, where it is a visible part of the time. Without it, a small request would be judged against the throughput of large ones, which it cannot reach on a healthy node. The comparison is smoothed over the last several flushes, because one flush's time is mostly noise: queueing, a garbage collection, a merge. The smoothed level is then read against the mean level of the node's other shards. A shard alone on its node, such as the buffer for documents that belong to no shard, is read against itself and keeps its size.
 
-- A shard starts at `FlushBytes` on a node that shows no load, so a node that can take full requests is sent them from the first one. On a node that is already loaded (its write pool rejecting, or its window cut by a 429 and not grown back), it starts at `InitialBytes` (`FlushBytes/4` by default) and climbs to full as the node keeps up. Setting `InitialBytes` starts every shard there. To send `FlushBytes` always, with neither the climb nor any backoff, use `Sizing.Fixed` or `OPENSEARCH_GO_BULK_MODE=fixed`.
+- A shard starts at `FlushBytes` on a node that shows no load, so a node that can take full requests is sent them from the first one. On a node that is already loaded (its write pool rejecting, or its window cut by a 429 and not grown back), it starts at `InitialBytes` (`FlushBytes/4` by default) and climbs to full as the node keeps up. Setting `InitialBytes` starts every shard there. To send `FlushBytes` always, with neither the climb nor any backoff, set `Sizing.Shard` to `ShardFixed`, or `OPENSEARCH_GO_BULK_SHARD=fixed`.
 - While the smoothed time stays within `Headroom` of the expected time, the buffer grows by `StepBytes` per flush.
 - When the shard is slower than the rest of its node by more than that, its buffer is cut in proportion to how far past `Headroom` it is, so that it gives way to the node's other shards.
 - `Headroom` is widened by the signal's own noise. A node whose times vary must slow by more than its usual variation before the slowdown counts, and a steady node is held to `Headroom` alone.
@@ -369,64 +369,57 @@ FlushBytes ┤            ●━━━━━━━●                      ceili
 
 The defaults suit most clusters. If you must change them, change one at a time:
 
-| To get                           | Do                             | Watch for                                         |
-| -------------------------------- | ------------------------------ | ------------------------------------------------- |
-| Faster growth and larger cuts    | raise `Kp`                     | oscillation: the size swinging up and down        |
-| Less reaction to one noisy flush | lower `Kp`, or set `Kd` to `0` | slower response to a real slowdown                |
-| No memory of past flushes        | set `Ki` to `0`                | a mild, lasting slowdown going uncorrected        |
-| No PID at all                    | `OPENSEARCH_GO_BULK_AIMD=on`   | a sawtooth around `Headroom` instead of an easing |
+| To get                           | Do                               | Watch for                                    |
+| -------------------------------- | -------------------------------- | -------------------------------------------- |
+| Faster growth and larger cuts    | raise `Kp`                       | oscillation: the size swinging up and down   |
+| Less reaction to one noisy flush | lower `Kp`, or set `Kd` to `0`   | slower response to a real slowdown           |
+| No memory of past flushes        | set `Ki` to `0`                  | a mild, lasting slowdown going uncorrected   |
+| No adaptive shard sizing         | `OPENSEARCH_GO_BULK_SHARD=fixed` | a hot shard keeps sending full-size requests |
 
 A gain of `0` turns that term off. The operator overrides are listed in [Changing it without a code change](#changing-it-without-a-code-change).
 
-### Choosing a mode
+### Turning a controller off
 
-| Mode | Set with | Behavior |
-| --- | --- | --- |
-| Adaptive, PID (default) | nothing | The size follows the node; each step is shaped by the PID controller, which reads the smoothed signal. |
-| Adaptive, AIMD only | `Sizing.AIMD`, or `OPENSEARCH_GO_BULK_AIMD=on` | A shard's buffer takes plain additive increase, multiplicative decrease: `StepBytes` more after a healthy flush, and the size multiplied by the square root of `Backoff` after a flush that shows the shard behind the rest of its node past `Headroom`. It reads each flush as it is, with more slack for noise than the PID controller gets. The PID gains are ignored. The node window is unchanged. |
-| Fixed | `Sizing.Fixed`, or `OPENSEARCH_GO_BULK_MODE=fixed` | The controllers are off: every batch is `FlushBytes`, and a node's window stays where it started (`NodeBytes`, or `MaxMemoryBytes`). |
+The two controllers are independent, and each can be turned off on its own:
 
-To soften the PID controller without dropping it, set a gain to `0`: `Ki` and `Kd` at `0` leave a proportional controller. Setting all three to `0` makes every PID step zero, so the size then changes only on a rejection or a failure; to drop the PID controller, use AIMD instead.
+| Setting                                       | Values                                                                                                                                                                                                                        | Default    |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `Sizing.Shard`, or `OPENSEARCH_GO_BULK_SHARD` | `ShardPID` (`pid`): a shard's buffer follows how quickly the node serves its requests. `ShardFixed` (`fixed`): every buffer is `FlushBytes`, and the PID gains have no effect.                                                | `ShardPID` |
+| `Sizing.Node`, or `OPENSEARCH_GO_BULK_NODE`   | `NodeAIMD` (`aimd`): a node's window is cut when the node answers with a 429, and grows back slowly. `NodeFixed` (`fixed`): the window stays where it started, at `NodeBytes` or `MaxMemoryBytes`, and a 429 does not cut it. | `NodeAIMD` |
+
+The zero values, `ShardUnset` and `NodeUnset`, select the defaults. Turning both off sends every buffer at `FlushBytes` with a window that never moves. Either way, the number of requests out to a node at once still follows the node's write pool, as the [node-window controller](#the-node-window-controller) describes.
+
+A gain set to `0` through its environment variable turns that term off. In code, `Sizing.PID` left at its zero value selects the default gains, so all three cannot be set to `0` there; through the environment they can, and then no step ever moves the size. To stop shard buffers changing size, use `ShardFixed` instead.
+
+For example, to send every buffer at `FlushBytes` while still backing off a node that answers with 429s:
 
 ```go
 indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 	Client:     client,
-	FlushBytes: 5 << 20, // 5 MiB: the largest request a shard's buffer grows to
-	Sizing:     opensearchutil.BulkSizing{AIMD: true},
+	FlushBytes: 5 << 20, // 5 MiB: every request a shard's buffer sends
+	Sizing:     opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed},
 })
 ```
 
-### How AIMD and the PID controller relate
+### Why two different controllers
 
-They are two ways of taking the same step for a shard's buffer, and a flush uses one or the other, never both. The node window is not affected by the choice: it is always additive increase and multiplicative decrease on 429s. Everything around the step is shared:
+They answer different signals. A shard buffer's signal is a measurement, the time each flush took, and it comes in degrees: a shard can be a little slower than its neighbours or a lot, briefly or for a long time. A PID controller uses all of that: a small slowdown takes a small cut and a large one a large cut (`Kp`), a slowdown that persists takes more each flush (`Ki`), and a sudden one is answered before it builds up (`Kd`).
 
-- Both judge a flush by the same measure: its time on the node over the expected time (the learned cost per request plus the bytes at the best smoothed rate), as a slowdown measured against `Headroom`. The PID controller reads that time smoothed over the last several flushes and widens `Headroom` by half of the signal's deviation. AIMD reads each flush as it is and widens `Headroom` by two and a half times the deviation. A node whose write pool is rejecting does not grow, and a flush too small to say anything is ignored.
-- Neither reads a 429, a failed request or a request in which no item was indexed, and both keep the size between `MinBytes` and the ceiling.
+A node window's signal is a yes or no: the node answered with a 429, or it did not. There is no degree to scale a step by, so the window uses additive increase, multiplicative decrease: it probes upward in small steps while the node accepts writes, and cuts sharply when it refuses one, the scheme TCP uses to find a network's capacity.
 
-What differs is the size of the step for a flush that was read:
-
-|                            | PID (default)                                                                                                           | AIMD (`Sizing.AIMD`)                                                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Healthy flush              | Grows by `StepBytes` scaled by `min(u, 1)`, so a node only just within `Headroom` grows by a fraction of a step         | Grows by exactly `StepBytes`; holds the size at exactly `Headroom` or while the node's write pool is rejecting       |
-| Slow flush                 | Multiplies the size by `1 + max(u, -0.5)`: a node barely past `Headroom` loses little, one far past it loses up to half | Multiplies the size by the square root of `Backoff` (about 0.71 by default), however far past `Headroom` the node is |
-| Where growth turns to cuts | Can sit on either side of `Headroom`, since the integral and derivative terms add to `u`                                | At `Headroom`                                                                                                        |
-| Memory                     | The integral term remembers recent flushes; the derivative term remembers the last one                                  | None: each flush is judged alone                                                                                     |
-
-So AIMD is the PID controller with the shaping taken out. It is simpler to reason about and easier to predict, but it treats a marginal slowdown like a severe one, and it settles into a sawtooth around `Headroom` instead of easing toward it. The PID controller damps that sawtooth, at the cost of three gains to tune. Reach for AIMD when the PID controller's behavior is hard to account for in production, and for the gains when it is close and wants adjusting.
-
-This AIMD is unrelated to the AIMD congestion windows the transport keeps for connection scoring, described in [Request Routing](transport-routing.md#aimd-congestion-windows). They share a name and the additive-increase, multiplicative-decrease shape, and nothing else: that one steers which connection a request uses, and this one steers how many bytes a batch carries.
+This AIMD is unrelated to the AIMD congestion windows the transport keeps for connection scoring, described in [Request Routing](transport-routing.md#aimd-congestion-windows). They share a name and the additive-increase, multiplicative-decrease shape, and nothing else: that one steers which connection a request uses, and this one steers how many bytes are out to a node.
 
 ### Changing it without a code change
 
 Each of these settings can also be set from the environment, so an operator can change how a deployment sizes its batches without rebuilding it. `NewBulkIndexer` reads the variables once. A variable that is set to a valid value wins over the code; one that is unset, empty or not understood leaves the code's setting in place.
 
-| Variable                                  | Overrides               | Values                                      |
-| ----------------------------------------- | ----------------------- | ------------------------------------------- |
-| `OPENSEARCH_GO_BULK_MODE`                 | `Sizing.Fixed`          | `fixed`, `adaptive`                         |
-| `OPENSEARCH_GO_BULK_AIMD`                 | `Sizing.AIMD`           | `on`, `off`                                 |
-| `OPENSEARCH_GO_BULK_PID_KP`, `_KI`, `_KD` | `Sizing.Kp`, `Ki`, `Kd` | non-negative number; `0` turns the term off |
+| Variable                                  | Overrides                     | Values                                      |
+| ----------------------------------------- | ----------------------------- | ------------------------------------------- |
+| `OPENSEARCH_GO_BULK_SHARD`                | `Sizing.Shard`                | `pid`, `fixed`                              |
+| `OPENSEARCH_GO_BULK_NODE`                 | `Sizing.Node`                 | `aimd`, `fixed`                             |
+| `OPENSEARCH_GO_BULK_PID_KP`, `_KI`, `_KD` | `Sizing.PID.Kp`, `.Ki`, `.Kd` | non-negative number; `0` turns the term off |
 
-The three gains tune the PID controller, and have no effect with `fixed` or with AIMD on. After each flush the controller works out `e`, how far the shard is from `Headroom` (`+1` as fast as the rest of its node, `0` at `Headroom`, `-1` at twice `Headroom` or slower), and takes a step `u = Kp·e + Ki·(sum of recent e) + Kd·(change in e)`. A positive step grows the buffer by up to `StepBytes`; a negative one shrinks it, by at most half in one flush.
+The three gains tune the shard-buffer PID controller, and have no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. After each flush the controller works out `e`, how far the shard is from `Headroom` (`+1` as fast as the rest of its node, `0` at `Headroom`, `-1` at twice `Headroom` or slower), and takes a step `u = Kp·e + Ki·(sum of recent e) + Kd·(change in e)`. A positive step grows the buffer by up to `StepBytes`; a negative one shrinks it, by at most half in one flush.
 
 - **`Kp`, the proportional gain (default `1`)**: sets the part of each step that is in proportion to `e`, how far the shard is from `Headroom` on this flush. Doubling `Kp` doubles that part: the buffer grows faster while the shard keeps up and shrinks by more once it falls behind. Halving it makes both changes smaller.
 - **`Ki`, the integral gain (default `0.1`)**: adds to each step in proportion to the sum of `e` over recent flushes, capped at ±2. While the shard stays on one side of `Headroom`, that sum keeps adding to every step, so a slowdown that does not go away shrinks the buffer by more on each flush, and a long run of fast flushes grows it faster. At `0` it adds nothing.
@@ -435,11 +428,11 @@ The three gains tune the PID controller, and have no effect with `fixed` or with
 The common cases:
 
 ```sh
-# Stop adaptive sizing altogether: every batch is FlushBytes.
-export OPENSEARCH_GO_BULK_MODE=fixed
+# Send every buffer at FlushBytes. Nodes still back off on 429s.
+export OPENSEARCH_GO_BULK_SHARD=fixed
 
-# Keep adaptive sizing, but use plain AIMD steps instead of the PID controller.
-export OPENSEARCH_GO_BULK_AIMD=on
+# Keep a node's window where it started, whatever the node answers.
+export OPENSEARCH_GO_BULK_NODE=fixed
 
 # Stop the buffer size jittering on a noisy node: drop the derivative term.
 export OPENSEARCH_GO_BULK_PID_KD=0

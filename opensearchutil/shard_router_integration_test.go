@@ -476,7 +476,7 @@ func TestBulkIndexerKeepsOrderWhenShardMapArrives_Integration(t *testing.T) {
 	bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 		Client:        client,
 		FlushBytes:    2000, // Small, so batches fill and are sent many times.
-		Sizing:        opensearchutil.BulkSizing{Fixed: true},
+		Sizing:        opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed, Node: opensearchutil.NodeFixed},
 		FlushInterval: time.Hour,
 	})
 	require.NoError(t, err)
@@ -635,7 +635,7 @@ func TestBulkIndexerSendsOneShardsBatchesToItsPrimary_Integration(t *testing.T) 
 		bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:        perIndex,
 			FlushBytes:    2000,
-			Sizing:        opensearchutil.BulkSizing{Fixed: true},
+			Sizing:        opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed, Node: opensearchutil.NodeFixed},
 			FlushInterval: time.Hour,
 		})
 		require.NoError(t, err)

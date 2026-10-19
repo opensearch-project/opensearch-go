@@ -169,14 +169,21 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // OPENSEARCH_GO_DEBUG=true.
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 
-// BulkMode overrides BulkSizing.Fixed for opensearchutil.BulkIndexer: "fixed"
-// sends every batch at FlushBytes, "adaptive" lets the controller size the
-// batches. Case-insensitive; any other value is ignored. How the controller
-// sizes batches is explained in guides/indexing-bulk_indexer.md#sizing-batches.
-const BulkMode = "OPENSEARCH_GO_BULK_MODE"
+// BulkShard overrides BulkSizing.Shard for opensearchutil.BulkIndexer: "pid"
+// sizes each shard's buffer with the PID controller on latency, and "fixed" sends
+// every buffer at FlushBytes. Case-insensitive; any other value is ignored.
+const BulkShard = "OPENSEARCH_GO_BULK_SHARD"
 
-// BulkPIDKp, BulkPIDKi and BulkPIDKd override BulkSizing.Kp, Ki and Kd, the
-// gains of the PID controller that modulates each step of the batch size. Each is
+// BulkNode overrides BulkSizing.Node for opensearchutil.BulkIndexer: "aimd" cuts a
+// node's window on a 429 and grows it back slowly, and "fixed" holds it where it
+// started. Case-insensitive; any other value is ignored.
+//
+// The two are independent. How each controller works is explained in
+// guides/indexing-bulk_indexer.md#sizing-batches.
+const BulkNode = "OPENSEARCH_GO_BULK_NODE"
+
+// BulkPIDKp, BulkPIDKi and BulkPIDKd override BulkSizing.PID's Kp, Ki and Kd, the
+// gains of the PID controller that sizes each shard's buffer. Each is
 // a non-negative float, and 0 turns that term off. A value that does not parse,
 // or is negative, NaN or infinite, is ignored.
 //
@@ -195,13 +202,6 @@ const (
 	BulkPIDKi = "OPENSEARCH_GO_BULK_PID_KI"
 	BulkPIDKd = "OPENSEARCH_GO_BULK_PID_KD"
 )
-
-// BulkAIMD overrides BulkSizing.AIMD: "on" steers the batch size by plain
-// additive-increase, multiplicative-decrease and bypasses the PID controller
-// (so BulkPIDKp, Ki and Kd have no effect), "off" keeps the PID-modulated step.
-// strconv.ParseBool values are accepted as well. Case-insensitive; any other
-// value is ignored. See guides/indexing-bulk_indexer.md#how-aimd-and-the-pid-controller-relate.
-const BulkAIMD = "OPENSEARCH_GO_BULK_AIMD"
 
 // DefaultClientTTL sets the idle eviction window for the process-wide cache of
 // implicit default clients. Accepts a time.ParseDuration string (e.g. "16m") or

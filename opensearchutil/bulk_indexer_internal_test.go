@@ -317,7 +317,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
 					FlushBytes:    50,
-					Sizing:        BulkSizing{Fixed: true}, // FlushBytes is the batch size, not a ceiling.
+					Sizing:        BulkSizing{Shard: ShardFixed, Node: NodeFixed}, // FlushBytes is the batch size, not a ceiling.
 					FlushInterval: time.Hour,
 					Client:        client,
 				}
@@ -457,7 +457,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				client, _ := opensearchapi.NewClient(cfg)
 				t.Cleanup(func() { _ = client.Close() })
 
-				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Sizing: BulkSizing{Fixed: true}, Client: client}
+				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Sizing: BulkSizing{Shard: ShardFixed, Node: NodeFixed}, Client: client}
 				bi, _ := NewBulkIndexer(biCfg)
 
 				for i := 1; i <= 2; i++ {

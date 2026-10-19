@@ -99,7 +99,7 @@ func TestBulkSizingResolve(t *testing.T) {
 		},
 		{
 			name:    "explicit values win, and a gain set on its own leaves the others at what was asked",
-			sizing:  BulkSizing{MinBytes: 100, InitialBytes: 1000, StepBytes: 50, Headroom: 0.5, Backoff: 0.7, Kp: 2},
+			sizing:  BulkSizing{MinBytes: 100, InitialBytes: 1000, StepBytes: 50, Headroom: 0.5, Backoff: 0.7, PID: PIDGains{Kp: 2}},
 			ceiling: testCeiling,
 			want: resolved{
 				min: 100, initial: 1000, max: testCeiling, step: 50,
@@ -117,7 +117,7 @@ func TestBulkSizingResolve(t *testing.T) {
 		},
 		{
 			name:    "fixed pins the start to the ceiling and keeps the adaptive minimum",
-			sizing:  BulkSizing{Fixed: true},
+			sizing:  BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 			ceiling: testCeiling,
 			want: resolved{
 				min: testCeiling / 32, initial: testCeiling, max: testCeiling, step: testCeiling / 16,
@@ -126,7 +126,7 @@ func TestBulkSizingResolve(t *testing.T) {
 		},
 		{
 			name:    "fixed keeps the minimum at least 1 on a tiny ceiling",
-			sizing:  BulkSizing{Fixed: true},
+			sizing:  BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 			ceiling: 1,
 			want: resolved{
 				min: 1, initial: 1, max: 1, step: 1.0 / 16,
@@ -159,7 +159,7 @@ func TestBulkSizingResolve(t *testing.T) {
 func TestSizerFixed(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{Fixed: true})
+	s := newTestSizer(BulkSizing{Shard: ShardFixed, Node: NodeFixed})
 	require.EqualValues(t, testCeiling, s.bytes())
 
 	s.observe(flushOf(testCeiling, 1e6))
@@ -175,7 +175,7 @@ func TestSizerFixed(t *testing.T) {
 func TestSizerFixedReportsASustainedSlowdown(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{Fixed: true})
+	s := newTestSizer(BulkSizing{Shard: ShardFixed, Node: NodeFixed})
 	for range 200 {
 		s.observe(flushOf(s.bytes(), 100e6))
 	}

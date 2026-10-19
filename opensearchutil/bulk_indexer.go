@@ -143,7 +143,7 @@ var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unava
 //
 // The limits delay work and never stop it. A shard's buffer is never asked to be
 // smaller than 1 byte (BulkSizing.MinBytes is held to at least 1, also with
-// BulkSizing.Fixed) and is sealed once it holds FlushBytes, so no buffer waits for
+// [ShardFixed]) and is sealed once it holds FlushBytes, so no buffer waits for
 // a size it cannot reach; a shard that holds nothing may always take one item, past
 // MaxMemoryBytes if need be; and when nothing is out to a node, one sealed buffer
 // is sent whatever its size, past NodeBytes if need be.
@@ -338,11 +338,11 @@ type BulkIndexerConfig struct {
 	// window is bounded by NodeBytes. The zero value selects defaults derived from
 	// FlushBytes.
 	//
-	// The OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and
+	// The OPENSEARCH_GO_BULK_SHARD, OPENSEARCH_GO_BULK_NODE and
 	// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD environment variables override the
-	// matching fields when they are set and valid, so an operator can switch
-	// the controller to fixed sizing or to AIMD alone, or retune the PID gains,
-	// without a code change. See [BulkSizing].
+	// matching fields when they are set and valid, so an operator can fix the shard
+	// buffers or the node windows, each on its own, or retune the PID gains, without
+	// a code change. See [BulkSizing].
 	Sizing BulkSizing
 
 	// MaxMemoryBytes is the job's memory limit: the most the indexer holds from the
@@ -379,7 +379,7 @@ type BulkIndexerConfig struct {
 	// keep a node under a figure of your own whatever it accepts. A sealed buffer that
 	// would take the node past its window waits, still counting against
 	// MaxMemoryBytes, until the requests out are answered; when nothing is out, one
-	// is sent whatever its size. With BulkSizing.Fixed the window stays at NodeBytes.
+	// is sent whatever its size. With [NodeFixed] the window stays at NodeBytes.
 	// It does not change the size of any buffer, and it is separate from the number of
 	// requests out at once, which the client's transport limits.
 	NodeBytes int
@@ -777,9 +777,9 @@ type bulkIndexerStats struct {
 }
 
 // NewBulkIndexer creates a new bulk indexer. It returns an error wrapping
-// [ErrInvalidConfig] for a negative byte limit: FlushBytes, MaxMemoryBytes,
-// NodeBytes, or BulkSizing's MinBytes, InitialBytes or StepBytes. Zero selects the
-// default of each.
+// [ErrInvalidConfig] for a negative byte limit (FlushBytes, MaxMemoryBytes,
+// NodeBytes, or BulkSizing's MinBytes, InitialBytes or StepBytes; zero selects the
+// default of each) and for a BulkSizing.Shard or Node that names no setting.
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	// Before the client is made, so that a refusal has nothing to release.
 	if err := cfg.validate(); err != nil {
@@ -828,7 +828,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		floor:   float64(cfg.FlushBytes),
 		unit:    float64(cfg.FlushBytes),
 		backoff: sizing.backoff,
-		fixed:   sizing.fixed,
+		fixed:   sizing.nodeFixed,
 	}
 	if cfg.NodeBytes > 0 {
 		window.ceiling = float64(min(cfg.NodeBytes, cfg.MaxMemoryBytes))
@@ -863,7 +863,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 }
 
 // validate returns an error wrapping [ErrInvalidConfig] for a byte limit below
-// zero. Each is a size or a limit; a negative one would not be the default the
+// zero, or a sizing setting that does not exist. Each is a size or a limit; a negative one would not be the default the
 // zero value selects but a limit that undoes itself, as a memory limit under which
 // the indexer's accounting goes negative.
 func (c BulkIndexerConfig) validate() error {
@@ -882,6 +882,13 @@ func (c BulkIndexerConfig) validate() error {
 		if l.bytes < 0 {
 			return fmt.Errorf("%w: %s is %d, and must not be negative", ErrInvalidConfig, l.name, l.bytes)
 		}
+	}
+
+	if c.Sizing.Shard >= numShardSizings {
+		return fmt.Errorf("%w: Sizing.Shard is %v, which is not a ShardSizing", ErrInvalidConfig, c.Sizing.Shard)
+	}
+	if c.Sizing.Node >= numNodeSizings {
+		return fmt.Errorf("%w: Sizing.Node is %v, which is not a NodeSizing", ErrInvalidConfig, c.Sizing.Node)
 	}
 
 	return nil

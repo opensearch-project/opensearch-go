@@ -7,6 +7,7 @@
 package opensearchutil
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"strconv"
@@ -20,75 +21,65 @@ import (
 // optional; the zero value selects the defaults below, which are all derived from
 // BulkIndexerConfig.FlushBytes.
 //
-// Two controllers work, each on one thing and each on one signal.
+// Two controllers work, each on one thing and each on one signal, and each can be
+// turned off on its own: Shard sets how a shard's buffer is sized, and Node sets
+// how a node's window answers 429s.
 //
-// The size of a shard's buffer, the bytes it collects before it is sent, follows how
-// fast the node serves that shard's requests next to the node's other shards. Each
-// flush's time on the node (the round trip less the network distance) is compared
-// with what the shard's best recent self would need for a request of that size: a
-// fixed cost per request, learned from small requests where it is a visible part of
-// the time, plus the bytes at the best service rate seen recently. That level is
-// smoothed over the last several flushes (see sizingSignalAlpha) and read against the
-// mean level of the node's other shards, so a slowdown the whole node shares, which
-// is the node's load, cuts no shard: the node is sent as much as it takes until it
-// rejects, and its window answers that. A shard alone on its node, such as the sink
-// of documents that belong to no shard, is read against itself and keeps its size.
-// While a shard stays within Headroom of the rest of its node, its size grows by
-// StepBytes per flush. When it is slower than that, as a hot shard or one with costly
-// documents is, its size is cut in proportion to how far past Headroom it is, so that
-// it does not take the node's time from the others.
-// A PID controller (Kp, Ki, Kd) on the normalized slowdown sets the size of each
-// step, unless AIMD is set, which takes a fixed step up and a fixed cut down instead. A
-// shard's buffer reads nothing else: not a request the node rejected with a 429, which
-// was answered quickly because no work was done, not a request that failed without an
-// answer, and not one in which no item was indexed. A shard that starts on a node is
-// seeded with the node's best rate, so that its first flush is not taken for the best
-// the node can do. A 413, a request refused for being too large, is the one failure
-// that changes a buffer: no buffer is made larger than half the size that was refused.
+// The shard-buffer controller is a PID controller on latency (ShardPID, the
+// default). The size of a shard's buffer, the bytes it collects before it is sent,
+// follows how fast the node serves that shard's requests next to the node's other
+// shards. Each flush's time on the node (the round trip less the network distance)
+// is compared with what the shard's best recent self would need for a request of
+// that size: a fixed cost per request, learned from small requests where it is a
+// visible part of the time, plus the bytes at the best service rate seen recently.
+// That level is smoothed over the last several flushes (see sizingSignalAlpha) and
+// read against the mean level of the node's other shards, so a slowdown the whole
+// node shares, which is the node's load, cuts no shard. A shard alone on its node,
+// such as the sink of documents that belong to no shard, is read against itself and
+// keeps its size. While a shard stays within Headroom of the rest of its node, its
+// size grows by up to StepBytes per flush. When it is slower than that, as a hot
+// shard or one with costly documents is, its size is cut in proportion to how far
+// past Headroom it is, so that it does not take the node's time from the others.
+// The PID gains (see [PIDGains]) set the size of each step. A shard's buffer reads
+// nothing else: not a request the node rejected with a 429, which was answered
+// quickly because no work was done, not a request that failed without an answer,
+// and not one in which no item was indexed. A shard that starts on a node is seeded
+// with the node's best rate, so that its first flush is not taken for the best the
+// node can do. A 413, a request refused for being too large, is the one failure that
+// changes a buffer: no buffer is made larger than Backoff times the size that was
+// refused. ShardFixed turns this controller off: every buffer is FlushBytes.
 //
-// How many bytes may be out to a node at once is the node's window, and a 429 is the
-// only thing that moves it. When a request is answered with a 429, for the request
-// or for any item in it, the window becomes Backoff times the smaller of itself and
-// the bytes that were out to the node when the answer arrived, so that the first
-// rejection counts even though the window starts wide open. Rejections of requests
-// sent before that cut are the same event and do not cut again. The window then grows
-// by FlushBytes for each window's worth of bytes the node answers, held for a few
-// answers after a rejection and while the node's write pool is overloaded. A sealed
-// buffer that would take the node past its window waits until the requests out are
-// answered; when nothing is out, one is sent whatever its size. The window does not
-// change the size of any buffer. It starts at NodeBytes, or at MaxMemoryBytes when
-// that is not set.
+// The node-window controller is additive increase, multiplicative decrease on 429s
+// (NodeAIMD, the default). How many bytes may be out to a node at once is the
+// node's window, and a 429 is the only thing that moves it. When a request is
+// answered with a 429, for the request or for any item in it, the window becomes
+// Backoff times the smaller of itself and the bytes that were out to the node when
+// the answer arrived, so that the first rejection counts even though the window
+// starts wide open. Rejections of requests sent before that cut are the same event
+// and do not cut again. The window then grows by FlushBytes for each window's worth
+// of bytes the node answers, held for a few answers after a rejection and while the
+// node's write pool is overloaded. A sealed buffer that would take the node past its
+// window waits until the requests out are answered; when nothing is out, one is
+// sent whatever its size. The window does not change the size of any buffer. It
+// starts at NodeBytes, or at MaxMemoryBytes when that is not set. NodeFixed turns
+// this controller off: the window stays where it started.
 //
-// AIMD and the PID controller are two ways to take the same step for a shard's buffer,
-// and a flush uses one or the other; the bounds are the same in both. For a flush that
-// indexed something, the PID controller scales the step
-// by how far the node is from Headroom, with memory of recent flushes (Ki) and of the
-// trend (Kd), so a marginal slowdown costs little and a severe one up to half the size.
-// AIMD grows by exactly StepBytes while the node is within Headroom, holds the size at
-// Headroom or while the node's write pool is rejecting, and cuts by the square root of
-// Backoff once the node is past it, however far past, with no memory: it is easier to
-// predict and settles into a sawtooth around Headroom. The node's window is always
-// additive increase and multiplicative decrease on 429s, whichever is chosen here.
-//
-// An operator can override Fixed, AIMD, Kp, Ki and Kd without a code change through
-// OPENSEARCH_GO_BULK_MODE, OPENSEARCH_GO_BULK_AIMD and OPENSEARCH_GO_BULK_PID_KP,
-// _KI and _KD, read when the indexer is built. A variable that is set and valid
-// wins over the field it names; see guides/config-envvars.md.
+// An operator can override Shard, Node and the PID gains without a code change
+// through OPENSEARCH_GO_BULK_SHARD, OPENSEARCH_GO_BULK_NODE and
+// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD, read when the indexer is built. A variable
+// that is set and valid wins over the field it names; see guides/config-envvars.md.
 type BulkSizing struct {
-	// Fixed turns the controller off: every batch is FlushBytes.
-	// OPENSEARCH_GO_BULK_MODE=fixed|adaptive overrides it.
-	Fixed bool
+	// Shard chooses how a shard's buffer is sized: ShardPID, the PID controller on
+	// latency, or ShardFixed, every buffer at FlushBytes. ShardUnset, the zero
+	// value, is ShardPID. OPENSEARCH_GO_BULK_SHARD=pid|fixed overrides it.
+	Shard ShardSizing
+	// Node chooses how a node's window follows the node: NodeAIMD, cut on a 429 and
+	// grown back slowly, or NodeFixed, held where it started. NodeUnset, the zero
+	// value, is NodeAIMD. OPENSEARCH_GO_BULK_NODE=aimd|fixed overrides it.
+	Node NodeSizing
 
-	// AIMD replaces the PID-modulated step with plain additive increase,
-	// multiplicative decrease: StepBytes more after a healthy flush, and the size
-	// multiplied by the square root of Backoff after a flush that shows the node
-	// slowing past Headroom. Kp, Ki and Kd are ignored. Either way, a request the
-	// node rejected or that failed does not change the size.
-	// OPENSEARCH_GO_BULK_AIMD=on|off overrides it.
-	AIMD bool
-
-	// MinBytes is the smallest batch the controller will ask for. Defaults to
-	// FlushBytes/32, and at least 1.
+	// MinBytes is the smallest batch the shard-buffer controller will ask for.
+	// Defaults to FlushBytes/32, and at least 1.
 	MinBytes int
 	// InitialBytes is where a shard's buffer starts when it starts on a node that
 	// shows load already: its write pool rejecting, or its window cut by a 429 and
@@ -96,9 +87,10 @@ type BulkSizing struct {
 	// node that shows no load, a shard starts at FlushBytes, the most the node
 	// will be sent, and backs off only when it is slower than the node's other
 	// shards. Set, it is where every shard starts. Defaults to FlushBytes/4. To
-	// send FlushBytes always, with neither the climb nor the backoff, set Fixed.
+	// send FlushBytes always, with neither the climb nor the backoff, set Shard to
+	// ShardFixed.
 	InitialBytes int
-	// StepBytes is the additive increase per healthy flush at full gain.
+	// StepBytes is the most a shard's buffer grows in one healthy flush.
 	// Defaults to FlushBytes/16.
 	StepBytes int
 
@@ -106,14 +98,92 @@ type BulkSizing struct {
 	// its size is cut: 0.25 allows its time to rise to 125% of the others'. Defaults
 	// to 0.25.
 	Headroom float64
-	// Backoff is the factor the size is multiplied by when the node rejects a
-	// request. Defaults to 0.5.
+	// Backoff is the factor a node's window is multiplied by when the node answers
+	// a request with a 429. After a 413 it also caps every request at Backoff times
+	// the size that was refused, unless Shard is ShardFixed, which cuts no buffer.
+	// Defaults to 0.5.
 	Backoff float64
 
-	// Kp, Ki and Kd are the PID gains on the normalized slowdown. When all three
-	// are zero they default to 1, 0.1 and 0.25. OPENSEARCH_GO_BULK_PID_KP, _KI and
-	// _KD override them one by one, and a gain set to 0 there turns that term off.
-	Kp, Ki, Kd float64
+	// PID holds the gains of the shard-buffer PID controller; they have no effect
+	// with ShardFixed.
+	PID PIDGains
+}
+
+// ShardSizing is how a [BulkSizing] sizes each shard's buffer.
+type ShardSizing uint8
+
+const (
+	// ShardUnset is the zero value, and means ShardPID.
+	ShardUnset ShardSizing = iota
+	// ShardPID sizes each shard's buffer with a PID controller on how much slower
+	// the shard is than the rest of its node; see [PIDGains].
+	ShardPID
+	// ShardFixed sends every buffer at FlushBytes.
+	ShardFixed
+
+	numShardSizings = iota
+)
+
+// String returns the setting as OPENSEARCH_GO_BULK_SHARD spells it, "pid" or
+// "fixed", or "unset" for ShardUnset.
+func (m ShardSizing) String() string {
+	switch m {
+	case ShardUnset:
+		return "unset"
+	case ShardPID:
+		return "pid"
+	case ShardFixed:
+		return "fixed"
+	default:
+		return "ShardSizing(" + strconv.Itoa(int(m)) + ")"
+	}
+}
+
+// NodeSizing is how a [BulkSizing] moves each node's window.
+type NodeSizing uint8
+
+const (
+	// NodeUnset is the zero value, and means NodeAIMD.
+	NodeUnset NodeSizing = iota
+	// NodeAIMD cuts a node's window when the node answers with a 429 and grows it
+	// back slowly while the node keeps accepting writes.
+	NodeAIMD
+	// NodeFixed holds every node's window where it started, NodeBytes or
+	// MaxMemoryBytes.
+	NodeFixed
+
+	numNodeSizings = iota
+)
+
+// String returns the setting as OPENSEARCH_GO_BULK_NODE spells it, "aimd" or
+// "fixed", or "unset" for NodeUnset.
+func (m NodeSizing) String() string {
+	switch m {
+	case NodeUnset:
+		return "unset"
+	case NodeAIMD:
+		return "aimd"
+	case NodeFixed:
+		return "fixed"
+	default:
+		return "NodeSizing(" + strconv.Itoa(int(m)) + ")"
+	}
+}
+
+// PIDGains are the gains of the shard-buffer PID controller on a shard's
+// normalized slowdown. When all three are zero they default to 1, 0.1 and 0.25.
+// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD override them one by one, and a gain set to
+// 0 there turns that term off.
+type PIDGains struct {
+	// Kp scales the part of each step that is in proportion to how far the shard is
+	// from Headroom on this flush.
+	Kp float64
+	// Ki scales the part of each step that is in proportion to the sum of that
+	// distance over recent flushes.
+	Ki float64
+	// Kd scales the part of each step that is in proportion to the change in that
+	// distance since the previous flush.
+	Kd float64
 }
 
 const (
@@ -170,13 +240,11 @@ const (
 	// sizingOverheadDecay fades the learned cost, so a cost the node has stopped
 	// charging is forgotten within a few hundred flushes.
 	sizingOverheadDecay = 0.999
-	// sizingSlackSmoothed and sizingSlackRaw widen the headroom by this many of
-	// the signal's own smoothed absolute deviations before a slowdown counts: the
-	// smoothed signal the PID reads has most of the noise averaged out of it, so
-	// it needs little slack, while the raw per-flush signal AIMD reads needs the
-	// full spread. A steady node has no deviation and gets no slack.
+	// sizingSlackSmoothed widens the headroom by this many of the signal's own
+	// smoothed absolute deviations before a slowdown counts. The smoothed signal the
+	// PID reads has most of the noise averaged out of it, so it needs little slack.
+	// A steady node has no deviation and gets no slack.
 	sizingSlackSmoothed = 0.5
-	sizingSlackRaw      = 2.5
 	// sizingOverheadZone is the largest request, in multiples of the smallest
 	// batch, that teaches the fixed cost. In larger requests the cost is lost in
 	// the byte time, and a controller that read the residue of large requests as
@@ -187,10 +255,14 @@ const (
 
 // resolvedSizing is BulkSizing with its defaults applied.
 type resolvedSizing struct {
-	fixed    bool
-	aimd     bool
-	min, max float64
-	initial  float64
+	shard ShardSizing
+	node  NodeSizing
+	// fixed is whether shard buffers are fixed, and nodeFixed whether node windows
+	// are: shard and node spelled out for the controllers' tests.
+	fixed     bool
+	nodeFixed bool
+	min, max  float64
+	initial   float64
 	// initialSet is whether the caller chose initial, which then holds for every
 	// shard, loaded node or not.
 	initialSet bool
@@ -205,8 +277,8 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 	ceiling := float64(max(flushBytes, 1))
 
 	r := resolvedSizing{
-		fixed:      c.Fixed,
-		aimd:       c.AIMD,
+		shard:      c.Shard,
+		node:       c.Node,
 		max:        ceiling,
 		min:        pick(float64(c.MinBytes), ceiling/sizingMinDivisor),
 		initial:    pick(float64(c.InitialBytes), ceiling/sizingInitialDivisor),
@@ -214,16 +286,17 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 		step:       pick(float64(c.StepBytes), ceiling/sizingStepDivisor),
 		headroom:   pick(c.Headroom, sizingDefaultHeadroom),
 		backoff:    pick(c.Backoff, sizingDefaultBackoff),
-		kp:         c.Kp,
-		ki:         c.Ki,
-		kd:         c.Kd,
+		kp:         c.PID.Kp,
+		ki:         c.PID.Ki,
+		kd:         c.PID.Kd,
 	}
 
-	if c.Kp == 0 && c.Ki == 0 && c.Kd == 0 {
+	if c.PID == (PIDGains{}) {
 		r.kp, r.ki, r.kd = sizingDefaultKp, sizingDefaultKi, sizingDefaultKd
 	}
 
 	r.applyEnv()
+	r.fixed, r.nodeFixed = r.shard == ShardFixed, r.node == NodeFixed
 
 	r.min = max(math.Min(r.min, ceiling), 1)
 	r.initial = math.Min(math.Max(r.initial, r.min), ceiling)
@@ -246,25 +319,15 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 // as the indexer is built, so that the controller tests plain fields afterwards
 // and never looks at the environment again.
 func (r *resolvedSizing) applyEnv() {
-	if v, ok := lookupEnv(envvars.BulkMode); ok {
-		switch strings.ToLower(v) {
-		case "fixed":
-			r.fixed = true
-		case "adaptive":
-			r.fixed = false
+	if v, ok := lookupEnv(envvars.BulkShard); ok {
+		if m, ok := parseSetting(v, ShardPID, ShardFixed); ok {
+			r.shard = m
 		}
 	}
 
-	if v, ok := lookupEnv(envvars.BulkAIMD); ok {
-		switch strings.ToLower(v) {
-		case "on":
-			r.aimd = true
-		case "off":
-			r.aimd = false
-		default:
-			if b, err := strconv.ParseBool(v); err == nil {
-				r.aimd = b
-			}
+	if v, ok := lookupEnv(envvars.BulkNode); ok {
+		if m, ok := parseSetting(v, NodeAIMD, NodeFixed); ok {
+			r.node = m
 		}
 	}
 
@@ -278,6 +341,21 @@ func (r *resolvedSizing) applyEnv() {
 			}
 		}
 	}
+}
+
+// parseSetting returns the one of settings whose String is v, in any case, and
+// whether there is one. The Unset values are not among settings, so "unset" is not
+// accepted.
+func parseSetting[T fmt.Stringer](v string, settings ...T) (T, bool) {
+	for _, m := range settings {
+		if strings.EqualFold(v, m.String()) {
+			return m, true
+		}
+	}
+
+	var zero T
+
+	return zero, false
 }
 
 // lookupEnv returns the trimmed value of name, and whether it is set and not empty.
@@ -490,23 +568,18 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 	}
 
 	// slowdown is 0 at the node's best and 1 when requests take twice what the
-	// best self would need. The PID reads it smoothed; AIMD is chosen for being
-	// predictable and reads each flush as it is. Each is allowed the slack its
-	// own signal's noise calls for: a jittery node must slow by more than its
-	// jitter before the slowing means anything, while a steady node gets no
-	// slack at all, and is held to the headroom alone.
-	level, raw := s.normS, n
+	// best self would need, read smoothed. It is allowed the slack its signal's
+	// noise calls for: a jittery node must slow by more than its jitter before the
+	// slowing means anything, while a steady node gets no slack at all, and is
+	// held to the headroom alone.
+	level := s.normS
 	if f.peer > 0 {
 		// Against the rest of the node rather than the shard's own best: a node
 		// that slows for every shard alike is loaded, not slowed by this shard.
-		level, raw = level/f.peer, raw/f.peer
+		level /= f.peer
 	}
 	slowdown := level - 1
 	slack := sizingSlackSmoothed * s.devS
-	if s.cfg.aimd {
-		slowdown = raw - 1
-		slack = sizingSlackRaw * s.devS
-	}
 
 	// e is +1 for a node as quick as ever, 0 at the headroom plus slack, and -1 or
 	// below (clamped) when it has slowed by twice the headroom plus the slack or more.
@@ -518,12 +591,6 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 	s.integral = math.Min(math.Max(s.integral+e, -sizingIntegralLimit), sizingIntegralLimit)
 	derivative := e - s.prevErr
 	s.prevErr = e
-
-	if s.cfg.aimd {
-		s.aimd(e)
-
-		return n, true
-	}
 
 	u := s.cfg.kp*e + s.cfg.ki*s.integral + s.cfg.kd*derivative
 
@@ -565,21 +632,6 @@ func smoothInto(old, v float64) float64 {
 	}
 
 	return ewma(old, v, sizingSignalAlpha)
-}
-
-// aimd steers by additive increase, multiplicative decrease alone: e is above 0
-// while the node is within its headroom, 0 at the headroom or while the node's
-// write pool is rejecting, and below 0 once the node has slowed past it. It is
-// the step steer takes when the PID controller is bypassed.
-func (s *sizer) aimd(e float64) {
-	switch {
-	case e == 0:
-		// At the headroom, or an overloaded pool: neither grow nor cut.
-	case e > 0:
-		s.target += s.cfg.step
-	default:
-		s.target *= math.Sqrt(s.cfg.backoff)
-	}
 }
 
 // fraction is the target as a part of the most the sizer would ask for.

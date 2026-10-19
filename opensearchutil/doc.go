@@ -58,16 +58,16 @@ controller, so it gives way to the others. A slowdown the whole node shares is i
 each node has a window, the number of bytes the indexer will have out to it at once, which starts
 wide open and is cut when the node answers 429: to half of what was out when the 429 arrived, and
 then it grows back slowly. A buffer that would take a node past its window waits for the requests
-out to be answered. [BulkSizing] selects fixed or adaptive sizing, plain additive-increase,
-multiplicative-decrease (AIMD) in place of the PID controller for the batches, and the PID gains.
+out to be answered. [BulkSizing] turns each controller off on its own, [ShardFixed] for the
+shard buffers and [NodeFixed] for the node windows, and sets the PID gains.
 
 An operator can override those settings without a code change, through environment variables read
 when the indexer is built. A variable that is set and valid wins over the code:
 
-  - OPENSEARCH_GO_BULK_MODE, fixed or adaptive, overrides [BulkSizing].Fixed.
-  - OPENSEARCH_GO_BULK_AIMD, on or off, overrides [BulkSizing].AIMD.
+  - OPENSEARCH_GO_BULK_SHARD, pid or fixed, overrides [BulkSizing].Shard.
+  - OPENSEARCH_GO_BULK_NODE, aimd or fixed, overrides [BulkSizing].Node.
   - OPENSEARCH_GO_BULK_PID_KP, OPENSEARCH_GO_BULK_PID_KI and OPENSEARCH_GO_BULK_PID_KD override
-    [BulkSizing].Kp, Ki and Kd; a gain of 0 turns that term off.
+    the Kp, Ki and Kd of [BulkSizing].PID; a gain of 0 turns that term off.
 
 # Committing a stream position
 

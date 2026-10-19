@@ -228,7 +228,7 @@ func plain(ss ...string) bool {
 
 // FuzzSizer feeds a sizer an arbitrary run of flushes and checks that its target
 // never leaves the bounds it was given, is never NaN, and does not move at all
-// when it is fixed, whichever kind of sizer it is.
+// when it is fixed, whatever its settings.
 func FuzzSizer(f *testing.F) {
 	f.Add(uint8(0), []byte{1, 200, 10, 0, 2, 100, 20, 0, 3, 50, 40, 1})
 	f.Add(uint8(1), []byte{255, 255, 255, 255, 0, 0, 0, 0})
@@ -236,7 +236,7 @@ func FuzzSizer(f *testing.F) {
 	f.Add(uint8(4), []byte{7, 7, 7, 16, 7, 7, 7, 0})
 
 	f.Fuzz(func(t *testing.T, kind uint8, program []byte) {
-		cfg := BulkSizing{Fixed: kind&4 != 0, AIMD: kind&1 != 0}
+		cfg := BulkSizing{Shard: ShardSizing(kind % numShardSizings), Node: NodeSizing(kind / numShardSizings % numNodeSizings)}
 		resolved := cfg.resolve(testCeiling)
 		s := newSizer(resolved)
 		start := s.bytes()
@@ -268,15 +268,20 @@ func FuzzSizer(f *testing.F) {
 // checks what resolve makes of them: the gains stay finite and not negative, and
 // the sizes stay ordered.
 func FuzzBulkSizingEnv(f *testing.F) {
-	f.Add("fixed", "on", "1", "0.1", "0.25")
-	f.Add("adaptive", "off", "0", "0", "0")
+	f.Add("fixed", "aimd", "1", "0.1", "0.25")
+	f.Add("pid", "fixed", "0", "0", "0")
+	f.Add("pid", "aimd", "1", "0.1", "0.25")
 	f.Add("", "", "", "", "")
-	f.Add("FIXED ", "maybe", "-1", "NaN", "Inf")
-	f.Add("x", "1", "1e400", "0x10", "  7  ")
+	f.Add("FIXED ", "unset", "-1", "NaN", "Inf")
+	f.Add("x", "y", "1e400", "0x10", "  7  ")
 
-	f.Fuzz(func(t *testing.T, mode, aimd, kp, ki, kd string) {
-		t.Setenv(envvars.BulkMode, mode)
-		t.Setenv(envvars.BulkAIMD, aimd)
+	f.Fuzz(func(t *testing.T, shard, node, kp, ki, kd string) {
+		if strings.ContainsRune(shard+node+kp+ki+kd, 0) {
+			t.Skip("an environment variable cannot hold a NUL")
+		}
+
+		t.Setenv(envvars.BulkShard, shard)
+		t.Setenv(envvars.BulkNode, node)
 		t.Setenv(envvars.BulkPIDKp, kp)
 		t.Setenv(envvars.BulkPIDKi, ki)
 		t.Setenv(envvars.BulkPIDKd, kd)
@@ -287,6 +292,8 @@ func FuzzBulkSizingEnv(f *testing.F) {
 		}
 		require.LessOrEqual(t, r.min, r.initial)
 		require.LessOrEqual(t, r.initial, r.max)
+		require.Less(t, r.shard, ShardSizing(numShardSizings), "the shard setting is one that exists")
+		require.Less(t, r.node, NodeSizing(numNodeSizings), "the node setting is one that exists")
 	})
 }
 

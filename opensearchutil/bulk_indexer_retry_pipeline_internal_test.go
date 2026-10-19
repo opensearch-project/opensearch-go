@@ -111,7 +111,7 @@ func TestBulkIndexerRetriesKeepAShardsOrder(t *testing.T) {
 	one := docBytes("idx", "doc-a", 1)
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{
 		FlushBytes:    int(one), // One document fills a buffer.
-		Sizing:        BulkSizing{Fixed: true},
+		Sizing:        BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 		FlushInterval: time.Hour,
 		RetryPolicy:   retryOnce,
 	})
@@ -153,7 +153,7 @@ func TestBulkIndexerCancelEndsBlockedAdds(t *testing.T) {
 
 			bi := newClusterIndexer(t, server, BulkIndexerConfig{
 				FlushBytes:     int(held),
-				Sizing:         BulkSizing{Fixed: true},
+				Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
 				FlushInterval:  time.Hour,
 				MaxMemoryBytes: 1, // Every item fills the job's memory alone.
 				ShardRouter:    NoShardRouter,
