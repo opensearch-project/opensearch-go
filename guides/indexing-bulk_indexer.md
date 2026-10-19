@@ -249,28 +249,28 @@ item := opensearchutil.BulkIndexerItem{
 
 If you index from a stream, such as Kafka, you may only advance the stream's position past a record once every record before it is done. The indexer completes records out of order, because different shards finish at different times. A client library that marks the highest completed record would commit past a gap and lose the records in it.
 
-`opensearchutil.SequenceTracker` reports only the end of a contiguous prefix. Tell it where each stream starts, mark each record complete in `OnSuccess`, and read the position to commit:
+`opensearchutil.FrontierTracker` reports each stream's frontier: the lowest offset that is not yet complete, below which every offset is. It never passes a gap. Tell it where each stream starts, mark each record complete in `OnSuccess`, and read the frontier to commit:
 
 ```go
-var tracker opensearchutil.SequenceTracker[string]
+var tracker opensearchutil.FrontierTracker[string]
 tracker.Begin("events/0", 100) // the first offset you read
 
 // In OnSuccess:
 tracker.Complete(src.partition, src.offset)
 
 // Whenever you commit:
-safe, _ := tracker.Safe("events/0") // every offset below safe is done
+frontier, _ := tracker.Frontier("events/0") // every offset below frontier is done
 ```
 
-There is deliberately no failed state. A failed record must not advance the position, so do not call `Complete` for it: the position stays below it until you deal with it, and the completions after it are held in memory until you do.
+There is deliberately no failed state. A failed record must not advance the frontier, so do not call `Complete` for it: the frontier stays below it until you deal with it, and the completions after it are held in memory until you do.
 
 Before you give a stream up, for example when a partition is revoked in a rebalance, do three things in this order:
 
 1. `Flush` the indexer, so every record you handed it has completed or failed.
-2. Call `tracker.Forget` and take the position it returns. Completions that arrive afterward are ignored.
-3. Commit that position, and only that position.
+2. Call `tracker.Forget` and take the frontier it returns. Completions that arrive afterward are ignored.
+3. Commit that frontier, and only that frontier.
 
-What makes this safe is that the flush comes first and the position is read after it. Once `Flush` has returned and you are no longer admitting records for the stream, nothing further completes, so `tracker.Safe` and `tracker.Forget` return the same position. Reading it with `Safe`, committing, and then calling `Forget` is equally safe, and keeps the stream tracked if the commit fails.
+What makes this order correct is that the flush comes first and the frontier is read after it. Once `Flush` has returned and you are no longer admitting records for the stream, nothing further completes, so `tracker.Frontier` and `tracker.Forget` return the same value. Reading it with `Frontier`, committing, and then calling `Forget` is equally safe, and keeps the stream tracked if the commit fails.
 
 ## Sizing batches
 
@@ -474,7 +474,7 @@ pushedBack := stats.NumRejections   // only grows: compare with the last reading
 
 `NodeWindow`, `Slowdown` and `BufferSize` are each a `NodeSpread`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. One reading hides things. The extreme alone lets one bad node speak for the whole cluster, and the average alone hides it. So steer by `Median`, or by `Mean`, which counts each node in proportion to the bytes the indexer holds for it, and use `Min` or `Max` to notice an outlier. A cluster that is slow has the median near the worst node. One bad node moves `Min` or `Max` and leaves the median where it was; if it is also carrying much of the work, the mean moves with it.
 
-The other number to bound is your own: how many records you have read and not yet made safe to commit. With a [`SequenceTracker`](#committing-a-stream-position) that is the offset you have read minus `Safe`, and it is exactly what a crash would replay. A simple consumer keeps it under a limit, pauses its partitions when `BudgetFill` passes a high mark or `NumRejections` rises, shrinks its read buffer as `Slowdown.Median` or `Slowdown.Mean` grows, and resumes below a low mark. The marks are yours: a wider gap between them pauses less often.
+The other number to bound is your own: how many records you have read and cannot yet commit. With a [`FrontierTracker`](#committing-a-stream-position) that is the offset you have read minus `Frontier`, and it is exactly what a crash would replay. A simple consumer keeps it under a limit, pauses its partitions when `BudgetFill` passes a high mark or `NumRejections` rises, shrinks its read buffer as `Slowdown.Median` or `Slowdown.Mean` grows, and resumes below a low mark. The marks are yours: a wider gap between them pauses less often.
 
 These readings follow the cluster and do not change what the indexer does; it goes on adapting to the same signals without your help. A consumer that adapts by them is a second loop over the same resource, so give it a gentler time constant than the indexer's, or the two will chase each other. Each value is smoothed over a node's last few requests.
 

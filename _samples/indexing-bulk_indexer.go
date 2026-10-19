@@ -7,9 +7,9 @@
 // This sample demonstrates the BulkIndexer as it is meant to be used: one
 // long-lived client that you build once, feed jobs of documents, and close once.
 // Each job is delimited by a Flush, after which the position it reached in its
-// source stream is safe to commit. Along the way it shows client-side document
-// ids, a retry policy, an observer, per-item metadata, and a SequenceTracker that
-// turns out-of-order completions into a position safe to commit.
+// source stream can be committed. Along the way it shows client-side document
+// ids, a retry policy, an observer, per-item metadata, and a FrontierTracker that
+// turns out-of-order completions into the frontier to commit.
 //
 // Learn more:
 //   - Guide: https://github.com/opensearch-project/opensearch-go/blob/main/guides/indexing-bulk_indexer.md
@@ -36,7 +36,7 @@ import (
 
 const (
 	// stream names the source the documents are read from, as a Kafka topic and
-	// partition would be. The SequenceTracker keeps one position per stream.
+	// partition would be. The FrontierTracker keeps one position per stream.
 	stream = "events/0"
 	// firstOffset is the first offset of the stream that this sample reads.
 	firstOffset = int64(100)
@@ -180,7 +180,7 @@ func example() error {
 
 	// The tracker reports how far the stream can be committed. Items finish in any
 	// order, but it only ever reports the end of a contiguous prefix.
-	var tracker opensearchutil.SequenceTracker[string]
+	var tracker opensearchutil.FrontierTracker[string]
 	tracker.Begin(stream, firstOffset)
 
 	jobErr := runJobs(ctx, indexer, &tracker)
@@ -206,7 +206,7 @@ func example() error {
 // runJobs feeds the indexer a few jobs of records and commits the position each
 // reaches. A job is just the records between two calls to Flush; the indexer
 // carries on from job to job without being rebuilt.
-func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *opensearchutil.SequenceTracker[string]) error {
+func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *opensearchutil.FrontierTracker[string]) error {
 	// onSuccess marks the record complete. Every item here carries a source in
 	// Metadata, so the type assertion cannot fail.
 	onSuccess := func(_ context.Context, item opensearchutil.BulkIndexerItem, _ opensearchapi.BulkRespItem) {
@@ -243,9 +243,9 @@ func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *o
 			return err
 		}
 
-		// Every offset below safe is done, so it can be committed to the stream.
-		safe, _ := tracker.Safe(stream)
-		fmt.Printf("job %d done: safe to commit up to offset %d\n", job, safe)
+		// Every offset below the frontier is done, so it can be committed to the stream.
+		frontier, _ := tracker.Frontier(stream)
+		fmt.Printf("job %d done: commit offset %d\n", job, frontier)
 	}
 
 	return nil

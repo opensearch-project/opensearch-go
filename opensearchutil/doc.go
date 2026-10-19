@@ -71,9 +71,9 @@ when the indexer is built. A variable that is set and valid wins over the code:
 
 # Committing a stream position
 
-[SequenceTracker] reports how far each of several ordered streams can safely advance when records
-complete out of order, which is how a [BulkIndexer] finishes them. It reports only the end of a
-contiguous prefix.
+[FrontierTracker] reports the frontier of each of several ordered streams whose records complete
+out of order, which is how a [BulkIndexer] finishes them: the lowest sequence not yet complete,
+below which every sequence is. It never passes a gap.
 
 # JSON bodies
 

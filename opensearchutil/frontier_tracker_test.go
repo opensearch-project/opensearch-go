@@ -30,12 +30,12 @@ func lowestIncomplete(base int64, n int, done map[int64]struct{}) int64 {
 	return base + int64(n)
 }
 
-func TestSequenceTracker(t *testing.T) {
+func TestFrontierTracker(t *testing.T) {
 	t.Parallel()
 
 	type step struct {
 		complete []int64 // sequences completed on "p", in order
-		want     int64   // Safe("p") after them
+		want     int64   // Frontier("p") after them
 	}
 
 	tests := []struct {
@@ -94,7 +94,7 @@ func TestSequenceTracker(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var tracker opensearchutil.SequenceTracker[string]
+			var tracker opensearchutil.FrontierTracker[string]
 			tracker.Begin("p", tt.begin)
 
 			for i, s := range tt.steps {
@@ -102,7 +102,7 @@ func TestSequenceTracker(t *testing.T) {
 					tracker.Complete("p", seq)
 				}
 
-				got, ok := tracker.Safe("p")
+				got, ok := tracker.Frontier("p")
 				require.True(t, ok)
 				require.Equal(t, s.want, got, "step %d", i)
 			}
@@ -110,13 +110,13 @@ func TestSequenceTracker(t *testing.T) {
 	}
 }
 
-func TestSequenceTrackerStreams(t *testing.T) {
+func TestFrontierTrackerStreams(t *testing.T) {
 	t.Parallel()
 
 	t.Run("streams are independent", func(t *testing.T) {
 		t.Parallel()
 
-		var tracker opensearchutil.SequenceTracker[string]
+		var tracker opensearchutil.FrontierTracker[string]
 		tracker.Begin("a", 0)
 		tracker.Begin("b", 100)
 
@@ -124,58 +124,58 @@ func TestSequenceTrackerStreams(t *testing.T) {
 		tracker.Complete("a", 1)
 		tracker.Complete("b", 101)
 
-		require.Equal(t, map[string]int64{"a": 2, "b": 100}, tracker.SafeAll())
+		require.Equal(t, map[string]int64{"a": 2, "b": 100}, tracker.Frontiers())
 	})
 
-	t.Run("SafeAll is a snapshot the caller owns", func(t *testing.T) {
+	t.Run("Frontiers is a snapshot the caller owns", func(t *testing.T) {
 		t.Parallel()
 
-		var tracker opensearchutil.SequenceTracker[string]
+		var tracker opensearchutil.FrontierTracker[string]
 		tracker.Begin("a", 0)
 
-		snapshot := tracker.SafeAll()
+		snapshot := tracker.Frontiers()
 		snapshot["a"] = 99
 		snapshot["b"] = 5
 		tracker.Complete("a", 0)
 
-		require.Equal(t, map[string]int64{"a": 1}, tracker.SafeAll())
+		require.Equal(t, map[string]int64{"a": 1}, tracker.Frontiers())
 	})
 
 	t.Run("an untracked stream reports nothing", func(t *testing.T) {
 		t.Parallel()
 
-		var tracker opensearchutil.SequenceTracker[string]
+		var tracker opensearchutil.FrontierTracker[string]
 		tracker.Complete("a", 0)
 
-		_, ok := tracker.Safe("a")
+		_, ok := tracker.Frontier("a")
 		require.False(t, ok)
 		_, ok = tracker.Forget("a")
 		require.False(t, ok)
-		require.Empty(t, tracker.SafeAll())
+		require.Empty(t, tracker.Frontiers())
 	})
 
 	t.Run("Begin on a tracked stream starts it over", func(t *testing.T) {
 		t.Parallel()
 
-		var tracker opensearchutil.SequenceTracker[string]
+		var tracker opensearchutil.FrontierTracker[string]
 		tracker.Begin("a", 0)
 		tracker.Complete("a", 0)
 		tracker.Complete("a", 5)
 
 		tracker.Begin("a", 3)
-		got, ok := tracker.Safe("a")
+		got, ok := tracker.Frontier("a")
 		require.True(t, ok)
 		require.Equal(t, int64(3), got)
 
 		tracker.Complete("a", 3)
-		got, _ = tracker.Safe("a")
+		got, _ = tracker.Frontier("a")
 		require.Equal(t, int64(4), got, "the completion of 5 before the restart is forgotten")
 	})
 
-	t.Run("Forget returns the final position and stops tracking", func(t *testing.T) {
+	t.Run("Forget returns the final frontier and stops tracking", func(t *testing.T) {
 		t.Parallel()
 
-		var tracker opensearchutil.SequenceTracker[string]
+		var tracker opensearchutil.FrontierTracker[string]
 		tracker.Begin("a", 0)
 		tracker.Begin("b", 0)
 		tracker.Complete("a", 0)
@@ -187,17 +187,17 @@ func TestSequenceTrackerStreams(t *testing.T) {
 		require.Equal(t, int64(2), got, "stops below the hole at 2")
 
 		tracker.Complete("a", 2)
-		_, ok = tracker.Safe("a")
+		_, ok = tracker.Frontier("a")
 		require.False(t, ok, "a late completion does not bring the stream back")
-		require.Equal(t, map[string]int64{"b": 0}, tracker.SafeAll())
+		require.Equal(t, map[string]int64{"b": 0}, tracker.Frontiers())
 	})
 }
 
-// TestSequenceTrackerCompletionOrder completes every sequence of a stream in
-// many orders and checks, after each completion, that the reported position is
+// TestFrontierTrackerCompletionOrder completes every sequence of a stream in
+// many orders and checks, after each completion, that the reported frontier is
 // exactly the lowest sequence still incomplete: never above it, which would
 // commit past a gap, and never below it, which would stall for nothing.
-func TestSequenceTrackerCompletionOrder(t *testing.T) {
+func TestFrontierTrackerCompletionOrder(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -239,7 +239,7 @@ func TestSequenceTrackerCompletionOrder(t *testing.T) {
 			// A fixed seed per case keeps a failure reproducible.
 			rng := rand.New(rand.NewPCG(tt.seed, 1))
 
-			var tracker opensearchutil.SequenceTracker[int]
+			var tracker opensearchutil.FrontierTracker[int]
 			tracker.Begin(0, base)
 
 			done := make(map[int64]struct{})
@@ -248,22 +248,22 @@ func TestSequenceTrackerCompletionOrder(t *testing.T) {
 				tracker.Complete(0, seq)
 				done[seq] = struct{}{}
 
-				got, ok := tracker.Safe(0)
+				got, ok := tracker.Frontier(0)
 				require.True(t, ok)
 				require.Equal(t, lowestIncomplete(base, tt.n, done), got, "after completing %d", seq)
 			}
 
-			got, _ := tracker.Safe(0)
+			got, _ := tracker.Frontier(0)
 			require.Equal(t, base+int64(tt.n), got, "everything completed")
 		})
 	}
 }
 
-// FuzzSequenceTrackerNeverPassesAGap completes sequences in an order the fuzzer
+// FuzzFrontierTrackerNeverPassesAGap completes sequences in an order the fuzzer
 // chooses, with repeats and sequences from before the stream began mixed in, and
-// asserts after every call that the reported position is the lowest incomplete
-// sequence. Sequences that the data never completes must hold the position.
-func FuzzSequenceTrackerNeverPassesAGap(f *testing.F) {
+// asserts after every call that the reported frontier is the lowest incomplete
+// sequence. Sequences that the data never completes must hold the frontier.
+func FuzzFrontierTrackerNeverPassesAGap(f *testing.F) {
 	f.Add(int64(0), []byte{8, 3, 1, 0, 2, 7, 5, 4, 6})
 	f.Add(int64(100), []byte{4, 3, 3, 2, 1, 0})
 	f.Add(int64(-5), []byte{16, 15, 14, 13, 12, 0x81, 0x80, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0})
@@ -279,7 +279,7 @@ func FuzzSequenceTrackerNeverPassesAGap(f *testing.F) {
 		base := rawBase % (1 << 50)
 		n := int(data[0])%64 + 1
 
-		var tracker opensearchutil.SequenceTracker[string]
+		var tracker opensearchutil.FrontierTracker[string]
 		tracker.Begin("p", base)
 
 		done := make(map[int64]struct{})
@@ -293,16 +293,16 @@ func FuzzSequenceTrackerNeverPassesAGap(f *testing.F) {
 			tracker.Complete("p", seq)
 			done[seq] = struct{}{}
 
-			got, ok := tracker.Safe("p")
+			got, ok := tracker.Frontier("p")
 			require.True(t, ok)
 			want := lowestIncomplete(base, n, done)
 			require.Equal(t, want, got, "after completing %d", seq)
-			require.LessOrEqual(t, got, want, "the position must not pass the lowest incomplete sequence")
+			require.LessOrEqual(t, got, want, "the frontier must not pass the lowest incomplete sequence")
 		}
 	})
 }
 
-func TestSequenceTrackerConcurrent(t *testing.T) {
+func TestFrontierTrackerConcurrent(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -311,13 +311,13 @@ func TestSequenceTrackerConcurrent(t *testing.T) {
 		workers = 8
 	)
 
-	var tracker opensearchutil.SequenceTracker[int]
+	var tracker opensearchutil.FrontierTracker[int]
 	for k := range streams {
 		tracker.Begin(k, 0)
 	}
 
 	// Every worker completes a disjoint share of each stream's sequences, in a
-	// shuffled order, while another goroutine reads the positions.
+	// shuffled order, while another goroutine reads the frontiers.
 	var wg sync.WaitGroup
 	stopReading := make(chan struct{})
 	readerDone := make(chan struct{})
@@ -328,7 +328,7 @@ func TestSequenceTrackerConcurrent(t *testing.T) {
 			case <-stopReading:
 				return
 			default:
-				_ = tracker.SafeAll()
+				_ = tracker.Frontiers()
 			}
 		}
 	}()
@@ -352,7 +352,7 @@ func TestSequenceTrackerConcurrent(t *testing.T) {
 	<-readerDone
 
 	for k := range streams {
-		got, ok := tracker.Safe(k)
+		got, ok := tracker.Frontier(k)
 		require.True(t, ok)
 		require.Equal(t, int64(perKey), got, "stream %d", k)
 	}

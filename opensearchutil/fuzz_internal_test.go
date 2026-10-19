@@ -28,14 +28,14 @@ import (
 // The fuzz targets in this file run their seed corpus as ordinary tests. To look
 // for more, run one for a while, for example:
 //
-//	go test ./opensearchutil -run '^$' -fuzz '^FuzzSequenceTracker$' -fuzztime 30s
+//	go test ./opensearchutil -run '^$' -fuzz '^FuzzFrontierTracker$' -fuzztime 30s
 //
 // A failing input is saved under testdata/fuzz and then runs with every `go test`.
 
-// FuzzSequenceTracker drives a SequenceTracker with an arbitrary program of
+// FuzzFrontierTracker drives a FrontierTracker with an arbitrary program of
 // Begin, Complete and Forget calls over a few streams and checks it against a
-// model of what the safe position must be after each one.
-func FuzzSequenceTracker(f *testing.F) {
+// model of what the frontier must be after each one.
+func FuzzFrontierTracker(f *testing.F) {
 	f.Add([]byte{0, 0, 1, 5, 1, 2, 1, 0, 3, 0})
 	f.Add([]byte{0, 0x40, 1, 0x41, 1, 0x40, 1, 0x42, 3, 0x40, 1, 0x40})
 	f.Add([]byte{1, 3, 0, 3, 1, 3, 1, 3, 1, 4})
@@ -46,7 +46,7 @@ func FuzzSequenceTracker(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, program []byte) {
-		var tracker SequenceTracker[uint8]
+		var tracker FrontierTracker[uint8]
 		models := map[uint8]*model{}
 
 		for i := 0; i+1 < len(program); i += 2 {
@@ -75,17 +75,17 @@ func FuzzSequenceTracker(f *testing.F) {
 				got, ok := tracker.Forget(stream)
 				require.Equal(t, m != nil, ok)
 				if m != nil {
-					require.Equal(t, m.next, got, "Forget returns the position Safe reported")
+					require.Equal(t, m.next, got, "Forget returns the frontier Frontier reported")
 				}
 				delete(models, stream)
 			}
 
 			for s := range uint8(4) {
-				got, ok := tracker.Safe(s)
+				got, ok := tracker.Frontier(s)
 				m := models[s]
 				require.Equal(t, m != nil, ok, "stream %d tracked", s)
 				if m != nil {
-					require.Equal(t, m.next, got, "stream %d position", s)
+					require.Equal(t, m.next, got, "stream %d frontier", s)
 				}
 			}
 		}
