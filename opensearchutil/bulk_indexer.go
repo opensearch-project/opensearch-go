@@ -106,6 +106,10 @@ var ErrBulkIndexerClosed = errors.New("opensearchutil: bulk indexer is closed")
 // ErrNilStats is returned by GetStats when it is given no struct to fill.
 var ErrNilStats = errors.New("opensearchutil: GetStats needs a non-nil BulkIndexerStats")
 
+// ErrInvalidConfig is wrapped by the error [NewBulkIndexer] returns for a
+// configuration it cannot run with, such as a negative byte limit.
+var ErrInvalidConfig = errors.New("opensearchutil: invalid bulk indexer configuration")
+
 // ErrShardMapChanged is wrapped by the error an item fails with when the shard
 // map it was buffered under was lost or replaced before the item was sent: the
 // router stopped answering for the index, or reported a different shard geometry
@@ -763,8 +767,16 @@ type bulkIndexerStats struct {
 	nodeWindow, bufferSize, slowdown spreadBits
 }
 
-// NewBulkIndexer creates a new bulk indexer.
+// NewBulkIndexer creates a new bulk indexer. It returns an error wrapping
+// [ErrInvalidConfig] for a negative byte limit: FlushBytes, MaxMemoryBytes,
+// NodeBytes, or BulkSizing's MinBytes, InitialBytes or StepBytes. Zero selects the
+// default of each.
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
+	// Before the client is made, so that a refusal has nothing to release.
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+
 	implicitClient := false
 	if cfg.Client == nil {
 		var err error
@@ -839,6 +851,31 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	bi.init(cfg.Context)
 
 	return &bi, nil
+}
+
+// validate returns an error wrapping [ErrInvalidConfig] for a byte limit below
+// zero. Each is a size or a limit; a negative one would not be the default the
+// zero value selects but a limit that undoes itself, as a memory limit under which
+// the indexer's accounting goes negative.
+func (c BulkIndexerConfig) validate() error {
+	limits := []struct {
+		name  string
+		bytes int
+	}{
+		{"FlushBytes", c.FlushBytes},
+		{"MaxMemoryBytes", c.MaxMemoryBytes},
+		{"NodeBytes", c.NodeBytes},
+		{"Sizing.MinBytes", c.Sizing.MinBytes},
+		{"Sizing.InitialBytes", c.Sizing.InitialBytes},
+		{"Sizing.StepBytes", c.Sizing.StepBytes},
+	}
+	for _, l := range limits {
+		if l.bytes < 0 {
+			return fmt.Errorf("%w: %s is %d, and must not be negative", ErrInvalidConfig, l.name, l.bytes)
+		}
+	}
+
+	return nil
 }
 
 // errNoTransportRouter is the reason given when the client's transport offers no
