@@ -36,6 +36,12 @@ func fixedBatches(itemBytes int64, n int) BulkIndexerConfig {
 	}
 }
 
+// estimateItemBytes is estimateItemBytesWithBody for an item whose body has not
+// been measured.
+func estimateItemBytes(item BulkIndexerItem) int64 {
+	return estimateItemBytesWithBody(item, bodyLen(item.Body))
+}
+
 // docBytes is the size estimateItemBytes gives the documents addDoc adds.
 func docBytes(index, id string, seq int) int64 {
 	return estimateItemBytes(BulkIndexerItem{Index: index, Action: actionIndex, DocumentID: id, Body: seqBody(seq)})

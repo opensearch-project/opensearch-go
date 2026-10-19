@@ -1451,18 +1451,12 @@ const (
 	sizeWaitForActiveField   = 32
 )
 
-// estimateItemBytes approximates the bytes an item takes once serialized: its
-// action line, which is counted field by field, and its body. It is what the item
-// holds of the in-flight byte limit and what counts toward the size of its batch,
-// so FlushBytes is close to the size of the request body. It ignores JSON
-// escaping, and counts a version only roughly, so a batch can be a few percent
-// off its size.
-func estimateItemBytes(item BulkIndexerItem) int64 {
-	return estimateItemBytesWithBody(item, bodyLen(item.Body))
-}
-
-// estimateItemBytesWithBody is estimateItemBytes for an item whose body is body
-// bytes long, measured already.
+// estimateItemBytesWithBody approximates the bytes an item takes once serialized:
+// its action line, which is counted field by field, and its body, which is body
+// bytes long, measured already. It is what the item holds of the in-flight byte
+// limit and what counts toward the size of its batch, so FlushBytes is close to
+// the size of the request body. It ignores JSON escaping, and counts a version
+// only roughly, so a batch can be a few percent off its size.
 func estimateItemBytesWithBody(item BulkIndexerItem, body int64) int64 {
 	// {"ACTION":{ ... }}
 
