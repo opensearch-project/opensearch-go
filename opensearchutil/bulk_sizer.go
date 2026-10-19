@@ -312,9 +312,10 @@ type flushSample struct {
 	tooLarge int64
 	// overloaded is set when the transport sees the node's write pool rejecting.
 	overloaded bool
-	// peer is the node's level: its flushes' time over what they would need, smoothed
-	// over every shard the node serves, or 0 when the node has served none yet. A
-	// shard is measured against it, so that a slowdown the whole node shares, which
+	// peer is what the shard is measured against: the mean level of the other shards
+	// on its node, or the shard's own level when it is alone there; 0 when there is
+	// nothing to measure against yet. A shard is measured against it, so that a
+	// slowdown the whole node shares, which
 	// is the node's load and is answered by its window when it rejects, does not
 	// shrink any shard, and only a shard slower than the rest of its node gives way.
 	peer float64

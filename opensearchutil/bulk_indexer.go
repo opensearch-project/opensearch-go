@@ -323,7 +323,8 @@ type BulkIndexerConfig struct {
 	// is the item's request body and the structure that carries it to its callbacks,
 	// so a stream of small documents is not undercounted. When the limit is spent,
 	// Add waits for requests to finish and give memory back, and the fullest shard
-	// buffer is sent at once so that the wait is short, so a slow or stalled cluster
+	// buffer that can go out is sent at once so that the wait is short, so a slow or
+	// stalled cluster
 	// slows the caller down and does not grow the indexer's memory. An item larger
 	// than the whole limit is let through alone.
 	//

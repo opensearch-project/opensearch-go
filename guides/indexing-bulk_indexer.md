@@ -56,7 +56,7 @@ BulkIndexer
 
 An item travels through it like this:
 
-1. `Add` places the item in the buffer for its shard. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory frees up.
+1. `Add` places the item in the buffer for its shard. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory frees up. `Add` also waits when its shard is over an even share of the limit while other shards are waiting for room (see below).
 2. A buffer is sent as one bulk request, to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` passes, or when you call `Flush` or `Close`. If sending it would put more bytes out to that node than its window allows, it waits, still counted against `MaxMemoryBytes`, until requests come back.
 3. The response is read **item by item**. A bulk request is not all-or-nothing: a `200` can carry items the cluster rejected, and that is partial success, not an error. An item the cluster accepted gets `OnSuccess`.
 4. An item that was rejected, or whose whole request failed, is classified by scope and kind (see [Retrying failed items](#retrying-failed-items)). With a retry policy that asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnFailure`. See [Three kinds of failure](#three-kinds-of-failure) for how to read its arguments.
@@ -110,7 +110,7 @@ The indexer sends its buffered data as bulk requests when a buffer is full, when
 
 Things to know:
 
-- **`Add` after `Close` returns `ErrBulkIndexerClosed`.** `Add` otherwise returns an error only when the context you pass ends before the item is queued; it blocks while the indexer holds `MaxMemoryBytes`.
+- **`Add` after `Close` returns `ErrBulkIndexerClosed`.** `Add` otherwise returns an error only when the context you pass ends before the item is queued; it blocks while the indexer holds `MaxMemoryBytes`, and while its shard is over an even share of it with other shards waiting.
 - **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` are written in the order you added them: a shard has one request out at a time, and a retry happens in that request's slot, so a later buffer of the shard is not sent ahead of it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is ordered the same way by its id: the buffer holding it is not sent until the earlier buffer that holds a document with the same id has finished, while buffers that share no id are sent in parallel.
 - **Callbacks run on the goroutine that sends the request.** A slow callback stalls its buffer, and the shard's next one, but not the rest of the indexer. Do not call `Add`, `Flush`, or `Close` from a callback; `Cancel` is safe.
 - **Every item gets exactly one final callback**: `OnSuccess` or `OnFailure`.
