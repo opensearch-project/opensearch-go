@@ -80,9 +80,10 @@ func (c *counters) OnItemFailure(_ context.Context, e opensearchutil.BulkFailure
 	}
 }
 
-// retryPolicy retries a rejected, unavailable or ambiguous failure up to five
-// times with exponential backoff: 100ms, 200ms, 400ms, 800ms. A permanent
-// failure, such as a mapping error, can never succeed, so it is not retried.
+// retryPolicy retries a rejected, unavailable or ambiguous failure up to four
+// times, five attempts in all, with exponential backoff: 100ms, 200ms, 400ms,
+// 800ms. A permanent failure, such as a mapping error, can never succeed, so it
+// is not retried.
 // The policy is told whether the whole request failed or a single item did; this
 // one treats both the same.
 //
