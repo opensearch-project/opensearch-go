@@ -27,7 +27,7 @@ func TestClientSendsPutForCreateOrReplace(t *testing.T) {
 		method string
 	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet { // skip the client's product-check requests
+		if r.Method != http.MethodGet { // skip the client's health-check and discovery requests
 			seen.Lock()
 			seen.method = r.Method
 			seen.Unlock()
