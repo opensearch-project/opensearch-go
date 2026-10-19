@@ -116,7 +116,7 @@ fmt.Printf("%+v\n", indexer.Stats())
 
 The indexer sends its buffered data as bulk requests when a buffer is full, when `FlushInterval` (default 30 seconds) passes, and when you call `Flush` or `Close`. What counts as full depends on the sizing mode. By default the indexer is adaptive: a controller picks the size of each shard's buffer from how quickly the node is serving that shard's requests, never more than `FlushBytes` (default 5 MiB). With `Sizing.Fixed`, a buffer is full at exactly `FlushBytes`. See [Sizing batches](#sizing-batches).
 
-`Body` is an `io.ReadSeeker`, because the indexer rewinds it after reading. Add `Index` to an item to send it to an index other than the config default.
+`Body` is an `io.ReadSeeker`, because the indexer rewinds it. It reads the document from offset 0 whatever the position the reader is handed in at, to size it, to fingerprint it and for each attempt to send it, so every attempt, a retry included, sends the same bytes. A caller that keeps its own position in a reader should pass a reader of just the document, such as an `io.SectionReader`. Add `Index` to an item to send it to an index other than the config default.
 
 Things to know:
 

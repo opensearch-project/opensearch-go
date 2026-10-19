@@ -499,8 +499,13 @@ type BulkIndexerItem struct {
 	WaitForActiveShards any
 	Refresh             *string
 	RequireAlias        *bool
-	Body                io.ReadSeeker
-	RetryOnConflict     *int
+	// Body is the document. The indexer reads it from offset 0, whatever the
+	// position it is handed in at, once to size it, once more if a Fingerprinter
+	// needs it, and again for each attempt to send it, and it leaves the reader at 0.
+	// A caller that keeps its own position in a reader must pass a reader of just the
+	// document, such as an [io.SectionReader].
+	Body            io.ReadSeeker
+	RetryOnConflict *int
 
 	// Metadata is opaque data the caller attaches to the item, such as the
 	// stream offset the document was read from. It is never serialized into the
@@ -941,6 +946,23 @@ func (bi *bulkIndexer) AddZeroCopy(ctx context.Context, item BulkIndexerZeroCopy
 	return bi.add(ctx, item.BulkIndexerItem)
 }
 
+// rewindBody moves a caller's body to its start. A body the indexer was lent is made
+// to start there.
+func rewindBody(body io.ReadSeeker) error {
+	if body == nil {
+		return nil
+	}
+	if _, lent := body.(*lentBody); lent {
+		return nil
+	}
+
+	if _, err := body.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("rewind body: %w", err)
+	}
+
+	return nil
+}
+
 // orderKey returns the value whose items are written in the order they were
 // added: the document id, or failing that the routing value. It is empty for an
 // item with neither, which has no order to keep.
@@ -962,6 +984,12 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 
 	if bi.canceled() {
 		return bi.refuse(ctx, item, ErrIndexerCanceled)
+	}
+
+	// Every read the indexer makes of the body starts at 0: its size, the
+	// fingerprint, and each attempt to send it.
+	if err := rewindBody(item.Body); err != nil {
+		return bi.refuse(ctx, item, err)
 	}
 
 	item, err := bi.ensureDocumentID(ctx, item)
@@ -1996,6 +2024,22 @@ func (w *worker) writeBody(ctx context.Context, item *BulkIndexerItem) error {
 		return nil
 	}
 
+	// The document is the whole of Body, from offset 0, on every attempt.
+	rewind := func() error {
+		if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
+			if w.bi.config.OnError != nil {
+				w.bi.config.OnError(ctx, err)
+			}
+			return err
+		}
+
+		return nil
+	}
+
+	if err := rewind(); err != nil {
+		return err
+	}
+
 	if _, err := w.buf.ReadFrom(item.Body); err != nil {
 		if w.bi.config.OnError != nil {
 			w.bi.config.OnError(ctx, err)
@@ -2003,10 +2047,7 @@ func (w *worker) writeBody(ctx context.Context, item *BulkIndexerItem) error {
 		return err
 	}
 
-	if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
-		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(ctx, err)
-		}
+	if err := rewind(); err != nil {
 		return err
 	}
 
