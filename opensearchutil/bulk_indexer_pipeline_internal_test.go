@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 // fixedBatches makes a batch exactly n of the items estimateItemBytes sizes at
@@ -439,6 +441,60 @@ func TestBulkIndexerSwitchToShardsHonoursContext(t *testing.T) {
 	addDoc(t, bi, "idx", "doc", 3)
 	require.Len(t, server.requests(), 1, "the retried switch drains the earlier item")
 	require.NoError(t, bi.Close(t.Context()))
+}
+
+// TestBulkIndexerSwitchToShardsDoesNotLendTheTriggeringContext: the Add that
+// completes the switch to shards drains what other callers buffered, and waits for it
+// under its own context. Their items run on the indexer's, so an Add that gives up
+// during the drain does not fail documents whose own callers are still waiting.
+func TestBulkIndexerSwitchToShardsDoesNotLendTheTriggeringContext(t *testing.T) {
+	t.Parallel()
+
+	maps := map[string]ShardMap{"idx": DefaultShardMap(8)}
+	cluster := newFakeCluster(maps, "n0")
+	cluster.setUnknown("idx", true)
+	server := newFakeServer(cluster)
+
+	// The triggering Add gives up as the drain's request is sent. A request that
+	// carries its context is cancelled with it, as a transport cancels one in flight.
+	trigger, giveUp := context.WithCancel(t.Context())
+	t.Cleanup(giveUp)
+	roundTrip := func(req *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(req.URL.Path, "/_bulk") {
+			giveUp()
+			if err := req.Context().Err(); err != nil {
+				return nil, err
+			}
+		}
+
+		return server.roundTrip(req)
+	}
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		Client: newBulkTestClient(t, roundTrip), ShardRouter: cluster,
+		NumWorkers: 2, FlushInterval: time.Hour,
+	})
+	require.NoError(t, err)
+
+	var succeeded atomic.Int64
+	var failure atomic.Value // error
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Index: "idx", Action: actionIndex, DocumentID: "other", Body: seqBody(1),
+		OnSuccess: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) { succeeded.Add(1) },
+		OnFailure: func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+			failure.Store(err)
+		},
+	}), "another caller's item, buffered while the shard map is unknown")
+
+	cluster.setUnknown("idx", false)
+
+	// Whether this Add returns its context's error or nil depends on whether the drain
+	// finished first; neither is what is under test.
+	_ = bi.Add(trigger, BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: "doc", Body: seqBody(2)})
+
+	require.NoError(t, bi.Close(t.Context()))
+	require.Nil(t, failure.Load(), "the other caller's item must not fail on the context of an Add that gave up")
+	require.EqualValues(t, 1, succeeded.Load())
 }
 
 func TestBulkIndexerNodeIsAvailableToOnFlushStart(t *testing.T) {

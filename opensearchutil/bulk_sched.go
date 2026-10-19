@@ -671,15 +671,19 @@ func (s *scheduler) relieve() {
 }
 
 // drain seals every open buffer and waits for every buffer that exists to
-// complete, running those not yet sent on ctx.
+// complete, running those not yet sent on run and waiting under wait. They are the
+// same context for a caller who asks to be waited on and may cut the work short, as
+// Flush does; a caller who waits for work that is not only its own passes the
+// indexer's context as run, so that giving up on the wait does not fail what others
+// added.
 //
 // With collect set it returns the errors of those buffers, joined, and they are
 // not reported to OnError: that is how Flush gives its caller the outcome. Without
 // it drain only waits, and each buffer reports its own error to OnError as it would
 // had nobody waited.
-func (s *scheduler) drain(ctx context.Context, collect bool) error {
+func (s *scheduler) drain(run, wait context.Context, collect bool) error {
 	s.Lock()
-	s.sealAllOpen(flushRequested, ctx)
+	s.sealAllOpen(flushRequested, run)
 
 	buffers := make([]*buffer, 0, len(s.live))
 	for b := range s.live {
@@ -687,7 +691,7 @@ func (s *scheduler) drain(ctx context.Context, collect bool) error {
 			b.waiters++
 		}
 		if !b.dispatched {
-			b.ctx = ctx
+			b.ctx = run
 		}
 		buffers = append(buffers, b)
 	}
@@ -698,9 +702,9 @@ func (s *scheduler) drain(ctx context.Context, collect bool) error {
 
 	for i, b := range buffers {
 		select {
-		case <-ctx.Done():
+		case <-wait.Done():
 			s.abandon(collect, buffers[i:])
-			return ctx.Err()
+			return wait.Err()
 		case <-workersDone:
 			s.abandon(collect, buffers[i:])
 			return s.bi.config.Context.Err()

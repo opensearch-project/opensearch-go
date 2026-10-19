@@ -1079,8 +1079,12 @@ func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string) error {
 // when ctx does; a rejection the flush reports is not the caller's to handle.
 // Items rejected by the drain reach their own OnFailure, and what is left had
 // none and is reported the way a periodic flush reports it, through OnError.
+//
+// What is held is mostly other callers' items, so it is sent on the indexer's
+// context, as a periodic flush sends it, and ctx only bounds the wait: a caller
+// that gives up must not fail documents whose own callers are still waiting.
 func (bi *bulkIndexer) flushAll(ctx context.Context) error {
-	return bi.sched.drain(ctx, false)
+	return bi.sched.drain(bi.config.Context, ctx, false)
 }
 
 // workersDone returns a channel that closes when the workers stop for good
@@ -1235,7 +1239,7 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 		return ErrBulkIndexerClosed
 	}
 
-	return bi.sched.drain(ctx, true)
+	return bi.sched.drain(ctx, ctx, true)
 }
 
 // Close stops the periodic flush, sends everything that is buffered, waits for
@@ -1276,7 +1280,7 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	defer stop()
 
 	// Each batch reports its own failure to OnError as it finishes.
-	drainErr := bi.sched.drain(ctx, false)
+	drainErr := bi.sched.drain(ctx, ctx, false)
 
 	bi.sched.close()
 	bi.wg.Wait()
