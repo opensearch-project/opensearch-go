@@ -41,10 +41,11 @@ var tagPattern = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
 
 func main() {
 	var (
-		file = flag.String("file", "CHANGELOG.md", "changelog to rewrite")
-		tag  = flag.String("tag", "", "release tag, e.g. v5.1.1")
-		prev = flag.String("prev", "", "previous release tag, e.g. v5.1.0")
-		repo = flag.String("repo", "https://github.com/opensearch-project/opensearch-go", "repository URL for compare links")
+		file     = flag.String("file", "CHANGELOG.md", "changelog to rewrite")
+		tag      = flag.String("tag", "", "release tag, e.g. v5.1.1")
+		prev     = flag.String("prev", "", "previous release tag, e.g. v5.1.0")
+		prevPrev = flag.String("prev-prev", "", "tag before -prev; adds -prev's compare link if it is missing")
+		repo     = flag.String("repo", "https://github.com/opensearch-project/opensearch-go", "repository URL for compare links")
 	)
 	flag.Parse()
 
@@ -52,7 +53,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	out, err := roll(string(src), *tag, *prev, *repo)
+	out, err := roll(string(src), *tag, *prev, *prevPrev, *repo)
 	if err != nil {
 		fail(err)
 	}
@@ -71,9 +72,12 @@ type subsection struct {
 	body    []string
 }
 
-func roll(src, tag, prev, repo string) (string, error) {
+func roll(src, tag, prev, prevPrev, repo string) (string, error) {
 	if !tagPattern.MatchString(tag) || !tagPattern.MatchString(prev) {
 		return "", fmt.Errorf("tag %q and prev %q must look like vX.Y.Z", tag, prev)
+	}
+	if prevPrev != "" && !tagPattern.MatchString(prevPrev) {
+		return "", fmt.Errorf("prev-prev %q must look like vX.Y.Z", prevPrev)
 	}
 	version := strings.TrimPrefix(tag, "v")
 	lines := strings.Split(src, "\n")
@@ -126,7 +130,12 @@ func roll(src, tag, prev, repo string) (string, error) {
 	if footer < 0 {
 		return "", fmt.Errorf("no %q link at the bottom", footerPrefix)
 	}
-	lines[footer] = fmt.Sprintf("[Unreleased]: %s/compare/%s...HEAD\n[%s]: %s/compare/%s...%s", repo, tag, version, repo, prev, tag)
+	links := fmt.Sprintf("[Unreleased]: %s/compare/%s...HEAD\n[%s]: %s/compare/%s...%s", repo, tag, version, repo, prev, tag)
+	prevVersion := strings.TrimPrefix(prev, "v")
+	if prevPrev != "" && !hasLine(lines[footer:], "["+prevVersion+"]: ") {
+		links += fmt.Sprintf("\n[%s]: %s/compare/%s...%s", prevVersion, repo, prevPrev, prev)
+	}
+	lines[footer] = links
 
 	head := strings.Join(lines[:start], "\n")
 	tail := strings.Join(lines[end:], "\n")
@@ -134,4 +143,13 @@ func roll(src, tag, prev, repo string) (string, error) {
 		head += "\n"
 	}
 	return head + unreleasedTemplate + released.String() + tail, nil
+}
+
+func hasLine(lines []string, prefix string) bool {
+	for _, l := range lines {
+		if strings.HasPrefix(l, prefix) {
+			return true
+		}
+	}
+	return false
 }
