@@ -55,10 +55,6 @@ jobs:
 
   modules:
     name: Nested modules build standalone
-    # The check pending-next-release waives: a required root version that is
-    # not tagged yet cannot resolve standalone. It runs again once the tag
-    # exists and the label is removed.
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'pending-next-release') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -66,6 +62,11 @@ jobs:
         with: { go-version-file: 'go.mod' }
       - run: go version
       - run: make check-modules-standalone
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'pending-next-release') }}
+      # A required root version that is not tagged yet cannot resolve
+      # standalone, so replace it with the checkout and check the rest.
+      - run: make check-modules-pending
+        if: contains(github.event.pull_request.labels.*.name, 'pending-next-release')
 
   samples:
     name: Build samples
