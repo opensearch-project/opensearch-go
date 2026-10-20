@@ -6,6 +6,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Dependencies
+
+## [5.1.0]
+
+### Added
+
 - Add `opensearchtransport.Transport.LookupShard`, `ShardMap` and `WriteNodes`, so a caller can find where a document lives without sending a request. `LookupShard` maps an index and a routing value to the shard and to the node hosting its primary, and its first call for an index registers the index, so the next discovery cycle fetches its shard map. `WriteNodes` ranks the nodes for a write that has no shard, nearest first and rejecting nodes last. `ShardMapUnavailable` says why neither can answer, `Connection.WritePool` reports a node's write thread pool window, and `WithWriteNode` sends a write to a chosen node, falling back to the router for a node out of service and on every retry ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
 - Add `opensearchutil.ShardRouter`, the interface a bulk indexer uses to map documents to shards and shards to nodes, and `ClientShardRouter` to take it from the client's transport. `StaticShardRouter` serves fixed shard maps for tests and for callers who know their mappings, `DefaultRoutingNumShards` and `DefaultShardMap` derive the shard map the server assigns to an index that was never resized or given an explicit `number_of_routing_shards`, `ChainShardRouter` asks routers in order so the cluster's value wins over a derived one, and `NoShardRouter` turns shard-aware buffering off. A `Node` reports its write pool through a `PoolWindowFunc` ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
 - Add per-shard buffering to `opensearchutil.BulkIndexer`. It keeps a buffer for each shard and sends a full buffer as one bulk request to the node hosting the shard's primary, without a hop through another coordinator. A document with neither a routing value nor an ID goes to the nearest node with room, so an unrouted stream goes in large requests to few nodes. A missing or wrong shard router costs efficiency, never correctness, because the server regroups every bulk by shard ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
@@ -652,7 +668,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.3...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.3...v5.1.0
 [5.0.3]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.0...v5.0.1
