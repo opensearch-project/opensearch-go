@@ -57,6 +57,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Bump `github.com/klauspost/compress` in `compress` from v1.20.1 to v1.20.3 ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
+- Bump the `opensearch-go/v5` requirement in `log-slog` and `log-zerolog` from v5.0.0 to v5.0.3 ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
+- Bump `github.com/tidwall/gjson` from v1.19.0 to v1.20.0, `github.com/tidwall/pretty` from v1.2.1 to v1.2.2, `golang.org/x/sync` from v0.23.0 to v0.24.0, `golang.org/x/sys` from v0.48.0 to v0.49.0, `golang.org/x/text` from v0.42.0 to v0.43.0, `github.com/go-openapi/jsonpointer` from v1.0.1 to v1.0.2 and `github.com/mattn/go-colorable` from v0.1.15 to v0.1.16 as indirect dependencies ([#1219](https://github.com/opensearch-project/opensearch-go/pull/1219))
+
 ## [5.0.3]
 
 ### Added
