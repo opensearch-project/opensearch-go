@@ -235,12 +235,13 @@ check-modules-pending:  ## check-modules-standalone, with an untagged root versi
 			continue; \
 		fi; \
 		case "$$out" in \
-			*"unknown revision $$v"*) ;; \
+			*"unknown revision $$v"*|*"unknown revision $${v##*-}"*) ;; \
 			*) printf "%s\n" "$$out" >&2; exit 1 ;; \
 		esac; \
 		printf "   %s (%s@%s untagged)\n" "$$mod" "$$root" "$$v"; \
 		tmp=$$(mktemp -d); \
-		cp "$$mod/go.mod" "$$mod/go.sum" "$$tmp/"; \
+		cp "$$mod/go.mod" "$$tmp/"; \
+		awk -v p="$$root" -v v="$$v" '!($$1 == p && ($$2 == v || $$2 == v "/go.mod"))' "$$mod/go.sum" > "$$tmp/go.sum"; \
 		(cd "$$mod" && go mod edit -modfile="$$tmp/go.mod" -replace="$$root@$$v=$(CURDIR)" && \
 			GOWORK=off go mod tidy -modfile="$$tmp/go.mod" -diff && \
 			GOWORK=off go build -modfile="$$tmp/go.mod" ./... && \
