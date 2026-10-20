@@ -269,10 +269,14 @@ func (c DocumentClient) Index(ctx context.Context, req IndexReq) (*IndexResp, er
 		data IndexResp
 		err  error
 	)
+	method := http.MethodPost
+	if req.ID != "" {
+		method = http.MethodPut
+	}
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		method,
 		req, &data,
 	); err != nil {
 		return &data, err

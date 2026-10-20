@@ -53,6 +53,20 @@ func TestPluginClientFragment_Body(t *testing.T) {
 	}
 }
 
+func TestPluginClientFragment_RejectsPutSwitch(t *testing.T) {
+	t.Parallel()
+
+	frag := &emit.PluginClientFragment{Ops: []emit.PluginClientOp{{
+		MethodName:        "Put",
+		TypePrefix:        "X",
+		Group:             "x.put",
+		PutOnlyPathFields: []ir.PathCaseCondition{{Field: "ID"}},
+	}}}
+
+	_, err := frag.Body()
+	require.ErrorContains(t, err, `"x.put"`)
+}
+
 func TestPluginClientFragment_Imports(t *testing.T) {
 	t.Parallel()
 

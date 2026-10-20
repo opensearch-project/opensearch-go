@@ -28,7 +28,7 @@ import (
 //
 // Path: /_snapshot/{repository}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -158,7 +158,7 @@ type SnapshotCreateRepositoryBody struct {
 //
 // Path: /_snapshot/{repository}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -171,7 +171,7 @@ func (c SnapshotClient) CreateRepository(ctx context.Context, req SnapshotCreate
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err
@@ -188,7 +188,7 @@ func (c RepositoryClient) Create(ctx context.Context, req SnapshotCreateReposito
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

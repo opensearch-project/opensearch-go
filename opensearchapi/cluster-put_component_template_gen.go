@@ -28,7 +28,7 @@ import (
 //
 // Path: /_component_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -168,7 +168,7 @@ type ClusterPutComponentTemplateBody struct {
 //
 // Path: /_component_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -181,7 +181,7 @@ func (c ClusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutC
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

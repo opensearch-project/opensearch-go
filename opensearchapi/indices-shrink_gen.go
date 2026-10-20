@@ -29,7 +29,7 @@ import (
 //
 // Path: /{index}/_shrink/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -193,7 +193,7 @@ type IndicesShrinkBody struct {
 //
 // Path: /{index}/_shrink/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -206,7 +206,7 @@ func (c IndicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*Indic
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

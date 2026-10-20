@@ -108,6 +108,39 @@ func bodyMethodSwitch(op *ir.Operation) string {
 	return ""
 }
 
+// methodSwitch is a dispatch-time switch from the primary method to Method,
+// taken when the Go expression Cond holds for req.
+type methodSwitch struct {
+	Method string
+	Cond   string
+}
+
+// methodSwitchFor returns the dispatch-time method switch for op, or nil when
+// the client always sends the primary method. List fields are tested the way
+// the path builder's hasNonEmpty tests them, so the method agrees with the
+// path the builder picks.
+func methodSwitchFor(op *ir.Operation) *methodSwitch {
+	if len(op.PutOnlyPathFields) > 0 {
+		conds := make([]string, 0, len(op.PutOnlyPathFields))
+		for _, f := range op.PutOnlyPathFields {
+			if f.IsList {
+				conds = append(conds, "slices.ContainsFunc(req."+f.Field+`, func(s string) bool { return s != "" })`)
+			} else {
+				conds = append(conds, "req."+f.Field+` != ""`)
+			}
+		}
+		return &methodSwitch{Method: http.MethodPut, Cond: strings.Join(conds, " && ")}
+	}
+	if m := bodyMethodSwitch(op); m != "" {
+		cond := "req.Body != nil"
+		if op.HasTypedBody {
+			cond += " || req.BodyReader != nil"
+		}
+		return &methodSwitch{Method: m, Cond: cond}
+	}
+	return nil
+}
+
 // PrimaryMethod returns the first HTTP method listed for the operation.
 func PrimaryMethod(op *ir.Operation) string {
 	if len(op.HTTPMethods) == 0 {

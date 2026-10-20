@@ -51,6 +51,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		DocsURL:           op.DocsURL,
 		ExcludedDistros:   op.ExcludedDistros,
 		HTTPMethods:       op.HTTPMethods,
+		PutOnlyPathFields: op.PutOnlyPathFields,
 		PrimaryPath:       op.PrimaryPath,
 		HasBody:           op.HasBody,
 		IsNDJSON:          op.IsNDJSON,

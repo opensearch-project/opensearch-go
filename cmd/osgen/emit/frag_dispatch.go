@@ -34,6 +34,9 @@ func (f *DispatchFragment) Imports() []Import {
 	if f.Op.IsNoBody {
 		imps = append(imps, Import{Path: LocalModule, Alias: "opensearch"})
 	}
+	if slices.ContainsFunc(f.Op.PutOnlyPathFields, func(c ir.PathCaseCondition) bool { return c.IsList }) {
+		imps = append(imps, Import{Path: "slices"}) // methodSwitchFor tests list fields with slices.ContainsFunc
+	}
 	return imps
 }
 
@@ -57,12 +60,12 @@ func (f *DispatchFragment) Body() (string, error) {
 	errExpr := requestErrExpr(f.emittableErrorTypes())
 
 	tmpl := template.Must(template.New("dispatch").Funcs(template.FuncMap{
-		"methodConst":      HTTPMethodConst,
-		"primaryMethod":    PrimaryMethod,
-		"bodyMethodSwitch": bodyMethodSwitch,
-		"recvTopLevel":     func() string { return recvTopLevel },
-		"recvSubClient":    func() string { return recvSubClient },
-		"requestErr":       func() string { return errExpr },
+		"methodConst":   HTTPMethodConst,
+		"primaryMethod": PrimaryMethod,
+		"methodSwitch":  methodSwitchFor,
+		"recvTopLevel":  func() string { return recvTopLevel },
+		"recvSubClient": func() string { return recvSubClient },
+		"requestErr":    func() string { return errExpr },
 		"opMethodComment": func(methodName string, op *ir.Operation) string {
 			return MethodComment(MethodDocData{
 				MethodName:        methodName,
@@ -873,10 +876,11 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		data {{$op.TypePrefix}}Resp
 		err  error
 	)
-{{- if bodyMethodSwitch $op}}
+{{- $switch := methodSwitch $op}}
+{{- if $switch}}
 	method := {{methodConst (primaryMethod $op)}}
-	if req.Body != nil{{if $op.HasTypedBody}} || req.BodyReader != nil{{end}} {
-		method = {{methodConst (bodyMethodSwitch $op)}}
+	if {{$switch.Cond}} {
+		method = {{methodConst $switch.Method}}
 	}
 	if data.response, err = request( {{- ""}}
 		ctx,

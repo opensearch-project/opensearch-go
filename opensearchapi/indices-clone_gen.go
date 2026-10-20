@@ -29,7 +29,7 @@ import (
 //
 // Path: /{index}/_clone/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -183,7 +183,7 @@ type IndicesCloneBody struct {
 //
 // Path: /{index}/_clone/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -196,7 +196,7 @@ func (c IndicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*Indices
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err
