@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.9
 
 require (
-	github.com/opensearch-project/opensearch-go/v5 v5.1.1-0.20261020211347-0098c2b3969a
+	github.com/opensearch-project/opensearch-go/v5 v5.1.1-0.20261020215903-24601fa65fb8
 	github.com/prometheus/client_golang v1.24.1
 	github.com/stretchr/testify v1.12.1
 )
