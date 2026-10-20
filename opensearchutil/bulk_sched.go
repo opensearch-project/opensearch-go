@@ -173,7 +173,8 @@ type nodeState struct {
 	flightBytes      int64
 	// bufferFrac and slowdown are smoothed readings of the node for the statistics:
 	// the size of its shards' buffers as a fraction of the most they get, and how much
-	// longer than expected the node takes for its requests. Guarded by the scheduler's lock.
+	// longer than expected the node takes for its requests. Guarded by the
+	// scheduler's lock.
 	bufferFrac, slowdown float64
 	// levels holds the smoothed level of each shard the node serves: its flushes'
 	// time over what they would need. A shard is measured against the others'.
@@ -539,13 +540,13 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 	s.pump()
 }
 
-// sealFullest seals the fullest open buffer that has a chance to go out at once:
-// its shard has no earlier buffer unfinished, and its node has fewer requests out
-// than its window and room for its bytes. This is stricter than pump's test on the
-// shard, which only waits for an earlier request to be out. A buffer that could not
-// go out would only queue, freeing nothing until the requests ahead of it are
-// answered, while splitting the batch it was becoming into small requests; when one
-// of those is answered, complete looks again. Buffers queued behind their own
+// sealFullest seals the fullest open buffer that can go out at once: its shard has
+// no earlier buffer unfinished, and its node has fewer requests out than its window
+// and room for its bytes. This is stricter than pump's test on the shard, which only
+// waits for an earlier request to be out. Sealing a buffer that cannot go out frees
+// nothing, because it only queues until the requests ahead of it are answered, and
+// it splits the batch it was becoming into small requests. When one of those
+// requests is answered, complete looks again. Buffers queued behind their own
 // shard's request do not count against the node's room, since they are not going
 // out either: counting them would let one stalled shard's queue keep every other
 // shard's buffers open.
@@ -665,8 +666,8 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	ns.rate.learn(sample)
 	sample.peer = ns.peerLevel(ss)
 	if n, ok := ss.sizer.observe(sample); ok {
-		// The node's slowdown is the sizer's own: the flush's time on the node over
-		// what the node needs for a request of that size, fixed cost included.
+		// The node's slowdown is the one the sizer measures: the flush's time on the
+		// node over the time a request of that size should take, fixed cost included.
 		ns.slowdown = smooth(ns.slowdown, math.Max(n-1, 0))
 		s.recordLevel(ss, ns)
 	}
@@ -724,10 +725,11 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 // shard's order, after the shard's earlier request has been answered. Buffers of
 // documents that belong to no shard are not touched.
 //
-// It marks the index as draining until endDrain, so that an Add placed before the
-// change, and queued only after this, is turned back to be placed again instead of
-// opening a buffer the caller does not wait for; see bulkIndexer.validShardPlacement.
-// The placement lock the caller holds keeps one drain at a time.
+// It marks the index as draining until endDrain. An Add placed before the change,
+// but queued only after this, is then turned back and placed again, instead of
+// opening a buffer the caller does not wait for; see
+// bulkIndexer.validShardPlacement. The placement lock the caller holds keeps it to
+// one drain at a time.
 func (s *scheduler) sealIndex(index string) []*buffer {
 	s.Lock()
 	defer s.Unlock()

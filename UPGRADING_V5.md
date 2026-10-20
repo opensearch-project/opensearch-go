@@ -802,3 +802,18 @@ The indexer keeps a buffer for each shard of the indexes it writes to and sends 
 - **Buffer sizes follow the cluster.** `FlushBytes` is now the ceiling for a shard's buffer. A shard starts at `FlushBytes` on a node that shows no load, and at the default `InitialBytes` on one that is already rejecting or whose window was cut; an `InitialBytes` you set starts every shard at that size, loaded node or not. The indexer shrinks a shard's buffer when that shard is slower than the rest of its node. The bytes the indexer will have out to a node at once are a window that starts wide open and is cut only by a 429, to half of what was out when it arrived, so a node that is merely slow, for all its shards alike, keeps both its buffer sizes and its window. `BulkSizing{Shard: ShardFixed, Node: NodeFixed}` turns both controllers off.
 
 `opensearchutil.AddZeroCopy` sends a document from the caller's own slice instead of copying it, and gives the slice back through `Release`; see its documentation for what the caller gives up.
+
+## `opensearchutil.BulkIndexerItem.Body` is read from offset 0
+
+The indexer reads an item's `Body` from offset 0, whatever the reader's position when the item is added: to size it, to fingerprint it, and on every attempt to send it, so a retry sends the same bytes as the first attempt. It used to read from the reader's current position. Code that passes a reader already positioned at the start of the document is unaffected. Code that positions one reader at each document in turn sends the whole reader instead, and must pass a reader of only the document:
+
+```go
+// Before: one file of several documents, positioned at the one to send.
+f.Seek(offset, io.SeekStart)
+bi.Add(ctx, opensearchutil.BulkIndexerItem{Action: "index", DocumentID: id, Body: f})
+
+// After: a reader of only that document.
+bi.Add(ctx, opensearchutil.BulkIndexerItem{
+	Action: "index", DocumentID: id, Body: io.NewSectionReader(f, offset, length),
+})
+```

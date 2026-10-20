@@ -993,7 +993,7 @@ func TestChunkBufferLeaseCountsActiveReaders(t *testing.T) {
 	})
 }
 
-// budgetTake is bytes a shard takes.
+// budgetTake is an amount of bytes acquired for a shard.
 type budgetTake struct {
 	key shardKey
 	n   int64
@@ -1012,7 +1012,8 @@ func TestByteBudgetAdmitsWithoutAnyRelease(t *testing.T) {
 
 	tests := []struct {
 		name string
-		// holds are taken first, and waits then begin and stay waiting.
+		// holds are acquired first; then each of waits starts an acquire that stays
+		// blocked.
 		holds, waits []budgetTake
 		ask          budgetTake
 		wantInUse    int64

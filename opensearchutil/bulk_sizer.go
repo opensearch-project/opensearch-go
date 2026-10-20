@@ -398,11 +398,11 @@ type flushSample struct {
 	// overloaded is set when the transport sees the node's write pool rejecting.
 	overloaded bool
 	// peer is what the shard is measured against: the mean level of the other shards
-	// on its node, or the shard's own level when it is alone there; 0 when there is
-	// nothing to measure against yet. Measuring against it means a slowdown the
-	// whole node shares, which is the node's load and is answered by its window when
-	// it rejects, does not shrink any shard, and only a shard slower than the rest of
-	// its node gives way.
+	// on its node, or the shard's own level when it is alone there, and 0 when there
+	// is nothing to measure against yet. Measuring a shard against its node means a
+	// slowdown the whole node shares shrinks no shard; that is the node's load, which
+	// its window answers when it rejects. Only a shard slower than the rest of its
+	// node gives way.
 	peer float64
 }
 
@@ -480,8 +480,8 @@ func (s *sizer) bytes() int64 {
 // every item failed, and one too small to say anything are not read: none of them
 // measures how fast the node indexes this shard's documents, and a controller that
 // took a quick refusal for a fast flush would grow the buffer while the node says it
-// is full. With fixed sizing the flush is read all the same, for the slowdown it
-// reports, but the buffer's size stays put.
+// is full. With fixed sizing the flush is still read, for the slowdown it reports,
+// but the buffer's size does not change.
 //
 // It returns how many times the expected time the flush took, and false when the flush
 // was not read.

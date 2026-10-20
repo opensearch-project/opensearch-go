@@ -231,7 +231,7 @@ func TestRateTracker(t *testing.T) {
 	tests := []struct {
 		name  string
 		learn []flushSample
-		// learned is whether the flushes leave a best rate; when so, it is the fast one.
+		// learned is whether the flushes leave a best rate, which is then the fast one.
 		learned bool
 	}{
 		{name: "a timed flush sets the best", learn: []flushSample{fast}, learned: true},

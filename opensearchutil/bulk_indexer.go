@@ -123,9 +123,9 @@ var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unava
 // what is buffered for each node, and a size for each shard's buffer. The last two
 // follow what the cluster can take, so that bulk traffic gives way to the rest of
 // what a node is serving. Documents of one shard are written in the order they
-// were added, also when the shard moves to another node. When the router reports
-// that an index's shard geometry changed or stops answering for it, the items
-// already added for its shards are sent and answered before any later item for the
+// were added, also when the shard moves to another node. When the router reports a
+// new shard geometry for an index, or stops answering for it, every item already
+// added for the index's shards is sent and answered before the next item for the
 // index is placed, so that no later action reaches the server first.
 //
 // The limits delay work and never stop it. A shard's buffer is never asked to be
@@ -354,10 +354,10 @@ type BulkIndexerConfig struct {
 	// moment Add accepts an item until the request that sends it has finished. That
 	// is the item's request body and the structure that carries it to its callbacks,
 	// so a stream of small documents is not undercounted. When the limit is spent,
-	// Add waits for requests to finish and give memory back, and the fullest shard
-	// buffer that can go out is sent at once so that the wait is short, so a slow or
-	// stalled cluster slows the caller down and does not grow the indexer's memory.
-	// An item larger than the whole limit is let through alone.
+	// Add waits for requests to finish and return memory, and the fullest shard
+	// buffer that can go out is sent at once to keep the wait short. A slow or
+	// stalled cluster therefore slows the caller down instead of growing the
+	// indexer's memory. An item larger than the whole limit is let through alone.
 	//
 	// The limit is shared among shards. While other shards are waiting for room, a
 	// shard holds no more than an even share of it, so a shard whose requests are
@@ -537,8 +537,8 @@ type BulkIndexerStats struct {
 	// requests more slowly and larger while it keeps up. Before any node has been
 	// used every field is the size buffers start at.
 	BufferSize JobNodeStats
-	// Slowdown is how much longer a node takes for its requests than it needs to,
-	// smoothed over its last few requests: 0 when it takes the expected time, 1 when
+	// Slowdown is how much longer than expected a node takes for its requests,
+	// smoothed over its last few: 0 when it takes the expected time, 1 when
 	// it takes twice as long (GAUGE, ratio). The expected time is the one the buffer
 	// sizing judges a request by: the node's fixed cost per request plus the
 	// request's bytes at the best rate the node has shown. It is 0 before any node has
@@ -1016,9 +1016,10 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 }
 
 // validate returns an error wrapping [ErrInvalidConfig] for a byte limit below
-// zero, or a sizing setting that does not exist. Each is a size or a limit; a negative one would not be the default the
-// zero value selects but a limit that undoes itself, as a memory limit under which
-// the indexer's accounting goes negative.
+// zero, or a sizing setting that does not exist. Each is a size or a limit, and a
+// negative one would not be the default the zero value selects but a limit that
+// undoes itself, as a memory limit under which the indexer's accounting goes
+// negative.
 func (c BulkIndexerConfig) validate() error {
 	limits := []struct {
 		name  string
@@ -1259,10 +1260,11 @@ func (bi *bulkIndexer) addFailed(ctx context.Context, err error) error {
 	return err
 }
 
-// place finds the shard an item belongs to and the node that hosts it, and the
-// generation of the index's placement that answer belongs to, for
-// validShardPlacement. The chain is nil, and the item is unplaced, when the indexer
-// cannot say: no index, no routing value, or no shard map for the index.
+// place finds the shard an item belongs to, the node that hosts it, and the
+// generation of the shard map that answer comes from, which validShardPlacement
+// checks before the item is queued. The chain is nil, and the item is unplaced,
+// when the indexer cannot say: no index, no routing value, or no shard map for the
+// index.
 //
 // The server's own order for the routing value: a routing value on the action
 // line, else the ?routing= of the request, which is only a default for actions
@@ -1324,16 +1326,19 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 	return &shardKey{index: index, shard: target.Shard}, target.Node, placed, nil
 }
 
-// validShardPlacement reports whether an item placed for index at generation, the
-// generation place returned with it, may join its shard's buffers. It may not while
-// a placementChanged is waiting out the index's buffers, since it would open one
-// that is not waited for, nor once the placement has moved on from generation,
-// since the index's later items no longer wait for that shard: in either case the
-// item is placed again. While the index drains it also returns the channel that is
-// closed when its shards have quiesced, for the item to wait on first; nil when
-// there is nothing to wait for. Called with the scheduler's lock held, which
-// sealIndex and endDrain take, so an item is either among the buffers a
-// placementChanged waits for or turned back.
+// validShardPlacement reports whether an item that place put on a shard of index,
+// at generation, may join that shard's buffers. It may not in two cases, and the
+// item is placed again:
+//
+//   - A placementChanged is waiting out the index's buffers. A new buffer would not
+//     be among those it waits for. The returned channel closes when the index's
+//     shards have quiesced, and the item waits on it first.
+//   - The index's placement has moved on from generation, so the index's later
+//     items no longer wait for that shard. The returned channel is nil.
+//
+// It is called with the scheduler's lock held, which sealIndex and endDrain also
+// take, so an item is either among the buffers a placementChanged waits for or is
+// turned back.
 func (bi *bulkIndexer) validShardPlacement(index string, generation uint64) (<-chan struct{}, bool) {
 	if quiesced, draining := bi.sched.draining[index]; draining {
 		return quiesced, false
@@ -1411,10 +1416,11 @@ func geometryChanged(from, to uint64) bool {
 // or, with lost set, it stopped answering at all. A document may now belong to a
 // different shard than its earlier actions went to, and a shard's buffers wait
 // only for each other, so a later action could reach the server before an earlier
-// one. The buffers of the index's shards are sealed and sent as they are, each under
-// the shard its documents were placed with, which the server still routes to the
-// right place, and the Add that found the change waits for every one of them to be
-// answered, so that nothing it places overtakes them. Nothing fails for the change.
+// one. The index's buffers are sealed and sent as they are, each to the shard its
+// documents were placed on; the server routes every document itself, so they still
+// land correctly. The Add that found the change waits until all of them are
+// answered, so nothing it places overtakes them. No item fails because of the
+// change.
 //
 // Like firstPlacement it holds the placement lock for the wait, and Add must not be
 // called from a callback.

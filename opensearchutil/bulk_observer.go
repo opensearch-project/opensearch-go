@@ -32,7 +32,8 @@ type BulkIndexerObserver interface {
 	OnRequestEnd(ctx context.Context, event BulkRequestEvent)
 
 	// OnRequestError is called when a whole bulk request fails, once per
-	// failed attempt, before any retry. The event's Scope is [ScopeRequest].
+	// failed attempt, before any retry. The event's Err has the layer
+	// [LayerRequest].
 	OnRequestError(ctx context.Context, event BulkErrorEvent)
 
 	// OnItemError is called when one item fails, once per failed attempt,
@@ -40,7 +41,7 @@ type BulkIndexerObserver interface {
 	// an item that was never sent, but not for one failed by [BulkIndexer.Cancel]
 	// or a Close that escalated: a cancellation is no failure of the work, and
 	// the item's [BulkIndexerObserver.OnItemDone] carries [ErrIndexerCanceled].
-	// The event's Scope is [ScopeItem].
+	// The event's Err has the layer [LayerItem].
 	OnItemError(ctx context.Context, event BulkErrorEvent)
 
 	// OnItemDone is called once per item, when the indexer is done with it: it
@@ -152,9 +153,9 @@ type BulkItemEvent struct {
 	// [BulkRequestEvent].Bytes. It is 0 for an item with no Body, such as a delete.
 	// For an update it is the whole Body, normally the {"doc": ...} wrapper.
 	//
-	// It is measured when Add takes the item, and only when the indexer has an
-	// Observer, so every item reports the same figure whether it succeeded, was
-	// rejected, or was refused before it was buffered.
+	// It is measured once, when Add accepts the item, so every item reports the same
+	// figure whether it succeeded, was rejected, or was refused before it was
+	// buffered.
 	Bytes int
 
 	// Metadata is the item's [BulkIndexerItem].Metadata, unchanged.

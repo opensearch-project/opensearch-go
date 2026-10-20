@@ -426,8 +426,8 @@ func TestClientShardRouterAdapter(t *testing.T) {
 	t.Run("a transport that cannot diagnose is not unavailable", func(t *testing.T) {
 		t.Parallel()
 
-		// Only a lookup and a node list: nothing to ask why it would never answer,
-		// though the transport underneath has a reason.
+		// A router with only a lookup and a node list has no way to say why it
+		// cannot answer, even though the transport underneath has a reason.
 		type plainRouter struct{ transportRouter }
 
 		require.NoError(t, clientShardRouter{tr: plainRouter{fakeTransportRouter{unavailable: fmt.Errorf("hidden")}}}.unavailable())

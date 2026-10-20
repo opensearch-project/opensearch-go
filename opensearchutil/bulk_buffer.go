@@ -370,11 +370,11 @@ func (b *chunkBuffer) String() string {
 }
 
 // byteBudget bounds the bytes an indexer holds between Add and the end of the
-// flush that sends them. Add takes bytes before it queues an item, a worker
-// reconciles the amount with what it really wrote, and the flush that ends the
-// item's life gives them back. When the budget is spent Add waits, which is the
-// backpressure: memory stays near the limit however slow the cluster is. The limit
-// is not a hard bound, though: see the one-item allowance below.
+// flush that sends them. Add allocates bytes from the budget before it queues an
+// item, a worker adjusts the amount to what it actually wrote, and the flush that
+// ends the item's life returns them. When the budget is spent Add waits; that wait
+// is the backpressure that keeps memory near the limit however slow the cluster is.
+// The limit is not a hard bound: see the one-item allowance below.
 //
 // The bytes are counted by the shard the item belongs to, so that one shard whose
 // requests are slow cannot take the room every other shard needs. While other
@@ -462,8 +462,8 @@ func (b *byteBudget) acquire(ctx context.Context, stop <-chan struct{}, key shar
 
 	w := &budgetWaiter{key: key, n: n, ready: make(chan struct{})}
 	b.mu.waiters = append(b.mu.waiters, w)
-	// The fast path stays out of the way of waiters queued ahead; the grant says
-	// whether this one may nonetheless be served now.
+	// The fast path above gives way to waiters already queued, but grant can still
+	// admit this one at once, for example when its shard is under its share.
 	b.grant()
 	if w.granted {
 		b.mu.Unlock()
@@ -628,8 +628,8 @@ func (b *byteBudget) grant() {
 			continue
 		}
 
-		// The spent limit and the shard's share both pass the waiter over; only
-		// the first holds back the shards behind it.
+		// A waiter is passed over when the limit is spent or its shard is over its
+		// share. Only a spent limit also holds back the waiters behind it.
 		if adm := b.admits(w.key, w.n); adm != budgetAdmit {
 			full = full || adm == budgetFull
 			if passed == nil {

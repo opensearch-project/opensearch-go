@@ -110,9 +110,8 @@ func (w *byteWindow) fraction() float64 {
 }
 
 // rateTracker keeps the best service rate a node has shown, which a shard that starts
-// on the node is measured against. The rate is
-// smoothed before the best is taken from it, so that one lucky flush does not become
-// a best no honest flush can match.
+// on the node is measured against. The rate is smoothed before the best is taken
+// from it, so that one lucky flush does not become a best no honest flush can match.
 type rateTracker struct {
 	// base is the best recent smoothed rate, in bytes per nanosecond, fading slowly.
 	base float64

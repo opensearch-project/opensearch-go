@@ -81,7 +81,8 @@ func (f RetryPolicyFunc) Retry(attempt int, err *BulkError) (time.Duration, bool
 }
 
 // bulkResponseMismatchError reports a bulk response that cannot be paired with
-// the items sent, because it holds more results than the request had actions.
+// the items sent, because it holds more or fewer results than the request had
+// actions.
 type bulkResponseMismatchError struct {
 	got, want int
 }
