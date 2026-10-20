@@ -533,6 +533,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 - [Document Lifecycle](guides/indexing-document_lifecycle.md)
 - [Search](guides/usage-search.md)
 - [Bulk](guides/indexing-bulk.md)
+- [Bulk Indexer](guides/indexing-bulk_indexer.md)
 - [Advanced Index Actions](guides/indexing-advanced_index_actions.md)
 - [Index Templates](guides/indexing-index_template.md)
 - [Data Streams](guides/indexing-data_streams.md)

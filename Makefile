@@ -217,8 +217,47 @@ check-modules-standalone:  ## Build and vet every nested module against the root
 		(cd "$$mod" && GOWORK=off go build ./... && GOWORK=off go vet ./...) || exit $$?; \
 	done
 
+check-modules-pending:  ## check-modules-standalone, with an untagged root version replaced by the checkout
+# For pull requests labeled pending-next-release. The replace goes into a scratch
+# copy of go.mod via -modfile, so the module's own files are never written, and
+# tidy -diff fails on a go.sum that is stale for anything but the root. Only an
+# "unknown revision" error marks a root version untagged; any other download
+# error fails, so a network fault cannot swap a tagged version for the checkout.
+	@printf "\033[2m-> Checking nested modules standalone, untagged root replaced by the checkout...\033[0m\n"
+	@root=$$(GOWORK=off go list -m); \
+	for mod in $(SUBMODULES); do \
+		v=$$(awk -v m="$$root" '$$1 == m { print $$2 } $$1 == "require" && $$2 == m { print $$3 }' "$$mod/go.mod"); \
+		if [ -z "$$v" ] || out=$$(cd "$$mod" && GOWORK=off GOFLAGS=-mod=mod go mod download "$$root@$$v" 2>&1); then \
+			printf "   %s\n" "$$mod"; \
+			(cd "$$mod" && GOWORK=off go build ./... && GOWORK=off go vet ./...) || exit $$?; \
+			continue; \
+		fi; \
+		case "$$out" in \
+			*"unknown revision $$v"*) ;; \
+			*) printf "%s\n" "$$out" >&2; exit 1 ;; \
+		esac; \
+		printf "   %s (%s@%s untagged)\n" "$$mod" "$$root" "$$v"; \
+		tmp=$$(mktemp -d); \
+		cp "$$mod/go.mod" "$$mod/go.sum" "$$tmp/"; \
+		(cd "$$mod" && go mod edit -modfile="$$tmp/go.mod" -replace="$$root@$$v=$(CURDIR)" && \
+			GOWORK=off go mod tidy -modfile="$$tmp/go.mod" -diff && \
+			GOWORK=off go build -modfile="$$tmp/go.mod" ./... && \
+			GOWORK=off go vet -modfile="$$tmp/go.mod" ./...) || { rc=$$?; rm -rf "$$tmp"; exit $$rc; }; \
+		rm -rf "$$tmp"; \
+	done
+
 print-submodules:  ## Print the discovered nested module directories, one per line
 	@printf "%s\n" $(SUBMODULES)
+
+workspace:  ## Write a go.work that builds every nested module against this checkout's root
+# Replaces each root version a nested module requires with the checkout; Go
+# refuses a version-less replace of a workspace module.
+# See DEVELOPER_GUIDE.md#nested-modules.
+	@go work init . $(SUBMODULES)
+	@root=$$(awk '$$1 == "module" { print $$2 }' go.mod); \
+	for v in $$(for mod in $(SUBMODULES); do awk -v p="$$root" '{ for (i = 1; i < NF; i++) if ($$i == p) print $$(i + 1) }' "$$mod/go.mod"; done | sort -u); do \
+		go work edit -replace="$$root@$$v=./" || exit $$?; \
+	done
 
 build-samples:  ## Compile and vet each _samples/*.go program
 	@printf "\033[2m-> Building _samples...\033[0m\n"
@@ -387,11 +426,11 @@ lint.local.version:
 		exit 1; \
 	fi
 
-package := "prettier"
+prettier := "prettier"
 PRETTIER_ARGS := --prose-wrap never --print-width 300 "**/*.md"
 
 lint.markdown:  ## Reformat markdown files with prettier
-	npx $(package) $(PRETTIER_ARGS) --write
+	npx $(prettier) $(PRETTIER_ARGS) --write
 
 
 backport: ## Backport one or more commits from main into version branches
@@ -1036,5 +1075,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples check-modules-standalone print-submodules
+.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples check-modules-standalone check-modules-pending print-submodules workspace
 .SILENT: lint.markdown

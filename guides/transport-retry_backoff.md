@@ -2,6 +2,10 @@
 
 The OpenSearch client retries on certain errors, such as `503 Service Unavailable`, immediately upon receiving the error response. The retry behavior is configurable.
 
+With a router, as with the default router, the client also retries a request answered with `429 Too Many Requests` when the node's thread pool for the request is tracked, whatever `RetryOnStatus` holds: it marks that pool overloaded and routes the retry afresh, so it can go to another node. `DisableRetry` turns this off too.
+
+These are the transport's own retries. `opensearchutil.BulkIndexer` can add a second layer above them, a `RetryPolicy` that resends failed items after the transport has given up; the two multiply, and `DisableRetry` turns off only the transport's. See [Bulk Indexer](indexing-bulk_indexer.md#retrying-failed-items).
+
 ## Setup
 
 Let's create a client instance:

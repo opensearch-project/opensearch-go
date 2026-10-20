@@ -83,7 +83,7 @@ Consequences worth knowing before releasing:
 
 - **The `vN` cannot move before the subdirectory.** A path like `.../v5/osprom` makes Go treat `v5/osprom` as the subdirectory with no major-version suffix, so the module is stuck at `v0`/`v1` and Go looks for a `v5/` directory that does not exist. The declared path must end in `/vN`.
 - **A nested module is versioned by its own tag.** A root `vX.Y.Z` tag publishes only the root module, so without `osprom/vX.Y.Z` the newest version a consumer can name for `osprom` is a pseudo-version off a commit. That resolves and builds, since a pseudo-version needs only a reachable commit in the subdirectory, but it leaves the consumer pinning a commit rather than a release, with nothing to distinguish a reviewed version from whatever `main` held that day. Tag every nested module you expect anyone to pin by version, which in practice is all of them.
-- **Tag the same commit.** Nested modules that import root packages (`debuglog`, `opensearchtransport`) must have a root `require` naming a version that actually contains those packages. `make check-modules-standalone` enforces this; run it before requesting tags.
+- **Tag the same commit.** Nested modules that import root packages (`debuglog`, `opensearchtransport`) must have a root `require` naming a version that actually contains those packages. `make check-modules-standalone` enforces this; run it before requesting tags. The exception is a nested module that requires the root version being released, merged under the `pending-next-release` label ([DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#nested-modules)). That version resolves only once the root tag exists, and until then the module's `go.sum` cannot hold its checksum, so such a module is tagged in a second step; see below.
 
 Request all tags for a release together, on one merged commit: the root tag plus one per nested module. `make print-submodules` is the source of that list -- it discovers the modules by asking git for every `go.mod` that is tracked or not yet added, so a module added later cannot be forgotten here:
 
@@ -94,6 +94,12 @@ for m in $(make -s print-submodules); do echo "$m/$VERSION"; done
 ```
 
 As in step 6, contributors cannot push signed tags: list every tag that prints in the `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue so the admin creating them does not tag the root module alone.
+
+A nested module that requires the root version being released is the exception: leave its tag out of that request. Tagged with the root, it would point at a commit whose `go.sum` lacks the root version's checksum, where it cannot build standalone. Once the root tag exists:
+
+1. In the module's directory, run `GOWORK=off go mod tidy`. It records the root version's checksum in `go.sum`. Merge that change.
+2. Run `make check-modules-standalone` on the merged commit.
+3. Request the module's tag on that commit, in a second `[GitHub Request]` issue or as a follow-up on the first.
 
 Then refresh each nested module on pkg.go.dev:
 

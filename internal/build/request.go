@@ -19,6 +19,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 )
 
 const (
@@ -135,6 +137,11 @@ func Request(method string, path string, body io.Reader, params map[string]strin
 			buf.req.GetBody = func() (io.ReadCloser, error) {
 				r := snapshot
 				return io.NopCloser(&r), nil
+			}
+		case bufbody.BufferedReader:
+			buf.req.ContentLength = int64(v.Len())
+			buf.req.GetBody = func() (io.ReadCloser, error) {
+				return bufbody.Replay(v), nil
 			}
 		}
 

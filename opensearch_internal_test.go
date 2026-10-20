@@ -46,6 +46,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -955,4 +956,32 @@ func TestNewClientNeverCaches(t *testing.T) {
 	require.NotSame(t, c1.Transport, c2.Transport,
 		"explicit NewClient must not share a cached transport")
 	require.Nil(t, c1.release, "explicit NewClient must not carry a cache release hook")
+}
+
+// TestExecuteDoesNotCopyTheBufferedResponse pins that Execute parses the bytes
+// the transport already read: the body it hands back is that same memory, so a
+// response is read from the socket once and held once.
+func TestExecuteDoesNotCopyTheBufferedResponse(t *testing.T) {
+	t.Parallel()
+
+	c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+	require.NoError(t, err)
+
+	var got struct {
+		Version struct {
+			Number string `json:"number"`
+		} `json:"version"`
+	}
+	resp, err := Execute(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
+	require.NoError(t, err)
+	require.Equal(t, "1.0.0", got.Version.Number)
+
+	contiguous, ok := resp.Body.(bufbody.ContiguousReader)
+	require.True(t, ok, "%T must expose its bytes", resp.Body)
+	require.Same(t, &resp.rawBody[0], &contiguous.Bytes()[0], "the body and the raw bytes are one allocation")
+
+	// Reading the body leaves a replay available for a later reader.
+	first, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, resp.rawBody, first)
 }

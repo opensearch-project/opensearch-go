@@ -97,12 +97,27 @@ Each module resolves its own dependencies, the same way a consumer does. From th
 Some require the root module: `osprom`, `osotel` and `compress` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
 
 ```sh
-go work init . $(make -s print-submodules)
+make workspace
 ```
+
+This runs `go work init` over the root and every nested module, then replaces each root version a nested module requires with the checkout. The replace is what lets a nested module require a root version that is not tagged yet: `go work init` alone still reads that version's `go.mod` and fails. `make workspace` refuses to overwrite an existing `go.work`; delete it first to regenerate.
 
 Prefer this local workspace to a `replace` directive. A `replace` committed to a `go.mod` travels with the module to anyone who depends on it, but Go honors a `replace` only in the main module it is building, not one inherited from a dependency. A committed `replace` therefore does nothing for a consumer, who has to add an equivalent one anyway.
 
 A local workspace resolves a nested module against the checkout no matter what its `go.mod` requires, which is also how it can hide a broken release. `make check-modules-standalone` builds and vets each nested module with `GOWORK=off`, so it reproduces the consumer's view whether or not you have a workspace, and CI runs it on every pull request. Run it before requesting release tags; [RELEASING.md](RELEASING.md#nested-modules) covers the tagging rules it enforces.
+
+A pull request can add a root API and a nested module that uses it, with the nested module requiring the root version that will ship it. Until that version is tagged the nested module cannot resolve standalone, so label the pull request `pending-next-release`. CI then runs `make workspace` before the unit, integration and compatibility tests, benchmarks and nested-module lint, and runs `make check-modules-pending` in place of `make check-modules-standalone`. That target replaces the untagged root version with the checkout in a scratch copy of the module's `go.mod`, leaving the module's own files alone, then checks that `go.sum` is tidy and builds and vets the module. Adding the label does not start a run, and re-running a job does not see it either: a re-run reuses the labels of the event that started it. Push a commit, or close and reopen the pull request, to start a run that does. [RELEASING.md](RELEASING.md#nested-modules) covers tagging a release whose nested modules require it.
+
+Such a module's `go.sum` cannot hold the untagged root version's checksum, but the rest of it must still be current, or the module breaks once it is built standalone. The workspace build does not read it; `make check-modules-pending` does, and fails on a stale entry. When the module's dependencies change, tidy it against the checkout with the root replaced, then drop the replace, keeping the `go.sum`:
+
+```sh
+cd osprom
+go mod edit -replace=github.com/opensearch-project/opensearch-go/v5@v5.1.0=../
+GOWORK=off go mod tidy
+go mod edit -dropreplace=github.com/opensearch-project/opensearch-go/v5@v5.1.0
+```
+
+Replace `v5.1.0` with the root version the module requires.
 
 The nested modules declare their path with the major-version suffix last (`github.com/opensearch-project/opensearch-go/osprom/v5`), because Go reads a `/vN` element as a major version only as the final path element. A path like `.../v5/osprom` leaves the module at `v0`/`v1` and unresolvable from the proxy.
 

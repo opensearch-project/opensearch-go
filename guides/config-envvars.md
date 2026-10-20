@@ -10,34 +10,39 @@ The client exposes a large number of operational dials — routing behavior, dis
 
 Every runtime variable, its default, and a one-line summary. Use this as the table of contents — each variable links to its detailed entry below.
 
-| Variable                                                                      | Default                      | Summary                               |
-| ----------------------------------------------------------------------------- | ---------------------------- | ------------------------------------- |
-| [`OPENSEARCH_URL`](#connection)                                               | unset                        | Seed addresses                        |
-| [`OPENSEARCH_GO_REQUEST_TIMEOUT`](#connection)                                | `0` (none)                   | Per-attempt timeout                   |
-| [`OPENSEARCH_GO_DNS_CACHE_REFRESH`](#connection)                              | `60s`                        | Client-side DNS cache refresh         |
-| [`OPENSEARCH_GO_DNS_DIAL_TIMEOUT`](#connection)                               | `30s`                        | DNS-cache dialer dial timeout         |
-| [`OPENSEARCH_GO_DNS_KEEP_ALIVE`](#connection)                                 | `30s`                        | DNS-cache dialer keep-alive           |
-| [`OPENSEARCH_GO_DNS_TIMEOUT`](#connection)                                    | `10s`                        | DNS-cache per-lookup refresh timeout  |
-| [`OPENSEARCH_GO_ROUTER`](#routing)                                            | `true`                       | Auto-construct DefaultRouter          |
-| [`OPENSEARCH_GO_ROUTING_CONFIG`](#routing)                                    | all enabled                  | Shard-exact and adaptive MCSR toggles |
-| [`OPENSEARCH_GO_SHARD_COST`](#routing)                                        | defaults                     | Shard cost multipliers                |
-| [`OPENSEARCH_GO_SHARD_REQUESTS`](#routing)                                    | `true` (5:256)               | Adaptive MCSR bounds                  |
-| [`OPENSEARCH_GO_DISCOVERY_CONFIG`](#discovery)                                | all enabled                  | Discovery call toggles                |
-| [`OPENSEARCH_GO_FALLBACK`](#discovery)                                        | `true`                       | Seed URL fallback                     |
-| [`OPENSEARCH_GO_VERIFY_DEAD_AFTER`](#discovery)                               | `15m`                        | Zombie-resurrection expiry window     |
-| [`OPENSEARCH_GO_NODE_STATS_INTERVAL`](#load-shedding-and-stats-polling)       | auto                         | Stats polling interval                |
-| [`OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD`](#load-shedding-and-stats-polling) | `85`                         | JVM heap overload threshold           |
-| [`OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`](#load-shedding-and-stats-polling)  | `0.90`                       | Breaker ratio overload threshold      |
-| [`OPENSEARCH_GO_ACTIVE_LIST_CAP`](#connection-pool-tuning)                    | auto                         | Max active connections per pool       |
-| [`OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL`](#connection-pool-tuning)          | `0` (use discovery interval) | Standby rotation interval             |
-| [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle           |
-| [`OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`](#connection-pool-tuning)           | `3`                          | Health checks before promotion        |
-| [`OPENSEARCH_GO_DEFAULT_CLIENT_TTL`](#default-client-cache)                   | `16m`                        | Default-client cache idle eviction    |
-| [`OPENSEARCH_GO_LOG`](#debug-and-diagnostics)                                 | unset                        | Internal log level                    |
-| [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging (superseded by `_LOG`)  |
-| [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask         |
-| [`OPENSEARCH_GO_POLICY_*`](#policy-overrides)                                 | all enabled                  | Per-policy disable (10 variables)     |
-| [`OPENSEARCH_GO_POLICY_DUMP`](#finding-the-paths-the-router-dom)              | `false`                      | Dump router policy tree (debug-gated) |
+| Variable                                                                      | Default                      | Summary                                 |
+| ----------------------------------------------------------------------------- | ---------------------------- | --------------------------------------- |
+| [`OPENSEARCH_URL`](#connection)                                               | unset                        | Seed addresses                          |
+| [`OPENSEARCH_GO_REQUEST_TIMEOUT`](#connection)                                | `0` (none)                   | Per-attempt timeout                     |
+| [`OPENSEARCH_GO_DNS_CACHE_REFRESH`](#connection)                              | `60s`                        | Client-side DNS cache refresh           |
+| [`OPENSEARCH_GO_DNS_DIAL_TIMEOUT`](#connection)                               | `30s`                        | DNS-cache dialer dial timeout           |
+| [`OPENSEARCH_GO_DNS_KEEP_ALIVE`](#connection)                                 | `30s`                        | DNS-cache dialer keep-alive             |
+| [`OPENSEARCH_GO_DNS_TIMEOUT`](#connection)                                    | `10s`                        | DNS-cache per-lookup refresh timeout    |
+| [`OPENSEARCH_GO_ROUTER`](#routing)                                            | `true`                       | Auto-construct DefaultRouter            |
+| [`OPENSEARCH_GO_ROUTING_CONFIG`](#routing)                                    | all enabled                  | Shard-exact and adaptive MCSR toggles   |
+| [`OPENSEARCH_GO_SHARD_COST`](#routing)                                        | defaults                     | Shard cost multipliers                  |
+| [`OPENSEARCH_GO_SHARD_REQUESTS`](#routing)                                    | `true` (5:256)               | Adaptive MCSR bounds                    |
+| [`OPENSEARCH_GO_DISCOVERY_CONFIG`](#discovery)                                | all enabled                  | Discovery call toggles                  |
+| [`OPENSEARCH_GO_FALLBACK`](#discovery)                                        | `true`                       | Seed URL fallback                       |
+| [`OPENSEARCH_GO_VERIFY_DEAD_AFTER`](#discovery)                               | `15m`                        | Zombie-resurrection expiry window       |
+| [`OPENSEARCH_GO_NODE_STATS_INTERVAL`](#load-shedding-and-stats-polling)       | auto                         | Stats polling interval                  |
+| [`OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD`](#load-shedding-and-stats-polling) | `85`                         | JVM heap overload threshold             |
+| [`OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`](#load-shedding-and-stats-polling)  | `0.90`                       | Breaker ratio overload threshold        |
+| [`OPENSEARCH_GO_ACTIVE_LIST_CAP`](#connection-pool-tuning)                    | auto                         | Max active connections per pool         |
+| [`OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL`](#connection-pool-tuning)          | `0` (use discovery interval) | Standby rotation interval               |
+| [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle             |
+| [`OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`](#connection-pool-tuning)           | `3`                          | Health checks before promotion          |
+| [`OPENSEARCH_GO_DEFAULT_CLIENT_TTL`](#default-client-cache)                   | `16m`                        | Default-client cache idle eviction      |
+| [`OPENSEARCH_GO_BULK_SHARD`](#bulk-indexer)                                   | `pid`                        | Shard buffers: PID on latency, or fixed |
+| [`OPENSEARCH_GO_BULK_NODE`](#bulk-indexer)                                    | `aimd`                       | Node windows: AIMD on 429s, or fixed    |
+| [`OPENSEARCH_GO_BULK_PID_KP`](#bulk-indexer)                                  | `1`                          | PID proportional gain                   |
+| [`OPENSEARCH_GO_BULK_PID_KI`](#bulk-indexer)                                  | `0.1`                        | PID integral gain                       |
+| [`OPENSEARCH_GO_BULK_PID_KD`](#bulk-indexer)                                  | `0.25`                       | PID derivative gain                     |
+| [`OPENSEARCH_GO_LOG`](#debug-and-diagnostics)                                 | unset                        | Internal log level                      |
+| [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging (superseded by `_LOG`)    |
+| [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask           |
+| [`OPENSEARCH_GO_POLICY_*`](#policy-overrides)                                 | all enabled                  | Per-policy disable (10 variables)       |
+| [`OPENSEARCH_GO_POLICY_DUMP`](#finding-the-paths-the-router-dom)              | `false`                      | Dump router policy tree (debug-gated)   |
 
 Build, test, and code-generation variables (not read by the client at runtime) are listed under [Build, test, and development](#build-test-and-development).
 
@@ -127,6 +132,20 @@ A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driv
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
 | `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` | Duration or seconds | `16m` | Idle eviction window for the process-wide cache of implicitly-created default clients (`opensearch.NewDefaultClient`, `opensearchapi.NewDefaultClient`, and the client `opensearchutil.NewBulkIndexer` builds when none is supplied). Accepts a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`). Identical default clients share one cached transport, keyed by config hash, until every holder is closed and the entry sits idle for a full window. `0` = never evict (entries live until process exit); a negative value (`-1`, `-1s`) disables caching, so every call builds a fresh client; positive = explicit window. The `16m` default is the 15m AWS Lambda max timeout plus a 1m buffer, so a default client is not evicted mid-invocation across the longest possible Lambda run. Has no `opensearch.Config` equivalent — user-built `opensearch.NewClient`/`opensearchapi.NewClient` clients never enter the cache. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
+
+## Bulk indexer
+
+Read once, when `opensearchutil.NewBulkIndexer` builds the indexer, into plain settings the sizing controller tests from then on. A variable that is set and valid overrides the matching [`BulkSizing`](indexing-bulk_indexer.md) field; unset, empty, or unparseable values leave the programmatic value (or default) in place.
+
+| Variable | Accepted values | Default | Meaning | See also |
+| --- | --- | --- | --- | --- |
+| `OPENSEARCH_GO_BULK_SHARD` | `pid`, `fixed` (case-insensitive) | `pid`, or `fixed` when the code sets `BulkSizing.Shard` to `ShardFixed` | How each shard's buffer is sized. `pid` lets the PID controller size it from how quickly the node serves the shard's requests next to the node's other shards. `fixed` sends every buffer at `FlushBytes`, and the `_PID_*` gains have no effect. A request the node rejected or that failed never changes a shard's buffer size. Independent of `OPENSEARCH_GO_BULK_NODE`. Overrides `BulkSizing.Shard`. | [Bulk Indexer](indexing-bulk_indexer.md#turning-a-controller-off) |
+| `OPENSEARCH_GO_BULK_NODE` | `aimd`, `fixed` (case-insensitive) | `aimd`, or `fixed` when the code sets `BulkSizing.Node` to `NodeFixed` | How many bytes may be out to each node at once. `aimd` cuts a node's window when the node answers with a 429 and grows it back slowly while it keeps accepting writes. `fixed` holds the window where it started, at `NodeBytes` or `MaxMemoryBytes`. Independent of `OPENSEARCH_GO_BULK_SHARD`. Overrides `BulkSizing.Node`. | [Bulk Indexer](indexing-bulk_indexer.md#the-node-window-controller) |
+| `OPENSEARCH_GO_BULK_PID_KP` | Non-negative float | `1` | The **proportional** gain: scales the part of each step that is in proportion to how far a shard is from `Headroom` on this flush. Its input `e` is +1 for a shard as quick as the rest of its node, 0 at `Headroom` of slowdown (plus the slack the signal's noise calls for), and -1 (clamped) at twice `Headroom` plus the slack or worse. The step is `u = Kp*e + Ki*(sum of recent e) + Kd*(e - previous e)`: a positive `u` grows the size by `StepBytes * min(u, 1)`, and a negative `u` multiplies it by `1 + max(u, -0.5)`. Doubling it doubles that part: the buffer grows faster while the shard keeps up and shrinks by more once it falls behind. Halving it makes both changes smaller. Non-negative number. `0` turns the term off, and negative, `NaN`, infinite, or unparseable values are ignored. Each gain is read on its own, and has no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. Overrides `BulkSizing.PID.Kp`. | [How the PID controller works](indexing-bulk_indexer.md#how-the-pid-controller-works) |
+| `OPENSEARCH_GO_BULK_PID_KI` | Non-negative float | `0.1` | The **integral** gain: adds to each step in proportion to the sum of `e` over the last flushes, bounded to ±2. While a shard stays on one side of `Headroom` that sum keeps adding to every step, so a slowdown that does not go away shrinks the buffer by more on each flush, and a long run of fast flushes grows it faster. At `0` it adds nothing. Non-negative number. `0` turns the term off, and negative, `NaN`, infinite, or unparseable values are ignored. Each gain is read on its own, and has no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. Overrides `BulkSizing.PID.Ki`. | [How the PID controller works](indexing-bulk_indexer.md#how-the-pid-controller-works) |
+| `OPENSEARCH_GO_BULK_PID_KD` | Non-negative float | `0.25` | The **derivative** gain: adds to each step in proportion to the change in `e` since the previous flush. A sudden slowdown adds a shrink on the flush where it appears, before the other two terms have caught up, and a recovery adds growth. Flush-to-flush noise changes `e` too; lower it, or set it to `0`, if the size jitters. Non-negative number. `0` turns the term off, and negative, `NaN`, infinite, or unparseable values are ignored. Each gain is read on its own, and has no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. Overrides `BulkSizing.PID.Kd`. | [How the PID controller works](indexing-bulk_indexer.md#how-the-pid-controller-works) |
+
+The two controllers are independent. To send every buffer at `FlushBytes`, set `OPENSEARCH_GO_BULK_SHARD=fixed`; nodes still back off on 429s. To hold every node's window where it started, set `OPENSEARCH_GO_BULK_NODE=fixed`. Set both to turn sizing off altogether.
 
 ## Debug and diagnostics
 

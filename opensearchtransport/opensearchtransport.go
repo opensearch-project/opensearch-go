@@ -53,6 +53,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
 	"github.com/opensearch-project/opensearch-go/v5/signer"
@@ -1518,7 +1519,7 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	if res != nil && res.Body != nil {
 		body, rerr := io.ReadAll(res.Body)
 		res.Body.Close()
-		res.Body = io.NopCloser(bytes.NewReader(body))
+		res.Body = bufbody.New(body)
 		n = int64(len(body))
 		if rerr != nil && err == nil {
 			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
@@ -1627,7 +1628,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			req.Header.Set(headerContentEncoding, tr.compressor.encoding)
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
-			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
+			if br, ok := origBody.(bufbody.BufferedReader); ok {
+				// Already in memory: replay it as it is instead of copying it.
+				req.GetBody = func() (io.ReadCloser, error) { return bufbody.Replay(br), nil }
+				req.ContentLength = int64(br.Len())
+			} else if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer
 				if _, err := buf.ReadFrom(origBody); err != nil {
 					_ = origBody.Close()
@@ -1660,6 +1665,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// back on each copy. Two string headers, no allocation.
 	origPath, origRawPath := req.URL.Path, req.URL.RawPath
 
+	// bodyOpen is set when the loop gives up before any attempt is sent, leaving
+	// req.Body open for whatever runs next to send or close.
+	var bodyOpen bool
+
 	for i := 0; i <= tr.maxRetries; i++ {
 		// Retry from a copy, rebinding req so routing, the rest of the loop, and
 		// the seed fallback after it all work on this attempt's request. Clone
@@ -1688,7 +1697,16 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			adaptiveShards  int
 		)
 
-		if tr.router != nil {
+		if pinned := pinnedWriteNode(req.Context()); pinned != nil && i == 0 {
+			// The caller chose the node: skip the router, keep everything else. The
+			// request is accounted to the node's write pool only when the node has
+			// one tracked, as the router would, so a transport that tracks no pools
+			// does not start retrying a 429 on another node because of a pin.
+			conn = pinned
+			if tr.router != nil && conn.pools.get(poolWrite) != nil {
+				poolName = poolWrite
+			}
+		} else if tr.router != nil {
 			var hop NextHop
 			hop, err = tr.router.Route(req.Context(), req)
 			conn = hop.Conn
@@ -1720,7 +1738,16 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 				// hard transport failure) invariant holds when seed fallback
 				// is unavailable.
 				res = nil
+				// On the first attempt the body is still the caller's, open and
+				// unsent. On a retry it is the previous attempt's, which the
+				// round trip closed.
+				bodyOpen = i == 0
 				break
+			}
+			if i == 0 {
+				// Nothing was sent, so the body is still open. On a retry it is
+				// the previous attempt's, which the round trip closed.
+				closeRequestBody(req)
 			}
 			return nil, sr, err
 		}
@@ -1750,6 +1777,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 
 		if err = tr.signRequest(attemptReq); err != nil {
+			closeRequestBody(attemptReq)
 			return nil, sr, fmt.Errorf("failed to sign request: %w", err)
 		}
 
@@ -2028,7 +2056,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// attempt could not obtain a connection, which happens before setReqURL runs;
 	// a retry restores the caller path before routing for the same reason.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
-		res, err = tr.performSeedFallback(req.Context(), req, &sr)
+		res, err = tr.performSeedFallback(req.Context(), req, bodyOpen, &sr)
+	} else if bodyOpen {
+		// Nothing will send the body, so close it as a RoundTripper does for a
+		// request it fails.
+		closeRequestBody(req)
 	}
 
 	// Wrap the error with the request method and a credential-redacted URL so
@@ -2177,7 +2209,20 @@ func (tr *Transport) roundTripAttempt(
 // expedite full cluster rediscovery.
 // On failure: marks the seed connection as failed so the pool's resurrection
 // timer can schedule retries.
-func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request, sr *streamResult) (*http.Response, error) {
+//
+// bodyOpen says req.Body is still the caller's open, unsent body. The fallback
+// then owns closing it: a body replaced from GetBody is closed here, and one
+// handed to the transport is closed by it, so no return path leaves it open.
+func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request, bodyOpen bool, sr *streamResult) (*http.Response, error) {
+	handedOver := false
+	if bodyOpen {
+		defer func() {
+			if !handedOver {
+				closeRequestBody(req)
+			}
+		}()
+	}
+
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -2201,17 +2246,25 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	sr.sentReq = attemptReq     // carries the seed node URL, for the error wrap
 
 	// Reset body for the fallback attempt.
+	replacedBody := false
 	if attemptReq.Body != nil && attemptReq.Body != http.NoBody && attemptReq.GetBody != nil {
 		body, err := attemptReq.GetBody()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get request body for seed fallback: %w", err)
 		}
 		attemptReq.Body = body
+		replacedBody = true
 	}
 
 	if err := tr.signRequest(attemptReq); err != nil {
+		if replacedBody {
+			closeRequestBody(attemptReq)
+		}
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
+
+	// Without a replacement the transport sends the caller's own body and closes it.
+	handedOver = !replacedBody
 
 	start := time.Now()
 
@@ -3337,4 +3390,13 @@ func (b *cancelOnCloseBody) Close() error {
 	err := b.ReadCloser.Close()
 	b.cancel()
 	return err
+}
+
+// closeRequestBody closes the body of a request that is returned without being
+// sent, as an [http.RoundTripper] does for a request it fails. A body that
+// lends memory, such as a bulk indexer's buffer, is released by its Close.
+func closeRequestBody(req *http.Request) {
+	if req.Body != nil && req.Body != http.NoBody {
+		_ = req.Body.Close()
+	}
 }

@@ -169,6 +169,40 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // OPENSEARCH_GO_DEBUG=true.
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 
+// BulkShard overrides BulkSizing.Shard for opensearchutil.BulkIndexer: "pid"
+// sizes each shard's buffer with the PID controller on latency, and "fixed" sends
+// every buffer at FlushBytes. Case-insensitive; any other value is ignored.
+const BulkShard = "OPENSEARCH_GO_BULK_SHARD"
+
+// BulkNode overrides BulkSizing.Node for opensearchutil.BulkIndexer: "aimd" cuts a
+// node's window on a 429 and grows it back slowly, and "fixed" holds it where it
+// started. Case-insensitive; any other value is ignored.
+//
+// The two are independent. How each controller works is explained in
+// guides/indexing-bulk_indexer.md#sizing-batches.
+const BulkNode = "OPENSEARCH_GO_BULK_NODE"
+
+// BulkPIDKp, BulkPIDKi and BulkPIDKd override BulkSizing.PID's Kp, Ki and Kd, the
+// gains of the PID controller that sizes each shard's buffer. Each is
+// a non-negative float, and 0 turns that term off. A value that does not parse,
+// or is negative, NaN or infinite, is ignored.
+//
+// A PID controller is the idea behind a car's cruise control: it measures how far
+// the thing it steers is from where it should be (here, how much a node has
+// slowed down) and corrects in proportion to three things. Kp, the proportional
+// gain, reacts to how far off the node is now. Ki, the integral gain, reacts to
+// how long it has been off. Kd, the derivative gain, reacts to how fast the
+// difference is changing. The defaults are 1, 0.1 and 0.25 and suit most clusters.
+//
+// guides/indexing-bulk_indexer.md#how-the-pid-controller-works explains each term
+// in plain language with graphs, and says what to watch for when changing one.
+// guides/config-envvars.md#bulk-indexer lists the variables.
+const (
+	BulkPIDKp = "OPENSEARCH_GO_BULK_PID_KP"
+	BulkPIDKi = "OPENSEARCH_GO_BULK_PID_KI"
+	BulkPIDKd = "OPENSEARCH_GO_BULK_PID_KD"
+)
+
 // DefaultClientTTL sets the idle eviction window for the process-wide cache of
 // implicit default clients. Accepts a time.ParseDuration string (e.g. "16m") or
 // a bare number interpreted as seconds ("30", "1.5"). Unset/invalid = 16m.

@@ -596,9 +596,73 @@ func handler(ctx context.Context) error {
 }
 ```
 
-`Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
+`Flush` covers the items the indexer held when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. After `Close`, `Flush` and `Add` return `ErrBulkIndexerClosed`.
+
+## `opensearchutil.BulkIndexer` interface gained `Cancel()`, `GetStats()` and `GetNodeStats()`, and `Close` waits for every item
+
+The exported `BulkIndexer` interface gained three methods in v5.1, `Cancel`, `GetStats` and `GetNodeStats`, so a type that implements the interface no longer satisfies it until it adds them:
+
+```go
+type BulkIndexer interface {
+    Add(context.Context, BulkIndexerItem) error
+    Flush(context.Context) error
+    Close(context.Context) error
+    Cancel() // new in v5.1
+    Stats() BulkIndexerStats
+    GetStats(dst *BulkIndexerStats) error // new in v5.1
+    GetNodeStats(dst []NodeStats) []NodeStats // new in v5.1
+}
+```
+
+Callers that build their indexer with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add `Cancel()`, `GetStats(*BulkIndexerStats) error` and `GetNodeStats([]NodeStats) []NodeStats` methods. A fake's `GetStats` can copy its own `BulkIndexerStats` into `*dst` and return `ErrNilStats` for a nil `dst`, and its `GetNodeStats` can return `dst[:0]`.
+
+`Cancel` stops the indexer immediately: requests in flight and retry backoff end, and every item the indexer is not yet done with fails through its own `OnError` exactly once. An item that was never sent fails with an error that matches the new `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. It does not wait and does not replace `Close`.
+
+`Close` changes in two ways that matter if you depended on the old behavior:
+
+- **`Close` blocks until the indexer is done with every item**, including requests in flight and any retry backoff, and it now escalates to `Cancel` when its own context ends. It then waits for the requests in flight to unwind and returns the context's error, so it always returns in bounded time, with `OnSuccess` or `OnError` called for every item.
+- **A `Close` whose context had already ended used to return at once**, without waiting for or failing the items the indexer still held, and an indexer stopped by the construction context could leave buffered items without a callback. Both now get their callback. If your `OnError` is not expecting `context.Canceled` or `ErrIndexerCanceled` during shutdown, add that case.
+
+The rest of the v5.1 additions are opt-in and change nothing until you set them: `BulkIndexerConfig.RetryPolicy`, `Fingerprinter`, and `Observer`, and `BulkIndexerItem.Metadata`. One exception to "nothing changes": with a `RetryPolicy` set, an item without a `DocumentID` is refused with `ErrMissingDocumentID` rather than sent. See [Bulk Indexer](guides/indexing-bulk_indexer.md).
+
+## `opensearchutil.BulkIndexer` reports errors as `*BulkError`, and `OnFailure` is now `OnError`
+
+In v5.1 every error the indexer reports for failed work is a `*opensearchutil.BulkError`, which says which layer failed (`ErrorLayer`: item, request, index or indexer) and why (`ErrorKind`: rejected, unavailable, transport, permanent or canceled), and keeps the cause. New callbacks receive it, named so that one word, "error", is used throughout. The v5.0 callbacks keep working, deprecated, so code written for v5.0 still builds and behaves as it did; move to the new names when convenient:
+
+| v5.0                                                                                      | v5.1                                                             |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `BulkIndexerItem.OnFailure func(ctx, BulkIndexerItem, opensearchapi.BulkRespItem, error)` | `BulkIndexerItem.OnError func(ctx, BulkIndexerItem, *BulkError)` |
+| `BulkIndexerConfig.OnError func(ctx, error)`                                              | `BulkIndexerConfig.OnUnhandledError func(ctx, error)`            |
+
+`OnFailure` is called only when `OnError` is nil, with the v5.0 arguments, and the config's `OnError` only when `OnUnhandledError` is nil; set the new one and the old one is ignored. In the new callback the item's response is in the error, as `err.Resp`, and `err.Status` is its status. For an item the cluster rejected, the old callback got a nil `err`; the new one gets a `*BulkError` with `Layer` `LayerItem` and the cause `err.Err` nil. `err.Resp.Error` is no longer filled in for a rejection that carries a status alone, such as a 404 delete; read `err.Status`, or `err.Error()`, which names the action, the document ID and the cluster's reason or status.
+
+```go
+// Before (v5.0)
+item.OnFailure = func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+    if err != nil {
+        log.Printf("request failed: %v", err)
+    } else {
+        log.Printf("rejected: %d %s", resp.Status, resp.Error.Type)
+    }
+}
+cfg.OnError = func(ctx context.Context, err error) { log.Print(err) }
+
+// After (v5.1)
+item.OnError = func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *opensearchutil.BulkError) {
+    if errors.Is(err, opensearchutil.ErrRequestLayer) {
+        log.Printf("request failed: %v", err)
+    } else {
+        log.Printf("rejected: %d %v", err.Status, err)
+    }
+}
+cfg.OnUnhandledError = func(ctx context.Context, err error) { log.Print(err) }
+```
+
+`RetryPolicy` and the observer follow. `RetryPolicy.Retry(attempt, scope, kind, resp, err)` is now `Retry(attempt int, err *BulkError)`; `FailureScope`, `ScopeRequest` and `ScopeItem` are `ErrorLayer`, `LayerRequest` and `LayerItem`; `FailureKind` and its values are `ErrorKind` and `KindRejected`, `KindUnavailable`, `KindTransport` and `KindPermanent`; `BulkFailureEvent` is `BulkErrorEvent`, with the error in `Err`; and `OnRequestFailure` and `OnItemFailure` are `OnRequestError` and `OnItemError`. The `osprom` metric `bulk_failures_total` is `bulk_errors_total` and the `osotel` instrument `bulk.failures` is `bulk.errors`, each with the label `layer` in place of `scope`. The retry policy, the observer and these metrics are new in v5.1, so only code written against an unreleased build is affected, and none of them has a deprecated alias.
 
 ## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
+
+In v5.1 the item callback `OnFailure` is deprecated in favor of `OnError`, and this callback in favor of `OnUnhandledError`; both still work. See [above](#opensearchutilbulkindexer-reports-errors-as-bulkerror-and-onfailure-is-now-onerror). This section describes v5.0 under its v5.0 names.
 
 When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
 
@@ -727,4 +791,29 @@ DiscoverNodesInterval: 0, // no periodic discovery
 
 // After
 DiscoverNodesInterval: -1, // no periodic discovery
+```
+
+## `opensearchutil.BulkIndexer` buffers per shard, under a memory limit
+
+The indexer keeps a buffer for each shard of the indexes it writes to and sends each buffer, as one bulk request, to the node hosting the shard, where it used to hand every item to one of `NumWorkers` workers by hashing its `DocumentID`. Three things change for code that was tuned to the old model:
+
+- **`NumWorkers` is a cap, not a pool.** It limits the bulk requests outstanding at once, and the default, 0, sets no cap beyond the ones that are always there: a shard has one request out at a time, and a node has as many as the window the transport allows its write pool. A node the transport reports no pool for, such as the one that stands for the cluster when the indexer knows no shard map, has as many as `NumWorkers`, or `GOMAXPROCS` when it is 0, which follows a container's CPU limit. If you set it to size a pool, delete it; if you set it to 1 to serialize requests, it still does.
+- **Memory is limited.** `MaxMemoryBytes` limits what the indexer holds from `Add` until the request that sends the item has finished, and `Add` waits when it is spent, or when its shard is over an even share of the limit while other shards are waiting. The limit is not a hard bound: a shard that holds nothing may always take one item, so the total can pass it by up to one item for each such shard. It defaults to `max(GOMEMLIMIT/4, 4 GiB, DefaultMaxMemoryBytes)` when the process has a Go memory limit, and to 512 MiB when it does not. A process with a Go memory limit under 16 GiB that wants the indexer held inside it sets `MaxMemoryBytes`. While other shards are waiting for room, a shard holds no more than an even share of the limit, so one slow shard makes only the callers adding to it wait.
+- **Buffer sizes follow the cluster.** `FlushBytes` is now the ceiling for a shard's buffer. A shard starts at `FlushBytes` on a node that shows no load, and at the default `InitialBytes` on one that is already rejecting or whose window was cut; an `InitialBytes` you set starts every shard at that size, loaded node or not. The indexer shrinks a shard's buffer when that shard is slower than the rest of its node. The bytes the indexer will have out to a node at once are a window that starts wide open and is cut only by a 429, to half of what was out when it arrived, so a node that is merely slow, for all its shards alike, keeps both its buffer sizes and its window. `BulkSizing{Shard: ShardFixed, Node: NodeFixed}` turns both controllers off.
+
+`opensearchutil.AddZeroCopy` sends a document from the caller's own slice instead of copying it, and gives the slice back through `Release`; see its documentation for what the caller gives up.
+
+## `opensearchutil.BulkIndexerItem.Body` is read from offset 0
+
+The indexer reads an item's `Body` from offset 0, whatever the reader's position when the item is added: to size it, to fingerprint it, and on every attempt to send it, so a retry sends the same bytes as the first attempt. It used to read from the reader's current position. Code that passes a reader already positioned at the start of the document is unaffected. Code that positions one reader at each document in turn sends the whole reader instead, and must pass a reader of only the document:
+
+```go
+// Before: one file of several documents, positioned at the one to send.
+f.Seek(offset, io.SeekStart)
+bi.Add(ctx, opensearchutil.BulkIndexerItem{Action: "index", DocumentID: id, Body: f})
+
+// After: a reader of only that document.
+bi.Add(ctx, opensearchutil.BulkIndexerItem{
+	Action: "index", DocumentID: id, Body: io.NewSectionReader(f, offset, length),
+})
 ```

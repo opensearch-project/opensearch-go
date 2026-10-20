@@ -6,6 +6,7 @@ Task-oriented guides for the OpenSearch Go client. Each guide is the canonical r
 
 - [Document Lifecycle](indexing-document_lifecycle.md) - Create, read, update, and delete individual documents.
 - [Bulk](indexing-bulk.md) - Index, update, and delete many documents in a single request.
+- [Bulk Indexer](indexing-bulk_indexer.md) - Stream documents through `opensearchutil.BulkIndexer`: batching, retries, document ids, per-item metadata, stream positions, and metrics.
 - [Search](usage-search.md) - Query an index and shape the results with search parameters.
 - [Making Raw JSON REST Requests](usage-json.md) - Reach endpoints that have no typed method yet by sending a raw JSON body.
 

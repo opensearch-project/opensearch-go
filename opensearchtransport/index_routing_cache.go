@@ -154,6 +154,12 @@ type indexShardMap struct {
 	//   IndexMetadata.java:getRoutingNumShards           -- stored per-index metadata
 	RoutingNumShards int
 
+	// Generation identifies this shard geometry (NumberOfPrimaryShards and
+	// RoutingNumShards): a merge that stores different values gives the map a new
+	// one, and a merge that keeps them keeps it. Zero only on a map built outside
+	// mergeShardMap, which reports it as unversioned.
+	Generation uint64
+
 	// Shards maps shard number -> nodes hosting that shard.
 	Shards map[int]*shardNodes
 }
@@ -227,6 +233,33 @@ func (cache *indexSlotCache) getOrCreate(indexName string) *indexSlot {
 		// Another goroutine created it first -- use theirs.
 		existing := v.(*indexSlot)
 		existing.requestDecay.increment(cache.decayFactor)
+		existing.idleSince.Store(0)
+		return existing
+	}
+
+	return slot
+}
+
+// register ensures indexName has a slot without counting a request against it,
+// and marks the slot active so idle eviction does not reclaim it while a caller
+// keeps asking about the index. Discovery populates the shard map only for
+// indexes that have a slot, and an index that is named in a bulk action line
+// rather than in the URL path never gets one from request routing, so a caller
+// that needs the index's geometry registers it here.
+func (cache *indexSlotCache) register(indexName string) *indexSlot {
+	m := cache.entries.Load()
+
+	if v, ok := m.Load(indexName); ok {
+		slot := v.(*indexSlot)
+		slot.idleSince.Store(0)
+		return slot
+	}
+
+	slot := &indexSlot{clock: realClock{}}
+	slot.fanOut.Store(int32(cache.minFanOut)) //nolint:gosec // minFanOut is bounded by config (default 1, max 32).
+
+	if v, loaded := m.LoadOrStore(indexName, slot); loaded {
+		existing := v.(*indexSlot)
 		existing.idleSince.Store(0)
 		return existing
 	}
@@ -441,12 +474,31 @@ func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
 		if slot.shardMap.CompareAndSwap(old, &indexShardMap{
 			NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
 			RoutingNumShards:      placement.RoutingNumShards,
+			Generation:            geometryGeneration(old, placement),
 			Shards:                merged,
 		}) {
 			return
 		}
 	}
 	Debug().Int("attempts", maxRetries).Msg("mergeShardMap: CAS exhausted (concurrent writer wins)")
+}
+
+// lastGeometryGeneration is the last generation given to a shard map. It is shared
+// by every slot so that a generation is never reused: a slot that is evicted and
+// created again must not look like the geometry it had before.
+var lastGeometryGeneration atomic.Uint64 //nolint:gochecknoglobals // Process-wide by design, see above.
+
+// geometryGeneration returns the generation of the map a merge of placement
+// stores over old: old's, when the shard count and the routing factor are the same
+// and old has one, and a new one when they are not.
+func geometryGeneration(old *indexShardMap, placement *indexShardPlacement) uint64 {
+	if old != nil && old.Generation != 0 &&
+		old.NumberOfPrimaryShards == placement.NumberOfPrimaryShards &&
+		old.RoutingNumShards == placement.RoutingNumShards {
+		return old.Generation
+	}
+
+	return lastGeometryGeneration.Add(1)
 }
 
 // carriesForward reports whether old contains any shard keys absent from

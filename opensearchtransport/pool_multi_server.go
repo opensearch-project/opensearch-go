@@ -545,6 +545,21 @@ func (cp *multiServerPool) URLs() []*url.URL {
 	return urls
 }
 
+// connectionByName returns the ready connection for the named node, without
+// copying the pool.
+func (cp *multiServerPool) connectionByName(name string) *Connection {
+	cp.mu.RLock()
+	defer cp.mu.RUnlock()
+
+	for _, conn := range cp.mu.ready {
+		if conn.Name == name {
+			return conn
+		}
+	}
+
+	return nil
+}
+
 func (cp *multiServerPool) connections() []*Connection {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
