@@ -31,7 +31,7 @@ import (
 //
 // Path: /{index}/_create/{id}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -231,7 +231,7 @@ func (r *CreateResp) PartialFailures(mask errmask.ErrorMask) []error {
 //
 // Path: /{index}/_create/{id}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -244,7 +244,7 @@ func (c DocumentClient) Create(ctx context.Context, req CreateReq) (*CreateResp,
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

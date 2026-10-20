@@ -29,7 +29,7 @@ import (
 //
 // Path: /{index}/_split/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -192,7 +192,7 @@ type IndicesSplitBody struct {
 //
 // Path: /{index}/_split/{target}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -205,7 +205,7 @@ func (c IndicesClient) Split(ctx context.Context, req IndicesSplitReq) (*Indices
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

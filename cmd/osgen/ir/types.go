@@ -61,10 +61,18 @@ type Operation struct {
 	ExcludedDistros   []string
 
 	// HTTPMethods lists all valid HTTP methods for this operation. The first
-	// element is always the primary method (from the primary/shortest path
-	// variant in the spec); remaining methods are sorted alphabetically.
+	// element is the primary method, which the client sends by default: PUT
+	// when every path variant allows both POST and PUT, otherwise the method of
+	// the primary/shortest path variant in the spec. Remaining methods are
+	// sorted alphabetically.
 	// For [GET, POST] operations with a body, POST is used when Body != nil.
 	HTTPMethods []string
+
+	// PutOnlyPathFields lists the path fields that only the PUT path variants
+	// carry, for operations where some variants are POST-only (e.g. ID for
+	// Index). The client switches from the primary method to PUT when every
+	// listed field is set.
+	PutOnlyPathFields []PathCaseCondition
 
 	PrimaryPath string
 	HasBody     bool

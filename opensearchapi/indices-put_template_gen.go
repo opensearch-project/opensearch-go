@@ -28,7 +28,7 @@ import (
 //
 // Path: /_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -183,7 +183,7 @@ type IndicesPutTemplateBody struct {
 //
 // Path: /_template/{name}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -196,7 +196,7 @@ func (c IndicesClient) PutTemplate(ctx context.Context, req IndicesPutTemplateRe
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err

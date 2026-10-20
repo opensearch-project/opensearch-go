@@ -1120,3 +1120,186 @@ func TestClassifyRespShape(t *testing.T) {
 		})
 	}
 }
+
+// TestExtractOperations_PutChoice runs the PUT/POST decision through a spec
+// file, so the result reaches the apiOperation and a refusal fails
+// extractOperations.
+func TestExtractOperations_PutChoice(t *testing.T) {
+	t.Parallel()
+
+	pathOp := func(params ...string) map[string]any {
+		ps := make([]any, 0, len(params))
+		for _, p := range params {
+			ps = append(ps, map[string]any{"name": p, "in": "path", "required": true, "schema": map[string]any{"type": "string"}})
+		}
+		return map[string]any{
+			"x-operation-group": "test.op",
+			"x-version-added":   "1.0",
+			"parameters":        ps,
+			"responses":         map[string]any{"200": map[string]any{"description": "OK"}},
+		}
+	}
+
+	tests := []struct {
+		name        string
+		paths       map[string]any
+		wantMethods []string
+		wantConds   []ir.PathCaseCondition
+		wantErr     string
+	}{
+		{
+			name: "every path allows PUT",
+			paths: map[string]any{
+				"/_scripts/{id}": map[string]any{"post": pathOp("id"), "put": pathOp("id")},
+			},
+			wantMethods: []string{http.MethodPut, http.MethodPost},
+		},
+		{
+			name: "PUT only with the id",
+			paths: map[string]any{
+				"/{index}/_doc":      map[string]any{"post": pathOp("index")},
+				"/{index}/_doc/{id}": map[string]any{"post": pathOp("index", "id"), "put": pathOp("index", "id")},
+			},
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+			wantConds:   []ir.PathCaseCondition{{Field: "ID"}},
+		},
+		{
+			name: "no field distinguishes the PUT paths",
+			paths: map[string]any{
+				"/{index}/_a": map[string]any{"post": pathOp("index")},
+				"/{index}/_b": map[string]any{"put": pathOp("index")},
+			},
+			wantErr: `"test.op": some paths allow PUT and others are POST-only`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			spec := writeTestSpec(t, map[string]any{
+				"openapi": "3.0.3",
+				"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+				"paths":   tt.paths,
+			})
+			ops, _, _, _, err := extractOperations(spec, map[string]bool{"test.op": true}, VersionRange{})
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, ops, 1)
+			require.Equal(t, tt.wantMethods, ops[0].HTTPMethods)
+			require.Equal(t, tt.wantConds, ops[0].PutOnlyPathFields)
+		})
+	}
+}
+
+func TestResolvePut(t *testing.T) {
+	t.Parallel()
+
+	type variant struct{ method, url string }
+	pathParams := func(url string) openapi3.Parameters {
+		matches := pathParamRE.FindAllStringSubmatch(url, -1)
+		params := make(openapi3.Parameters, 0, len(matches))
+		for _, m := range matches {
+			params = append(params, &openapi3.ParameterRef{Value: openapi3.NewPathParameter(m[1])})
+		}
+		return params
+	}
+
+	tests := []struct {
+		name        string
+		variants    []variant
+		methods     []string
+		isNDJSON    bool
+		wantMethods []string
+		wantConds   []ir.PathCaseCondition
+		wantErr     bool
+	}{
+		{
+			name:        "every path allows PUT",
+			variants:    []variant{{"POST", "/_scripts/{id}"}, {"PUT", "/_scripts/{id}"}},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodPut, http.MethodPost},
+		},
+		{
+			name: "PUT only on paths with a distinguishing field",
+			variants: []variant{
+				{"POST", "/{index}/_doc"},
+				{"POST", "/{index}/_doc/{id}"},
+				{"PUT", "/{index}/_doc/{id}"},
+			},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+			wantConds:   []ir.PathCaseCondition{{Field: "ID"}},
+		},
+		{
+			name: "field on only some PUT paths does not distinguish them",
+			variants: []variant{
+				{"POST", "/{index}/_c"},
+				{"PUT", "/_b/{x}/{id}"},
+				{"PUT", "/{index}/_a/{id}"},
+			},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+			wantConds:   []ir.PathCaseCondition{{Field: "ID"}},
+		},
+		{
+			name: "no field distinguishes the PUT paths",
+			variants: []variant{
+				{"POST", "/{index}/_a"},
+				{"PUT", "/{index}/_b"},
+			},
+			methods: []string{http.MethodPost, http.MethodPut},
+			wantErr: true,
+		},
+		{
+			name:        "NDJSON keeps spec order",
+			variants:    []variant{{"POST", "/_bulk"}, {"PUT", "/_bulk"}},
+			methods:     []string{http.MethodPost, http.MethodPut},
+			isNDJSON:    true,
+			wantMethods: []string{http.MethodPost, http.MethodPut},
+		},
+		{
+			name:        "GET alternative keeps spec order",
+			variants:    []variant{{"GET", "/_x"}, {"POST", "/_x"}, {"PUT", "/_x"}},
+			methods:     []string{http.MethodGet, http.MethodPost, http.MethodPut},
+			wantMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut},
+		},
+		{
+			name:        "POST only",
+			variants:    []variant{{"POST", "/_x"}},
+			methods:     []string{http.MethodPost},
+			wantMethods: []string{http.MethodPost},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ops := make([]struct {
+				method string
+				op     *openapi3.Operation
+				path   *openapi3.PathItem
+				url    string
+			}, 0, len(tt.variants))
+			for _, v := range tt.variants {
+				ops = append(ops, struct {
+					method string
+					op     *openapi3.Operation
+					path   *openapi3.PathItem
+					url    string
+				}{v.method, &openapi3.Operation{Parameters: pathParams(v.url)}, &openapi3.PathItem{}, v.url})
+			}
+
+			methods, conds, err := resolvePut("test.op", ops, tt.methods, tt.isNDJSON)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethods, methods)
+			require.Equal(t, tt.wantConds, conds)
+		})
+	}
+}

@@ -27,7 +27,7 @@ import (
 //
 // Path: /_scripts/{id}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -158,7 +158,7 @@ type PutScriptBody struct {
 //
 // Path: /_scripts/{id}
 //
-// Methods: POST, PUT
+// Methods: PUT, POST
 //
 // Available: >= 1.0.0.
 //
@@ -171,7 +171,7 @@ func (c Client) PutScript(ctx context.Context, req PutScriptReq) (*PutScriptResp
 	if data.response, err = request(
 		ctx,
 		&c,
-		http.MethodPost,
+		http.MethodPut,
 		req, &data,
 	); err != nil {
 		return &data, err
