@@ -25,11 +25,13 @@ jobs:
       # Blocking: fail the build only on genuinely broken links (4xx/5xx,
       # DNS failures, timeouts). Redirects are accepted here so a moved link
       # does not break CI on its own -- the pass below surfaces those.
+      # CHANGELOG compare links are excluded: a release PR adds one for a tag
+      # that is only created after the PR merges.
       - name: Check for broken links
         id: lychee-broken
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
+          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg" --exclude "^https://github.com/opensearch-project/opensearch-go/compare/"
           fail: true
           jobSummary: true
         env:
@@ -49,7 +51,7 @@ jobs:
         if: always()
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --accept=200,206,302,307,403,429 --max-redirects=0 --max-retries=3 --retry-wait-time=10 --exclude-path LICENSE.txt --exclude-path NOTICE.txt "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
+          args: --accept=200,206,302,307,403,429 --max-redirects=0 --max-retries=3 --retry-wait-time=10 --exclude-path LICENSE.txt --exclude-path NOTICE.txt "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg" --exclude "^https://github.com/opensearch-project/opensearch-go/compare/"
           fail: false
           jobSummary: true
           output: lychee/redirects.md
