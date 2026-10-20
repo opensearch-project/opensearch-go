@@ -108,6 +108,17 @@ A local workspace resolves a nested module against the checkout no matter what i
 
 A pull request can add a root API and a nested module that uses it, with the nested module requiring the root version that will ship it. Until that version is tagged the nested module cannot resolve standalone, so label the pull request `pending-next-release`. CI then runs `make workspace` before the unit, integration and compatibility tests, benchmarks and nested-module lint, and skips `make check-modules-standalone`. Adding the label does not start a run, and re-running a job does not see it either: a re-run reuses the labels of the event that started it. Push a commit, or close and reopen the pull request, to start a run that does. [RELEASING.md](RELEASING.md#nested-modules) covers tagging a release whose nested modules require it.
 
+Such a module's `go.sum` cannot hold the untagged root version's checksum, but the rest of it must still be current: the workspace build does not read it, so a stale entry passes CI and breaks the module once it is built standalone. When the module's dependencies change, tidy it against the checkout with the root replaced, then drop the replace, keeping the `go.sum`:
+
+```sh
+cd osprom
+go mod edit -replace=github.com/opensearch-project/opensearch-go/v5@v5.1.0=../
+GOWORK=off go mod tidy
+go mod edit -dropreplace=github.com/opensearch-project/opensearch-go/v5@v5.1.0
+```
+
+Replace `v5.1.0` with the root version the module requires.
+
 The nested modules declare their path with the major-version suffix last (`github.com/opensearch-project/opensearch-go/osprom/v5`), because Go reads a `/vN` element as a major version only as the final path element. A path like `.../v5/osprom` leaves the module at `v0`/`v1` and unresolvable from the proxy.
 
 ### Unit Testing
