@@ -18,6 +18,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+## [5.1.1]
+
+### Fixed
+
+- Fixed go.mod / go.sum for submodules
+
 ## [5.1.0]
 
 ### Added
