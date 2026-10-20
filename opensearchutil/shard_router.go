@@ -66,9 +66,8 @@ type ShardTarget struct {
 	// is recreated, split or shrunk, and it is otherwise stable, whichever node
 	// hosts the shard. The indexer compares it from one lookup to the next to know
 	// that a document may no longer belong to the shard its earlier actions went
-	// to, and sends what it holds for the index before it places another. A router
-	// that cannot tell reports 0, which the indexer treats as unversioned and never
-	// as a change.
+	// to; see [BulkIndexer] for what it then does. A router that cannot tell reports
+	// 0, which the indexer treats as unversioned and never as a change.
 	Generation uint64
 }
 

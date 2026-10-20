@@ -10,6 +10,7 @@ package opensearchutil
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -89,51 +90,46 @@ func requireSequence(t *testing.T, server *fakeServer, want ...int) {
 	require.Equal(t, want, got)
 }
 
-// TestBulkIndexerKeepsOrderWhenTheShardMapIsLost: a document's first action is in
-// flight when the router stops answering for its index. The next action on the
-// document would join the unordered buffers, which do not wait for a shard's
-// request, so it waits for the shard's requests instead.
-func TestBulkIndexerKeepsOrderWhenTheShardMapIsLost(t *testing.T) {
-	t.Parallel()
-
-	h := newHeldRequest(t, DefaultShardMap(8))
-	addDoc(t, h.bi, "idx", "x", 1)
-	<-h.server.entered
-
-	h.cluster.setUnknown("idx", true)
-	second := addAsync(h.bi, secondAction("x"))
-
-	h.requireHeldBack(t)
-	h.release()
-	require.NoError(t, <-second)
-	require.NoError(t, h.bi.Close(t.Context()))
-
-	requireSequence(t, h.server, 1, 2)
-}
-
-// TestBulkIndexerKeepsOrderWhenTheShardGeometryChanges: the index is recreated with
-// fewer shards while a document's first action is in flight. The document may now
-// belong to another shard, whose buffer does not wait for the first action's, so the
-// next action waits for the old shards' requests.
-func TestBulkIndexerKeepsOrderWhenTheShardGeometryChanges(t *testing.T) {
+// TestBulkIndexerKeepsOrderWhenTheShardMapChanges: a document's first action is in
+// flight, and its second is sealed and queued behind it, when the router reports a
+// new geometry for the index or stops answering for it. The document may now belong
+// to another shard, or to the unordered buffers, neither of which waits for the old
+// shard's requests, so the third action waits for both of them instead. Neither of
+// the first two fails for the change.
+func TestBulkIndexerKeepsOrderWhenTheShardMapChanges(t *testing.T) {
 	t.Parallel()
 
 	before, after := DefaultShardMap(8), DefaultShardMap(4)
 	id := documentOnDifferentShards(t, before, after)
 
-	h := newHeldRequest(t, before)
-	addDoc(t, h.bi, "idx", id, 1)
-	<-h.server.entered
+	tests := []struct {
+		name   string
+		change func(c *fakeCluster)
+	}{
+		{name: "the geometry changes", change: func(c *fakeCluster) { c.setShardMap("idx", after) }},
+		{name: "the router stops answering", change: func(c *fakeCluster) { c.setUnknown("idx", true) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	h.cluster.setShardMap("idx", after)
-	second := addAsync(h.bi, secondAction(id))
+			h := newHeldRequest(t, before)
+			addDoc(t, h.bi, "idx", id, 1)
+			<-h.server.entered
+			addDoc(t, h.bi, "idx", id, 2)
 
-	h.requireHeldBack(t)
-	h.release()
-	require.NoError(t, <-second)
-	require.NoError(t, h.bi.Close(t.Context()))
+			tt.change(h.cluster)
+			third := addAsync(h.bi, BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: id, Body: seqBody(3)})
 
-	requireSequence(t, h.server, 1, 2)
+			h.requireHeldBack(t)
+			h.release()
+			require.NoError(t, <-third)
+			require.NoError(t, h.bi.Close(t.Context()))
+
+			requireSequence(t, h.server, 1, 2, 3)
+			require.Zero(t, h.bi.Stats().NumFailed, "a change in the shard map fails nothing")
+		})
+	}
 }
 
 // documentOnDifferentShards returns a document id that belongs to a different shard
@@ -204,8 +200,154 @@ func TestBulkIndexerSendsBufferedItemsWhenTheShardMapChanges(t *testing.T) {
 	}
 }
 
+// documentOnOtherShard returns a document id whose shard under m is none of taken.
+func documentOnOtherShard(t *testing.T, m ShardMap, taken ...int) string {
+	t.Helper()
+
+	for i := range 1000 {
+		id := "other-" + string(rune('a'+i%26)) + string(rune('a'+i/26%26))
+		if !slices.Contains(taken, m.Shard(id)) {
+			return id
+		}
+	}
+	t.Fatal("no document id maps to a free shard")
+
+	return ""
+}
+
+// TestBulkIndexerKeepsOrderWhenAnAddWaitingForMemorySpansAChange: a document's
+// second action is placed under the old geometry and then waits for memory, while
+// an Add for another document finds the geometry changed and waits out the index's
+// buffers. When the memory comes back the second action must not join a buffer of
+// the old shard that nothing waited for: the document's third action, placed under
+// the new geometry, would not wait for it either, and could reach the server first.
+// The memory may come back after the change is recorded, or while it still waits
+// on another of the index's buffers.
+func TestBulkIndexerKeepsOrderWhenAnAddWaitingForMemorySpansAChange(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// heldElsewhere keeps a buffer of another shard of the index out, so that the
+		// change is still being waited out when the second action gets its memory.
+		heldElsewhere bool
+	}{
+		{name: "the memory comes back once the change is recorded"},
+		{name: "the memory comes back while the change is waited out", heldElsewhere: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			before, after := DefaultShardMap(8), DefaultShardMap(4)
+			x := documentOnDifferentShards(t, before, after)
+			z := documentOnOtherShard(t, before, before.Shard(x))
+			y := documentOnOtherShard(t, after, before.Shard(x), after.Shard(x), before.Shard(z))
+
+			cluster := newFakeCluster(map[string]ShardMap{"idx": before}, "n0")
+			cluster.setShardMap("idx", before)
+			server := newFakeServer(cluster)
+
+			firstHeld, elsewhereHeld := make(chan struct{}), make(chan struct{})
+			thirdArrived := make(chan struct{})
+			var thirdOnce sync.Once
+			var secondAnswered, overtaken atomic.Bool
+			server.advance = func(r sentRequest) {
+				for _, a := range r.actions {
+					switch {
+					case a.meta.DocumentID == z:
+						<-elsewhereHeld
+					case a.meta.DocumentID != x:
+					case a.seq == 1:
+						<-firstHeld
+					case a.seq == 2:
+						// A third action that does not wait for this one gets the time to
+						// reach the server before this one is answered.
+						select {
+						case <-thirdArrived:
+						case <-time.After(time.Second):
+						}
+						secondAnswered.Store(true)
+					case a.seq == 3:
+						overtaken.Store(!secondAnswered.Load())
+						thirdOnce.Do(func() { close(thirdArrived) })
+					}
+				}
+			}
+
+			itemBytes := docBytes("idx", x, 1)
+			oneItem := itemHeldBytes(BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: x, Body: seqBody(1)}, itemBytes)
+			cfg := fixedBatches(itemBytes, 1)
+			// The second action on x waits while the first is out, and gets its memory
+			// back when the first is answered, whether or not z's is.
+			cfg.MaxMemoryBytes = int(oneItem)
+			if tt.heldElsewhere {
+				cfg.MaxMemoryBytes = int(2 * oneItem)
+			}
+			bi := newClusterIndexer(t, server, cfg).(*bulkIndexer)
+
+			blocked := make(chan struct{}, 4)
+			relieve := bi.budget.onBlock
+			bi.budget.onBlock = func() {
+				relieve()
+				blocked <- struct{}{}
+			}
+
+			addDoc(t, bi, "idx", x, 1)
+			if tt.heldElsewhere {
+				addDoc(t, bi, "idx", z, 20)
+			}
+			second := addAsync(bi, BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: x, Body: seqBody(2)})
+			receive(t, blocked)
+
+			cluster.setShardMap("idx", after)
+			other := addAsync(bi, BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: y, Body: seqBody(10)})
+			require.Eventually(t, func() bool {
+				if bi.placement.TryLock() {
+					bi.placement.Unlock()
+
+					return false
+				}
+
+				return true
+			}, 10*time.Second, time.Millisecond, "the Add for the other document waits out the index's buffers")
+
+			close(firstHeld)
+			// An order-keeping second action waits for the change, which waits for z;
+			// one that does not is queued while z is still out.
+			secondErr, secondDone := error(nil), false
+			select {
+			case secondErr = <-second:
+				secondDone = true
+			case <-time.After(time.Second):
+			}
+			close(elsewhereHeld)
+			if !secondDone {
+				secondErr = <-second
+			}
+			require.NoError(t, secondErr)
+			require.NoError(t, <-other)
+			addDoc(t, bi, "idx", x, 3)
+			require.NoError(t, bi.Close(t.Context()))
+
+			var got []int
+			for _, r := range server.requests() {
+				for _, a := range r.actions {
+					if a.meta.DocumentID == x {
+						got = append(got, a.seq)
+					}
+				}
+			}
+			require.False(t, overtaken.Load(), "the third action on x reached the server before the second was answered")
+			require.Equal(t, []int{1, 2, 3}, got, "the actions on x reach the server in the order they were added")
+			require.Zero(t, bi.Stats().NumFailed)
+		})
+	}
+}
+
 // TestBulkIndexerIgnoresAChangeAnUnversionedRouterReports: a router that reports
-// generation 0 cannot say the geometry changed, so nothing is aborted.
+// generation 0 cannot say the geometry changed, so the next Add does not wait out
+// the index's buffers: the first item is still buffered when it returns.
 func TestBulkIndexerIgnoresAChangeAnUnversionedRouterReports(t *testing.T) {
 	t.Parallel()
 
@@ -213,21 +355,20 @@ func TestBulkIndexerIgnoresAChangeAnUnversionedRouterReports(t *testing.T) {
 	server := newFakeServer(cluster)
 	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
 
-	var failed atomic.Int64
-	onFailure := func(context.Context, BulkIndexerItem, *BulkError) { failed.Add(1) }
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1), OnError: onFailure,
+		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1),
 	}))
 
 	cluster.mu.Lock()
 	cluster.mu.maps["idx"] = DefaultShardMap(4) // Still generation 0.
 	cluster.mu.Unlock()
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Index: "idx", Action: actionIndex, DocumentID: "b", Body: seqBody(2), OnError: onFailure,
+		Index: "idx", Action: actionIndex, DocumentID: "b", Body: seqBody(2),
 	}))
+	require.Empty(t, server.requests(), "no change was detected, so nothing was sent to wait on")
 
 	require.NoError(t, bi.Close(t.Context()))
-	require.Zero(t, failed.Load())
+	require.Zero(t, bi.Stats().NumFailed)
 }
 
 // TestBulkIndexerKeepsOrderWhenAShardRelocates: the node hosting a shard changes

@@ -285,6 +285,9 @@ type scheduler struct {
 	// lastByID maps the id of a document that belongs to no shard to the buffer it
 	// was last added to, for as long as that buffer has not finished.
 	lastByID map[string]*buffer
+	// draining holds the indexes whose buffers a placementChanged is waiting out,
+	// from sealIndex until it has recorded the new placement; see endDrain.
+	draining map[string]struct{}
 	// sealedPending counts buffers that are sealed and not complete.
 	sealedPending int
 	// sink is the node unrouted documents are being filled into.
@@ -302,6 +305,7 @@ func newScheduler(bi *bulkIndexer) *scheduler {
 		live:   make(map[*buffer]struct{}),
 
 		lastByID: make(map[string]*buffer),
+		draining: make(map[string]struct{}),
 	}
 }
 
@@ -718,9 +722,15 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 // those shards that is not complete, for the caller to wait on. Each is sent in its
 // shard's order, after the shard's earlier request has been answered. Buffers of
 // documents that belong to no shard are not touched.
+//
+// It marks the index as draining until endDrain, so that an Add placed before the
+// change, and queued only after this, is turned back to be placed again instead of
+// opening a buffer the caller does not wait for; see bulkIndexer.placementCurrent.
 func (s *scheduler) sealIndex(index string) []*buffer {
 	s.Lock()
 	defer s.Unlock()
+
+	s.draining[index] = struct{}{}
 
 	var pending []*buffer
 	for b := range s.live {
@@ -735,6 +745,14 @@ func (s *scheduler) sealIndex(index string) []*buffer {
 	}
 
 	return pending
+}
+
+// endDrain ends what sealIndex began, once the new placement of index is recorded.
+func (s *scheduler) endDrain(index string) {
+	s.Lock()
+	defer s.Unlock()
+
+	delete(s.draining, index)
 }
 
 // relieve runs when an Add starts waiting for memory. The job's memory comes back

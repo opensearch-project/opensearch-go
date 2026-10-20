@@ -1167,48 +1167,60 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 		return bi.refuse(ctx, item, err)
 	}
 
-	key, node, err := bi.place(ctx, item)
-	if err != nil {
-		return bi.addFailed(ctx, err)
-	}
-
-	// Take the bytes before the item is queued, so a stalled cluster stops the
-	// caller here and not at an ever-growing set of batches.
 	size := estimateItemBytesWithBody(item, item.bodyBytes)
-	held := itemHeldBytes(item, size)
 
-	budgetKey := unplacedKey()
-	if key != nil {
-		budgetKey = *key
-	}
-
-	held, err = bi.budget.acquire(ctx, bi.workersDone(), budgetKey, held)
-	if err != nil {
-		if bi.canceled() && errors.Is(err, errBudgetStopped) {
-			return bi.refuse(ctx, item, ErrIndexerCanceled)
+	for {
+		key, node, generation, err := bi.place(ctx, item)
+		if err != nil {
+			return bi.addFailed(ctx, err)
 		}
 
-		return bi.addFailed(ctx, err)
-	}
+		budgetKey := unplacedKey()
+		if key != nil {
+			budgetKey = *key
+		}
 
-	bi.sched.Lock()
-	if bi.sched.closed {
+		// Take the bytes before the item is queued, so a stalled cluster stops the
+		// caller here and not at an ever-growing set of batches.
+		held, err := bi.budget.acquire(ctx, bi.workersDone(), budgetKey, itemHeldBytes(item, size))
+		if err != nil {
+			if bi.canceled() && errors.Is(err, errBudgetStopped) {
+				return bi.refuse(ctx, item, ErrIndexerCanceled)
+			}
+
+			return bi.addFailed(ctx, err)
+		}
+
+		bi.sched.Lock()
+		if bi.sched.closed {
+			bi.sched.Unlock()
+			bi.budget.release(budgetKey, held)
+
+			return ErrBulkIndexerClosed
+		}
+		if key != nil && !bi.placementCurrent(key.index, generation) {
+			// The index's placement changed while the item waited for memory. Wait
+			// for the change to be dealt with, so as not to spin while it is, and
+			// place the item again.
+			bi.sched.Unlock()
+			bi.budget.release(budgetKey, held)
+			bi.placement.Lock()
+			bi.placement.Unlock() //nolint:staticcheck // An empty critical section: the wait is the point.
+
+			continue
+		}
+		bi.sched.add(item, size, held, key, node, bi.orderKey(item))
 		bi.sched.Unlock()
-		bi.budget.release(budgetKey, held)
 
-		return ErrBulkIndexerClosed
+		bi.stats.numAdded.Add(1)
+		if key != nil {
+			bi.stats.numGroupedItems.Add(1)
+		} else {
+			bi.stats.numUngroupedItems.Add(1)
+		}
+
+		return nil
 	}
-	bi.sched.add(item, size, held, key, node, bi.orderKey(item))
-	bi.sched.Unlock()
-
-	bi.stats.numAdded.Add(1)
-	if key != nil {
-		bi.stats.numGroupedItems.Add(1)
-	} else {
-		bi.stats.numUngroupedItems.Add(1)
-	}
-
-	return nil
 }
 
 // refuse fails an item that was taken from the caller but will not be queued:
@@ -1244,15 +1256,16 @@ func (bi *bulkIndexer) addFailed(ctx context.Context, err error) error {
 	return err
 }
 
-// place finds the shard an item belongs to and the node that hosts it. The chain
-// is nil, and the item is unplaced, when the indexer cannot say: no index, no
-// routing value, or no shard map for the index.
+// place finds the shard an item belongs to and the node that hosts it, and the
+// generation of the index's placement that answer belongs to, for
+// placementCurrent. The chain is nil, and the item is unplaced, when the indexer
+// cannot say: no index, no routing value, or no shard map for the index.
 //
 // The server's own order for the routing value: a routing value on the action
 // line, else the ?routing= of the request, which is only a default for actions
 // that carry none, else the document ID. An action with none of them gets a
 // generated ID and lands on a random shard.
-func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardKey, Node, error) {
+func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardKey, Node, uint64, error) {
 	index := item.Index
 	if index == "" {
 		index = bi.config.Index
@@ -1269,7 +1282,7 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 	}
 
 	if index == "" || routing == "" {
-		return nil, Node{}, nil
+		return nil, Node{}, 0, nil
 	}
 
 	target, ok := bi.router.LookupShard(index, routing)
@@ -1284,26 +1297,45 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 		// unordered buffers this item now joins do not wait for, are dealt with first.
 		if _, known := bi.placedGeneration(index); known {
 			if err := bi.placementChanged(ctx, index, 0, true); err != nil {
-				return nil, Node{}, err
+				return nil, Node{}, 0, err
 			}
 		}
 
-		return nil, Node{}, nil
+		return nil, Node{}, 0, nil
 	}
 
 	placed, known := bi.placedGeneration(index)
 	switch {
 	case !known:
 		if err := bi.firstPlacement(ctx, index, target.Generation); err != nil {
-			return nil, Node{}, err
+			return nil, Node{}, 0, err
 		}
+		placed = target.Generation
 	case geometryChanged(placed, target.Generation):
 		if err := bi.placementChanged(ctx, index, target.Generation, false); err != nil {
-			return nil, Node{}, err
+			return nil, Node{}, 0, err
 		}
+		placed = target.Generation
 	}
 
-	return &shardKey{index: index, shard: target.Shard}, target.Node, nil
+	return &shardKey{index: index, shard: target.Shard}, target.Node, placed, nil
+}
+
+// placementCurrent reports whether an item placed for index at generation, the
+// generation place returned with it, may join its shard's buffers. It may not while
+// a placementChanged is waiting out the index's buffers, since it would open one
+// that is not waited for, nor once the placement has moved on from generation,
+// since the index's later items no longer wait for that shard: in either case the
+// item is placed again. Called with the scheduler's lock held, which sealIndex and
+// endDrain take, so an item is either among the buffers a placementChanged waits
+// for or turned back.
+func (bi *bulkIndexer) placementCurrent(index string, generation uint64) bool {
+	if _, draining := bi.sched.draining[index]; draining {
+		return false
+	}
+	placed, known := bi.placedGeneration(index)
+
+	return known && placed == generation
 }
 
 // firstPlacement records that the router knows index. Before that an index may
@@ -1376,7 +1408,9 @@ func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, gener
 		return nil
 	}
 
-	for _, b := range bi.sched.sealIndex(index) {
+	pending := bi.sched.sealIndex(index)
+	defer bi.sched.endDrain(index)
+	for _, b := range pending {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

@@ -72,7 +72,7 @@ func TestBulkIndexerPlaceUsesTheServersRoutingOrder(t *testing.T) {
 				Routing: tt.defaultRout, FlushInterval: time.Hour,
 			}).(*bulkIndexer)
 
-			key, node, err := bi.place(t.Context(), tt.item)
+			key, node, _, err := bi.place(t.Context(), tt.item)
 			require.NoError(t, err)
 
 			if tt.unplaced {
