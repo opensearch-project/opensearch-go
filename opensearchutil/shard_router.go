@@ -60,14 +60,13 @@ type ShardTarget struct {
 	// known, in which case the indexer sends the document's batch to the node it
 	// chooses.
 	Node Node
-	// Generation identifies the shard geometry the router placed the document
-	// with: the shard count and the routing factor that decide which shard a
-	// routing value belongs to. It changes when the geometry does, as when an index
-	// is recreated, split or shrunk, and it is otherwise stable, whichever node
-	// hosts the shard. The indexer compares it from one lookup to the next to know
-	// that a document may no longer belong to the shard its earlier actions went
-	// to; see [BulkIndexer] for what it then does. A router that cannot tell reports
-	// 0, which the indexer treats as unversioned and never as a change.
+	// Generation identifies the shard geometry behind this answer: the shard count
+	// and routing factor that map a routing value to a shard. It changes when the
+	// geometry does, as when an index is recreated, split or shrunk, and not when a
+	// shard moves to another node. The indexer compares it between lookups to tell
+	// when a document's earlier actions may be on a different shard; see
+	// [BulkIndexer]. A router that cannot tell returns 0, and the indexer then
+	// never treats its answers as a change.
 	Generation uint64
 }
 

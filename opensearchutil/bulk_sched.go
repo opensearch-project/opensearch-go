@@ -286,8 +286,9 @@ type scheduler struct {
 	// was last added to, for as long as that buffer has not finished.
 	lastByID map[string]*buffer
 	// draining holds the indexes whose buffers a placementChanged is waiting out,
-	// from sealIndex until it has recorded the new placement; see endDrain.
-	draining map[string]struct{}
+	// from sealIndex until it has recorded the new placement. Each channel is closed
+	// by endDrain, when the index's shards have quiesced.
+	draining map[string]chan struct{}
 	// sealedPending counts buffers that are sealed and not complete.
 	sealedPending int
 	// sink is the node unrouted documents are being filled into.
@@ -305,7 +306,7 @@ func newScheduler(bi *bulkIndexer) *scheduler {
 		live:   make(map[*buffer]struct{}),
 
 		lastByID: make(map[string]*buffer),
-		draining: make(map[string]struct{}),
+		draining: make(map[string]chan struct{}),
 	}
 }
 
@@ -725,12 +726,13 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 //
 // It marks the index as draining until endDrain, so that an Add placed before the
 // change, and queued only after this, is turned back to be placed again instead of
-// opening a buffer the caller does not wait for; see bulkIndexer.placementCurrent.
+// opening a buffer the caller does not wait for; see bulkIndexer.validShardPlacement.
+// The placement lock the caller holds keeps one drain at a time.
 func (s *scheduler) sealIndex(index string) []*buffer {
 	s.Lock()
 	defer s.Unlock()
 
-	s.draining[index] = struct{}{}
+	s.draining[index] = make(chan struct{})
 
 	var pending []*buffer
 	for b := range s.live {
@@ -747,12 +749,16 @@ func (s *scheduler) sealIndex(index string) []*buffer {
 	return pending
 }
 
-// endDrain ends what sealIndex began, once the new placement of index is recorded.
+// endDrain ends what sealIndex began, once the new placement of index is recorded,
+// and wakes the Adds that were turned back while the index drained.
 func (s *scheduler) endDrain(index string) {
 	s.Lock()
 	defer s.Unlock()
 
-	delete(s.draining, index)
+	if quiesced, ok := s.draining[index]; ok {
+		close(quiesced)
+		delete(s.draining, index)
+	}
 }
 
 // relieve runs when an Add starts waiting for memory. The job's memory comes back

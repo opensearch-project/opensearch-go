@@ -419,3 +419,36 @@ func TestBulkIndexerKeepsOrderWhenTheShardsNodeDisappears(t *testing.T) {
 	requireSequence(t, h.server, 1, 2)
 	require.Zero(t, h.server.overlaps())
 }
+
+// TestWaitQuiesced: an Add turned back while its index drains waits for the drain to
+// end, and gives up when its own context ends first.
+func TestWaitQuiesced(t *testing.T) {
+	t.Parallel()
+
+	closed := make(chan struct{})
+	close(closed)
+
+	tests := []struct {
+		name     string
+		canceled bool
+		quiesced <-chan struct{}
+		wantErr  error
+	}{
+		{name: "the index is not draining"},
+		{name: "the drain has ended", quiesced: closed},
+		{name: "the context ends while the index drains", canceled: true, quiesced: make(chan struct{}), wantErr: context.Canceled},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tt.canceled {
+				cancel()
+			}
+
+			require.ErrorIs(t, waitQuiesced(ctx, tt.quiesced), tt.wantErr)
+		})
+	}
+}

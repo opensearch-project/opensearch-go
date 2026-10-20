@@ -1180,8 +1180,9 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 			budgetKey = *key
 		}
 
-		// Take the bytes before the item is queued, so a stalled cluster stops the
-		// caller here and not at an ever-growing set of batches.
+		// Allocate the item's bytes from the memory budget before it is queued, so a
+		// stalled cluster stops the caller here and not at an ever-growing set of
+		// batches.
 		held, err := bi.budget.acquire(ctx, bi.workersDone(), budgetKey, itemHeldBytes(item, size))
 		if err != nil {
 			if bi.canceled() && errors.Is(err, errBudgetStopped) {
@@ -1198,16 +1199,18 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 
 			return ErrBulkIndexerClosed
 		}
-		if key != nil && !bi.placementCurrent(key.index, generation) {
-			// The index's placement changed while the item waited for memory. Wait
-			// for the change to be dealt with, so as not to spin while it is, and
-			// place the item again.
-			bi.sched.Unlock()
-			bi.budget.release(budgetKey, held)
-			bi.placement.Lock()
-			bi.placement.Unlock() //nolint:staticcheck // An empty critical section: the wait is the point.
+		if key != nil {
+			if quiesced, valid := bi.validShardPlacement(key.index, generation); !valid {
+				// The index's placement changed while the item waited for memory. Wait
+				// for the shard to quiesce, then place the item again.
+				bi.sched.Unlock()
+				bi.budget.release(budgetKey, held)
+				if err := waitQuiesced(ctx, quiesced); err != nil {
+					return bi.addFailed(ctx, err)
+				}
 
-			continue
+				continue
+			}
 		}
 		bi.sched.add(item, size, held, key, node, bi.orderKey(item))
 		bi.sched.Unlock()
@@ -1258,7 +1261,7 @@ func (bi *bulkIndexer) addFailed(ctx context.Context, err error) error {
 
 // place finds the shard an item belongs to and the node that hosts it, and the
 // generation of the index's placement that answer belongs to, for
-// placementCurrent. The chain is nil, and the item is unplaced, when the indexer
+// validShardPlacement. The chain is nil, and the item is unplaced, when the indexer
 // cannot say: no index, no routing value, or no shard map for the index.
 //
 // The server's own order for the routing value: a routing value on the action
@@ -1295,7 +1298,7 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 		// A shard map that was known and is gone is unknown again, and the next
 		// answer will need the same drain. The documents of its shards, which the
 		// unordered buffers this item now joins do not wait for, are dealt with first.
-		if _, known := bi.placedGeneration(index); known {
+		if _, known := bi.shardMapGeneration(index); known {
 			if err := bi.placementChanged(ctx, index, 0, true); err != nil {
 				return nil, Node{}, 0, err
 			}
@@ -1304,7 +1307,7 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 		return nil, Node{}, 0, nil
 	}
 
-	placed, known := bi.placedGeneration(index)
+	placed, known := bi.shardMapGeneration(index)
 	switch {
 	case !known:
 		if err := bi.firstPlacement(ctx, index, target.Generation); err != nil {
@@ -1321,21 +1324,38 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 	return &shardKey{index: index, shard: target.Shard}, target.Node, placed, nil
 }
 
-// placementCurrent reports whether an item placed for index at generation, the
+// validShardPlacement reports whether an item placed for index at generation, the
 // generation place returned with it, may join its shard's buffers. It may not while
 // a placementChanged is waiting out the index's buffers, since it would open one
 // that is not waited for, nor once the placement has moved on from generation,
 // since the index's later items no longer wait for that shard: in either case the
-// item is placed again. Called with the scheduler's lock held, which sealIndex and
-// endDrain take, so an item is either among the buffers a placementChanged waits
-// for or turned back.
-func (bi *bulkIndexer) placementCurrent(index string, generation uint64) bool {
-	if _, draining := bi.sched.draining[index]; draining {
-		return false
+// item is placed again. While the index drains it also returns the channel that is
+// closed when its shards have quiesced, for the item to wait on first; nil when
+// there is nothing to wait for. Called with the scheduler's lock held, which
+// sealIndex and endDrain take, so an item is either among the buffers a
+// placementChanged waits for or turned back.
+func (bi *bulkIndexer) validShardPlacement(index string, generation uint64) (<-chan struct{}, bool) {
+	if quiesced, draining := bi.sched.draining[index]; draining {
+		return quiesced, false
 	}
-	placed, known := bi.placedGeneration(index)
+	placed, known := bi.shardMapGeneration(index)
 
-	return known && placed == generation
+	return nil, known && placed == generation
+}
+
+// waitQuiesced waits for quiesced to close, or for ctx to end. A nil quiesced
+// means the index is not draining, and there is nothing to wait for.
+func waitQuiesced(ctx context.Context, quiesced <-chan struct{}) error {
+	if quiesced == nil {
+		return nil
+	}
+
+	select {
+	case <-quiesced:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // firstPlacement records that the router knows index. Before that an index may
@@ -1370,9 +1390,9 @@ func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string, generat
 	return nil
 }
 
-// placedGeneration returns the generation the router placed index with, and whether
-// it has placed it at all.
-func (bi *bulkIndexer) placedGeneration(index string) (uint64, bool) {
+// shardMapGeneration returns the generation of the shard map the indexer placed
+// index's documents with, and whether it has placed any yet.
+func (bi *bulkIndexer) shardMapGeneration(index string) (uint64, bool) {
 	v, known := bi.placement.known.Load(index)
 	generation, _ := v.(uint64)
 
@@ -1403,7 +1423,7 @@ func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, gener
 	defer bi.placement.Unlock()
 
 	// Another Add may have dealt with the change while this one waited.
-	placed, known := bi.placedGeneration(index)
+	placed, known := bi.shardMapGeneration(index)
 	if !known || (!lost && !geometryChanged(placed, generation)) {
 		return nil
 	}
