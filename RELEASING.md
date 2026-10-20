@@ -32,79 +32,62 @@ Repositories create consistent release labels, such as `v1.0.0`, `v1.1.0` and `v
 
 ## Releasing
 
-The release process is standard across repositories in this org and is run by a release manager volunteering from amongst [MAINTAINERS](MAINTAINERS.md).
+The release process is run by a release manager volunteering from amongst [MAINTAINERS](MAINTAINERS.md). `make release` prints these steps and the commands for the next patch and minor release.
 
-1. Ensure that the version in [version.go](internal/version/version.go) is correct for the next release.
-2. For major version releases, ensure that all references are up-to-date, e.g. `github.com/opensearch-project/opensearch-go/v3`, see [opensearch-go#444](https://github.com/opensearch-project/opensearch-go/pull/444).
-3. Edit the [CHANGELOG](CHANGELOG.md) and replace the `Unreleased` section with the version about to be released.
-4. Add a comparison link to the new version at the bottom of the [CHANGELOG](CHANGELOG.md#dependencies).
-5. Create a pull request with the changes into `main`, e.g. [opensearch-go#443](https://github.com/opensearch-project/opensearch-go/pull/443).
-6. Once the PR from step 5 is merged, request a signed release tag. Contributors cannot push signed tags, so open a `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue in the [opensearch-project/.github](https://github.com/opensearch-project/.github/issues/new/choose) repo. Fill out the request form based on the previous release (e.g. [opensearch-project/.github#592](https://github.com/opensearch-project/.github/issues/592)). A member of @opensearch-project/admin creates the signed tag, which [makes the new version available](https://go.dev/doc/modules/publishing) on [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5).
-7. Once the tag exists, draft and publish a [new GitHub release](https://github.com/opensearch-project/opensearch-go/releases/new) from it, using the CHANGELOG section for that version as the release notes.
-8. Create a new `Unreleased` section in the [CHANGELOG](CHANGELOG.md), increment version in [version.go](internal/version/version.go) to the next developer iteration (e.g. `4.3.1`), and make a pull request with this change into `main`, e.g. [opensearch-go#448](https://github.com/opensearch-project/opensearch-go/pull/448).
+1. For major version releases, ensure that all references are up-to-date, e.g. `github.com/opensearch-project/opensearch-go/v3`, see [opensearch-go#444](https://github.com/opensearch-project/opensearch-go/pull/444).
+2. Start the release:
 
-   ```
-   ## [Unreleased]
-
-   ### Added
-
-   ### Changed
-
-   ### Deprecated
-
-   ### Removed
-
-   ### Fixed
-
-   ### Security
-
-   ### Dependencies
+   ```sh
+   make start-release release-tag=vX.Y.Z
    ```
 
-9. Publishing the GitHub release in step 7 triggers the [Refresh pkg.go.dev](.github/workflows/pkg-go-dev-refresh.yml) workflow, which requests the new tag from the Go module proxy so it shows up on [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5) without anyone asking by hand. If that workflow fails or a release was published without going through it, run the same request locally: `go list -m github.com/opensearch-project/opensearch-go/v5@v5.0.0`. This only covers the root module; nested modules still need the manual refresh described below.
+   It creates branch `release-vX.Y.Z` off `upstream/main` in a new worktree next to the main checkout (`<checkout>-release-vX.Y.Z`), so the checkout it runs from is untouched. There it moves the [CHANGELOG](CHANGELOG.md) `Unreleased` entries to `[X.Y.Z]`, drops empty subsections, starts a fresh `Unreleased`, adds the comparison link, and sets [version.go](internal/version/version.go) to `X.Y.Z`, leaving the edits uncommitted for review. If `Unreleased` had no entries, `[X.Y.Z]` is left empty for you to fill in. `UPSTREAM_REMOTE` (default `upstream`) and `RELEASE_REMOTE` (default `public-fork`) name the remotes.
+
+3. In the worktree, edit the release notes, then open the pull request:
+
+   ```sh
+   make finish-release
+   ```
+
+   It refuses if CHANGELOG `[X.Y.Z]` has no entries; `allow-empty=1` releases anyway, with a bare heading. It then makes two commits:
+
+   - **Prepare**: every tracked change in the worktree. Untracked files are listed and left out.
+   - **Pin**: every nested module that requires the root module now requires it at the pseudo-version of the prepare commit, with `go.sum` written offline from that commit; see [Nested modules](#nested-modules).
+
+   It then pushes the branch and opens the pull request, labeled `pending-next-release` so CI builds the nested modules against the checkout until the pinned commit is on `main`. `DRY_RUN=1` makes the commits but prints the push and `gh pr create` instead of running them; running `make finish-release` again after that, or after a failed push, picks up from the push.
+
+   `make abort-release` discards the release instead: it removes the worktree and the branch, saving the uncommitted edits as a patch in `$TMPDIR` first. From outside the worktree, pass `release-tag=vX.Y.Z`. It refuses once the branch is on `RELEASE_REMOTE`; close the pull request and delete the remote branch first.
+
+4. Merge the pull request with **Create a merge commit**. Squash and rebase rewrite the prepare commit that the nested modules pin. This needs merge commits allowed on the repository and the `main` ruleset's linear-history rule bypassed for the merge. Merge while the branch is current with `main`: if anything else lands first, the merge carries root changes the pin does not, and step 5 refuses it. To start over, close the pull request, delete the remote branch, run `make abort-release`, and start again.
+5. Request the signed tag:
+
+   ```sh
+   make release-tag-request release-tag=vX.Y.Z
+   ```
+
+   It finds the merge commit on `upstream/main` that set `version.go` to `X.Y.Z` (`MERGE_COMMIT=<sha>` overrides the search) and verifies it: the nested modules all pin one pseudo-version of a commit in its history, the go command names that commit with the same pseudo-version, the root module there has the same content as at the merge, and each nested module tidies, builds and vets against the real module proxy and checksum database. It then files the `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue in [opensearch-project/.github](https://github.com/opensearch-project/.github/issues), naming the merge commit. Contributors cannot push signed tags; a member of @opensearch-project/admin creates it, which [makes the new version available](https://go.dev/doc/modules/publishing) on [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5). Remove the release worktree afterwards with `git worktree remove`.
+
+6. Once the tag exists, draft and publish a [new GitHub release](https://github.com/opensearch-project/opensearch-go/releases/new) from it, using the CHANGELOG section for that version as the release notes. Publishing triggers the [Refresh pkg.go.dev](.github/workflows/pkg-go-dev-refresh.yml) workflow, which requests the new tag from the Go module proxy. If that workflow fails, run the same request locally: `go list -m github.com/opensearch-project/opensearch-go/v5@vX.Y.Z`.
 
 ### Nested modules
 
-The repository ships nested modules -- `make print-submodules` lists them -- that are versioned independently of the root module. Each one carries its own tag, and Go derives the tag name from the module path rather than from the directory alone.
-
-A nested module declares its path as the repository, then the subdirectory, then the major-version suffix **last**:
+The repository ships nested modules -- `make print-submodules` lists them. A nested module declares its path as the repository, then the subdirectory, then the major-version suffix **last**:
 
 ```
 module github.com/opensearch-project/opensearch-go/osprom/v5
 ```
 
-Go reads a `/vN` element as a major version only as the final path element. From that path it derives repository `opensearch-go`, subdirectory `osprom`, major version 5, and looks for a tag prefixed with the subdirectory:
+Go reads a `/vN` element as a major version only as the final path element, so a path like `.../v5/osprom` makes Go treat `v5/osprom` as the subdirectory with no major-version suffix. The declared path must end in `/vN`.
 
-```
-osprom/v5.0.0
-```
-
-Consequences worth knowing before releasing:
-
-- **The `vN` cannot move before the subdirectory.** A path like `.../v5/osprom` makes Go treat `v5/osprom` as the subdirectory with no major-version suffix, so the module is stuck at `v0`/`v1` and Go looks for a `v5/` directory that does not exist. The declared path must end in `/vN`.
-- **A nested module is versioned by its own tag.** A root `vX.Y.Z` tag publishes only the root module, so without `osprom/vX.Y.Z` the newest version a consumer can name for `osprom` is a pseudo-version off a commit. That resolves and builds, since a pseudo-version needs only a reachable commit in the subdirectory, but it leaves the consumer pinning a commit rather than a release, with nothing to distinguish a reviewed version from whatever `main` held that day. Tag every nested module you expect anyone to pin by version, which in practice is all of them.
-- **Tag the same commit.** Nested modules that import root packages (`debuglog`, `opensearchtransport`) must have a root `require` naming a version that actually contains those packages. `make check-modules-standalone` enforces this; run it before requesting tags. The exception is a nested module that requires the root version being released, merged under the `pending-next-release` label ([DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md#nested-modules)). That version resolves only once the root tag exists, and until then the module's `go.sum` cannot hold its checksum, so such a module is tagged in a second step; see below.
-
-Request all tags for a release together, on one merged commit: the root tag plus one per nested module. `make print-submodules` is the source of that list -- it discovers the modules by asking git for every `go.mod` that is tracked or not yet added, so a module added later cannot be forgotten here:
+Nested modules are not tagged. A consumer names one by commit, and Go resolves it to a pseudo-version: `@latest` is the newest commit on `main`, and a release is the merge commit the root tag points at:
 
 ```sh
-VERSION=v5.0.0
-echo "$VERSION"
-for m in $(make -s print-submodules); do echo "$m/$VERSION"; done
+go get github.com/opensearch-project/opensearch-go/osprom/v5@latest
+go get github.com/opensearch-project/opensearch-go/osprom/v5@<merge commit of vX.Y.Z>
 ```
 
-As in step 6, contributors cannot push signed tags: list every tag that prints in the `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue so the admin creating them does not tag the root module alone.
+`@vX.Y.Z` does not work for a nested module: Go looks for an `osprom/vX.Y.Z` tag.
 
-A nested module that requires the root version being released is the exception: leave its tag out of that request. Tagged with the root, it would point at a commit whose `go.sum` lacks the root version's checksum, where it cannot build standalone. Once the root tag exists:
+A release pins each nested module to the root module it ships with. The pin commit requires the root at the pseudo-version of the prepare commit, `vA.B.(C+1)-0.<commit time>-<hash>` where `vA.B.C` is the previous tag. The root module's content is the same at the prepare commit, the merge commit and the `vX.Y.Z` tag, because the pin commit changes only nested modules, which the root module's zip leaves out. So the nested modules build against exactly what `vX.Y.Z` ships, and a consumer who also requires `vX.Y.Z` gets it, since minimal version selection picks the higher version.
 
-1. In the module's directory, run `GOWORK=off go mod tidy`. It records the root version's checksum in `go.sum`. Merge that change.
-2. Run `make check-modules-standalone` on the merged commit.
-3. Request the module's tag on that commit, in a second `[GitHub Request]` issue or as a follow-up on the first.
-
-Then refresh each nested module on pkg.go.dev:
-
-```sh
-for m in $(make -s print-submodules); do
-  go list -m "github.com/opensearch-project/opensearch-go/$m/v5@v5.0.0"
-done
-```
+The pseudo-version's checksum cannot come from the module proxy before the prepare commit is on `main`. [`.github/modproxy.go`](.github/modproxy.go) builds the root module zip from that commit, names it the way the go command would, and serves it from a scratch file proxy so `go mod tidy` records the checksum. `make release-tag-request` checks the result against the real proxy and checksum database after the merge.

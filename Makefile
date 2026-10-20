@@ -220,7 +220,9 @@ check-modules-standalone:  ## Build and vet every nested module against the root
 check-modules-pending:  ## check-modules-standalone, with an untagged root version replaced by the checkout
 # For pull requests labeled pending-next-release. The replace goes into a scratch
 # copy of go.mod via -modfile, so the module's own files are never written, and
-# tidy -diff fails on a go.sum that is stale for anything but the root. Only an
+# tidy -diff fails on a go.sum that is stale for anything but the root. The
+# scratch go.sum leaves out the replaced root version's lines, which a release
+# branch records and the replace makes unnecessary. Only an
 # "unknown revision" error marks a root version untagged; any other download
 # error fails, so a network fault cannot swap a tagged version for the checkout.
 	@printf "\033[2m-> Checking nested modules standalone, untagged root replaced by the checkout...\033[0m\n"
@@ -233,12 +235,13 @@ check-modules-pending:  ## check-modules-standalone, with an untagged root versi
 			continue; \
 		fi; \
 		case "$$out" in \
-			*"unknown revision $$v"*) ;; \
+			*"unknown revision $$v"*|*"unknown revision $${v##*-}"*) ;; \
 			*) printf "%s\n" "$$out" >&2; exit 1 ;; \
 		esac; \
 		printf "   %s (%s@%s untagged)\n" "$$mod" "$$root" "$$v"; \
 		tmp=$$(mktemp -d); \
-		cp "$$mod/go.mod" "$$mod/go.sum" "$$tmp/"; \
+		cp "$$mod/go.mod" "$$tmp/"; \
+		awk -v p="$$root" -v v="$$v" '!($$1 == p && ($$2 == v || $$2 == v "/go.mod"))' "$$mod/go.sum" > "$$tmp/go.sum"; \
 		(cd "$$mod" && go mod edit -modfile="$$tmp/go.mod" -replace="$$root@$$v=$(CURDIR)" && \
 			GOWORK=off go mod tidy -modfile="$$tmp/go.mod" -diff && \
 			GOWORK=off go build -modfile="$$tmp/go.mod" ./... && \
@@ -466,48 +469,23 @@ endif
 		done; \
 	}
 
-release: ## Release a new version to Github
-	$(eval branch = $(shell git rev-parse --abbrev-ref HEAD))
-	$(eval current_version = $(shell cat internal/version/version.go | sed -Ee 's/const Client = "(.*)"/\1/' | tail -1))
-	@printf "\033[2m-> [$(branch)] Current version: $(current_version)...\033[0m\n"
-ifndef version
-	@printf "\033[31m[!] Missing version argument, exiting...\033[0m\n"
-	@exit 2
-endif
-ifeq ($(version), "")
-	@printf "\033[31m[!] Empty version argument, exiting...\033[0m\n"
-	@exit 2
-endif
-	@printf "\033[2m-> [$(branch)] Creating version $(version)...\033[0m\n"
-	@{ \
-		set -e -o pipefail; \
-		cp internal/version/version.go internal/version/version.go.OLD && \
-		cat internal/version/version.go.OLD | sed -e 's/Client = ".*"/Client = "$(version)"/' > internal/version/version.go && \
-		go vet internal/version/version.go && \
-		go fmt internal/version/version.go && \
-		git diff --color-words internal/version/version.go | tail -n 1; \
-	}
-	@{ \
-		set -e -o pipefail; \
-		printf "\033[2m-> Commit and create Git tag? (y/n): \033[0m\c"; \
-		read continue; \
-		if [ "$$continue" = "y" ]; then \
-			git add internal/version/version.go && \
-			git commit --no-status --quiet --message "Release $(version)" && \
-			git tag --annotate v$(version) --message 'Release $(version)'; \
-			printf "\033[2m-> Push `git show --pretty='%h (%s)' --no-patch HEAD` to Github:\033[0m\n\n"; \
-			printf "\033[1m  git push origin HEAD && git push origin v$(version)\033[0m\n\n"; \
-			mv internal/version/version.go.OLD internal/version/version.go && \
-			git add internal/version/version.go && \
-			original_version=`cat internal/version/version.go | sed -ne 's;^const Client = "\(.*\)"$$;\1;p'` && \
-			git commit --no-status --quiet --message "Update version to $$original_version"; \
-			printf "\033[2m-> Version updated to [$$original_version].\033[0m\n\n"; \
-		else \
-			echo "Aborting..."; \
-			rm internal/version/version.go.OLD; \
-			exit 1; \
-		fi; \
-	}
+RELEASE_ENV = RELEASE_TAG="$(release-tag)" SUBMODULES="$(SUBMODULES)" DRY_RUN="$(DRY_RUN)" ALLOW_EMPTY="$(allow-empty)" \
+	UPSTREAM_REMOTE="$(UPSTREAM_REMOTE)" RELEASE_REMOTE="$(RELEASE_REMOTE)" MERGE_COMMIT="$(MERGE_COMMIT)"
+
+release: ## Show how to cut a release, and the next release tags
+	@$(RELEASE_ENV) .github/release.sh overview
+
+start-release: ## Stage a release in a new worktree for review (release-tag=vX.Y.Z)
+	@$(RELEASE_ENV) .github/release.sh start
+
+finish-release: ## In the release worktree: commit, pin nested modules, push, open the PR (allow-empty=1; DRY_RUN=1 to preview)
+	@$(RELEASE_ENV) .github/release.sh finish
+
+abort-release: ## Discard a started release (in its worktree, or release-tag=vX.Y.Z)
+	@$(RELEASE_ENV) .github/release.sh abort
+
+release-tag-request: ## After the release PR merges, verify it and file the signed-tag request (release-tag=vX.Y.Z)
+	@$(RELEASE_ENV) .github/release.sh tag-request
 
 godoc: ## Display documentation for the package
 	@printf "\033[2m-> Generating documentation...\033[0m\n"
