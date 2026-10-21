@@ -81,14 +81,14 @@ type BulkSizing struct {
 	// MinBytes is the smallest batch the shard-buffer controller will ask for.
 	// Defaults to FlushBytes/32, and at least 1.
 	MinBytes int
-	// InitialBytes is where a shard's buffer starts when it starts on a node that
-	// shows load already: its write pool rejecting, or its window cut by a 429 and
-	// not grown back. From there it climbs to full size as the node keeps up. On a
-	// node that shows no load, a shard starts at FlushBytes, the most the node
-	// will be sent, and backs off only when it is slower than the node's other
-	// shards. Set, it is where every shard starts. Defaults to FlushBytes/4. To
-	// send FlushBytes always, with neither the climb nor the backoff, set Shard to
-	// ShardFixed.
+	// InitialBytes is where a shard's buffer starts when the shard starts on an
+	// overloaded node: one whose write pool is rejecting, or whose byte window a
+	// 429 cut and has not grown back. From there the buffer climbs to full size as
+	// the node keeps up. On a node that is not overloaded, a shard starts at
+	// FlushBytes, the most the node is sent, and shrinks only when it is slower
+	// than the node's other shards. When set, every shard starts here. Defaults to
+	// FlushBytes/4. To always send FlushBytes, with neither the climb nor the
+	// shrinking, set Shard to ShardFixed.
 	InitialBytes int
 	// StepBytes is the most a shard's buffer grows in one healthy flush.
 	// Defaults to FlushBytes/16.
@@ -264,7 +264,7 @@ type resolvedSizing struct {
 	min, max  float64
 	initial   float64
 	// initialSet is whether the caller chose initial, which then holds for every
-	// shard, loaded node or not.
+	// shard, on an overloaded node or not.
 	initialSet bool
 	step       float64
 	headroom   float64
@@ -433,8 +433,8 @@ func newSizer(cfg resolvedSizing) *sizer {
 	return &sizer{cfg: cfg, target: cfg.initial}
 }
 
-// start is where a shard on a node that shows no load starts: the ceiling, unless
-// the caller chose where shards start.
+// start is where a shard on a node that is not overloaded starts: the ceiling,
+// unless the caller chose where shards start.
 func (r resolvedSizing) start() float64 {
 	if r.initialSet {
 		return r.initial
@@ -444,16 +444,16 @@ func (r resolvedSizing) start() float64 {
 }
 
 // begin sets where a shard's buffer starts, the first time it is given one: full
-// size on a node that shows no load, so that a node able to take full requests is
-// sent them from the first, and initial on one that does, so that a shard joining
-// a loaded node climbs to full size instead of adding to the load at once.
-func (s *sizer) begin(loaded bool) {
+// size on a node that is not overloaded, so that a node able to take full requests
+// is sent them from the first, and initial on one that is, so that a shard joining
+// an overloaded node climbs to full size instead of adding to the load at once.
+func (s *sizer) begin(overloaded bool) {
 	if s.begun {
 		return
 	}
 	s.begun = true
 
-	if !loaded {
+	if !overloaded {
 		s.target = s.cfg.start()
 	}
 }

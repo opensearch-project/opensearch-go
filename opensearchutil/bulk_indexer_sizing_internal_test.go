@@ -47,7 +47,7 @@ func (bi *bulkIndexer) windowOf(name string) (int64, bool) {
 		return 0, false
 	}
 
-	return int64(ns.win.size), true
+	return int64(ns.windowBytes.size), true
 }
 
 // waitIdle blocks until every batch that has been sealed has completed, so the
@@ -187,8 +187,8 @@ func (h *sizingHarness) roundShard(shard int) int {
 
 	target, ok := h.bi.(*bulkIndexer).shardTargetOf("idx", shard)
 	if !ok {
-		// The first buffer of a shard on a node that shows no load starts at the
-		// size sizing.start gives: the ceiling, unless InitialBytes is set.
+		// The first buffer of a shard on a node that is not overloaded starts at
+		// the size sizing.start gives: the ceiling, unless InitialBytes is set.
 		target = int64(h.bi.(*bulkIndexer).sizing.start())
 	}
 	docs := int((target + h.itemBytes - 1) / h.itemBytes)
@@ -673,10 +673,10 @@ func TestBulkIndexerStartsAShardAtFullSizeOnAnIdleNode(t *testing.T) {
 	require.Equal(t, int64(bi.sizing.max), target, "a shard on an idle node starts at FlushBytes")
 }
 
-// TestBulkIndexerRampsAShardThatStartsOnALoadedNode: a node that is already loaded,
-// its write pool rejecting, is not sent full buffers by a shard that has only just
-// started: the shard starts at InitialBytes and climbs to full as the node keeps up.
-func TestBulkIndexerRampsAShardThatStartsOnALoadedNode(t *testing.T) {
+// TestBulkIndexerRampsAShardThatStartsOnAnOverloadedNode: a shard that starts on
+// an overloaded node, one whose write pool is rejecting, is not sent full buffers.
+// It starts at InitialBytes and climbs to full as the node keeps up.
+func TestBulkIndexerRampsAShardThatStartsOnAnOverloadedNode(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 400, 1, "n0")
@@ -686,12 +686,12 @@ func TestBulkIndexerRampsAShardThatStartsOnALoadedNode(t *testing.T) {
 	addDoc(t, h.bi, "idx", h.idsFor(0, 1)[0], 1)
 	target, ok := bi.shardTargetOf("idx", 0)
 	require.True(t, ok)
-	require.Equal(t, int64(bi.sizing.initial), target, "a shard on a loaded node starts at InitialBytes")
+	require.Equal(t, int64(bi.sizing.initial), target, "a shard on an overloaded node starts at InitialBytes")
 	require.Less(t, target, int64(bi.sizing.max))
 }
 
 // TestBulkIndexerStartsEveryShardAtAnInitialBytesThatIsSet: a caller who sets
-// InitialBytes has said where shards start, loaded node or not.
+// InitialBytes has said where every shard starts, on an overloaded node or not.
 func TestBulkIndexerStartsEveryShardAtAnInitialBytesThatIsSet(t *testing.T) {
 	t.Parallel()
 

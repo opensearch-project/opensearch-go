@@ -103,24 +103,24 @@ func TestBulkIndexerSinkFillsTheNearestNodeAndMovesOnWhenItIsFull(t *testing.T) 
 		name string
 		// window is the write pool window of every node.
 		window int
-		// wantFirstWave is how many requests each node holds once the windows are
-		// full, with six batches of documents offered.
-		wantFirstWave map[string]int
+		// wantRequests is how many of the six batches each node is sent. The
+		// window chooses the node and holds no request back, so all six go out.
+		wantRequests map[string]int
 	}{
 		{
-			name:          "a node with room keeps getting the batches",
-			window:        8,
-			wantFirstWave: map[string]int{"near": 6},
+			name:         "a node with room keeps getting the batches",
+			window:       8,
+			wantRequests: map[string]int{"near": 6},
 		},
 		{
-			name:          "a full node hands over to the next nearest",
-			window:        1,
-			wantFirstWave: map[string]int{"near": 1, "mid": 1, "far": 1},
+			name:         "a full node hands over to the next nearest",
+			window:       3,
+			wantRequests: map[string]int{"near": 3, "mid": 3},
 		},
 		{
-			name:          "two requests per node before moving on",
-			window:        2,
-			wantFirstWave: map[string]int{"near": 2, "mid": 2, "far": 2},
+			name:         "with every node full the least loaded is sent the next",
+			window:       1,
+			wantRequests: map[string]int{"near": 2, "mid": 2, "far": 2},
 		},
 	}
 
@@ -143,17 +143,13 @@ func TestBulkIndexerSinkFillsTheNearestNodeAndMovesOnWhenItIsFull(t *testing.T) 
 				require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{Action: actionIndex, Body: seqBody(i)}))
 			}
 
-			// The requests the windows let out are held at the gate, so where they
-			// went is decided.
-			wantTotal := 0
-			for _, n := range tt.wantFirstWave {
-				wantTotal += n
+			// Every request is held at the gate, so none has finished to free its
+			// node when the next batch's node is chosen.
+			requests := map[string]int{}
+			for range 6 {
+				requests[receive(t, server.entered)]++
 			}
-			firstWave := map[string]int{}
-			for range wantTotal {
-				firstWave[receive(t, server.entered)]++
-			}
-			require.Equal(t, tt.wantFirstWave, firstWave)
+			require.Equal(t, tt.wantRequests, requests)
 
 			close(server.gate)
 			require.NoError(t, bi.Close(t.Context()))
@@ -336,48 +332,69 @@ func TestBulkIndexerHotShardDoesNotHoldBackTheOthers(t *testing.T) {
 	require.Less(t, hotBatches, 600/5, "documents that arrive while the hot shard's request is out gather into larger batches")
 }
 
-func TestBulkIndexerHoldsToOneRequestWhileThePoolRejects(t *testing.T) {
+// TestBulkIndexerPoolWindowDoesNotCapRequests: the write pool window the
+// transport reports ranks nodes and does not hold requests back, whether it is
+// small, the pool is rejecting, or it is above the indexer's own limit. A node
+// has as many requests out as NumWorkers allows; a 429 is what backs it off.
+func TestBulkIndexerPoolWindowDoesNotCapRequests(t *testing.T) {
 	t.Parallel()
 
-	maps := map[string]ShardMap{"alpha": DefaultShardMap(8)}
-	cluster := newFakeCluster(maps, "n0")
-	cluster.setWindow(8, true) // The write pool is rejecting.
-	server := newFakeServer(cluster)
-	server.yields = 50
+	const (
+		shards     = 8
+		numWorkers = 4
+	)
 
-	itemBytes := docBytes("alpha", "doc-00", 1000)
-	cfg := fixedBatches(itemBytes, 3)
-	cfg.NumWorkers = 8
-	bi := newClusterIndexer(t, server, cfg)
-
-	for i := range 200 {
-		addDoc(t, bi, "alpha", fmt.Sprint("doc-", i), i)
+	tests := []struct {
+		name       string
+		window     int
+		overloaded bool
+	}{
+		{name: "a window of one request", window: 1},
+		{name: "a pool that is rejecting", window: 8, overloaded: true},
+		{name: "a window above NumWorkers", window: 16},
 	}
-	require.NoError(t, bi.Close(t.Context()))
 
-	require.Equal(t, 1, server.maxInflight(), "a node whose pool is rejecting gets one request at a time")
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestBulkIndexerWindowFollowsTheNodesPool(t *testing.T) {
-	t.Parallel()
+			m := DefaultShardMap(shards)
+			cluster := newFakeCluster(map[string]ShardMap{"alpha": m}, "n0")
+			cluster.setWindow(tt.window, tt.overloaded)
+			server := newFakeServer(cluster)
+			server.gate = make(chan struct{})
+			server.entered = make(chan string, shards)
 
-	cluster := newFakeCluster(map[string]ShardMap{"alpha": DefaultShardMap(8)}, "n0")
-	cluster.setWindow(3, false)
-	server := newFakeServer(cluster)
-	server.yields = 200
+			// One document for each shard, each filling its buffer.
+			ids := map[int]string{}
+			for i := 0; len(ids) < shards; i++ {
+				id := fmt.Sprintf("d%04d", i)
+				if _, ok := ids[m.Shard(id)]; !ok {
+					ids[m.Shard(id)] = id
+				}
+			}
 
-	itemBytes := docBytes("alpha", "doc-00", 1000)
-	cfg := fixedBatches(itemBytes, 2)
-	cfg.NumWorkers = 16
-	bi := newClusterIndexer(t, server, cfg)
+			cfg := fixedBatches(docBytes("alpha", "d0000", 1000), 1)
+			cfg.NumWorkers = numWorkers
+			bi := newClusterIndexer(t, server, cfg)
 
-	for i := range 400 {
-		addDoc(t, bi, "alpha", fmt.Sprint("doc-", i), i)
+			for shard := range shards {
+				addDoc(t, bi, "alpha", ids[shard], 1000+shard)
+			}
+
+			// The server holds every request, so these are out at once.
+			for range numWorkers {
+				require.Equal(t, "n0", receive(t, server.entered))
+			}
+			require.EqualValues(t, numWorkers, bi.Stats().InFlightRequests)
+
+			close(server.gate)
+			require.NoError(t, bi.Close(t.Context()))
+
+			require.Equal(t, numWorkers, server.maxInflight(), "never more than NumWorkers")
+			require.EqualValues(t, shards, bi.Stats().NumFlushed)
+		})
 	}
-	require.NoError(t, bi.Close(t.Context()))
-
-	require.LessOrEqual(t, server.maxInflight(), 3, "never more than the node's window")
-	require.Greater(t, server.maxInflight(), 1, "and the window is used")
 }
 
 // TestBulkIndexerKeepsOrderWhenAShardMapArrives covers an index whose shard map

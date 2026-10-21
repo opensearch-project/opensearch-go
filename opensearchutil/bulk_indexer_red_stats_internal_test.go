@@ -221,11 +221,11 @@ func newGaugeHarness(t *testing.T) *gaugeHarness {
 	}
 
 	cluster := newFakeCluster(map[string]ShardMap{"idx": m}, "n0")
-	cluster.setWindow(1, false)
 	h.server = newFakeServer(cluster)
 	h.server.gate = make(chan struct{})
 	h.server.entered = make(chan string, 8)
 	cfg := fixedBatches(docBytes("idx", h.ids[0][0], 1000000), 1)
+	cfg.NumWorkers = 1
 	cfg.Context, h.end = context.WithCancel(t.Context())
 	h.bi = newClusterIndexer(t, h.server, cfg)
 
@@ -283,7 +283,12 @@ func TestBulkIndexerStatsGauges(t *testing.T) {
 		h.requireGauges(1, 0, 1, "shard 0 is answered; shard 1's request is out with a buffer open behind it")
 
 		h.release()
-		require.Eventually(t, func() bool { return h.bi.Stats().NumFlushed == 2 }, 10*time.Second, time.Millisecond)
+		// NumFlushed counts a request before the scheduler hears it finished, so
+		// wait for the in-flight gauge too.
+		require.Eventually(t, func() bool {
+			stats := h.bi.Stats()
+			return stats.NumFlushed == 2 && stats.InFlightRequests == 0
+		}, 10*time.Second, time.Millisecond)
 		h.requireGauges(0, 0, 0, "both shards are answered and only open buffers are left")
 
 		close(h.server.gate)
@@ -305,7 +310,10 @@ func TestBulkIndexerStatsGauges(t *testing.T) {
 		// What was not sent is failed as it reaches the front, without a request.
 		h.bi.Cancel()
 		close(h.server.gate)
-		require.Eventually(t, func() bool { return h.bi.Stats().NumFailed == 2 }, 10*time.Second, time.Millisecond)
+		require.Eventually(t, func() bool {
+			stats := h.bi.Stats()
+			return stats.NumFailed == 2 && stats.InFlightRequests == 0
+		}, 10*time.Second, time.Millisecond)
 		h.requireGauges(0, 0, 0, "every buffer is done")
 		_ = h.bi.Close(t.Context())
 	})

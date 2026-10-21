@@ -17,26 +17,6 @@ import (
 	"time"
 )
 
-// unreportedNodeWindow is how many bulk requests the indexer keeps in flight to a
-// node whose write pool window the transport has not reported, such as the node that
-// stands for the whole cluster when the indexer knows no shard map: NumWorkers when
-// the caller set it, and otherwise GOMAXPROCS. A smaller number caps a cluster of
-// many nodes at what one slow request at a time can carry.
-//
-// GOMAXPROCS and not runtime.NumCPU, because NumCPU is the machine's CPUs, or the
-// process's affinity mask, and ignores a container's CPU limit: a pod held to two
-// CPUs on a large host would keep dozens of requests out. GOMAXPROCS follows a
-// cgroup CPU quota by default since Go 1.25, when the program's go.mod says 1.25 or
-// later, and it follows the GOMAXPROCS variable and anything that sets it, such as
-// automaxprocs. It is read each time, so an indexer follows a limit that changes.
-func unreportedNodeWindow(numWorkers int) int {
-	if numWorkers > 0 {
-		return numWorkers
-	}
-
-	return runtime.GOMAXPROCS(0)
-}
-
 // idleShardIntervals is how many flush intervals a shard may sit with nothing
 // buffered and nothing in flight before the indexer forgets what it learned about
 // it. It bounds the memory the indexer spends on shards it has stopped writing to.
@@ -168,7 +148,8 @@ type nodeState struct {
 	// requests out.
 	held atomic.Int64
 	// queued counts the node's sealed buffers not yet sent, and inflight its
-	// requests out. flightBytes is the size of those requests, which win bounds.
+	// requests out. flightBytes is the size of those requests, which windowBytes
+	// bounds.
 	queued, inflight int
 	flightBytes      int64
 	// bufferFrac and slowdown are smoothed readings of the node for the statistics:
@@ -180,9 +161,9 @@ type nodeState struct {
 	// time over what they would need. A shard is measured against the others'.
 	// Guarded by the scheduler's lock.
 	levels map[*shardState]float64
-	// win is how many bytes may be out to the node at once. It starts wide open and
-	// is cut by a 429; see byteWindow.
-	win *byteWindow
+	// windowBytes is how many bytes may be out to the node at once. It starts wide
+	// open and is cut by a 429; see byteWindow.
+	windowBytes *byteWindow
 	// rate keeps the best service rate the node has shown, which seeds the shards that
 	// start on it.
 	rate rateTracker
@@ -192,20 +173,24 @@ type nodeState struct {
 	stats nodeAtomicStats
 }
 
-// window is how many requests may be outstanding to the node: the window the
-// transport allows its write pool, unreported when it reports none, and a single
-// request while the pool rejects.
-func (ns *nodeState) window(unreported int) int {
+// windowReqs is how many requests the node's write pool has room for, as the
+// transport tracks it: the pool's window, maxReqs when the transport reports none,
+// and 1 while the pool rejects, never more than maxReqs. It ranks nodes and does
+// not cap requests. The transport updates it once per node statistics poll,
+// keeps it at or below the pool's thread count, and halves it when every thread
+// is busy with work queued, as is normal under sustained bulk load. Requests to
+// a node are capped by nodeReqLimit, and a 429 cuts windowBytes.
+func (ns *nodeState) windowReqs(maxReqs int) int {
 	p := ns.node.pool()
 	n := p.Window
 	if n <= 0 {
-		n = unreported
+		n = maxReqs
 	}
 	if p.Overloaded {
 		n = 1
 	}
 
-	return n
+	return min(n, maxReqs)
 }
 
 // peerLevel is what the shard is measured against: the mean level of the node's
@@ -229,16 +214,18 @@ func (ns *nodeState) peerLevel(ss *shardState) float64 {
 	return sum / float64(others)
 }
 
-// loaded reports whether the node shows load already: its write pool is rejecting,
-// or a 429 has cut its window and it has not grown back. A shard that starts on a
-// loaded node climbs to full size instead of starting there.
-func (ns *nodeState) loaded() bool {
-	return ns.node.pool().Overloaded || ns.win.fraction() < 1
+// overloaded reports whether the node is overloaded or still recovering from it:
+// its write pool is rejecting, or a 429 has cut windowBytes and it has not grown
+// back. A shard that starts on an overloaded node climbs to full size instead of
+// starting there.
+func (ns *nodeState) overloaded() bool {
+	return ns.node.pool().Overloaded || ns.windowBytes.fraction() < 1
 }
 
-// hasRoom reports whether another request to the node would go out now.
-func (ns *nodeState) hasRoom(unreported int) bool {
-	return ns.inflight+ns.queued < ns.window(unreported)
+// windowHasReqCap reports whether the node's write pool has room for one more
+// request, with the window capped at maxReqs; see windowReqs.
+func (ns *nodeState) windowHasReqCap(maxReqs int) bool {
+	return ns.inflight+ns.queued < ns.windowReqs(maxReqs)
 }
 
 // scheduler owns every buffer from the moment its first document is added to the
@@ -322,11 +309,11 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 	}
 
 	ns := &nodeState{
-		name:  node.Name,
-		node:  node,
-		opens: make(map[*buffer]struct{}),
-		win:   newByteWindow(s.bi.window),
-		rate:  rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
+		name:        node.Name,
+		node:        node,
+		opens:       make(map[*buffer]struct{}),
+		windowBytes: newByteWindow(s.bi.window),
+		rate:        rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
 		bufferFrac: s.bi.sizing.start() / s.bi.sizing.max,
 	}
@@ -350,10 +337,20 @@ func (s *scheduler) shardFor(key shardKey) *shardState {
 	return ss
 }
 
-// unreportedWindow is the request window of a node whose transport reports none;
-// see unreportedNodeWindow.
-func (s *scheduler) unreportedWindow() int {
-	return unreportedNodeWindow(s.bi.config.NumWorkers)
+// nodeReqLimit is the most requests the indexer keeps in flight to one node:
+// NumWorkers when the caller set it, and otherwise GOMAXPROCS. A smaller number
+// would cap a cluster of many nodes at what one slow request at a time can carry.
+//
+// GOMAXPROCS and not runtime.NumCPU, because GOMAXPROCS follows a container's CPU
+// limit and NumCPU does not: a pod held to two CPUs on a large host would keep
+// dozens of requests out. It is read each time, so an indexer follows a limit
+// that changes.
+func (s *scheduler) nodeReqLimit() int {
+	if s.bi.config.NumWorkers > 0 {
+		return s.bi.config.NumWorkers
+	}
+
+	return runtime.GOMAXPROCS(0)
 }
 
 // sinkNode picks the node for documents that belong to no shard: it keeps filling
@@ -376,7 +373,7 @@ func (s *scheduler) sinkNode() *nodeState {
 	best := s.nodeFor(nodes[0])
 	for _, n := range nodes {
 		ns := s.nodeFor(n)
-		if ns.hasRoom(s.unreportedWindow()) {
+		if ns.windowHasReqCap(s.nodeReqLimit()) {
 			best = ns
 
 			break
@@ -422,7 +419,7 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 
 	b := ss.open
 	if b == nil {
-		ss.sizer.begin(ns.loaded())
+		ss.sizer.begin(ns.overloaded())
 		b = &buffer{shard: ss, node: ns, items: s.bi.getItems(), done: make(chan struct{})}
 		ss.open = b
 		ns.opens[b] = struct{}{}
@@ -541,7 +538,7 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 }
 
 // sealFullest seals the fullest open buffer that can go out at once: its shard has
-// no earlier buffer unfinished, and its node has fewer requests out than its window
+// no earlier buffer unfinished, and its node has fewer requests out than nodeReqLimit
 // and room for its bytes. This is stricter than pump's test on the shard, which only
 // waits for an earlier request to be out. Sealing a buffer that cannot go out frees
 // nothing, because it only queues until the requests ahead of it are answered, and
@@ -555,7 +552,7 @@ func (s *scheduler) sealFullest(trigger flushTrigger) {
 
 	for _, n := range s.nodes {
 		for b := range n.opens {
-			if b.shard.blocked() || n.inflight >= n.window(s.unreportedWindow()) || !n.win.allows(n.flightBytes, b.bytes) {
+			if b.shard.blocked() || n.inflight >= s.nodeReqLimit() || !n.windowBytes.allows(n.flightBytes, b.bytes) {
 				continue
 			}
 			if fullest == nil || b.bytes > fullest.bytes {
@@ -592,8 +589,8 @@ func (s *scheduler) pump() {
 	for _, b := range s.sealed {
 		ss, ns := b.shard, b.node
 
-		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window(s.unreportedWindow()) ||
-			!ns.win.allows(ns.flightBytes, b.bytes) {
+		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= s.nodeReqLimit() ||
+			!ns.windowBytes.allows(ns.flightBytes, b.bytes) {
 			ss.skipped = s.pass
 			remaining = append(remaining, b)
 
@@ -613,7 +610,7 @@ func (s *scheduler) pump() {
 		ns.inflight++
 		ns.flightBytes += b.bytes
 		ns.storeStats()
-		b.sentAt = ns.win.cuts
+		b.sentAt = ns.windowBytes.cuts
 		ss.inflight++
 		b.dispatched = true
 		b.dest = ns.node
@@ -652,10 +649,10 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// because no work was done and would read as a fast flush, and not for one that
 	// carries no 429 but failed, which only cuts the buffer.
 	if sample.rejected {
-		ns.win.reject(ns.flightBytes, b.sentAt)
+		ns.windowBytes.reject(ns.flightBytes, b.sentAt)
 		ns.stats.rejections.Add(1)
 	} else {
-		ns.win.complete(b.bytes, sample.overloaded)
+		ns.windowBytes.complete(b.bytes, sample.overloaded)
 	}
 	ns.flightBytes -= b.bytes
 
@@ -938,7 +935,7 @@ func (s *scheduler) publishLoad(sample flushSample) {
 	w := &s.work
 	w.window, w.buffer, w.slow, w.weight = w.window[:0], w.buffer[:0], w.slow[:0], w.weight[:0]
 	for _, ns := range s.nodes {
-		w.window = append(w.window, ns.win.fraction())
+		w.window = append(w.window, ns.windowBytes.fraction())
 		w.buffer = append(w.buffer, ns.bufferFrac)
 		w.slow = append(w.slow, ns.slowdown)
 		w.weight = append(w.weight, float64(ns.held.Load()))
