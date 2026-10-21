@@ -56,7 +56,7 @@ The five governors, and the signal that drives each:
 | Node window           | bytes in flight to a node                                                | 429s from that node                                              |
 | Node request limit    | requests in flight to a node: `NumWorkers`, or `GOMAXPROCS` when it is 0 | nothing: fixed                                                   |
 
-The node's write thread pool, as the transport tracks it, is a signal and governs nothing. The indexer uses it to choose where documents that belong to no shard go, to start a shard's buffer small on an overloaded node, and to hold off growing a node window while the pool is rejecting.
+The node's write thread pool, as the transport tracks it, is a signal and governs nothing. The indexer uses it to choose where documents that belong to no shard go, to start a shard's buffer small on an overloaded node, and to pause a node window's growth for a few requests when the pool starts rejecting.
 
 The indexer is organized as follows:
 
@@ -347,7 +347,8 @@ The node window's only input is a 429: a response in which the node rejected the
 
 - **The window starts fully open**, at `MaxMemoryBytes`, or at `NodeBytes` if set.
 - **A 429 halves the bytes in flight.** The window becomes `Backoff` (one half) times the smaller of the window and the bytes that were in flight to the node when the response arrived, the rejected request's included. Cutting from the bytes in flight rather than from the window makes the first 429 count: a window that starts at the whole memory limit is far above what is ever in flight, and halving it would change nothing. Rejections of requests sent before the cut belong to the same event and do not cut the window again. The window never falls below one full buffer.
-- **The window grows back slowly.** It grows by one `FlushBytes` for each window's worth of bytes the node answers, after a hold of a few responses, and not at all while the node's write pool is rejecting. A window that was cut recovers over many requests; one that was never cut barely changes.
+- **The window grows back slowly.** It grows by one `FlushBytes` for each window's worth of bytes the node answers, after a hold of a few responses. A window that was cut recovers over many requests; one that was never cut barely changes.
+- **A node whose write pool starts rejecting pauses the window's growth** for the same few responses, without cutting it. The rejections may be other clients' requests, so this is how one client hears that a node is overloaded before it gets a 429 of its own. The transport goes on reporting the pool as rejecting until a statistics poll, seconds apart, finds no new rejections, so the indexer takes only the start of that report as an event. After the pause the window probes again, and the node's 429s govern it.
 - **The window does not remember where the last 429 happened.** A 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the window keeps probing and settles into a sawtooth around what the node currently accepts.
 - **A request that fails with no response is not a 429**, and does not cut the window.
 

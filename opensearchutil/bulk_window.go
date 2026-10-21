@@ -36,8 +36,10 @@ type windowConfig struct {
 //     event and do not cut again.
 //   - It grows by one unit for each window's worth of bytes the node completes, so a
 //     window that was cut recovers slowly, and one that has not been cut barely moves.
-//   - A node whose write pool is overloaded, and the few completions after a rejection,
-//     do not grow it.
+//   - It does not grow for the few completions after a rejection, or after the node's
+//     write pool starts rejecting, which may be other clients' requests. Each is one
+//     event: the pause does not last as long as the pool goes on rejecting, so the
+//     window resumes probing, and the node's own 429s govern it.
 //
 // A sealed buffer is sent only when it fits in what is left of the window, or when
 // nothing is outstanding at all, so that a buffer larger than the window still goes.
@@ -84,9 +86,19 @@ func (w *byteWindow) reject(outstanding int64, sentAt uint64) bool {
 	return true
 }
 
+// pause holds the window's growth for the next few completions, as a rejection does,
+// without cutting it.
+func (w *byteWindow) pause() {
+	if w.cfg.fixed {
+		return
+	}
+
+	w.hold = max(w.hold, sizingHoldFlushes)
+}
+
 // complete grows the window for a request of bytes that the node answered without
-// rejecting it, unless the node's write pool is overloaded.
-func (w *byteWindow) complete(bytes int64, overloaded bool) {
+// rejecting it.
+func (w *byteWindow) complete(bytes int64) {
 	if w.cfg.fixed {
 		return
 	}
@@ -94,7 +106,7 @@ func (w *byteWindow) complete(bytes int64, overloaded bool) {
 	switch {
 	case w.hold > 0:
 		w.hold--
-	case overloaded || w.size <= 0:
+	case w.size <= 0:
 	default:
 		w.size = math.Min(w.cfg.ceiling, w.size+w.cfg.unit*float64(bytes)/w.size)
 	}

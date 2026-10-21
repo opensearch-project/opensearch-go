@@ -164,6 +164,10 @@ type nodeState struct {
 	// windowBytes is how many bytes may be out to the node at once. It starts wide
 	// open and is cut by a 429; see byteWindow.
 	windowBytes *byteWindow
+	// poolRejecting is whether the node's write pool was rejecting at the last
+	// request that completed, so that windowBytes pauses when it starts, and only
+	// then. Guarded by the scheduler's lock.
+	poolRejecting bool
 	// rate keeps the best service rate the node has shown, which seeds the shards that
 	// start on it.
 	rate rateTracker
@@ -648,11 +652,20 @@ func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
 	// request took, but not for a request the node rejected, which was answered quickly
 	// because no work was done and would read as a fast flush, and not for one that
 	// carries no 429 but failed, which only cuts the buffer.
+	//
+	// The byte window also pauses when the node's write pool starts rejecting, which
+	// may be other clients' requests. The transport reports that until a statistics
+	// poll finds no new rejections, seconds later, so it is taken as one event, at the
+	// start, and not as a state to hold the window in.
+	if sample.overloaded && !ns.poolRejecting {
+		ns.windowBytes.pause()
+	}
+	ns.poolRejecting = sample.overloaded
 	if sample.rejected {
 		ns.windowBytes.reject(ns.flightBytes, b.sentAt)
 		ns.stats.rejections.Add(1)
 	} else {
-		ns.windowBytes.complete(b.bytes, sample.overloaded)
+		ns.windowBytes.complete(b.bytes)
 	}
 	ns.flightBytes -= b.bytes
 

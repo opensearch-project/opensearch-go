@@ -132,20 +132,18 @@ func TestByteWindowComplete(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		size       float64
-		hold       int
-		bytes      int64
-		overloaded bool
-		fixed      bool
-		wantSize   float64
-		wantHold   int
+		name     string
+		size     float64
+		hold     int
+		bytes    int64
+		fixed    bool
+		wantSize float64
+		wantHold int
 	}{
 		{name: "grows by one unit over the window for each byte", size: 100, bytes: 50, wantSize: 105},
 		{name: "a bigger request grows it more", size: 100, bytes: 100, wantSize: 110},
 		{name: "never past the ceiling", size: 999, bytes: 1000, wantSize: 1000},
 		{name: "held after a rejection", size: 100, hold: 3, bytes: 50, wantSize: 100, wantHold: 2},
-		{name: "not while the node's write pool is overloaded", size: 100, bytes: 50, overloaded: true, wantSize: 100},
 		{name: "a fixed window does not move", size: 100, bytes: 50, fixed: true, wantSize: 100},
 	}
 	for _, tt := range tests {
@@ -157,10 +155,40 @@ func TestByteWindowComplete(t *testing.T) {
 			w := newByteWindow(cfg)
 			w.hold = tt.hold
 
-			w.complete(tt.bytes, tt.overloaded)
+			w.complete(tt.bytes)
 
 			require.InDelta(t, tt.wantSize, w.size, 1e-9)
 			require.Equal(t, tt.wantHold, w.hold)
+		})
+	}
+}
+
+func TestByteWindowPause(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		hold     int
+		fixed    bool
+		wantHold int
+	}{
+		{name: "holds growth as a rejection does", wantHold: sizingHoldFlushes},
+		{name: "does not shorten a longer hold", hold: sizingHoldFlushes + 2, wantHold: sizingHoldFlushes + 2},
+		{name: "a fixed window is not held", fixed: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := testWindowConfig()
+			cfg.start, cfg.fixed = 100, tt.fixed
+			w := newByteWindow(cfg)
+			w.hold = tt.hold
+
+			w.pause()
+
+			require.Equal(t, tt.wantHold, w.hold)
+			require.InDelta(t, 100, w.size, 1e-9, "a pause never cuts")
 		})
 	}
 }
@@ -179,13 +207,13 @@ func TestByteWindowRecoversSlowly(t *testing.T) {
 	require.InDelta(t, 200, cut, 1e-9)
 
 	for range sizingHoldFlushes {
-		w.complete(50, false)
+		w.complete(50)
 	}
 	require.InDelta(t, cut, w.size, 1e-9, "held for a few completions")
 
 	// 200 bytes is the window; four requests of 50 complete one window's worth.
 	for range 4 {
-		w.complete(50, false)
+		w.complete(50)
 	}
 	require.InDelta(t, cut+cfg.unit, w.size, 0.5, "a window's worth of traffic buys about one unit back")
 	require.Less(t, w.size, 1000.0)

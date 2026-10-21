@@ -146,6 +146,8 @@ func newSizingHarnessFrom(t *testing.T, ceilingDocs, initialDocs, shardsPerNode 
 		itemBytes: itemBytes, nodes: nodes, shardsPerNode: shardsPerNode,
 	}
 	h.bi = newClusterIndexer(t, h.server, BulkIndexerConfig{
+		// One request at a time, so the controllers see each outcome before the next
+		// buffer is sealed.
 		NumWorkers:    1,
 		FlushBytes:    int(itemBytes) * ceilingDocs,
 		NodeBytes:     int(itemBytes) * ceilingDocs * 8,
@@ -153,10 +155,6 @@ func newSizingHarnessFrom(t *testing.T, ceilingDocs, initialDocs, shardsPerNode 
 		Sizing:        BulkSizing{InitialBytes: int(itemBytes) * initialDocs},
 	})
 	h.bi.(*bulkIndexer).now = h.clock.Now
-
-	// One request at a time per node, so the controllers see each outcome before the
-	// next buffer is sealed.
-	cluster.setWindow(1, false)
 
 	return h
 }
@@ -298,6 +296,65 @@ func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 	}
 	h.round("n0")
 	require.Greater(t, h.window("n0"), windowAfter, "growth resumes after the hold")
+}
+
+// TestBulkIndexerByteWindowPausesWhenThePoolStartsRejecting: the transport reports
+// the node's write pool as rejecting, which may be other clients' requests, until a
+// statistics poll finds no new rejections. The byte window takes the start of that
+// as one event and pauses for a few requests, as after a 429, and is not held while
+// the report lasts: it goes back to probing, and this client's own 429s govern it.
+func TestBulkIndexerByteWindowPausesWhenThePoolStartsRejecting(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// rejectFirst sends one 429 before the pool starts rejecting.
+		rejectFirst bool
+	}{
+		{name: "after a 429, the pool goes on rejecting", rejectFirst: true},
+		{name: "the pool starts rejecting with no 429 of the client's own"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			h := newSizingHarnessFrom(t, 200, 50, 1, "n0")
+			var reject atomic.Bool
+			h.server.respond = func(r sentRequest, _ string) (int, string) {
+				if reject.Load() {
+					return 200, rejectingResponse(len(r.actions))
+				}
+
+				return 200, okResponse(len(r.actions))
+			}
+
+			// A window that can grow: cut it, and wait out the hold that follows.
+			reject.Store(true)
+			h.round("n0")
+			reject.Store(false)
+			for range sizingHoldFlushes + 1 {
+				h.round("n0")
+			}
+
+			if tt.rejectFirst {
+				reject.Store(true)
+				h.round("n0")
+				reject.Store(false)
+			}
+			h.server.cluster.setWindow(1, true)
+
+			paused := h.window("n0")
+			for range sizingHoldFlushes {
+				h.round("n0")
+				require.LessOrEqual(t, h.window("n0"), paused, "no growth while the pause lasts")
+			}
+			for range 3 {
+				h.round("n0")
+			}
+			require.Greater(t, h.window("n0"), paused, "growth resumes while the pool is still reported rejecting")
+		})
+	}
 }
 
 // TestBulkIndexerHoldsWhileTheWholeNodeSlows: the node only gets slower, as when it
