@@ -34,7 +34,7 @@ func Example() {
 	defer func() { _ = client.Close() }()
 }
 
-// Example_bulkIndexer compresses only the bulk indexer's requests, since bulk
+// Example_bulkIndexer compresses only the bulk client's requests, since bulk
 // bodies are the largest the client sends. The application's other traffic goes
 // through client, which has no Compressor and sends bodies uncompressed.
 func Example_bulkIndexer() {

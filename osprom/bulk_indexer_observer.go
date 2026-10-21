@@ -15,7 +15,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
-// Metric label names specific to the bulk indexer.
+// Metric label names specific to the bulk client.
 const (
 	labelResult   = "result"
 	labelLayer    = "layer"
@@ -32,7 +32,7 @@ const (
 
 // BulkIndexerObserver records what an [opensearchutil.BulkIndexer] does as
 // Prometheus metrics. It implements [opensearchutil.BulkIndexerObserver], so set
-// it as the indexer's Observer; it is independent of [Registry] and of the
+// it as the bulk client's Observer; it is independent of [Registry] and of the
 // transport. Every label is low-cardinality (result, layer, kind, retrying,
 // outcome); none carries an index name or a document id.
 //
@@ -42,13 +42,13 @@ const (
 //   - Errors: a counter by layer (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
-//   - Items: a counter of items the indexer is done with, by outcome, and a
+//   - Items: a counter of items the bulk client is done with, by outcome, and a
 //     histogram of their document sizes (bulk_item_size_bytes, in bytes, from
 //     [opensearchutil.BulkItemEvent].Bytes: the document alone, without the action
 //     line). It has no labels, so one series gives the average (sum over count) and,
 //     in the upper buckets, the outliers.
 //
-// Its methods run on the indexer's worker goroutines and only update
+// Its methods run on the bulk client's worker goroutines and only update
 // Prometheus collectors, which do not block.
 type BulkIndexerObserver struct {
 	opensearchutil.BaseBulkIndexerObserver

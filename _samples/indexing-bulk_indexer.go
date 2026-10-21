@@ -44,14 +44,14 @@ const (
 	jobs, perJob = 3, 5
 )
 
-// source is what Metadata carries here: where a document came from. The indexer
+// source is what Metadata carries here: where a document came from. The bulk client
 // never sends it to the cluster, and hands it back unchanged to the callbacks.
 type source struct {
 	stream string
 	offset int64
 }
 
-// counters is a BulkIndexerObserver that counts what the indexer does. Embedding
+// counters is a BulkIndexerObserver that counts what the bulk client does. Embedding
 // the base observer leaves every method it does not override as a no-op.
 type counters struct {
 	opensearchutil.BaseBulkIndexerObserver
@@ -150,7 +150,7 @@ func example() error {
 		}
 	}()
 
-	// Build the indexer once. It is a long-lived client: it keeps a buffer per
+	// Build the bulk client once. It is a long-lived client: it keeps a buffer per
 	// shard and learns how quickly each node takes writes, so create it when the
 	// process starts and reuse it for every job, instead of building one per job.
 	obs := &counters{}
@@ -159,9 +159,9 @@ func example() error {
 		Index:  index,
 
 		// A shard's buffer is sent when it is full, and is never larger than
-		// FlushBytes. By default the indexer sizes it from write latency, up to this.
+		// FlushBytes. By default the bulk client sizes it from write latency, up to this.
 		FlushBytes: 5 << 20, // 5 MiB
-		// NumWorkers caps the bulk requests the indexer has outstanding at once.
+		// NumWorkers caps the bulk requests the bulk client has outstanding at once.
 		NumWorkers: 2,
 
 		RetryPolicy:   opensearchutil.RetryPolicyFunc(retryPolicy),
@@ -182,8 +182,8 @@ func example() error {
 		// Stop the work in flight, so that Close returns promptly.
 		indexer.Cancel()
 	}
-	// Close once, when the indexer is no longer needed. It sends anything still
-	// buffered, waits for every item to be final, and stops the indexer's
+	// Close once, when the bulk client is no longer needed. It sends anything still
+	// buffered, waits for every item to be final, and stops the bulk client's
 	// goroutines. Use Cancel instead to stop immediately.
 	if err := errors.Join(jobErr, indexer.Close(ctx)); err != nil {
 		return err
@@ -197,8 +197,8 @@ func example() error {
 	return nil
 }
 
-// runJobs feeds the indexer a few jobs of records and commits the position each
-// reaches. A job is just the records between two calls to Flush; the indexer
+// runJobs feeds the bulk client a few jobs of records and commits the position each
+// reaches. A job is just the records between two calls to Flush; the bulk client
 // carries on from job to job without being rebuilt.
 func runJobs(ctx context.Context, indexer opensearchutil.BulkIndexer, tracker *opensearchutil.FrontierTracker[string]) error {
 	// onSuccess marks the record complete. Every item here carries a source in

@@ -16,7 +16,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
-// Attribute names specific to the bulk indexer.
+// Attribute names specific to the bulk client.
 const (
 	attrResult   = "result"
 	attrLayer    = "layer"
@@ -33,7 +33,7 @@ const (
 
 // BulkIndexerObserver records what an [opensearchutil.BulkIndexer] does as
 // OpenTelemetry metrics. It implements [opensearchutil.BulkIndexerObserver], so
-// set it as the indexer's Observer; it is independent of [Registry] and of the
+// set it as the bulk client's Observer; it is independent of [Registry] and of the
 // transport. Every attribute is low-cardinality (result, layer, kind, retrying,
 // outcome); none carries an index name or a document id.
 //
@@ -43,11 +43,11 @@ const (
 //   - Errors: a counter by layer (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
-//   - Items: a counter of items the indexer is done with, by outcome.
+//   - Items: a counter of items the bulk client is done with, by outcome.
 //
-// Each call is recorded on the context the indexer's flush runs on, so a tracing
+// Each call is recorded on the context the bulk client's flush runs on, so a tracing
 // SDK can attach the flush's span as an exemplar. The methods run on the
-// indexer's worker goroutines and only record instruments, which do not block.
+// bulk client's worker goroutines and only record instruments, which do not block.
 type BulkIndexerObserver struct {
 	opensearchutil.BaseBulkIndexerObserver
 

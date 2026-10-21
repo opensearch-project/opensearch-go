@@ -3394,7 +3394,7 @@ func (b *cancelOnCloseBody) Close() error {
 
 // closeRequestBody closes the body of a request that is returned without being
 // sent, as an [http.RoundTripper] does for a request it fails. A body that
-// lends memory, such as a bulk indexer's buffer, is released by its Close.
+// lends memory, such as a bulk client's buffer, is released by its Close.
 func closeRequestBody(req *http.Request) {
 	if req.Body != nil && req.Body != http.NoBody {
 		_ = req.Body.Close()

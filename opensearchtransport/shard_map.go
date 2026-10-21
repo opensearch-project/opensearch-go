@@ -212,7 +212,7 @@ func (tr *Transport) WriteNodes() []*Connection {
 
 // ShardMapUnavailable reports why [Transport.ShardMap] and
 // [Transport.LookupShard] can never answer on this transport, or nil when they
-// can. A caller that depends on the shard map, such as a bulk indexer sending
+// can. A caller that depends on the shard map, such as a bulk client sending
 // each shard's documents to the node that hosts it, uses it to say so once at
 // start-up instead of silently losing the benefit.
 //
