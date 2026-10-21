@@ -1465,14 +1465,16 @@ Applications must always check these indicators. The Go client returns typed res
 
 ### Bulk Timeout Interaction
 
-Retrying bulk requests after `context.DeadlineExceeded` is safe **only** when the original request included a server-side timeout (`BulkParams.Timeout`). Without one, the server continues processing after the client gives up. Each retry adds concurrent bulk operations to the same primary shards, potentially exhausting thread pools cluster-wide.
+A bulk request that ends with `context.DeadlineExceeded` has an unknown outcome: the server does not see the client give up, and goes on with the request. Resending the whole batch adds concurrent bulk operations to the same primary shards, and repeated resends can fill their write queues cluster-wide. `BulkParams.Timeout` bounds only how long each action waits on the cluster (one minute by default); it does not stop a write that has started.
 
 Rules for safe bulk retry:
 
-1. Always set `BulkParams.Timeout` shorter than the client-side context deadline.
-2. Do not retry on `context.DeadlineExceeded` without a server-side timeout.
-3. Retry only failed items, not the entire batch.
-4. Use client-assigned `_id` values so you can query which items persisted before retrying.
+1. Set `BulkParams.Timeout` shorter than the client-side context deadline, so an action stuck waiting comes back as a failed item before the client gives up.
+2. Use client-assigned `_id` values, so a retry replaces rather than duplicates, and so you can look up which items were written before retrying.
+3. Without client-assigned IDs, do not resend after `context.DeadlineExceeded`.
+4. Retry only failed items, not the entire batch, and back off between retries.
+
+See [Bulk: Timeout configuration](indexing-bulk.md#timeout-configuration).
 
 ---
 

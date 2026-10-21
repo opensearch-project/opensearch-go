@@ -2,13 +2,15 @@
 
 > **Runnable example:** [`_samples/indexing-bulk_indexer.go`](../_samples/indexing-bulk_indexer.go)
 
-The [Bulk guide](indexing-bulk.md) covers a single `bulk` request that the caller builds and checks. `opensearchutil.BulkIndexer` builds on it for continuous ingestion. It accepts documents one at a time, keeps a buffer for each shard, sends each buffer to the node that hosts the shard, and reports the outcome of each document through callbacks.
+`opensearchutil.BulkIndexer` is a client for continuous ingestion. You add documents one at a time; it collects them into one buffer per shard, sends each full buffer as a bulk request to the node that hosts the shard's primary, retries what failed if you ask it to, and reports the outcome of every document through a callback.
+
+**Which one to use.** The [Bulk guide](indexing-bulk.md) covers the `bulk` API itself: one request that you build, send and check. Use it when you already have a batch in hand. Use `BulkIndexer` when documents keep arriving and you want the batching, routing, backpressure and retries handled for you. The Bulk guide's advice on [timeouts](indexing-bulk.md#timeout-configuration) and [document IDs](indexing-bulk.md#use-client-assigned-document-ids-for-recoverability) applies here too.
 
 ## A long-lived client
 
-A `BulkIndexer` is a long-running, stateful client, not a per-request helper. It holds a buffer for each shard, learns the speed and load of each node, and runs worker goroutines and timers. Create one when the process starts and keep it for as long as the process writes to the cluster.
+A `BulkIndexer` is a long-running, stateful client, not a per-request helper. It holds a buffer for each shard, learns how fast each node and shard is, and runs goroutines and a timer. Create one when the process starts, and keep it for as long as the process writes to the cluster.
 
-Use `Flush` to mark the end of each unit of work, and reuse the indexer for the next one:
+Call `Flush` at the end of each unit of work, and reuse the indexer for the next one:
 
 ```go
 for job := range jobs {
@@ -29,7 +31,7 @@ for job := range jobs {
 return indexer.Close(ctx)
 ```
 
-An indexer created per job discards what its controllers learned about the nodes, so each new indexer starts without that knowledge, and an indexer that is not closed leaves its goroutines running. Share one indexer between goroutines instead; `Add` is safe for concurrent use.
+An indexer created for each job throws away what it learned about the nodes, so every new one starts from nothing, and one that is never closed leaves its goroutines running. Share one indexer between goroutines instead: `Add` is safe for concurrent use.
 
 ## Concepts
 
@@ -38,43 +40,57 @@ An indexer created per job discards what its controllers learned about the nodes
 | **Item** | One action (`index`, `create`, `update`, `delete`) on one document, with its callbacks and optional `Metadata`. Exactly one of its callbacks runs, once: `OnSuccess` or `OnError`. |
 | **Job** | Not a type: the items added between two calls to `Flush`. `Flush` marks where a job ends. |
 | **Shard buffer** | The items bound for one shard, collected until the buffer is sent as one bulk request. |
-| **Node window** | The number of bytes of requests the indexer may have sent to a node and not yet had answered. A buffer that would exceed it waits, sealed, until requests complete. The window is how the indexer responds to a node that rejects writes; a 429 halves it. |
-| **Controllers** | The logic that sets the two sizes above. The _shard-buffer controller_ decides when a shard's buffer is full, from write latency (a PID controller, or a fixed size). The _node-window controller_ shrinks the node window when the node answers with a 429 and grows it back gradually while the node accepts writes (AIMD), or holds it fixed. Each can be disabled independently. See [Sizing batches](#sizing-batches). |
+| **Governor** | A limit that holds work back. The indexer has five, listed below. Each one that adapts is driven by a single signal. |
+| **Signal** | Something the indexer observes about the cluster: a 429, how long a request took, the state of a node's write pool. A signal can drive a governor or inform a choice, such as which node to use, but on its own it holds nothing back. |
+| **Node window** | The governor on how many bytes may be in flight to a node at once. A 429 halves it, and it grows back slowly while the node accepts writes. |
+| **Controllers** | The logic behind the two governors that adapt. The _shard-buffer controller_ sizes a shard's buffer from the shard's write latency (a PID controller, or a fixed size). The _node-window controller_ cuts the node window on a 429 and grows it back (AIMD), or holds it fixed. Either can be turned off. See [Sizing batches](#sizing-batches). |
 | **Retry policy** | Optional. Decides, for each failed item, whether to send it again and after what delay. See [Retrying failed items](#retrying-failed-items). |
+
+The five governors, and the signal that drives each:
+
+| Governor              | Holds back                                                               | Driven by                                                        |
+| --------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `MaxMemoryBytes`      | `Add`, once the indexer holds this much                                  | nothing: fixed                                                   |
+| One request per shard | a shard's next buffer, until its request is answered                     | nothing: fixed, to keep each shard's documents in order          |
+| Shard buffer size     | how much a shard collects before it is sent, up to `FlushBytes`          | the shard's write latency, compared with its node's other shards |
+| Node window           | bytes in flight to a node                                                | 429s from that node                                              |
+| Node request limit    | requests in flight to a node: `NumWorkers`, or `GOMAXPROCS` when it is 0 | nothing: fixed                                                   |
+
+The node's write thread pool, as the transport tracks it, is a signal and governs nothing. The indexer uses it to choose where documents that belong to no shard go, to start a shard's buffer small on an overloaded node, and to hold off growing a node window while the pool is rejecting.
 
 The indexer is organized as follows:
 
 ```
-BulkIndexer
-├── node A                  node window: bytes out to the node at once      (shrinks on the node's 429s)
-│   ├── shard 0 buffer      sent when full; one request in flight per shard (adaptive on latency, or fixed)
+BulkIndexer                     MaxMemoryBytes: Add waits once the indexer holds this much
+├── node A                      node window (bytes, cut by 429s) and node request limit (requests)
+│   ├── shard 0 buffer          buffer size (follows latency); one request in flight per shard
 │   └── shard 3 buffer
 ├── node B
 │   └── shard 1 buffer
-└── unplaced                items with no known shard, sent to the nearest node with room
+└── documents with no shard     sent to the nearest node whose write pool has room
 ```
 
 An item passes through these stages:
 
-1. `Add` places the item in the buffer for its shard. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory is released. `Add` also waits when its shard holds more than an even share of the limit while other shards are waiting for room (see below).
-2. A buffer is sent as one bulk request, to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` elapses, or when `Flush` or `Close` is called. If sending it would put more bytes in flight to that node than its window allows, it waits, still counted against `MaxMemoryBytes`, until requests complete.
-3. The response is read **item by item**. A bulk request is not all-or-nothing: a `200` can carry items the cluster rejected, which is a partial success, not an error. An item the cluster accepted receives `OnSuccess`.
-4. An item that was rejected, or whose whole request failed, is classified by layer and kind (see [Retrying failed items](#retrying-failed-items)). If a retry policy requests a retry, the item returns to a buffer and is sent again; otherwise it receives `OnError`. See [Reading an error](#reading-an-error) for the contents of the error.
-5. Each completed request also updates the controllers: its latency feeds the shard's controller, and a 429 feeds the node's.
+1. `Add` places the item in its shard's buffer. If the indexer already holds `MaxMemoryBytes`, `Add` waits until memory is freed. It also waits when its shard holds more than an even share of that limit while other shards are waiting for room (see below).
+2. A buffer is sealed, to be sent as one bulk request to the node that hosts the shard's primary, when it is full (see [Basic use](#basic-use)), when `FlushInterval` elapses, or when `Flush` or `Close` is called. It is sent once the shard has no request in flight, the node is under its request limit, and the buffer fits in the node's window. Until then it waits, still counted against `MaxMemoryBytes`.
+3. The response is read **item by item**. A bulk request is not all-or-nothing: a `200` can carry items the cluster rejected, which is a partial success, not an error. An item the cluster accepted gets `OnSuccess`.
+4. An item that was rejected, or whose whole request failed, is classified by layer and kind (see [Retrying failed items](#retrying-failed-items)). If a retry policy asks for a retry, the item goes back into a buffer and is sent again; otherwise it gets `OnError`. [Reading an error](#reading-an-error) describes what the error holds.
+5. Each completed request also feeds the controllers: its latency feeds the shard's, and a 429 feeds the node's.
 
-When `Flush` returns, every item added before the call has had its `OnSuccess` or `OnError` called. This does not mean every item succeeded; the callbacks, or `OnUnhandledError` for an item with no `OnError`, report the items that did not.
+When `Flush` returns, every item added before the call has had its `OnSuccess` or `OnError` called. That does not mean every item succeeded: the callbacks, or `OnUnhandledError` for an item with no `OnError`, report the ones that did not.
 
-All shards draw on the single `MaxMemoryBytes` limit, and a shard whose requests are slow keeps the bytes it holds until they are answered. To prevent one such shard from taking the whole limit, each shard is limited to an even share of it while other shards are waiting for room, and the waiting callers of other shards are served first. While no other shard is waiting, a shard may use the whole limit. A shard that holds nothing may always take one item, so that no shard is left with no work in progress; the limit can therefore be exceeded by at most one item for each such shard.
+All shards draw on the one `MaxMemoryBytes` limit, and a shard whose requests are slow keeps its bytes until they are answered. To stop one such shard from taking the whole limit, a shard may hold no more than an even share of it while other shards are waiting for room, and the callers waiting on other shards are served first. While no other shard is waiting, a shard may use the whole limit. A shard that holds nothing may always take one item, so that no shard is left with nothing in progress; the limit can therefore be exceeded by at most one item per such shard.
 
 ### Progress guarantees
 
-The limits above delay work but cannot stop it. The following hold regardless of the cluster's state:
+The governors delay work but cannot stop it. Whatever state the cluster is in:
 
-- A shard's buffer is never required to be smaller than 1 byte (`MinBytes` is held to at least 1, including under `ShardFixed`), and it is sealed once it holds `FlushBytes`. A buffer that holds an item has therefore always reached the smallest size it can be required to reach, and no buffer waits for a size it cannot reach. An item larger than the size is sent alone.
-- A shard that holds nothing may always take one item, exceeding `MaxMemoryBytes` if necessary.
-- When nothing is in flight to a node, one sealed buffer is sent regardless of its size, exceeding the node's window if necessary.
+- A shard's buffer is never required to be smaller than 1 byte (`MinBytes` is at least 1, including under `ShardFixed`), and it is sealed once it holds `FlushBytes`. So a buffer that holds an item has always reached the smallest size it can be asked to reach, and no buffer waits for a size it cannot reach. An item larger than the size is sent alone.
+- A shard that holds nothing may always take one item, even past `MaxMemoryBytes`.
+- When nothing is in flight to a node, one sealed buffer is sent whatever its size, even past the node's window.
 
-The memory limit and the node windows therefore make a caller wait for requests to complete, and never leave a shard or a node with nothing to send.
+So the memory limit and the node windows make a caller wait for requests to complete, and never leave a shard or a node with nothing to send.
 
 ## Basic use
 
@@ -114,41 +130,41 @@ if err := indexer.Close(ctx); err != nil {
 fmt.Printf("%+v\n", indexer.Stats())
 ```
 
-The indexer sends buffered data as bulk requests when a buffer is full, when `FlushInterval` (default 30 seconds) elapses, and when `Flush` or `Close` is called. The point at which a buffer is full depends on the sizing mode. By default sizing is adaptive: a controller sets the size of each shard's buffer from how quickly the node serves that shard's requests, up to `FlushBytes` (default 5 MiB). With `Sizing.Shard` set to `ShardFixed`, a buffer is full at exactly `FlushBytes`. See [Sizing batches](#sizing-batches).
+The indexer sends what it has buffered when a buffer is full, when `FlushInterval` (default 30 seconds) elapses, and when `Flush` or `Close` is called. When a buffer counts as full depends on the sizing mode. By default sizing is adaptive: a controller sizes each shard's buffer from how quickly the node serves that shard's requests, up to `FlushBytes` (default 5 MiB). With `Sizing.Shard` set to `ShardFixed`, a buffer is full at exactly `FlushBytes`. See [Sizing batches](#sizing-batches).
 
-`Body` is an `io.ReadSeeker` because the indexer rewinds it. The indexer reads the document from offset 0, whatever the reader's position when it is passed in, to size it, to fingerprint it, and for each attempt to send it, so every attempt, including a retry, sends the same bytes. A caller that tracks its own position in a reader should pass a reader of only the document, such as an `io.SectionReader`. Set `Index` on an item to send it to an index other than the configured default.
+`Body` is an `io.ReadSeeker` because the indexer rewinds it. It reads the document from offset 0, wherever the reader is positioned when you pass it in: once to size it, once to fingerprint it, and once for each attempt to send it, so every attempt, retries included, sends the same bytes. If you track your own position in a reader, pass a reader over just the document, such as an `io.SectionReader`. Set `Index` on an item to send it to an index other than the configured default.
 
-Behavior to be aware of:
+Things to be aware of:
 
 - **`Add` after `Close` returns `ErrBulkIndexerClosed`.** Otherwise `Add` returns an error only when its context ends before the item is queued. It blocks while the indexer holds `MaxMemoryBytes`, and while its shard holds more than an even share of that limit with other shards waiting.
-- **Documents of one shard keep their order.** Items that carry a `DocumentID` or a `Routing` value are written in the order they were added: a shard has one request in flight at a time, and a retry takes place in that request's slot, so a later buffer for the shard is not sent ahead of it. An item that the indexer cannot place in a shard, because there is no shard router or the index's shard map is not yet known, is ordered the same way by its ID: the buffer that holds it is not sent until the earlier buffer holding a document with the same ID has finished, while buffers that share no ID are sent in parallel.
+- **The documents of one shard keep their order.** Items with a `DocumentID` or a `Routing` value are written in the order they were added: a shard has one request in flight at a time, and a retry happens in that request's place, so a later buffer for the shard cannot overtake it. An item the indexer cannot place in a shard, because there is no shard router or the index's shard map is not known yet, is kept in order by its ID instead: its buffer is not sent until the earlier buffer holding the same ID has finished, while buffers that share no ID go out in parallel.
 
-  The order holds across a change in where documents are sent. A shard that moves to another node keeps its order, as does one whose node is unknown; only the next buffer's destination changes. A change in the index's shard geometry, as when the index is recreated, split or shrunk, or when the router loses the index's shard map, can send a document's next action to a different shard from its previous one. When `Add` detects such a change, it sends every item already added for the index's shards as it is, to the shard it was placed on, and waits for all of them to be answered before it places the new item, so that nothing overtakes them. The server routes each document itself, so those items still land on the right shard, and no item fails because of the change. Geometry changes are signaled by `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 does not report them, and the indexer cannot detect them.
+  The order holds when documents start going somewhere else. A shard that moves to another node keeps its order, and so does one whose node is unknown: only where its next buffer goes changes. A change in the index's shard geometry is different. When the index is recreated, split or shrunk, or the router loses the index's shard map, a document's next action can map to a different shard from its last one. When `Add` sees such a change, it sends everything already added for the index's shards, as placed, and waits for all of it to be answered before it places the new item, so nothing overtakes it. The server routes each document itself, so those items still land on the right shard, and none fails because of the change. The router reports geometry changes through `ShardTarget.Generation`; a custom `ShardRouter` that returns 0 reports none, and the indexer cannot detect them.
 
-- **Callbacks run on the goroutine that sends the request.** A slow callback delays its buffer and the shard's next buffer, but not the rest of the indexer. Do not call `Add`, `Flush`, or `Close` from a callback; `Cancel` is safe.
-- **Every item receives exactly one callback**: `OnSuccess` or `OnError`.
+- **Callbacks run on the goroutine that sends the request.** A slow callback delays its own buffer and the shard's next buffer, but not the rest of the indexer. Do not call `Add`, `Flush` or `Close` from a callback; `Cancel` is safe.
+- **Every item gets exactly one callback**: `OnSuccess` or `OnError`.
 
 ## Flush, Close, and Cancel
 
-|          | Waits for                                                                     | Leaves the indexer open       | Purpose                                                |
+|          | Waits for                                                                     | Leaves the indexer open       | Use it to                                              |
 | -------- | ----------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------ |
 | `Flush`  | the items added before the call, including retries                            | yes                           | drain at a checkpoint, or at the end of a unit of work |
 | `Close`  | every item, including requests in flight and retry backoff                    | no                            | shut down cleanly                                      |
 | `Cancel` | nothing: it cancels requests in flight, ends backoff, and returns immediately | no; `Close` is still required | shut down immediately                                  |
 
-When `Flush` returns without a context error, every item it covered has already had its callback, so an external position can be committed from what the callbacks recorded. If the context ends first, `Flush` returns the context's error and stops waiting; the items still receive their callback, exactly once, possibly after `Flush` has returned.
+When `Flush` returns without a context error, every item it covered has already had its callback, so you can commit an external position from what the callbacks recorded. If its context ends first, `Flush` returns the context's error and stops waiting; the items still get their callback, exactly once, possibly after `Flush` has returned.
 
-`Close` blocks until every item is final. If its context ends first, it escalates to `Cancel`: the items not yet final fail, the requests unwind, and `Close` returns the context's error. To bound the wait, pass a context with a deadline; to avoid waiting, call `Close` in a goroutine.
+`Close` blocks until every item is final. If its context ends first, it escalates to `Cancel`: the items not yet final fail, the requests unwind, and `Close` returns the context's error. To bound the wait, pass a context with a deadline; to avoid waiting at all, call `Close` in a goroutine.
 
 ### Closing an indexer
 
-An indexer is more than a buffer. It runs a periodic flush on a timer and goroutines that send requests, and it holds pooled buffers and, when no `Client` was supplied, a client of its own. `Close` stops and releases all of these after sending what is still buffered. An indexer that is discarded without `Close` keeps its goroutines, timer and memory, and any item still in a buffer is lost when the process exits. `Flush` is not a substitute: it drains what has been added and leaves everything running. Call `Close` once, when the indexer is no longer needed, and reuse the indexer until then (see [A long-lived client](#a-long-lived-client)).
+An indexer is more than a buffer. It runs a periodic flush on a timer and goroutines that send requests, and it holds pooled buffers and, when no `Client` was supplied, a client of its own. `Close` sends whatever is still buffered and then stops and releases all of these. An indexer dropped without `Close` keeps its goroutines, timer and memory, and any item still in a buffer is lost when the process exits. `Flush` is not a substitute: it drains what has been added and leaves everything running. Call `Close` once, when the indexer is no longer needed, and reuse the indexer until then (see [A long-lived client](#a-long-lived-client)).
 
-After `Cancel`, each item the indexer has not finished fails through its `OnError` exactly once. An item that was never sent fails with an error of layer `LayerIndexer` and kind `KindCanceled`, which matches `opensearchutil.ErrIndexerCanceled` and `context.Canceled`. An item that was in a request when the indexer was canceled fails with that request's error, which does not establish whether the item was written. `Add` after `Cancel` fails the item in the same way and returns nil.
+After `Cancel`, every item the indexer has not finished fails through its `OnError`, exactly once. An item that was never sent fails with an error of layer `LayerIndexer` and kind `KindCanceled`, which matches `opensearchutil.ErrIndexerCanceled` and `context.Canceled`. An item that was in a request when the indexer was canceled fails with that request's error, which does not tell you whether the item was written. `Add` after `Cancel` fails the item the same way and returns nil.
 
 ## Reading an error
 
-`OnError` receives a `*opensearchutil.BulkError`, which identifies the layer that failed (`Layer`) and the reason (`Kind`), and carries the details:
+`OnError` receives a `*opensearchutil.BulkError`, which names the layer that failed (`Layer`) and the reason (`Kind`), and carries the details:
 
 | Event                                                                 | `Layer`        | `Kind`                                         | Details                                                             |
 | --------------------------------------------------------------------- | -------------- | ---------------------------------------------- | ------------------------------------------------------------------- |
@@ -172,13 +188,13 @@ OnError: func(ctx context.Context, item opensearchutil.BulkIndexerItem, err *ope
 },
 ```
 
-A request error is ambiguous: the request may have reached the cluster, in part or in full, before the error occurred. The indexer reports the same error to every item in the request. For an item with no `OnError`, the error is reported to `BulkIndexerConfig.OnUnhandledError` instead. An explicit `Flush` reports through its return value and does not call `OnUnhandledError`.
+A request error is ambiguous: the request may have reached the cluster, in part or in full, before it failed. The indexer reports the same error to every item in the request. An item with no `OnError` is reported to `BulkIndexerConfig.OnUnhandledError` instead. An explicit `Flush` reports through its return value and does not call `OnUnhandledError`.
 
-The transport also retries independently, beneath the indexer. It resends a request that failed with a network error or received a status in its `RetryOnStatus` (502, 503 and 504 by default), and, when the client has a router and the node's write thread pool is tracked, as with the default router, a request the node answered with a 429. The transport routes a resent 429 afresh, so it can reach a different node. See [Retry and Backoff](transport-retry_backoff.md). The indexer sees the error only after the transport's retries are exhausted, and a 429 that the transport resent successfully does not cut the node's window.
+The transport retries on its own as well, underneath the indexer. It resends a request that failed with a network error or got a status in its `RetryOnStatus` (502, 503 and 504 by default). When the client has a router that tracks the node's write thread pool, as the default router does, it also resends a request the node answered with a 429, and routes the resend afresh, so it can reach a different node. See [Retry and Backoff](transport-retry_backoff.md). The indexer sees an error only once the transport's retries are used up, so a 429 that the transport resent successfully does not cut the node window.
 
 ## Retrying failed items
 
-Set `BulkIndexerConfig.RetryPolicy` to have the indexer resend failed items. The indexer runs the retry loop; the policy supplies the backoff and the limit:
+Set `BulkIndexerConfig.RetryPolicy` to have the indexer resend failed items. The indexer runs the retry loop; the policy decides the delay and when to stop:
 
 ```go
 retry := opensearchutil.RetryPolicyFunc(func(attempt int, err *opensearchutil.BulkError) (time.Duration, bool) {
@@ -189,16 +205,16 @@ retry := opensearchutil.RetryPolicyFunc(func(attempt int, err *opensearchutil.Bu
 })
 ```
 
-`attempt` counts the requests that have carried the work; it is 1 after the first request fails. The policy returns the delay and whether to retry. The indexer applies no limit of its own, so a policy that always returns true retries a persistent failure indefinitely.
+`attempt` counts the requests that have carried the work so far; it is 1 after the first request fails. The policy returns the delay and whether to retry. The indexer sets no limit of its own, so a policy that always returns true retries a persistent failure forever.
 
 ### Layer and kind
 
-A policy is consulted for two layers of error, identified by `err.Layer`:
+The policy is asked about two layers of error, told apart by `err.Layer`:
 
 - **`LayerRequest`**: the whole request failed. `err.Err` is the request's error. One call covers every item in the request.
 - **`LayerItem`**: the cluster answered and rejected one item. `err.Resp` is that item's response. There is one call per rejected item.
 
-`LayerIndexer` errors, from a canceled indexer, are never retried and never reach a policy. The indexer classifies each error by kind:
+`LayerIndexer` errors, from a canceled indexer, are never retried and never reach the policy. The indexer classifies each error by kind:
 
 | Kind              | Sentinel             | Meaning                                                                                                              | Safe to retry               |
 | ----------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------- |
@@ -206,19 +222,19 @@ A policy is consulted for two layers of error, identified by `err.Layer`:
 | `KindUnavailable` | `ErrUnavailable`     | the cluster or a proxy could not serve the request (HTTP 503)                                                        | yes                         |
 | `KindTransport`   | `ErrTransport`       | the outcome is unknown: no response, a server error other than 503, or an unreadable response                        | only with deterministic IDs |
 | `KindPermanent`   | `ErrPermanent`       | the same request would fail the same way: a mapping error, a version conflict, any other 4xx, an unpairable response | no                          |
-| `KindCanceled`    | `ErrIndexerCanceled` | the indexer was canceled before the work was sent                                                                    | not offered to the policy   |
+| `KindCanceled`    | `ErrIndexerCanceled` | the indexer was canceled before the work was sent                                                                    | never offered to the policy |
 
 ### Callbacks during retries
 
-While an item is being retried, neither `OnSuccess` nor `OnError` runs for it. One of them runs once, when the indexer is done with the item: the item was accepted, the policy declined to retry it, or its retries were abandoned. A rejected item is resent in a request with the other items being retried, after the longest delay assigned to any of them.
+While an item is being retried, neither `OnSuccess` nor `OnError` runs for it. One of them runs once, when the indexer is done with the item: the item was accepted, the policy declined to retry it, or its retries were abandoned. A rejected item is resent in one request with the other items being retried, after the longest delay any of them was given.
 
-Set `BulkIndexerConfig.Timeout`, the server-side timeout, whenever a `RetryPolicy` is set. Without it, a request abandoned by its context may continue running on the cluster while the retry sends a second request against the same shards; see [Bulk: Timeout Configuration](indexing-bulk.md#timeout-configuration).
+Set `BulkIndexerConfig.Timeout`, the server-side timeout, shorter than the context you pass to `Flush` and `Close` whenever a `RetryPolicy` is set. The server-side timeout bounds how long each action waits on the cluster, for example for a shard whose primary is not active. With it shorter, an action stuck waiting comes back as a failed item (`KindUnavailable`) that the policy can retry precisely. Without it, the context can end first, the whole request fails with an unknown outcome, and the server goes on with it while the retry sends the same documents again. See [Bulk: Timeout configuration](indexing-bulk.md#timeout-configuration).
 
-The wait before a retry uses both a timer and the context. It ends early, and the waiting items fail with the error they last received, when the flush's context ends: the context passed to `Flush` or `Close`, or a call to `Cancel`. The buffer keeps its request slot while it waits, so the shard's next buffer is held back and its memory remains counted; keep delays short relative to `FlushInterval`.
+The wait before a retry watches both a timer and the context. It ends early, and the waiting items fail with the error they last got, when the flush's context ends: the context passed to `Flush` or `Close`, or a call to `Cancel`. The buffer keeps its shard's request slot while it waits, so the shard's next buffer is held back and its memory stays counted. Keep delays short relative to `FlushInterval`.
 
 ## Document IDs
 
-Retrying a `KindTransport` error can write a document twice, because the first attempt may have succeeded. With a deterministic `_id` the second write replaces the first; with a server-generated ID it creates a duplicate. Therefore, when a `RetryPolicy` is set, every item must have a `DocumentID`. An item without one is not sent and fails through its own `OnError` with an error that matches `opensearchutil.ErrMissingDocumentID`. `Add` still returns nil, and that `OnError` runs on the goroutine that called `Add`. Without a policy, behavior is unchanged and the cluster generates the ID.
+Retrying a `KindTransport` error can write a document twice, because the first attempt may have succeeded. With a deterministic `_id` the second write replaces the first; with a server-generated ID it creates a duplicate. So when a `RetryPolicy` is set, every item must have a `DocumentID`. An item without one is not sent, and fails through its own `OnError` with an error that matches `opensearchutil.ErrMissingDocumentID`. `Add` still returns nil, and that `OnError` runs on the goroutine that called `Add`. Without a policy nothing changes, and the cluster generates the ID.
 
 For documents with no natural ID, set `BulkIndexerConfig.Fingerprinter` to derive one:
 
@@ -233,11 +249,11 @@ fingerprint := func(ctx context.Context, item opensearchutil.BulkIndexerItem) (s
 }
 ```
 
-`Add` calls the fingerprinter only for an item whose `DocumentID` is empty, before the item is placed in a shard, so a generated ID routes exactly as an explicit one does and per-ID ordering holds. The fingerprinter must be deterministic and safe for concurrent use. It may read `Body`; the indexer rewinds it. An error, or an empty ID, fails the item through its `OnError`.
+`Add` calls the fingerprinter only for an item whose `DocumentID` is empty, and before the item is placed in a shard, so a generated ID routes exactly as an explicit one does and per-ID ordering holds. The fingerprinter must be deterministic and safe for concurrent use. It may read `Body`; the indexer rewinds it afterward. An error, or an empty ID, fails the item through its `OnError`.
 
 ## Carrying data with Metadata
 
-`BulkIndexerItem.Metadata` is an opaque `any` that is returned unchanged in the item passed to `OnSuccess` and `OnError`. It is never sent to the cluster. Use it to carry what a callback needs, such as the stream offset of the document, instead of allocating a closure per item:
+`BulkIndexerItem.Metadata` is an opaque `any` that comes back unchanged in the item passed to `OnSuccess` and `OnError`. It is never sent to the cluster. Use it to carry what a callback needs, such as the document's stream offset, instead of allocating a closure for each item:
 
 ```go
 type source struct {
@@ -258,9 +274,9 @@ item := opensearchutil.BulkIndexerItem{
 
 ## Committing a stream position
 
-When indexing from a stream such as Kafka, a consumer may advance the stream's position past a record only once every earlier record is done. The indexer completes records out of order, because different shards finish at different times. A client library that marks the highest completed record would commit past a gap and lose the records in it.
+When you index from a stream such as Kafka, the consumer may commit its position past a record only once every earlier record is done. The indexer completes records out of order, because different shards finish at different times. A client library that commits the highest completed record would commit past a gap and lose the records in it.
 
-`opensearchutil.FrontierTracker` reports each stream's frontier: the lowest offset that is not yet complete, below which every offset is complete. The frontier never passes a gap. Register where each stream starts, mark each record complete in `OnSuccess`, and read the frontier to commit:
+`opensearchutil.FrontierTracker` reports each stream's frontier: the lowest offset that is not yet complete. Every offset below it is complete, so the frontier never passes a gap. Register where each stream starts, mark each record complete in `OnSuccess`, and read the frontier to commit:
 
 ```go
 var tracker opensearchutil.FrontierTracker[string]
@@ -273,87 +289,87 @@ tracker.Complete(src.partition, src.offset)
 frontier, _ := tracker.Frontier("events/0") // every offset below frontier is done
 ```
 
-The tracker has no failed state by design. A failed record must not advance the frontier, so `Complete` is not called for it: the frontier stays below the record until the application handles it, and the completions after it are held in memory until then.
+The tracker has no failed state, by design. A failed record must not move the frontier, so you do not call `Complete` for it: the frontier stays below that record until the application deals with it, and the completions after it are held in memory until then.
 
-Before releasing a stream, for example when a partition is revoked in a rebalance, perform these steps in order:
+Before releasing a stream, for example when a partition is revoked in a rebalance, do these steps in order:
 
 1. `Flush` the indexer, so that every record passed to it has completed or failed.
 2. Call `tracker.Forget` and take the frontier it returns. Completions that arrive afterward are ignored.
 3. Commit that frontier, and only that frontier.
 
-This order is correct because the flush comes first and the frontier is read after it. Once `Flush` has returned and no more records are admitted for the stream, nothing further completes, so `tracker.Frontier` and `tracker.Forget` return the same value. Reading the frontier with `Frontier`, committing, and then calling `Forget` is equally safe, and keeps the stream tracked if the commit fails.
+The order matters: the flush comes first, and the frontier is read after it. Once `Flush` has returned and no more records are added for the stream, nothing more can complete, so `tracker.Frontier` and `tracker.Forget` return the same value. Reading the frontier with `Frontier`, committing, and then calling `Forget` is just as safe, and keeps the stream tracked if the commit fails.
 
 ## Sizing batches
 
-By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` is the most a shard's buffer collects, and two controllers operate beneath it, each controlling one quantity from one signal. `BulkIndexerConfig.Sizing` tunes them; the zero value selects defaults derived from `FlushBytes`.
+By default the indexer does not send every buffer at `FlushBytes`. `FlushBytes` is the most a shard's buffer collects, and two controllers work beneath it. Each sets one governor from one signal. `BulkIndexerConfig.Sizing` tunes them; its zero value selects defaults derived from `FlushBytes`.
 
-|                                                         | Controls                                                      | Input                                                                               | Response                                                                 |
-| ------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **Shard-buffer controller** (PID on latency, or fixed)  | how many bytes a shard's buffer collects before it is sent    | how fast the node served that shard's recent requests, relative to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
-| **Node-window controller** (responds to 429s, or fixed) | how many bytes of requests may be in flight to a node at once | whether the node answered a request with a 429                                      | a node that is full: less in flight, then a gradual increase             |
+|                                                         | Governs                                                    | Signal                                                                              | Response                                                                 |
+| ------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Shard-buffer controller** (PID on latency, or fixed)  | how many bytes a shard's buffer collects before it is sent | how fast the node served that shard's recent requests, relative to its other shards | a shard slower than the rest of its node: smaller buffers for that shard |
+| **Node-window controller** (responds to 429s, or fixed) | how many bytes may be in flight to a node at once          | whether the node answered a request with a 429                                      | an overloaded node: less in flight, then a gradual increase              |
 
 ### Why it is adaptive
 
-A single indexer cannot know how much load a cluster can accept. The cluster is shared by many writers, its capacity changes as other work starts and stops, and a batch size that suits a node at one moment overloads it at another. A fleet of fixed-size writers either leaves capacity unused or fills the write queues and receives 429s. The indexer therefore measures, using two signals that require no coordination between clients:
+A single indexer cannot know how much a cluster can take. The cluster is shared by many writers, its capacity changes as other work starts and stops, and a batch size that suits a node at one moment overloads it at another. A fleet of fixed-size writers either leaves capacity unused or fills the write queues and gets 429s. So the indexer measures instead, using two signals that need no coordination between clients:
 
-- **429 responses** indicate that the server's write queue is full. When a node answers with one, the indexer reduces the number of bytes it keeps in flight to that node, then increases it in small steps while the node continues to accept writes. This is additive increase, multiplicative decrease (AIMD), the scheme TCP uses to find a network's capacity.
-- **Write latency** distinguishes shards. A PID controller compares how quickly each node serves a shard's requests with the node's other shards, and gives a shard that is slower than the rest smaller buffers, so that a hot or expensive shard does not take the node's time from the others. A slowdown shared by the whole node reflects the node's load: no shard is reduced for it, and the node is sent as much as it accepts until it rejects.
+- **429 responses** say that a node is overloaded: its write queue is full. When a node answers with one, the indexer cuts the bytes it keeps in flight to that node, then raises them in small steps while the node keeps accepting writes. This is additive increase, multiplicative decrease (AIMD), the scheme TCP uses to find a network's capacity.
+- **Write latency** tells shards apart. A PID controller compares how quickly the node serves each shard's requests with how quickly it serves its other shards, and gives a shard that is slower than the rest smaller buffers, so a hot or expensive shard does not take the node's time from the others. A slowdown the whole node shares is just the node being busy: no shard is cut for it, and the node keeps getting as much as it accepts until it answers with a 429.
 
-Together they keep a node busy without queueing it into rejections. Because every client in the fleet makes the same adjustments from the same signals, their combined load stays near what the cluster can accept.
+Together they keep a node busy without pushing it into rejections. Because every client in the fleet makes the same adjustments from the same signals, their combined load stays near what the cluster can take.
 
-The two controllers matter to different workloads. The node window matters to any workload that can saturate a node: it turns a 429 into reduced load rather than a burst of retries. The shard-buffer controller compares a shard only with the other shards on the same node, so it matters only when shards differ. A hot shard, a shard whose documents are expensive to index (large, many fields, heavy ingest pipelines), or a shard on a node that is also merging or recovering, is slower than its neighbors, and full-size requests for it take the node's time from the other shards. The controller gives that shard smaller buffers, so it receives its share of the node's time and no more. When every shard on a node is about as fast as the others, which is typical for one index with evenly distributed IDs, nothing is reduced: each buffer stays at `FlushBytes`, and adaptive sizing behaves like `ShardFixed`, except that a shard that starts on an overloaded node starts at `InitialBytes` and climbs from there.
+The two controllers matter to different workloads. The node window matters to any workload that can saturate a node: it turns a 429 into less load rather than a burst of retries. The shard-buffer controller compares a shard only with the other shards on its node, so it matters only when shards differ. A hot shard, a shard whose documents are expensive to index (large, many fields, heavy ingest pipelines), or a shard on a node that is also merging or recovering, is slower than its neighbors, and full-size requests for it take the node's time from the other shards. The controller gives that shard smaller buffers, so it gets its share of the node's time and no more. When every shard on a node is about as fast as the others, which is typical of one index with evenly distributed IDs, nothing is cut: every buffer stays at `FlushBytes`, and adaptive sizing behaves like `ShardFixed`, except that a shard that starts on an overloaded node starts at `InitialBytes` and climbs from there.
 
 #### The shard-buffer controller
 
-The controller's input is the time each request spent on the node: the round trip minus the network distance. A request carries one shard, so this measures that shard's own speed. The controller compares the time with what the node at its best recent performance would need for a request of the same size: a fixed cost per request, plus the bytes at the best service rate observed recently. The fixed cost is learned from small requests, in which it is a visible part of the time. Without it, a small request would be judged against the throughput of large ones, which it cannot reach even on a healthy node. The comparison is smoothed over the last several flushes, because the time of a single flush is dominated by noise: queueing, garbage collection, merges. The smoothed level is then compared with the mean level of the node's other shards. A shard alone on its node, such as the buffer for documents that belong to no shard, is compared with itself and keeps its size.
+The controller's input is the time each request spent on the node: the round trip minus the network distance. A request carries one shard, so this measures that shard's own speed. The controller compares it with what the node, at its best recent performance, would need for a request of the same size: a fixed cost per request, plus the bytes at the best service rate seen recently. The fixed cost is learned from small requests, where it is a visible part of the time. Without it, a small request would be judged against the throughput of large ones, which it cannot reach even on a healthy node. The comparison is smoothed over the last several flushes, because a single flush's time is mostly noise: queueing, garbage collection, merges. The smoothed level is then compared with the mean level of the node's other shards. A shard alone on its node, such as the buffer for documents that belong to no shard, is compared with itself and keeps its size.
 
-- A shard that starts on a node that is not overloaded starts at `FlushBytes`, so a node that can take full requests gets them from the first one. A shard that starts on an overloaded node, one whose write pool is rejecting or whose byte window a 429 cut and has not grown back, starts at `InitialBytes` (`FlushBytes/4` by default) and climbs to full size as the node keeps up. Setting `InitialBytes` makes every shard start there. To always send `FlushBytes`, with neither the climb nor any shrinking, set `Sizing.Shard` to `ShardFixed`, or `OPENSEARCH_GO_BULK_SHARD=fixed`.
+- A shard that starts on a node that is not overloaded starts at `FlushBytes`, so a node that can take full requests gets them from the first one. A shard that starts on an overloaded node, one whose write pool is rejecting or whose node window a 429 cut and has not grown back, starts at `InitialBytes` (`FlushBytes/4` by default) and climbs to full size as the node keeps up. Setting `InitialBytes` makes every shard start there. To always send `FlushBytes`, with neither the climb nor any shrinking, set `Sizing.Shard` to `ShardFixed`, or `OPENSEARCH_GO_BULK_SHARD=fixed`.
 - While the smoothed time stays within `Headroom` of the expected time, the buffer grows by `StepBytes` per flush.
-- When the shard is slower than the rest of its node by more than that, its buffer is reduced in proportion to how far it exceeds `Headroom`, so that it yields to the node's other shards.
-- `Headroom` is widened by the noise of the signal. A node whose times vary must slow by more than its usual variation before the slowdown counts, while a steady node is held to `Headroom` alone.
+- When the shard is slower than the rest of its node by more than that, its buffer shrinks in proportion to how far past `Headroom` it is, so that it yields to the node's other shards.
+- `Headroom` widens with the signal's noise. A node whose times vary must slow by more than its usual variation before the slowdown counts; a steady node is held to `Headroom` alone.
 - The recorded best rate decays slowly while requests are large, and faster while they are small. A node that is slow even for small requests was not slowed by request size, so the buffer can recover on a node whose performance has changed.
 
-The controller reads a request only if the node indexed at least one of its items. It ignores the duration of every other request, because none of them measures how fast the node indexes: a 429, which a node answers immediately because it did no work; a request that failed without a response, or with a 5xx or a 4xx that says nothing about this shard; and a request in which every item failed, such as one for a shard whose primary is not active, which fails only after the bulk `timeout` elapses. Treating any of these as a slow or fast flush would shrink or grow the buffer for a reason the buffer size cannot address. Items refused on their own merits, such as a version conflict or a mapping error, do not prevent a request from being read, provided some other item was indexed.
+The controller learns from a request only if the node indexed at least one of its items. It ignores the time of every other request, because none of them measures how fast the node indexes: a 429, which a node answers at once because it did no work; a request that failed without a response, or with a 5xx or a 4xx that says nothing about this shard; and a request in which every item failed, such as one for a shard whose primary is not active, which fails only after the bulk `timeout` elapses. Reading any of these as a slow or fast flush would shrink or grow the buffer for a reason the buffer size cannot fix. Items refused on their own merits, such as a version conflict or a mapping error, do not stop a request from counting, as long as some other item was indexed.
 
-One failure does change a buffer. A **413**, a request refused for exceeding the size the cluster accepts (`http.max_content_length`), reflects the cluster's settings rather than its load. From it the indexer learns that no later request may be larger than half of the refused size, and it never raises that limit, so it stops sending requests that cannot be accepted and does not grow its buffers back to the refused size.
+One failure does change a buffer. A **413**, a request refused for being larger than the cluster accepts (`http.max_content_length`), reflects the cluster's settings rather than its state. From it the indexer learns that no later request may be larger than half the refused size, and it never raises that limit again, so it stops sending requests that cannot be accepted and does not grow its buffers back to the refused size.
 
-The size of each step comes from a PID controller on the node's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). [How the PID controller works](#how-the-pid-controller-works) describes the controller.
+The size of each step comes from a PID controller on the shard's normalized slowdown, with gains `Kp`, `Ki` and `Kd` (defaults `1`, `0.1` and `0.25`). [How the PID controller works](#how-the-pid-controller-works) explains it.
 
 #### The node-window controller
 
-The window is a number of bytes: the total size of the requests the indexer has sent to a node that the node has not yet answered. A sealed buffer that would take the node past its window waits until requests complete and it fits. When nothing is in flight to the node, one buffer is sent whatever its size, so a node is never starved. A waiting buffer still counts against `MaxMemoryBytes`, which is what eventually makes `Add` wait.
+The node window is a number of bytes: the total size of the requests the indexer has sent to a node that the node has not answered yet. A sealed buffer that would take the node past its window waits until requests complete and it fits. When nothing is in flight to the node, one buffer is sent whatever its size, so a node is never starved. A waiting buffer still counts against `MaxMemoryBytes`, which is what eventually makes `Add` wait.
 
-The window limits bytes, not requests. The number of requests in flight to a node is limited separately, to `NumWorkers`, or to `GOMAXPROCS` when `NumWorkers` is 0. `GOMAXPROCS` follows a container's CPU limit where the machine's CPU count does not, provided the program's `go.mod` declares Go 1.25 or later (older programs can set `GODEBUG=containermaxprocs=1`).
+The node window limits bytes, not requests. The number of requests in flight to a node is a separate governor, the node request limit: `NumWorkers`, or `GOMAXPROCS` when `NumWorkers` is 0. `GOMAXPROCS` follows a container's CPU limit, where the machine's CPU count does not, provided the program's `go.mod` declares Go 1.25 or later (older programs can set `GODEBUG=containermaxprocs=1`).
 
-The transport also tracks a window for each node's write thread pool, and it is a signal, not a limit. The transport uses it to rank nodes when it routes a request, and the indexer uses it the same way: to choose the node for documents that belong to no shard. It is a poor limit. It changes only when the transport polls node statistics, seconds apart. It never exceeds the pool's thread count, so the node's queue would sit empty between requests. And it shrinks whenever every thread is busy with work queued, which is exactly how a node looks when it is taking bulk requests as fast as it can. A 429 is what says a node is overloaded, and a 429 cuts the byte window.
+The transport also tracks a window for each node's write thread pool. That one is a signal, not a governor. The transport uses it to rank nodes when it routes a request, and the indexer uses it the same way, to choose the node for documents that belong to no shard. It would make a poor governor. It changes only when the transport polls node statistics, seconds apart. It never exceeds the pool's thread count, so it would leave the node's queue empty between requests. And it shrinks whenever every thread is busy with work queued, which is exactly how a node looks when it is taking bulk requests as fast as it can. Busy is not overloaded. A 429 is what says a node is overloaded, and a 429 is what cuts the node window.
 
-The only signal is a 429: a response in which the node rejected the request, or any item in it.
+The node window's only input is a 429: a response in which the node rejected the request, or any item in it.
 
 - **The window starts fully open**, at `MaxMemoryBytes`, or at `NodeBytes` if set.
-- **A 429 halves the bytes in flight.** The window becomes `Backoff` (one half) times the smaller of the window and the bytes that were in flight to the node when the response arrived, including the rejected request. Cutting from the bytes in flight rather than from the window makes the first 429 effective: a window that starts at the job's whole memory limit is far above what is ever in flight, and halving it would change nothing. Rejections of requests sent before the cut belong to the same event and do not cut the window again. The window never falls below one full buffer.
-- **The window grows back gradually.** It grows by one `FlushBytes` for each window's worth of bytes the node answers, after a hold of a few responses, and not while the node's write pool is overloaded. A window that was cut recovers over many requests, and one that has not been cut barely changes.
-- **The window does not record where the last 429 occurred.** A 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the window continues to probe and settles into a sawtooth around what the server currently accepts.
-- **A request that fails with no response is not a 429** and does not cut the window.
+- **A 429 halves the bytes in flight.** The window becomes `Backoff` (one half) times the smaller of the window and the bytes that were in flight to the node when the response arrived, the rejected request's included. Cutting from the bytes in flight rather than from the window makes the first 429 count: a window that starts at the whole memory limit is far above what is ever in flight, and halving it would change nothing. Rejections of requests sent before the cut belong to the same event and do not cut the window again. The window never falls below one full buffer.
+- **The window grows back slowly.** It grows by one `FlushBytes` for each window's worth of bytes the node answers, after a hold of a few responses, and not at all while the node's write pool is rejecting. A window that was cut recovers over many requests; one that was never cut barely changes.
+- **The window does not remember where the last 429 happened.** A 429 can come from other writers to the cluster, or from a cluster that has since gained capacity, so the window keeps probing and settles into a sawtooth around what the node currently accepts.
+- **A request that fails with no response is not a 429**, and does not cut the window.
 
-As a result, a node that slows down without rejecting keeps its shards' buffer sizes and its window, a shard slower than the rest of its node receives smaller buffers, and a node that rejects has fewer bytes in flight, regardless of its speed.
+The result: a node that slows down without rejecting keeps its shards' buffer sizes and its window; a shard slower than the rest of its node gets smaller buffers; and a node that rejects has fewer bytes in flight, however fast it is.
 
 #### Starting a shard
 
-A shard that starts on a node, such as the first document for a new index, is given the best service rate the node has shown; the node keeps that rate for all of its shards. Only the rate is carried over: the shard learns its own fixed cost per request. Its first flushes are then compared with the expected time for a request of that size, not with its own first flush, so a shard that starts while the node is busy does not adopt the busy rate as its best. The first shard on a node to send a request has no such history and learns its own rate.
+A shard that starts on a node, such as the first document for a new index, inherits the best service rate the node has shown; the node keeps that rate for all of its shards. Only the rate carries over: the shard learns its own fixed cost per request. Its first flushes are then compared with the expected time for a request of that size, not with its own first flush, so a shard that starts while the node is busy does not take the busy rate as its best. The first shard on a node to send a request has no such history and learns its own rate.
 
 ### How the PID controller works
 
-A PID controller is the mechanism behind a car's cruise control. Given a target speed, the controller measures the actual speed, computes the difference (the _error_), and sets the throttle. It does so with three terms, each scaled by a _gain_:
+A PID controller is the mechanism behind a car's cruise control. Given a target speed, it measures the actual speed, takes the difference (the _error_), and sets the throttle. It does this with three terms, each scaled by a _gain_:
 
-| Term             | Gain | Responds to                          | Effect                                                                                                                                             |
-| ---------------- | ---- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P**roportional | `Kp` | the current error                    | The correction is proportional to the size of the error.                                                                                           |
-| **I**ntegral     | `Ki` | the error summed over recent flushes | A small, persistent error accumulates and adds to each correction, so the controller does not settle at a steady offset.                           |
-| **D**erivative   | `Kd` | the rate at which the error changes  | A shard that suddenly falls behind is reduced further before the proportional term responds; a shard that is recovering is given more room sooner. |
+| Term             | Gain | Responds to                          | Effect                                                                                                                                    |
+| ---------------- | ---- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **P**roportional | `Kp` | the current error                    | The correction is proportional to the size of the error.                                                                                  |
+| **I**ntegral     | `Ki` | the error summed over recent flushes | A small, persistent error accumulates and adds to each correction, so the controller does not settle at a steady offset.                  |
+| **D**erivative   | `Kd` | how fast the error is changing       | A shard that suddenly falls behind is cut further before the proportional term responds; a shard that is recovering is given room sooner. |
 
-The three results are summed into one number, `u`, which determines the step.
+The three results are summed into one number, `u`, which sets the step.
 
-In the indexer, the controlled quantity is the size of one shard's buffer, and the measurement is the shard's _level_: the time the node spent on its requests, relative to what the shard at its best recent performance would need for a request of that size, smoothed over the last several flushes and compared with the level of the node's other shards. A shard alone on its node is compared with itself. The error `e` is 1 for a shard as fast as the rest of its node, 0 when it is slower by `Headroom` (25% by default, widened by the noise of the signal, referred to below as the slack), and -1 when it is slower by twice `Headroom` plus the slack or more. The slack is added once, so the slowdown that reaches -1 is `2 × Headroom + slack`:
+In the indexer, the quantity being controlled is the size of one shard's buffer, and the measurement is the shard's _level_: the time the node spent on its requests, relative to what the shard at its best recent performance would need for a request of that size, smoothed over the last several flushes and compared with the level of the node's other shards. A shard alone on its node is compared with itself. The error `e` is +1 for a shard as fast as the rest of its node, 0 when it is slower by `Headroom` (25% by default, widened by the signal's noise, called the slack below), and -1 when it is slower by twice `Headroom` plus the slack, or more. The slack is added once, so the slowdown that reaches -1 is `2 × Headroom + slack`:
 
 ```
  e
@@ -366,7 +382,7 @@ In the indexer, the controlled quantity is the size of one shard's buffer, and t
           0      0.25    0.5       (0 = as fast as the rest of the node, 1 = twice as slow; shown for slack = 0)
 ```
 
-The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never removes more than half. Over time the buffer grows while the shard keeps pace with the rest of its node and shrinks as it falls behind:
+The step is `u = Kp·e + Ki·(sum of recent e) + Kd·(e - previous e)`. A positive `u` grows the buffer by `StepBytes` scaled by `min(u, 1)`. A negative `u` multiplies it by `1 + max(u, -0.5)`, so a single flush never takes away more than half. Over time the buffer grows while the shard keeps up with the rest of its node, and shrinks as it falls behind:
 
 ```
 buffer size
@@ -380,33 +396,33 @@ FlushBytes ┤            ●━━━━━━━●                      ceili
            └─────────────────────────────────────── flushes
 ```
 
-(The second graph illustrates the shape; it is not a measurement.)
+(The second graph shows the shape; it is not a measurement.)
 
-The defaults suit most clusters. When changing them, change one at a time:
+The defaults suit most clusters. If you change them, change one at a time:
 
-| Goal                                  | Change                           | Risk                                             |
-| ------------------------------------- | -------------------------------- | ------------------------------------------------ |
-| Faster growth and larger reductions   | raise `Kp`                       | oscillation: the size alternating up and down    |
-| Less reaction to a single noisy flush | lower `Kp`, or set `Kd` to `0`   | slower response to a real slowdown               |
-| No memory of past flushes             | set `Ki` to `0`                  | a mild, persistent slowdown left uncorrected     |
-| No adaptive shard sizing              | `OPENSEARCH_GO_BULK_SHARD=fixed` | a hot shard continues to send full-size requests |
+| Goal                                  | Change                           | Risk                                         |
+| ------------------------------------- | -------------------------------- | -------------------------------------------- |
+| Faster growth and larger cuts         | raise `Kp`                       | oscillation: the size swinging up and down   |
+| Less reaction to a single noisy flush | lower `Kp`, or set `Kd` to `0`   | slower response to a real slowdown           |
+| No memory of past flushes             | set `Ki` to `0`                  | a mild, persistent slowdown left uncorrected |
+| No adaptive shard sizing              | `OPENSEARCH_GO_BULK_SHARD=fixed` | a hot shard keeps sending full-size requests |
 
-A gain of `0` disables that term. The environment overrides are listed in [Environment variable overrides](#environment-variable-overrides).
+A gain of `0` turns that term off. The environment overrides are listed in [Environment variable overrides](#environment-variable-overrides).
 
 ### Turning a controller off
 
-The two controllers are independent, and each can be disabled separately:
+The two controllers are independent, and either can be turned off on its own:
 
-| Setting                                       | Values                                                                                                                                                                                                                           | Default    |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `Sizing.Shard`, or `OPENSEARCH_GO_BULK_SHARD` | `ShardPID` (`pid`): a shard's buffer follows how quickly the node serves its requests. `ShardFixed` (`fixed`): every buffer is `FlushBytes`, and the PID gains have no effect.                                                   | `ShardPID` |
-| `Sizing.Node`, or `OPENSEARCH_GO_BULK_NODE`   | `NodeAIMD` (`aimd`): a node's window is cut when the node answers with a 429, and grows back gradually. `NodeFixed` (`fixed`): the window stays where it started, at `NodeBytes` or `MaxMemoryBytes`, and a 429 does not cut it. | `NodeAIMD` |
+| Setting                                       | Values                                                                                                                                                                                                                        | Default    |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `Sizing.Shard`, or `OPENSEARCH_GO_BULK_SHARD` | `ShardPID` (`pid`): a shard's buffer follows how quickly the node serves its requests. `ShardFixed` (`fixed`): every buffer is `FlushBytes`, and the PID gains have no effect.                                                | `ShardPID` |
+| `Sizing.Node`, or `OPENSEARCH_GO_BULK_NODE`   | `NodeAIMD` (`aimd`): a node's window is cut when the node answers with a 429, and grows back slowly. `NodeFixed` (`fixed`): the window stays where it started, at `NodeBytes` or `MaxMemoryBytes`, and a 429 does not cut it. | `NodeAIMD` |
 
-The zero values, `ShardUnset` and `NodeUnset`, select the defaults. With both disabled, every buffer is sent at `FlushBytes` and the window never changes. In either case, at most `NumWorkers` requests are in flight to a node, as described under [The node-window controller](#the-node-window-controller).
+The zero values, `ShardUnset` and `NodeUnset`, select the defaults. With both turned off, every buffer is sent at `FlushBytes` and the node window never changes. Either way, the governors that do not adapt still apply: no more than `NumWorkers` requests are in flight to a node, as described under [The node-window controller](#the-node-window-controller).
 
-A gain set to `0` through its environment variable disables that term. In code, a `Sizing.PID` left at its zero value selects the default gains, so all three cannot be set to `0` in code; through the environment they can, in which case no step changes the size. To keep shard buffers at a constant size, use `ShardFixed` instead.
+A gain set to `0` through its environment variable turns that term off. In code, a `Sizing.PID` left at its zero value selects the default gains, so all three cannot be set to `0` in code; through the environment they can, and then no step changes the size. To keep shard buffers at a constant size, use `ShardFixed` instead.
 
-For example, to send every buffer at `FlushBytes` while still backing off a node that answers with 429s:
+For example, to send every buffer at `FlushBytes` while still backing off from a node that answers with 429s:
 
 ```go
 indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
@@ -418,15 +434,15 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 ### Why two different controllers
 
-The controllers respond to different kinds of signal. A shard buffer's signal is a measurement, the time each flush took, and it varies by degree: a shard can be slightly or much slower than its neighbors, briefly or for a long time. A PID controller uses all of that information: a small slowdown produces a small reduction and a large one a large reduction (`Kp`), a persistent slowdown produces a larger reduction on each flush (`Ki`), and a sudden one is addressed before it accumulates (`Kd`).
+The controllers answer different kinds of signal. A shard buffer's signal is a measurement, the time each flush took, and it varies by degree: a shard can be slightly or much slower than its neighbors, briefly or for a long time. A PID controller uses all of that: a small slowdown brings a small cut and a large one a large cut (`Kp`), a persistent slowdown a larger cut on each flush (`Ki`), and a sudden one is met before it builds up (`Kd`).
 
-A node window's signal is binary: the node answered with a 429, or it did not. With no magnitude to scale a step by, the window uses additive increase, multiplicative decrease: it increases in small steps while the node accepts writes and decreases sharply when the node refuses one, the scheme TCP uses to find a network's capacity.
+A node window's signal is binary: the node answered with a 429, or it did not. With no magnitude to scale a step by, the window uses AIMD: it rises in small steps while the node accepts writes and falls sharply when the node refuses one, the scheme TCP uses to find a network's capacity.
 
-This AIMD is unrelated to the AIMD congestion windows the transport keeps for connection scoring, described in [Request Routing](transport-routing.md#aimd-congestion-windows). They share the name and the additive-increase, multiplicative-decrease shape, and nothing else: the transport's windows select the connection a request uses, and this one limits the bytes in flight to a node.
+The transport keeps AIMD windows of its own, one per node and thread pool, for connection scoring, described in [Request Routing](transport-routing.md#aimd-congestion-windows). Those windows share the name and the shape, and nothing else. They are signals: they rank the nodes a request may go to, and the indexer reads the write pool's to choose a node for documents that belong to no shard. The node window here is a governor: it limits the bytes in flight to a node.
 
 ### Environment variable overrides
 
-Each of these settings can also be set from the environment, so an operator can change how a deployment sizes its batches without rebuilding it. `NewBulkIndexer` reads the variables once. A variable set to a valid value takes precedence over the code; a variable that is unset, empty or invalid leaves the code's setting in place.
+Each of these settings can also be set from the environment, so an operator can change how a deployment sizes its batches without rebuilding it. `NewBulkIndexer` reads the variables once. A variable set to a valid value overrides the code; a variable that is unset, empty or invalid leaves the code's setting in place.
 
 | Variable                                  | Overrides                     | Values                                     |
 | ----------------------------------------- | ----------------------------- | ------------------------------------------ |
@@ -434,11 +450,11 @@ Each of these settings can also be set from the environment, so an operator can 
 | `OPENSEARCH_GO_BULK_NODE`                 | `Sizing.Node`                 | `aimd`, `fixed`                            |
 | `OPENSEARCH_GO_BULK_PID_KP`, `_KI`, `_KD` | `Sizing.PID.Kp`, `.Ki`, `.Kd` | non-negative number; `0` disables the term |
 
-The three gains tune the shard-buffer PID controller and have no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. After each flush the controller computes `e`, the shard's distance from `Headroom` (`+1` as fast as the rest of its node, `0` at `Headroom`, `-1` at twice `Headroom` or slower), and takes a step `u = Kp·e + Ki·(sum of recent e) + Kd·(change in e)`. A positive step grows the buffer by up to `StepBytes`; a negative one shrinks it, by at most half in one flush.
+The three gains tune the shard-buffer PID controller, and have no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. After each flush the controller computes `e`, the shard's distance from `Headroom` (+1 as fast as the rest of its node, 0 at `Headroom`, -1 at twice `Headroom` or slower), and takes a step `u = Kp·e + Ki·(sum of recent e) + Kd·(change in e)`. A positive step grows the buffer by up to `StepBytes`; a negative one shrinks it, by at most half in one flush.
 
-- **`Kp`, the proportional gain (default `1`)**: sets the part of each step proportional to `e`, the shard's distance from `Headroom` on the current flush. Doubling `Kp` doubles that part: the buffer grows faster while the shard keeps pace and shrinks further once it falls behind. Halving it makes both changes smaller.
+- **`Kp`, the proportional gain (default `1`)**: sets the part of each step that is proportional to `e`, the shard's distance from `Headroom` on this flush. Doubling `Kp` doubles that part: the buffer grows faster while the shard keeps up, and shrinks further once it falls behind. Halving it makes both changes smaller.
 - **`Ki`, the integral gain (default `0.1`)**: adds to each step in proportion to the sum of `e` over recent flushes, capped at ±2. While the shard stays on one side of `Headroom`, the sum adds to every step, so a persistent slowdown shrinks the buffer further on each flush, and a sustained run of fast flushes grows it faster. At `0` it adds nothing.
-- **`Kd`, the derivative gain (default `0.25`)**: adds to each step in proportion to the change in `e` since the previous flush. A sudden slowdown adds a reduction on the flush where it appears, before the other two terms respond, and a recovery adds growth. Noise between flushes also changes `e`, so a large `Kd` makes the size fluctuate on a noisy node; in that case lower it or set it to `0`.
+- **`Kd`, the derivative gain (default `0.25`)**: adds to each step in proportion to the change in `e` since the previous flush. A sudden slowdown adds a cut on the flush where it appears, before the other two terms respond, and a recovery adds growth. Noise between flushes also changes `e`, so a large `Kd` makes the size jitter on a noisy node; if it does, lower `Kd` or set it to `0`.
 
 Common configurations:
 
@@ -457,9 +473,9 @@ The [environment variable reference](config-envvars.md#bulk-indexer) lists every
 
 ## Steering a consumer by the indexer's load
 
-A service that reads from a stream such as Kafka and writes to OpenSearch should read less when OpenSearch is slow. Reading too much and then crashing lengthens recovery, because every record read and not yet committed is replayed. `Add` alone is a poor signal for this: it blocks only once the whole `MaxMemoryBytes` is in use, and a blocked `Add` stalls the poll loop, which can exceed the stream's poll timeout and trigger a rebalance.
+A service that reads from a stream such as Kafka and writes to OpenSearch should read less when OpenSearch is slow. Reading too much and then crashing makes recovery longer, because every record read and not yet committed is replayed. `Add` alone is a poor signal for this: it blocks only once the whole of `MaxMemoryBytes` is in use, and a blocked `Add` stalls the poll loop, which can exceed the stream's poll timeout and trigger a rebalance.
 
-`GetStats` provides better signals. It loads the indexer's statistics into a caller-owned struct that the caller reuses, so it allocates nothing and cannot change the indexer, and it takes no lock, so it can be called at any frequency while other goroutines call `Add`:
+`GetStats` gives better signals. It loads the indexer's statistics into a struct you own and reuse, so it allocates nothing and cannot change the indexer, and it takes no lock, so you can call it as often as you like while other goroutines call `Add`:
 
 ```go
 var stats opensearchutil.BulkIndexerStats // reused: GetStats replaces everything in it
@@ -472,23 +488,23 @@ typical := stats.Slowdown.Median    // how much longer than expected the typical
 pushedBack := stats.NumRejections   // only grows: compare with the last reading
 ```
 
-| Reading         | Changes when                                                                                               | Use                                                                                                     |
-| --------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `BudgetFill()`  | the indexer holds more than the cluster accepts                                                            | slow down gradually, well before `Add` blocks                                                           |
-| `NumRejections` | a node answers with a 429                                                                                  | back off immediately; an increase since the last reading means the cluster pushed back, however briefly |
-| `NodeWindow`    | a node answers with a 429 (decreases) or accepts writes again (increases)                                  | distinguish congestion from recovery: 1 is clear                                                        |
-| `Slowdown`      | a node takes longer for its requests than it needs                                                         | detect slowness directly, before any node rejects: 0 is as expected, 1 is twice as long                 |
-| `BufferSize`    | the indexer finds a node's shards slower than the rest of the node (decreases) or keeping pace (increases) | measure how far the indexer has already reduced its own batches                                         |
+| Reading         | Changes when                                                                                     | Use it to                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `BudgetFill()`  | the indexer holds more than the cluster is taking                                                | slow down gradually, well before `Add` blocks                                                        |
+| `NumRejections` | a node answers with a 429                                                                        | back off at once: any increase since the last reading means the cluster pushed back, however briefly |
+| `NodeWindow`    | a node answers with a 429 (falls) or accepts writes again (rises)                                | tell an overloaded cluster from a recovering one: 1 means no node window is cut                      |
+| `Slowdown`      | a node takes longer for its requests than it needs                                               | see slowness directly, before any node rejects: 0 is as expected, 1 is twice as long                 |
+| `BufferSize`    | the indexer finds a node's shards slower than the rest of the node (falls) or keeping up (rises) | see how far the indexer has already cut its own batches                                              |
 
-`NodeWindow`, `Slowdown` and `BufferSize` are each a `JobNodeStats`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. A single value is misleading. The extreme alone lets one node represent the whole cluster, and the average alone hides that node. Steer by `Median`, or by `Mean`, which weights each node by the bytes the indexer holds for it, and use `Min` or `Max` to detect an outlier. In a cluster that is slow overall, the median is near the worst node. A single slow node moves `Min` or `Max` and leaves the median unchanged; if that node also carries much of the work, the mean moves with it.
+`NodeWindow`, `Slowdown` and `BufferSize` are each a `JobNodeStats`: the reading across the nodes the indexer writes to, as `Min`, `Median`, `Max` and `Mean`. A single number would mislead. The extreme alone lets one node stand for the whole cluster, and the average alone hides that node. Steer by `Median`, or by `Mean`, which weights each node by the bytes the indexer holds for it, and use `Min` or `Max` to spot an outlier. In a cluster that is slow overall, the median is near the worst node. A single slow node moves `Min` or `Max` and leaves the median alone; if that node also carries much of the work, the mean moves with it.
 
-The consumer must also bound its own backlog: the number of records it has read and cannot yet commit. With a [`FrontierTracker`](#committing-a-stream-position), the backlog is the offset read minus `Frontier`, which is exactly what a crash would replay. A simple consumer keeps the backlog under a limit, pauses its partitions when `BudgetFill` passes a high threshold or `NumRejections` increases, shrinks its read buffer as `Slowdown.Median` or `Slowdown.Mean` grows, and resumes below a low threshold. The thresholds are application-specific; a wider gap between them pauses less often.
+The consumer must also bound its own backlog: the records it has read and cannot commit yet. With a [`FrontierTracker`](#committing-a-stream-position), the backlog is the offset read minus `Frontier`, which is exactly what a crash would replay. A simple consumer keeps the backlog under a limit, pauses its partitions when `BudgetFill` passes a high threshold or `NumRejections` rises, shrinks its read buffer as `Slowdown.Median` or `Slowdown.Mean` grows, and resumes below a low threshold. The thresholds depend on the application; a wider gap between them pauses less often.
 
-These readings follow the cluster and do not change the indexer's behavior; the indexer continues to adapt to the same signals independently. A consumer that adapts to them forms a second control loop over the same resource, so give it a longer time constant than the indexer's, or the two loops will oscillate against each other. Each value is smoothed over a node's last few requests.
+These readings follow the cluster and do not change what the indexer does; it goes on adapting to the same signals by itself. A consumer that adapts to them forms a second control loop over the same resource, so give it a longer time constant than the indexer's, or the two loops will oscillate against each other. Each value is smoothed over a node's last few requests.
 
 ## Observing the indexer
 
-`BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `ErrorKind`. For a stream of events instead, set `BulkIndexerConfig.Observer`, which follows the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the required methods.
+`BulkIndexerStats` counts what the indexer has done, including `NumRetries`, indexed by `ErrorKind`. For a stream of events instead, set `BulkIndexerConfig.Observer`. It follows the same pattern as the [transport's observer](transport-observer_metrics.md): embed `opensearchutil.BaseBulkIndexerObserver` and override only the methods you need.
 
 | Method           | Called                                                                                 |
 | ---------------- | -------------------------------------------------------------------------------------- |
@@ -497,7 +513,7 @@ These readings follow the cluster and do not change the indexer's behavior; the 
 | `OnItemError`    | when one item fails, once per attempt; the error's `Layer` is `LayerItem`              |
 | `OnItemDone`     | once per item, when the indexer is done with it; carries the size of its document      |
 
-`OnRequestEnd` reports the size of the whole request body, which is the buffer the indexer built: the action lines and documents of one shard, before the transport compresses it. `OnItemDone` reports one document: `BulkItemEvent.Bytes` is the length of the item's `Body`, excluding the action line, and is the same whether the item succeeded, was rejected or was refused. It identifies an outlier that the request average hides. The compressed size on the wire is reported by the transport, not the indexer: the transport observer's `OnRequestStart` event carries the body size before compression, and `OnRequestResponse` the `Content-Length` after it.
+`OnRequestEnd` reports the size of the whole request body, which is the buffer the indexer built: the action lines and documents of one shard, before the transport compresses it. `OnItemDone` reports one document: `BulkItemEvent.Bytes` is the length of the item's `Body`, without its action line, and is the same whether the item succeeded, was rejected or was refused. It picks out an outlier that the request average hides. The compressed size on the wire comes from the transport, not the indexer: the transport observer's `OnRequestStart` event carries the body size before compression, and `OnRequestResponse` the `Content-Length` after it.
 
 The error events carry the `*BulkError`, with its layer and kind, the attempt, and whether the retry policy is retrying. The methods run on the goroutine that sends the request and receive the flush's context. Keep them fast and do not call back into the indexer; a tracing observer can use the context to link to the flush's span.
 
@@ -517,7 +533,7 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 
 ### Metrics from GetStats
 
-`GetStats` provides the inputs for RED (rate, errors, duration) and USE (utilization, saturation, errors) metrics without an observer, and is suitable for a periodic gauge callback. Each field of `BulkIndexerStats` is documented as a COUNTER, which is monotonic, or a GAUGE, which reports the current value. Derive a rate from the difference between two readings of a counter, and a mean by dividing one counter by another.
+`GetStats` provides the inputs for RED (rate, errors, duration) and USE (utilization, saturation, errors) metrics without an observer, and suits a periodic gauge callback. Each field of `BulkIndexerStats` is documented as a COUNTER, which only grows, or a GAUGE, which reports the current value. Derive a rate from the difference between two readings of a counter, and a mean by dividing one counter by another.
 
 | Metric                            | Fields                                                                                        |
 | --------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -531,9 +547,9 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 | Utilization                       | `InFlightRequests`, `InFlightBytes`, `BufferedBytes`, `BudgetFill()`                          |
 | Saturation                        | `QueuedBuffers`, `BlockedShards`, `RetryBackoffItems`, `NumBlockedAdds`, `BlockedAddDuration` |
 
-Item latency runs from `Add` to the item's outcome, across every attempt. It includes time spent in a buffer and in the queue, so it exceeds request duration; the difference is queueing delay. `BlockedShards` counts the shards that have a request in flight and further documents waiting behind it. `RetryBackoffItems` counts the items waiting out a retry policy's delay; their buffer keeps its request slot while they wait. `GetStats` loads each value separately, so the values are not a snapshot of a single instant.
+Item latency runs from `Add` to the item's outcome, across every attempt. It includes the time spent in a buffer and in the queue, so it exceeds request duration; the difference is queueing delay. `BlockedShards` counts the shards that have a request in flight and more documents waiting behind it. `RetryBackoffItems` counts the items waiting out a retry policy's delay; their buffer keeps its shard's request slot while they wait. `GetStats` loads each value separately, so the values are not a snapshot of one instant.
 
-`GetNodeStats` reports the same readings for each node: in-flight requests and bytes, queued buffers, held bytes, rejections, window, buffer size and slowdown. It identifies the node behind an outlier in `NodeWindow`, `BufferSize` or `Slowdown`. Pass back the slice it returned to avoid allocating:
+`GetNodeStats` reports the same readings per node: requests and bytes in flight, queued buffers, held bytes, rejections, node window, buffer size and slowdown. Use it to find the node behind an outlier in `NodeWindow`, `BufferSize` or `Slowdown`. Pass back the slice it returned to avoid allocating:
 
 ```go
 var nodes []opensearchutil.NodeStats
@@ -543,11 +559,11 @@ for _, n := range nodes {
 }
 ```
 
-Like `GetStats`, `GetNodeStats` takes no lock, and one node's values are not guaranteed to be from the same instant.
+Like `GetStats`, `GetNodeStats` takes no lock, and one node's values are not guaranteed to come from the same instant.
 
 ## See also
 
-- [Bulk](indexing-bulk.md) - the underlying `bulk` API, timeouts, and ingest-node routing.
+- [Bulk](indexing-bulk.md) - the `bulk` API this indexer builds on: request format, error handling, timeouts and routing.
 - [Error Handling and Partial Failures](usage-error_handling.md) - how partial failures surface from the typed API.
 - [Retry and Backoff](transport-retry_backoff.md) - the transport's own retries, beneath the indexer's.
 - [Environment Variables](config-envvars.md#bulk-indexer) - the `OPENSEARCH_GO_BULK_*` overrides for batch sizing.
