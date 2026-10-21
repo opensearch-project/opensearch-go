@@ -14,7 +14,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- Fix `opensearchutil.BulkIndexer` throughput when it buffers by shard. It held each node to the write pool window the transport tracks, which starts at one request, moves only on each node statistics poll, never exceeds the pool's thread count, and halves whenever the pool is busy with work queued, and to one request while the pool rejected. A node now has up to `NumWorkers` requests in flight, or `GOMAXPROCS` when `NumWorkers` is 0, and a 429 backs it off by cutting its byte window. The pool window still chooses the node for documents that belong to no shard
+- Fix `opensearchutil.BulkIndexer` throughput when it buffers by shard. It held each node to the write pool window the transport tracks, which starts at one request, moves only on each node statistics poll, never exceeds the pool's thread count, and halves whenever the pool is busy with work queued, and to one request while the pool rejected. A node now has up to `NumWorkers` requests in flight, or `GOMAXPROCS` when `NumWorkers` is 0, and a 429 backs it off by shrinking its byte window. The pool window still chooses the node for documents that belong to no shard
 
 ### Security
 

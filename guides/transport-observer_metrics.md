@@ -86,7 +86,7 @@ Any type implementing `osprom.Observer` (embed `osprom.BaseObserver` for default
 
 ## Bulk indexer metrics
 
-`opensearchutil.BulkIndexer` has its own observer, separate from the transport's: `BulkIndexerConfig.Observer` takes an `opensearchutil.BulkIndexerObserver`, which reports each bulk request, each failure of a whole request or of one item (with its scope, failure kind, and whether the retry policy is retrying), and each item's final outcome. It follows the same pattern -- embed `BaseBulkIndexerObserver` and override only what you need -- but the indexer calls it directly, so it is not wired through the `Registry`. `osprom.NewBulkIndexerObserver` and `osotel.NewBulkIndexerObserver` record those events as low-cardinality metrics. See [Bulk Indexer: Observing the indexer](indexing-bulk_indexer.md#observing-the-indexer) and the module READMEs for the metric lists.
+`opensearchutil.BulkIndexer` has its own observer, separate from the transport's: `BulkIndexerConfig.Observer` takes an `opensearchutil.BulkIndexerObserver`, which reports each bulk request, each failure of a whole request or of one item (with its scope, failure kind, and whether the retry policy is retrying), and each item's final outcome. It follows the same pattern -- embed `BaseBulkIndexerObserver` and override only what you need -- but the bulk client calls it directly, so it is not wired through the `Registry`. `osprom.NewBulkIndexerObserver` and `osotel.NewBulkIndexerObserver` record those events as low-cardinality metrics. See [Bulk Indexer: Observing the bulk client](indexing-bulk_indexer.md#observing-the-indexer) and the module READMEs for the metric lists.
 
 ## OpenTelemetry with `osotel`
 
