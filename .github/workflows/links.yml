@@ -27,11 +27,12 @@ jobs:
       # does not break CI on its own -- the pass below surfaces those.
       # CHANGELOG compare links are excluded: a release PR adds one for a tag
       # that is only created after the PR merges.
+      # --include-fragments also checks the #anchor of a link to a heading.
       - name: Check for broken links
         id: lychee-broken
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg" --exclude "^https://github.com/opensearch-project/opensearch-go/compare/"
+          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --include-fragments --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg" --exclude "^https://github.com/opensearch-project/opensearch-go/compare/"
           fail: true
           jobSummary: true
         env:
