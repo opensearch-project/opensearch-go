@@ -78,31 +78,31 @@ func TestByteWindowReject(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		size        float64
-		outstanding int64
-		fixed       bool
-		sentAtCuts  func(w *byteWindow) uint64
-		wantSize    float64
-		wantCut     bool
-		wantHold    bool
+		name          string
+		size          float64
+		outstanding   int64
+		fixed         bool
+		sentAtShrinks func(w *byteWindow) uint64
+		wantSize      float64
+		wantShrink    bool
+		wantHold      bool
 	}{
 		{
 			name: "half of what was out, when that is less than the window", size: 1000, outstanding: 300,
-			wantSize: 150, wantCut: true, wantHold: true,
+			wantSize: 150, wantShrink: true, wantHold: true,
 		},
 		{
 			name: "half of the window, when that is less than what was out", size: 80, outstanding: 300,
-			wantSize: 40, wantCut: true, wantHold: true,
+			wantSize: 40, wantShrink: true, wantHold: true,
 		},
 		{
 			name: "never below the floor", size: 1000, outstanding: 10,
-			wantSize: 20, wantCut: true, wantHold: true,
+			wantSize: 20, wantShrink: true, wantHold: true,
 		},
 		{
 			name: "a rejection of a request sent before the last cut is the same event", size: 1000, outstanding: 300,
-			sentAtCuts: func(w *byteWindow) uint64 { return w.cuts - 1 },
-			wantSize:   1000, wantCut: false, wantHold: true,
+			sentAtShrinks: func(w *byteWindow) uint64 { return w.shrinks - 1 },
+			wantSize:      1000, wantShrink: false, wantHold: true,
 		},
 		{name: "a fixed window is not cut", size: 1000, outstanding: 300, fixed: true, wantSize: 1000},
 	}
@@ -113,17 +113,17 @@ func TestByteWindowReject(t *testing.T) {
 			cfg := testWindowConfig()
 			cfg.start, cfg.fixed = tt.size, tt.fixed
 			w := newByteWindow(cfg)
-			w.cuts = 1 // Some cut has happened, so there is a before.
+			w.shrinks = 1 // Some reduction has happened, so there is a before.
 
-			sentAt := w.cuts
-			if tt.sentAtCuts != nil {
-				sentAt = tt.sentAtCuts(w)
+			sentAt := w.shrinks
+			if tt.sentAtShrinks != nil {
+				sentAt = tt.sentAtShrinks(w)
 			}
-			cut := w.reject(tt.outstanding, sentAt)
+			shrunk := w.shrinkWindowSize(tt.outstanding, sentAt)
 
-			require.Equal(t, tt.wantCut, cut)
+			require.Equal(t, tt.wantShrink, shrunk)
 			require.InDelta(t, tt.wantSize, w.size, 1e-9)
-			require.Equal(t, tt.wantHold, w.hold > 0)
+			require.Equal(t, tt.wantHold, w.pinnedFlushes > 0)
 		})
 	}
 }
@@ -153,17 +153,17 @@ func TestByteWindowComplete(t *testing.T) {
 			cfg := testWindowConfig()
 			cfg.start, cfg.fixed = tt.size, tt.fixed
 			w := newByteWindow(cfg)
-			w.hold = tt.hold
+			w.pinnedFlushes = tt.hold
 
-			w.complete(tt.bytes)
+			w.growWindowSize(tt.bytes)
 
 			require.InDelta(t, tt.wantSize, w.size, 1e-9)
-			require.Equal(t, tt.wantHold, w.hold)
+			require.Equal(t, tt.wantHold, w.pinnedFlushes)
 		})
 	}
 }
 
-func TestByteWindowPause(t *testing.T) {
+func TestByteWindowHoldGrowth(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -172,8 +172,8 @@ func TestByteWindowPause(t *testing.T) {
 		fixed    bool
 		wantHold int
 	}{
-		{name: "holds growth as a rejection does", wantHold: sizingHoldFlushes},
-		{name: "does not shorten a longer hold", hold: sizingHoldFlushes + 2, wantHold: sizingHoldFlushes + 2},
+		{name: "holds growth as a rejection does", wantHold: pinFlushes},
+		{name: "does not shorten a longer hold", hold: pinFlushes + 2, wantHold: pinFlushes + 2},
 		{name: "a fixed window is not held", fixed: true},
 	}
 	for _, tt := range tests {
@@ -183,18 +183,18 @@ func TestByteWindowPause(t *testing.T) {
 			cfg := testWindowConfig()
 			cfg.start, cfg.fixed = 100, tt.fixed
 			w := newByteWindow(cfg)
-			w.hold = tt.hold
+			w.pinnedFlushes = tt.hold
 
-			w.pause()
+			w.pinWindowSize()
 
-			require.Equal(t, tt.wantHold, w.hold)
-			require.InDelta(t, 100, w.size, 1e-9, "a pause never cuts")
+			require.Equal(t, tt.wantHold, w.pinnedFlushes)
+			require.InDelta(t, 100, w.size, 1e-9, "holding growth never cuts")
 		})
 	}
 }
 
-// TestByteWindowRecoversSlowly: after a cut, a window's worth of completed bytes buys
-// back about one unit, so recovery takes many requests and does not undo the cut at once.
+// TestByteWindowRecoversSlowly: after a reduction, a window's worth of completed bytes buys
+// back about one unit, so recovery takes many requests and does not undo the reduction at once.
 func TestByteWindowRecoversSlowly(t *testing.T) {
 	t.Parallel()
 
@@ -202,20 +202,20 @@ func TestByteWindowRecoversSlowly(t *testing.T) {
 	cfg.start = 1000
 	w := newByteWindow(cfg)
 
-	w.reject(400, w.cuts)
-	cut := w.size
-	require.InDelta(t, 200, cut, 1e-9)
+	w.shrinkWindowSize(400, w.shrinks)
+	shrunkSize := w.size
+	require.InDelta(t, 200, shrunkSize, 1e-9)
 
-	for range sizingHoldFlushes {
-		w.complete(50)
+	for range pinFlushes {
+		w.growWindowSize(50)
 	}
-	require.InDelta(t, cut, w.size, 1e-9, "held for a few completions")
+	require.InDelta(t, shrunkSize, w.size, 1e-9, "held for a few completions")
 
 	// 200 bytes is the window; four requests of 50 complete one window's worth.
 	for range 4 {
-		w.complete(50)
+		w.growWindowSize(50)
 	}
-	require.InDelta(t, cut+cfg.unit, w.size, 0.5, "a window's worth of traffic buys about one unit back")
+	require.InDelta(t, shrunkSize+cfg.unit, w.size, 0.5, "a window's worth of traffic buys about one unit back")
 	require.Less(t, w.size, 1000.0)
 }
 
@@ -248,8 +248,8 @@ func TestRateTracker(t *testing.T) {
 
 	const floor = 1 << 20
 
-	fast := flushOf(floor, 100e6)
-	slow := flushOf(floor, 50e6)
+	fast := flushAtThroughput(floor, 100e6)
+	slow := flushAtThroughput(floor, 50e6)
 
 	var best rateTracker
 	best.floor = floor
@@ -258,16 +258,16 @@ func TestRateTracker(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		learn []flushSample
-		// learned is whether the flushes leave a best rate, which is then the fast one.
+		learn []flushResult
+		// learned is set when the flushes leave a best rate, which is then the fast one.
 		learned bool
 	}{
-		{name: "a timed flush sets the best", learn: []flushSample{fast}, learned: true},
-		{name: "the best is kept when a slower flush follows", learn: []flushSample{fast, slow}, learned: true},
-		{name: "a rejected flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, rejected: true}}},
-		{name: "a failed flush is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond, served: true, failed: true}}},
-		{name: "a flush that indexed nothing is not learned", learn: []flushSample{{bytes: floor, latency: time.Microsecond}}},
-		{name: "a flush too small to tell is not learned", learn: []flushSample{flushOf(floor/4, 1e12)}},
+		{name: "a timed flush sets the best", learn: []flushResult{fast}, learned: true},
+		{name: "the best is kept when a slower flush follows", learn: []flushResult{fast, slow}, learned: true},
+		{name: "a rejected flush is not learned", learn: []flushResult{{bytes: floor, latency: time.Microsecond, served: true, rejected: true}}},
+		{name: "a failed flush is not learned", learn: []flushResult{{bytes: floor, latency: time.Microsecond, served: true, failed: true}}},
+		{name: "a flush that indexed nothing is not learned", learn: []flushResult{{bytes: floor, latency: time.Microsecond}}},
+		{name: "a flush too small to tell is not learned", learn: []flushResult{flushAtThroughput(floor/4, 1e12)}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

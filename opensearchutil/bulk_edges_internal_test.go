@@ -148,7 +148,7 @@ func (b *rereadFails) Read(p []byte) (int, error) {
 	return b.Reader.Read(p)
 }
 
-// Seek breaks the body when it is rewound after a pass: the indexer rewinds to 0 before
+// Seek breaks the body when it is rewound after a pass: the bulk client rewinds to 0 before
 // the first read, which leaves a body that has not been read as it was.
 func (b *rereadFails) Seek(offset int64, whence int) (int64, error) {
 	b.rewound = b.rewound || b.read

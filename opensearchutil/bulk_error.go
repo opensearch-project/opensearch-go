@@ -16,11 +16,11 @@ import (
 
 // ErrorLayer is the part of a [BulkIndexer] an error applies to. Each layer holds
 // the ones below it: an item is in a request, a request carries the items of one
-// index's shard, and the indexer holds every index's items.
+// index's shard, and the bulk client holds every index's items.
 type ErrorLayer uint8
 
 const (
-	// LayerUnknown is the zero value. No [BulkError] the indexer reports has it.
+	// LayerUnknown is the zero value. No [BulkError] the bulk client reports has it.
 	LayerUnknown ErrorLayer = iota
 
 	// LayerItem is an error of one item: the cluster answered its request and
@@ -34,10 +34,10 @@ const (
 	// whether the batch landed.
 	LayerRequest
 
-	// LayerIndexer is an error of every item the indexer still held: it was
+	// LayerClient is an error of every item the bulk client still held: it was
 	// canceled, by [BulkIndexer.Cancel] or by a Close whose context ended; see
-	// [ErrIndexerCanceled].
-	LayerIndexer
+	// [ErrBulkClientCanceled].
+	LayerClient
 
 	numErrorLayers = iota
 )
@@ -51,8 +51,8 @@ func (l ErrorLayer) String() string {
 		return "item"
 	case LayerRequest:
 		return "request"
-	case LayerIndexer:
-		return "indexer"
+	case LayerClient:
+		return "client"
 	default:
 		return "ErrorLayer(" + strconv.Itoa(int(l)) + ")"
 	}
@@ -63,7 +63,7 @@ func (l ErrorLayer) String() string {
 type ErrorKind uint8
 
 const (
-	// KindUnknown is the zero value. No [BulkError] the indexer reports has it.
+	// KindUnknown is the zero value. No [BulkError] the bulk client reports has it.
 	KindUnknown ErrorKind = iota
 
 	// KindRejected means the cluster refused the work because a write queue was
@@ -90,8 +90,8 @@ const (
 	// Retrying cannot succeed.
 	KindPermanent
 
-	// KindCanceled means the indexer was canceled before the work was sent; see
-	// [ErrIndexerCanceled]. It is not a failure of the work, and is never retried.
+	// KindCanceled means the bulk client was canceled before the work was sent; see
+	// [ErrBulkClientCanceled]. It is not a failure of the work, and is never retried.
 	KindCanceled
 
 	numErrorKinds = iota
@@ -122,11 +122,11 @@ func (k ErrorKind) String() string {
 var (
 	ErrItemLayer    = errors.New("opensearchutil: bulk item error")
 	ErrRequestLayer = errors.New("opensearchutil: bulk request error")
-	ErrIndexerLayer = errors.New("opensearchutil: bulk indexer error")
+	ErrClientLayer  = errors.New("opensearchutil: bulk client error")
 )
 
 // The kind sentinels: errors.Is(err, ErrRejected) reports whether err is a
-// [BulkError] of that kind. [KindCanceled] matches [ErrIndexerCanceled].
+// [BulkError] of that kind. [KindCanceled] matches [ErrBulkClientCanceled].
 var (
 	ErrRejected    = errors.New("opensearchutil: rejected by the cluster")
 	ErrUnavailable = errors.New("opensearchutil: cluster unavailable")
@@ -137,11 +137,11 @@ var (
 //nolint:gochecknoglobals // Lookup tables for BulkError.Is.
 var (
 	layerSentinels = [numErrorLayers]error{
-		LayerItem: ErrItemLayer, LayerRequest: ErrRequestLayer, LayerIndexer: ErrIndexerLayer,
+		LayerItem: ErrItemLayer, LayerRequest: ErrRequestLayer, LayerClient: ErrClientLayer,
 	}
 	kindSentinels = [numErrorKinds]error{
 		KindRejected: ErrRejected, KindUnavailable: ErrUnavailable, KindTransport: ErrTransport,
-		KindPermanent: ErrPermanent, KindCanceled: ErrIndexerCanceled,
+		KindPermanent: ErrPermanent, KindCanceled: ErrBulkClientCanceled,
 	}
 )
 
@@ -151,11 +151,11 @@ var (
 // why, and keeps the cause.
 //
 // errors.Is matches it against the sentinel of its layer (ErrItemLayer,
-// ErrRequestLayer, ErrIndexerLayer) and of its kind (ErrRejected,
-// ErrUnavailable, ErrTransport, ErrPermanent, ErrIndexerCanceled), and against
+// ErrRequestLayer, ErrClientLayer) and of its kind (ErrRejected,
+// ErrUnavailable, ErrTransport, ErrPermanent, ErrBulkClientCanceled), and against
 // anything its cause matches.
 type BulkError struct {
-	// Layer is the part of the indexer that failed.
+	// Layer is the part of the bulk client that failed.
 	Layer ErrorLayer
 	// Kind is why, and decides whether a retry can help.
 	Kind ErrorKind
@@ -166,7 +166,7 @@ type BulkError struct {
 	// the zero value otherwise.
 	Resp opensearchapi.BulkRespItem
 	// Err is the cause: the request's error, the reason an item was never sent, or
-	// ErrIndexerCanceled. It is nil for an item the cluster rejected, whose reason
+	// ErrBulkClientCanceled. It is nil for an item the cluster rejected, whose reason
 	// is in Resp.
 	Err error
 
@@ -215,8 +215,8 @@ func (e *BulkError) Is(target error) bool {
 // unsentError classifies the reason err an item was never sent, and wraps it.
 func unsentError(item BulkIndexerItem, err error) *BulkError {
 	switch {
-	case errors.Is(err, ErrIndexerCanceled):
-		return &BulkError{Layer: LayerIndexer, Kind: KindCanceled, Err: err, action: item.Action}
+	case errors.Is(err, ErrBulkClientCanceled):
+		return &BulkError{Layer: LayerClient, Kind: KindCanceled, Err: err, action: item.Action}
 	default:
 		return &BulkError{Layer: LayerItem, Kind: KindPermanent, Err: err, action: item.Action}
 	}

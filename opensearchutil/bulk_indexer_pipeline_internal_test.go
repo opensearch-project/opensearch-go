@@ -31,7 +31,7 @@ import (
 func fixedBatches(itemBytes int64, n int) BulkIndexerConfig {
 	return BulkIndexerConfig{
 		FlushBytes:    int(itemBytes) * n,
-		Sizing:        BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:        BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval: time.Hour,
 	}
 }
@@ -54,7 +54,7 @@ func TestBulkIndexerSendsEachShardToItsNode(t *testing.T) {
 	cluster := newFakeCluster(maps, "n0", "n1", "n2")
 	server := newFakeServer(cluster)
 
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Hour})
+	bi := newBulkClient(t, server, BulkIndexerConfig{FlushInterval: time.Hour})
 
 	const docs = 300
 	seq := 0
@@ -136,7 +136,7 @@ func TestBulkIndexerSinkFillsTheNearestNodeAndMovesOnWhenItIsFull(t *testing.T) 
 
 			cfg := fixedBatches(itemBytes, perBatch)
 			cfg.NumWorkers = 8
-			bi := newClusterIndexer(t, server, cfg)
+			bi := newBulkClient(t, server, cfg)
 
 			// Six batches of documents with no ID: nothing ties them to a shard.
 			for i := range 6 * perBatch {
@@ -167,7 +167,7 @@ func TestBulkIndexerWithoutADestinationLeavesRoutingToTheTransport(t *testing.T)
 	t.Parallel()
 
 	server := newFakeServer(newFakeCluster(nil))
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter, FlushInterval: time.Hour})
+	bi := newBulkClient(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter, FlushInterval: time.Hour})
 
 	for i := range 50 {
 		addDoc(t, bi, "idx", fmt.Sprint("doc-", i), i)
@@ -221,7 +221,19 @@ func TestBulkIndexerWritesAShardsDocumentsInOrderAcrossRelocations(t *testing.T)
 			itemBytes := docBytes("alpha", "doc-00", 1000)
 			cfg := fixedBatches(itemBytes, 7)
 			cfg.NumWorkers = 8
-			bi := newClusterIndexer(t, server, cfg)
+			bi := newBulkClient(t, server, cfg)
+			// While requests are in flight, the BlockedShards gauge is the number of
+			// shards hasBlockedReqs holds for. The server's goroutines record the first
+			// mismatch for the test to report.
+			var gaugeChecks atomic.Int64
+			var gaugeMismatch atomic.Pointer[string]
+			server.advance = func(sentRequest) {
+				if gauge, count := blockedShardsGaugeAndCount(bi); gauge != count {
+					msg := fmt.Sprintf("BlockedShards is %d, but %d shards have blocked requests", gauge, count)
+					gaugeMismatch.CompareAndSwap(nil, &msg)
+				}
+				gaugeChecks.Add(1)
+			}
 
 			added := cluster.workload(t, bi, seed, 40, 30, func() {
 				// Every shard moves to the next node while documents are still arriving.
@@ -229,6 +241,8 @@ func TestBulkIndexerWritesAShardsDocumentsInOrderAcrossRelocations(t *testing.T)
 			})
 			require.NoError(t, bi.Close(t.Context()))
 
+			require.Nil(t, gaugeMismatch.Load())
+			require.Positive(t, gaugeChecks.Load(), "the gauge must have been checked while requests were in flight")
 			require.Zero(t, server.overlaps(), "two requests carrying one shard were in flight together")
 			require.Greater(t, server.maxInflight(), 1, "the test must have exercised concurrent requests")
 
@@ -242,6 +256,23 @@ func TestBulkIndexerWritesAShardsDocumentsInOrderAcrossRelocations(t *testing.T)
 			require.Equal(t, added, got, "a document's actions must reach the server in the order they were added")
 		})
 	}
+}
+
+// blockedShardsGaugeAndCount returns the BlockedShards gauge and, read under the
+// scheduler's lock with it, the number of shards hasBlockedReqs holds for.
+func blockedShardsGaugeAndCount(bi BulkIndexer) (int64, int64) {
+	sched := bi.(*bulkClient).sched
+	sched.Lock()
+	defer sched.Unlock()
+
+	var count int64
+	for _, ss := range sched.shards {
+		if ss.hasBlockedReqs() {
+			count++
+		}
+	}
+
+	return bi.(*bulkClient).stats.blockedShards.Load(), count
 }
 
 // TestBulkIndexerHotShardDoesNotHoldBackTheOthers sends most documents to one
@@ -267,7 +298,7 @@ func TestBulkIndexerHotShardDoesNotHoldBackTheOthers(t *testing.T) {
 
 			return
 		}
-		// Bounded, so an indexer that holds the other shards back fails the
+		// Bounded, so a bulk client that holds the other shards back fails the
 		// assertion on maxInflight instead of hanging.
 		holdOnce.Do(func() {
 			select {
@@ -285,7 +316,7 @@ func TestBulkIndexerHotShardDoesNotHoldBackTheOthers(t *testing.T) {
 		Sizing:        BulkSizing{MinBytes: int(itemBytes) * 5, InitialBytes: int(itemBytes) * 5, StepBytes: 1},
 		FlushInterval: time.Hour,
 	}
-	bi := newClusterIndexer(t, server, cfg)
+	bi := newBulkClient(t, server, cfg)
 
 	// Find an id for the hot shard and ids for the rest.
 	m := maps["alpha"]
@@ -334,8 +365,9 @@ func TestBulkIndexerHotShardDoesNotHoldBackTheOthers(t *testing.T) {
 
 // TestBulkIndexerPoolWindowDoesNotCapRequests: the write pool window the
 // transport reports ranks nodes and does not hold requests back, whether it is
-// small, the pool is rejecting, or it is above the indexer's own limit. A node
-// has as many requests out as NumWorkers allows; a 429 is what backs it off.
+// small, the node is reported refusing writes, or it is above the bulk client's own
+// limit. A node has as many requests out as NumWorkers allows; a 429 is what backs
+// it off.
 func TestBulkIndexerPoolWindowDoesNotCapRequests(t *testing.T) {
 	t.Parallel()
 
@@ -345,12 +377,12 @@ func TestBulkIndexerPoolWindowDoesNotCapRequests(t *testing.T) {
 	)
 
 	tests := []struct {
-		name       string
-		window     int
-		overloaded bool
+		name            string
+		window          int
+		writeOverloaded bool
 	}{
 		{name: "a window of one request", window: 1},
-		{name: "a pool that is rejecting", window: 8, overloaded: true},
+		{name: "a node reported refusing writes", window: 8, writeOverloaded: true},
 		{name: "a window above NumWorkers", window: 16},
 	}
 
@@ -360,7 +392,7 @@ func TestBulkIndexerPoolWindowDoesNotCapRequests(t *testing.T) {
 
 			m := DefaultShardMap(shards)
 			cluster := newFakeCluster(map[string]ShardMap{"alpha": m}, "n0")
-			cluster.setWindow(tt.window, tt.overloaded)
+			cluster.setWindow(tt.window, tt.writeOverloaded)
 			server := newFakeServer(cluster)
 			server.gate = make(chan struct{})
 			server.entered = make(chan string, shards)
@@ -376,7 +408,7 @@ func TestBulkIndexerPoolWindowDoesNotCapRequests(t *testing.T) {
 
 			cfg := fixedBatches(docBytes("alpha", "d0000", 1000), 1)
 			cfg.NumWorkers = numWorkers
-			bi := newClusterIndexer(t, server, cfg)
+			bi := newBulkClient(t, server, cfg)
 
 			for shard := range shards {
 				addDoc(t, bi, "alpha", ids[shard], 1000+shard)
@@ -409,7 +441,7 @@ func TestBulkIndexerKeepsOrderWhenAShardMapArrives(t *testing.T) {
 	server := newFakeServer(cluster)
 
 	cfg := BulkIndexerConfig{NumWorkers: 4, FlushInterval: time.Hour} // Only the drain may send before Close.
-	bi := newClusterIndexer(t, server, cfg)
+	bi := newBulkClient(t, server, cfg)
 
 	addDoc(t, bi, "idx", "doc", 1) // The shard map is unknown: the item is in no shard's order.
 	require.Empty(t, server.requests(), "nothing sends by itself")
@@ -445,7 +477,7 @@ func TestBulkIndexerSwitchToShardsHonoursContext(t *testing.T) {
 	server := newFakeServer(cluster)
 
 	var onError atomic.Int64
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		NumWorkers: 2, FlushInterval: time.Hour,
 		OnUnhandledError: func(_ context.Context, _ error) { onError.Add(1) },
 	})
@@ -468,7 +500,7 @@ func TestBulkIndexerSwitchToShardsHonoursContext(t *testing.T) {
 
 // TestBulkIndexerSwitchToShardsDoesNotLendTheTriggeringContext: the Add that
 // completes the switch to shards drains what other callers buffered, and waits for it
-// under its own context. Their items run on the indexer's, so an Add that gives up
+// under its own context. Their items run on the bulk client's, so an Add that gives up
 // during the drain does not fail documents whose own callers are still waiting.
 func TestBulkIndexerSwitchToShardsDoesNotLendTheTriggeringContext(t *testing.T) {
 	t.Parallel()
@@ -530,11 +562,11 @@ func TestBulkIndexerNodeIsAvailableToOnFlushStart(t *testing.T) {
 	cfg := BulkIndexerConfig{
 		FlushInterval: time.Hour,
 		OnFlushStart: func(ctx context.Context) context.Context {
-			seen.Store(FlushNode(ctx))
+			seen.Store(FlushTarget(ctx))
 			return ctx
 		},
 	}
-	bi := newClusterIndexer(t, server, cfg)
+	bi := newBulkClient(t, server, cfg)
 
 	addDoc(t, bi, "idx", "doc-1", 1)
 	require.NoError(t, bi.Close(t.Context()))
@@ -608,7 +640,7 @@ func TestBulkIndexerNumWorkersCapsRequests(t *testing.T) {
 
 			cfg := fixedBatches(docBytes("alpha", "doc-00", 1000), 2)
 			cfg.NumWorkers = tt.numWorkers
-			bi := newClusterIndexer(t, server, cfg)
+			bi := newBulkClient(t, server, cfg)
 
 			for i := range 300 {
 				addDoc(t, bi, "alpha", fmt.Sprint("doc-", i), i)
@@ -638,7 +670,7 @@ func TestBulkIndexerRetriedRequestKeepsItsBody(t *testing.T) {
 		return http.StatusOK, okResponse(len(r.actions))
 	}
 
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Hour})
+	bi := newBulkClient(t, server, BulkIndexerConfig{FlushInterval: time.Hour})
 	for i := range 20 {
 		addDoc(t, bi, "idx", fmt.Sprint("doc-", i), i)
 	}

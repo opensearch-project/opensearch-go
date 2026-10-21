@@ -21,7 +21,7 @@ import (
 
 const offsetDoc = `{"seq":7}`
 
-// seekOnly hides every method of a reader but Read and Seek, so the indexer cannot
+// seekOnly hides every method of a reader but Read and Seek, so the bulk client cannot
 // ask it for its length and has to measure it by seeking.
 type seekOnly struct{ io.ReadSeeker }
 
@@ -98,7 +98,7 @@ func TestBulkIndexerSendsABodyFromItsStart(t *testing.T) {
 						return "fingerprint", err
 					}
 				}
-				bi := newClusterIndexer(t, server, cfg)
+				bi := newBulkClient(t, server, cfg)
 
 				item := BulkIndexerItem{Index: "idx", Action: actionIndex, Body: readerAt(t, 3, hideLen)}
 				if !tt.fingerprint {
@@ -120,14 +120,14 @@ func TestBulkIndexerSendsABodyFromItsStart(t *testing.T) {
 	}
 }
 
-// TestBulkIndexerSizesABodyFromItsStart: the size the indexer reserves for an item is
+// TestBulkIndexerSizesABodyFromItsStart: the size the bulk client reserves for an item is
 // that of the whole document, not of what is left of it after the position its reader
 // was handed in at.
 func TestBulkIndexerSizesABodyFromItsStart(t *testing.T) {
 	t.Parallel()
 
 	buffered := func(offset int64, hideLen bool) uint64 {
-		bi := newClusterIndexer(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{ShardRouter: NoShardRouter})
+		bi := newBulkClient(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{ShardRouter: NoShardRouter})
 		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 			Index: "idx", Action: actionIndex, DocumentID: "doc", Body: readerAt(t, offset, hideLen),
 		}))

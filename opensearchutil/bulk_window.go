@@ -18,28 +18,30 @@ type windowConfig struct {
 	// unit is the additive step: the window grows by about this much for each window's
 	// worth of bytes the node completes. It is FlushBytes, the largest request.
 	unit float64
-	// backoff is the factor a rejection cuts the window by.
+	// backoff is the factor shrink multiplies the window by.
 	backoff float64
 	// fixed holds the window where it started, whatever the node does.
 	fixed bool
 }
 
-// byteWindow is how many bytes the indexer may have outstanding to one node: in
+// byteWindow is how many bytes the bulk client may have outstanding to one node: in
 // requests that have been sent and not yet answered. It is the only part of the
-// indexer that answers a 429, and it does so the way TCP answers a lost packet.
+// bulk client that answers a 429, and it does so the way TCP answers a lost packet.
 //
-//   - A rejection cuts it to half of the smaller of the window and the bytes that were
-//     outstanding when the rejection arrived. Cutting from the bytes in flight, and not
-//     from the window, makes the first rejection count: a window that starts at the whole
-//     job's memory is far above what is ever outstanding, and half of it would change
-//     nothing. Rejections that come from requests sent before the cut are the same
-//     event and do not cut again.
-//   - It grows by one unit for each window's worth of bytes the node completes, so a
-//     window that was cut recovers slowly, and one that has not been cut barely moves.
-//   - It does not grow for the few completions after a rejection, or after the node's
-//     write pool starts rejecting, which may be other clients' requests. Each is one
-//     event: the pause does not last as long as the pool goes on rejecting, so the
-//     window resumes probing, and the node's own 429s govern it.
+//   - shrinkWindowSize halves it on a 429, to half of the smaller of the window and
+//     the bytes that were outstanding when the 429 arrived. Shrinking from the bytes
+//     in flight, and not from the window, makes the first 429 count: a window that
+//     starts at the whole job's memory is far above what is ever outstanding, and half
+//     of it would change nothing. A 429 to a request sent before the last shrink
+//     belongs to the overload that shrink already answered, and does not shrink the
+//     window again.
+//   - growWindowSize raises it by one unit for each window's worth of bytes in flushes
+//     the node accepts, so a window that was shrunk recovers slowly, and one that was
+//     not barely moves.
+//   - A pin stops growWindowSize from raising it for the next pinFlushes accepted
+//     flushes; a 429 still shrinks a pinned window. shrinkWindowSize starts a pin, and
+//     pinWindowSize starts one without shrinking, for a node that has become
+//     write-saturated.
 //
 // A sealed buffer is sent only when it fits in what is left of the window, or when
 // nothing is outstanding at all, so that a buffer larger than the window still goes.
@@ -47,10 +49,12 @@ type windowConfig struct {
 type byteWindow struct {
 	cfg  windowConfig
 	size float64
-	// cuts counts the cuts made so far. A request remembers the count when it is sent.
-	cuts uint64
-	// hold is how many completions must pass before the window may grow again.
-	hold int
+	// shrinks counts the times shrinkWindowSize has reduced the window. A request
+	// records the count when it is sent.
+	shrinks uint64
+	// pinnedFlushes is how many more accepted flushes growWindowSize must count before
+	// it raises the window again.
+	pinnedFlushes int
 }
 
 func newByteWindow(cfg windowConfig) *byteWindow {
@@ -65,47 +69,50 @@ func (w *byteWindow) allows(outstanding, size int64) bool {
 	return outstanding == 0 || float64(outstanding+size) <= w.size
 }
 
-// reject cuts the window for a rejection that arrived with outstanding bytes in flight,
-// the rejected request's among them, which was sent when the window had been cut cuts
-// times. It reports whether it cut.
-func (w *byteWindow) reject(outstanding int64, sentAt uint64) bool {
+// shrinkWindowSize halves the window for a 429 that arrived with outstanding bytes in
+// flight, the refused request's among them, and pins it. sentAt is the shrinks count
+// when the refused request was sent; a request sent before the last shrink does not
+// shrink the window again. It reports whether it reduced the window.
+func (w *byteWindow) shrinkWindowSize(outstanding int64, sentAt uint64) bool {
 	if w.cfg.fixed {
 		return false
 	}
 
-	w.hold = sizingHoldFlushes
+	w.pinnedFlushes = pinFlushes
 
-	if sentAt != w.cuts {
-		// Sent before the last cut: the same overload, already answered.
+	if sentAt != w.shrinks {
+		// Sent before the last shrink: the same overload, already answered.
 		return false
 	}
 
 	w.size = math.Max(w.cfg.floor, w.cfg.backoff*math.Min(w.size, float64(outstanding)))
-	w.cuts++
+	w.shrinks++
 
 	return true
 }
 
-// pause holds the window's growth for the next few completions, as a rejection does,
-// without cutting it.
-func (w *byteWindow) pause() {
+// pinWindowSize stops growWindowSize from raising the window for the next pinFlushes
+// accepted flushes, or leaves a longer pin in place. It does not shrink the window,
+// and a 429 during the pin still does.
+func (w *byteWindow) pinWindowSize() {
 	if w.cfg.fixed {
 		return
 	}
 
-	w.hold = max(w.hold, sizingHoldFlushes)
+	w.pinnedFlushes = max(w.pinnedFlushes, pinFlushes)
 }
 
-// complete grows the window for a request of bytes that the node answered without
-// rejecting it.
-func (w *byteWindow) complete(bytes int64) {
+// growWindowSize records a flush of bytes that the node accepted, without a 429.
+// While the window is pinned it counts the pin down by one flush; otherwise it raises
+// the window by unit × bytes / size, up to the ceiling.
+func (w *byteWindow) growWindowSize(bytes int64) {
 	if w.cfg.fixed {
 		return
 	}
 
 	switch {
-	case w.hold > 0:
-		w.hold--
+	case w.pinnedFlushes > 0:
+		w.pinnedFlushes--
 	case w.size <= 0:
 	default:
 		w.size = math.Min(w.cfg.ceiling, w.size+w.cfg.unit*float64(bytes)/w.size)
@@ -135,12 +142,12 @@ type rateTracker struct {
 
 // learn folds a flush into the best rate. A flush that was rejected, failed or indexed
 // nothing, or is too small to tell anything, says nothing about how fast the node serves.
-func (r *rateTracker) learn(f flushSample) {
-	if !f.timed() || float64(f.bytes) < r.floor {
+func (r *rateTracker) learn(f flushResult) {
+	if !f.hasValidLatency() || float64(f.bytes) < r.floor {
 		return
 	}
 
-	if rate, ok := f.rate(); ok {
+	if rate, ok := f.throughput(); ok {
 		r.rateS = smoothInto(r.rateS, rate)
 		r.base = math.Max(r.rateS, r.base*sizingBaseDecay)
 	}

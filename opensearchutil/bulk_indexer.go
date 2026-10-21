@@ -99,23 +99,23 @@ const (
 	actionUpdate = "update"
 )
 
-// ErrBulkIndexerClosed is returned by Add and Flush on an indexer that has been
+// ErrBulkClientClosed is returned by Add and Flush on a bulk client that has been
 // closed.
-var ErrBulkIndexerClosed = errors.New("opensearchutil: bulk indexer is closed")
+var ErrBulkClientClosed = errors.New("opensearchutil: bulk client is closed")
 
 // ErrNilStats is returned by GetStats when it is given no struct to fill.
 var ErrNilStats = errors.New("opensearchutil: GetStats needs a non-nil BulkIndexerStats")
 
 // ErrInvalidConfig is wrapped by the error [NewBulkIndexer] returns for a
 // configuration it cannot run with, such as a negative byte limit.
-var ErrInvalidConfig = errors.New("opensearchutil: invalid bulk indexer configuration")
+var ErrInvalidConfig = errors.New("opensearchutil: invalid bulk client configuration")
 
 // ErrShardRoutingUnavailable is wrapped by the error passed to OnWarning when
-// the indexer starts without shard-aware buffering because it has no way to
+// the bulk client starts without shard-aware buffering because it has no way to
 // learn where shards live.
 var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unavailable")
 
-// BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
+// BulkIndexer represents a parallel, asynchronous, efficient bulk client for OpenSearch.
 //
 // It keeps a buffer per shard and sends a shard's buffer, as one bulk request, to
 // the node hosting the shard, so a request carries many documents for the one shard
@@ -133,9 +133,9 @@ var ErrShardRoutingUnavailable = errors.New("opensearchutil: shard routing unava
 // [ShardFixed]) and is sealed once it holds FlushBytes, so no buffer waits for
 // a size it cannot reach; a shard that holds nothing may always take one item, past
 // MaxMemoryBytes if need be; and when nothing is out to a node, one sealed buffer
-// is sent whatever its size, past NodeBytes if need be.
+// is sent whatever its size, past TargetBytes if need be.
 type BulkIndexer interface {
-	// Add adds an item to the indexer. It returns an error when the item cannot be added.
+	// Add adds an item to the bulk client. It returns an error when the item cannot be added.
 	// Use the OnSuccess and OnError callbacks to get the operation result for the item.
 	//
 	// You must call the Close() method after you're done adding items.
@@ -143,12 +143,12 @@ type BulkIndexer interface {
 	// It is safe for concurrent use. When it's called from goroutines,
 	// they must finish before the call to Close, eg. using sync.WaitGroup.
 	//
-	// Add blocks while the memory the indexer holds, from Add to the end of the
+	// Add blocks while the memory the bulk client holds, from Add to the end of the
 	// request that sends the item, is at MaxMemoryBytes, until requests finish and
 	// give it back or ctx ends.
 	//
 	// Items that carry a DocumentID or a Routing are written in the order they
-	// were added: the indexer sends no batch until every earlier batch with a
+	// were added: the bulk client sends no batch until every earlier batch with a
 	// document of one of its shards has finished, whichever node either goes to.
 	//
 	// Callbacks run on the goroutine that sends the request and must not block.
@@ -156,7 +156,7 @@ type BulkIndexer interface {
 	Add(context.Context, BulkIndexerItem) error
 
 	// Flush sends every item in BulkIndexer's queue before the call was made
-	// and leaves the indexer open, so one indexer can drain on demand and keep
+	// and leaves the bulk client open, so one bulk client can drain on demand and keep
 	// going. Items added concurrently may land in this drain or the next, and
 	// the bulk requests run on ctx.
 	//
@@ -178,12 +178,12 @@ type BulkIndexer interface {
 	// A non-nil error that is not a context error means the drain itself
 	// failed; documents the cluster rejected individually go to their
 	// OnError callback. Safe alongside Add and other concurrent Flush calls.
-	// After Close it returns ErrBulkIndexerClosed.
+	// After Close it returns ErrBulkClientClosed.
 	Flush(context.Context) error
 
-	// Close waits until the indexer is done with every added item, which
+	// Close waits until the bulk client is done with every added item, which
 	// includes waiting out requests in flight and retry backoff, and closes the
-	// indexer. It blocks for as long as that takes, bounded only by the client's
+	// bulk client. It blocks for as long as that takes, bounded only by the client's
 	// own request timeouts and by when the retry policy gives up.
 	//
 	// When ctx ends first, Close escalates to Cancel: the items not yet final
@@ -192,51 +192,51 @@ type BulkIndexer interface {
 	// goroutine to avoid waiting.
 	Close(context.Context) error
 
-	// Cancel stops the indexer immediately instead of waiting: requests in
+	// Cancel stops the bulk client immediately instead of waiting: requests in
 	// flight are canceled, retry backoff ends, and every item that is not yet
-	// final fails through its OnError exactly once, with ErrIndexerCanceled
+	// final fails through its OnError exactly once, with ErrBulkClientCanceled
 	// when it was never sent. Items added afterwards fail the same way. Cancel
 	// does not wait and does not replace Close, which still must be called. It
 	// is idempotent and safe for concurrent use, including from a callback.
 	Cancel()
 
-	// Stats returns indexer statistics.
+	// Stats returns bulk client statistics.
 	Stats() BulkIndexerStats
 
-	// GetStats loads the indexer's statistics into dst, which replaces everything
+	// GetStats loads the bulk client's statistics into dst, which replaces everything
 	// in it. It is for a caller that reads them often, for example one that steers
-	// its own input by how loaded the indexer is: the caller owns dst and reuses
-	// it, so nothing is allocated, and the indexer's state can only be read
+	// its own input by how loaded the bulk client is: the caller owns dst and reuses
+	// it, so nothing is allocated, and the bulk client's state can only be read
 	// through it, never written. Every value is loaded from an atomic, so GetStats
 	// takes no lock and is safe to call at any time and from any goroutine, but the
 	// values are loaded one after another and are not a single instant: a counter
 	// can have moved between two of them. It returns [ErrNilStats] when dst is nil,
-	// and works on a closed indexer, whose statistics no longer change.
+	// and works on a closed bulk client, whose statistics no longer change.
 	GetStats(dst *BulkIndexerStats) error
 
-	// GetNodeStats loads the statistics of each node the indexer has written to
-	// into dst, in the order the indexer first used them, and returns it. It
+	// GetTargetStats loads the statistics of each node the bulk client has written to
+	// into dst, in the order the bulk client first used them, and returns it. It
 	// replaces what dst holds and reuses its capacity, so a caller that passes
 	// the slice it got back allocates nothing once it has room for every node.
 	// Like GetStats it takes no lock and its values are loaded one after another,
 	// not at a single instant, so one node's values need not agree with each
-	// other. It works on a closed indexer.
-	GetNodeStats(dst []NodeStats) []NodeStats
+	// other. It works on a closed bulk client.
+	GetTargetStats(dst []BulkTargetStats) []BulkTargetStats
 }
 
-// BulkIndexerConfig represents configuration of the indexer.
+// BulkIndexerConfig represents configuration of the bulk client.
 type BulkIndexerConfig struct {
-	// NumWorkers caps the number of bulk requests the indexer may have outstanding
+	// NumWorkers caps the number of bulk requests the bulk client may have outstanding
 	// at once, across all nodes, and to any one node. The default, 0, sets no cap
 	// across nodes and caps each node at GOMAXPROCS. Beyond that a shard has one
-	// request out at a time, and a 429 from a node cuts the bytes the indexer may
+	// request out at a time, and a 429 from a node shrinks the bytes the bulk client may
 	// have out to it; see Sizing. The write pool window the transport tracks for a
 	// node chooses where documents that belong to no shard go, and caps nothing. A
 	// cap of 1 sends one request at a time, and runs callbacks on one goroutine at
 	// a time.
 	NumWorkers int
 
-	// FlushBytes is the largest buffer the indexer keeps for a shard, and so the
+	// FlushBytes is the largest buffer the bulk client keeps for a shard, and so the
 	// largest bulk request body it sends. How large a shard's buffer is, up to this,
 	// follows how quickly the shard's requests are served: see Sizing. Defaults to
 	// 5MB.
@@ -247,7 +247,7 @@ type BulkIndexerConfig struct {
 	//
 	// Batches are per node and not per worker, but a sparse stream still fills
 	// them slowly, and for a sparse stream the interval is the latency of a
-	// document. An indexer that wants documents out sooner than 30 seconds, a
+	// document. A bulk client that wants documents out sooner than 30 seconds, a
 	// streaming one for instance, should lower it.
 	FlushInterval time.Duration
 
@@ -258,8 +258,8 @@ type BulkIndexerConfig struct {
 	Context context.Context
 
 	// OnUnhandledError is called for an error no item callback took: a failed item
-	// that has no OnError of its own, as a *BulkError, and the indexer's own errors,
-	// such as a flush or a Close cut short by its context.
+	// that has no OnError of its own, as a *BulkError, and the bulk client's own errors,
+	// such as a flush or a Close whose context ended first.
 	OnUnhandledError func(context.Context, error)
 	// OnError is the v5.0 name of OnUnhandledError, kept so that code written for
 	// v5.0 and earlier still builds. It is called in OnUnhandledError's place when
@@ -271,7 +271,7 @@ type BulkIndexerConfig struct {
 	OnFlushEnd   func(context.Context)                 // Called when the flush ends.
 
 	// OnWarning is called, at most once for each condition and before
-	// NewBulkIndexer returns, when the indexer cannot do something it would do by
+	// NewBulkIndexer returns, when the bulk client cannot do something it would do by
 	// default and carries on without it. Today that is shard-aware buffering with
 	// a transport that cannot say where shards live; the error wraps
 	// [ErrShardRoutingUnavailable] and names the cause. It is not an error that
@@ -286,17 +286,17 @@ type BulkIndexerConfig struct {
 	OnAddBlocked AddBlockedFunc
 
 	// RetryPolicy, when set, decides whether an item that failed is sent again.
-	// With it set, OnSuccess and OnError fire once per item, when the indexer is
+	// With it set, OnSuccess and OnError fire once per item, when the bulk client is
 	// done with it, never for an attempt that is going to be retried.
 	// When nil, an item that fails is not retried. Retrying requires every
-	// item to carry a DocumentID, which the indexer enforces; see [RetryPolicy].
+	// item to carry a DocumentID, which the bulk client enforces; see [RetryPolicy].
 	RetryPolicy RetryPolicy
 
 	// Fingerprinter, when set, derives the DocumentID of an item that has none.
 	// See [DocumentFingerprinter].
 	Fingerprinter DocumentFingerprinter
 
-	// Observer, when set, receives notifications about the requests the indexer
+	// Observer, when set, receives notifications about the requests the bulk client
 	// sends and how each item fares, for statistics and metrics. See
 	// [BulkIndexerObserver] for what it may do.
 	Observer BulkIndexerObserver
@@ -321,14 +321,14 @@ type BulkIndexerConfig struct {
 	// cap are discarded instead of returned. Defaults to 32 KiB.
 	MetaBufferPoolMaxBytes int
 
-	// ShardRouter maps documents to shards and shards to nodes. The indexer sends
+	// ShardRouter maps documents to shards and shards to nodes. The bulk client sends
 	// the documents of a shard to the node that hosts it, buffers them with the
 	// other documents bound for that node, and writes a shard's documents in the
 	// order they were added. The server regroups every bulk by shard whatever the
 	// client does, so a router that is missing or wrong costs efficiency and not
 	// correctness.
 	//
-	// When nil, the indexer asks the client's transport, see [ClientShardRouter];
+	// When nil, the bulk client asks the client's transport, see [ClientShardRouter];
 	// a transport that cannot answer leaves documents unplaced, which is reported
 	// through OnWarning. Set it to override that, for example with a
 	// [ChainShardRouter] that falls back to a [StaticShardRouter] when the cluster
@@ -339,24 +339,24 @@ type BulkIndexerConfig struct {
 	// Sizing tunes how a shard's buffer follows how quickly the shard's requests
 	// are served, and how a node's window of bytes out at once answers a 429. The
 	// byte fields (MinBytes, InitialBytes, StepBytes) apply to shard buffers; the
-	// window is bounded by NodeBytes. The zero value selects defaults derived from
+	// window is bounded by TargetBytes. The zero value selects defaults derived from
 	// FlushBytes.
 	//
-	// The OPENSEARCH_GO_BULK_SHARD, OPENSEARCH_GO_BULK_NODE and
+	// The OPENSEARCH_GO_BULK_SHARD, OPENSEARCH_GO_BULK_TARGET and
 	// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD environment variables override the
 	// matching fields when they are set and valid, so an operator can fix the shard
 	// buffers or the node windows, each on its own, or retune the PID gains, without
 	// a code change. See [BulkSizing].
 	Sizing BulkSizing
 
-	// MaxMemoryBytes is the job's memory limit: the most the indexer holds from the
+	// MaxMemoryBytes is the job's memory limit: the most the bulk client holds from the
 	// moment Add accepts an item until the request that sends it has finished. That
 	// is the item's request body and the structure that carries it to its callbacks,
 	// so a stream of small documents is not undercounted. When the limit is spent,
 	// Add waits for requests to finish and return memory, and the fullest shard
 	// buffer that can go out is sent at once to keep the wait short. A slow or
 	// stalled cluster therefore slows the caller down instead of growing the
-	// indexer's memory. An item larger than the whole limit is let through alone.
+	// bulk client's memory. An item larger than the whole limit is let through alone.
 	//
 	// The limit is shared among shards. While other shards are waiting for room, a
 	// shard holds no more than an even share of it, so a shard whose requests are
@@ -369,27 +369,27 @@ type BulkIndexerConfig struct {
 	// has a Go memory limit (GOMEMLIMIT), and to [DefaultMaxMemoryBytes], enough for
 	// one default AWS gp3 volume's 150 MB/s, when it does not. The 4 GiB floor can
 	// exceed a Go memory limit under 16 GiB; a process that sets a smaller one, and
-	// wants the indexer held inside it, sets MaxMemoryBytes.
+	// wants the bulk client held inside it, sets MaxMemoryBytes.
 	//
 	// Wait time is reported by BulkIndexerStats.NumBlockedAdds and
 	// BlockedAddDuration, and by OnAddBlocked.
 	MaxMemoryBytes int
 
-	// NodeBytes is the most bytes the indexer will have out to one node at once, in
+	// TargetBytes is the most bytes the bulk client will have out to one node at once, in
 	// requests that have been sent and not yet answered, and the window it starts at.
 	// Left unset it is MaxMemoryBytes: wide open, so that it is a 429 that teaches the
-	// indexer where the node's limit is. A 429 cuts the window below it, to half of
-	// what was out when the 429 arrived, and it grows back slowly; set NodeBytes to
+	// bulk client where the node's limit is. A 429 shrinks the window below it, to half of
+	// what was out when the 429 arrived, and it grows back slowly; set TargetBytes to
 	// keep a node under a figure of your own whatever it accepts. A sealed buffer that
 	// would take the node past its window waits, still counting against
 	// MaxMemoryBytes, until the requests out are answered; when nothing is out, one
-	// is sent whatever its size. With [NodeFixed] the window stays at NodeBytes.
+	// is sent whatever its size. With [TargetFixed] the window stays at TargetBytes.
 	// It does not change the size of any buffer, and it is separate from the number of
 	// requests out at once, which the client's transport limits.
-	NodeBytes int
+	TargetBytes int
 }
 
-// BulkIndexerStats represents the indexer statistics.
+// BulkIndexerStats represents the bulk client statistics.
 type BulkIndexerStats struct {
 	// Each field is a COUNTER, which only grows, so that two readings give a rate,
 	// or a GAUGE, a reading of the moment. Durations are in nanoseconds and sizes in
@@ -428,7 +428,7 @@ type BulkIndexerStats struct {
 	// NumPressureFlushes those sent early because Add ran out of memory under
 	// MaxMemoryBytes, and NumCloseFlushes those sent by the final drain in Close
 	// (COUNTER, batches). Batches sent because Flush asked are in none of them.
-	// See TimerFlushRatio. A growing NumPressureFlushes says the indexer is short
+	// See TimerFlushRatio. A growing NumPressureFlushes says the bulk client is short
 	// of memory for the cluster's pace.
 	NumByteFlushes     uint64
 	NumTimerFlushes    uint64
@@ -458,10 +458,10 @@ type BulkIndexerStats struct {
 	// Errors counts errors as they happen, indexed by ErrorLayer and then ErrorKind,
 	// as Errors[LayerRequest][KindRejected] (COUNTER, occurrences). It counts one
 	// for each failed attempt of a whole request, and one for each item for the
-	// item, index and indexer layers, whether or not the RetryPolicy then retried
+	// item and client layers, whether or not the RetryPolicy then retried
 	// it: the same occurrences an Observer's OnRequestError and OnItemError
 	// receive, and osprom's bulk_errors_total counts. Unlike those it also counts
-	// items failed by Cancel (LayerIndexer, KindCanceled), which send no event.
+	// items failed by Cancel (LayerClient, KindCanceled), which send no event.
 	// LayerUnknown and KindUnknown are never counted. The three relate as follows:
 	// an item the cluster rejects twice and then accepts counts 2 in
 	// Errors[LayerItem], 2 in NumRetries and 0 in NumFailed; one it rejects for good
@@ -473,14 +473,14 @@ type BulkIndexerStats struct {
 	// ItemBytes is the total length of the documents of the items Add queued, the
 	// length of each item's Body, without its action line (COUNTER, bytes). Divided
 	// by NumAdded it is the mean document size. MaxItemBytes is the largest single
-	// document seen (bytes, never decreases: it is the largest since the indexer was
+	// document seen (bytes, never decreases: it is the largest since the bulk client was
 	// built, not lately). For how often documents are large, use an Observer, such
 	// as osprom's bulk_item_size_bytes histogram.
 	ItemBytes    uint64
 	MaxItemBytes uint64
 
 	// ItemLatencyNanos is the total time items took from Add to the moment the
-	// indexer was done with them, accepted or failed for good, waiting for their
+	// bulk client was done with them, accepted or failed for good, waiting for their
 	// buffer to fill, for room on their node, and for retries included (COUNTER,
 	// nanoseconds). Divided by NumFlushed + NumFailed it is the mean latency.
 	// MaxItemLatencyNanos is the longest (nanoseconds, never decreases).
@@ -520,35 +520,35 @@ type BulkIndexerStats struct {
 	// back since it last looked, however briefly, and can compare two readings for a
 	// rate.
 	NumRejections uint64
-	// NumNodes is the number of nodes the indexer has written to (GAUGE, nodes). The
+	// NumTargets is the number of nodes the bulk client has written to (GAUGE, nodes). The
 	// three readings below are taken across them.
-	NumNodes uint64
-	// NodeWindow is how many bytes the indexer will have out to a node at once, as a
-	// fraction of the most it would allow (NodeBytes): 1 while the node takes what it
-	// is sent, cut to half of what was out each time it answers 429, and rising slowly
+	NumTargets uint64
+	// TargetWindow is how many bytes the bulk client will have out to a node at once, as a
+	// fraction of the most it would allow (TargetBytes): 1 while the node takes what it
+	// is sent, shrunk to half of what was out each time it answers 429, and rising slowly
 	// as it takes writes again (GAUGE, fraction). A node that is merely slow does not
 	// move it; Slowdown and BufferSize show that. Before any node has been used every
 	// field is 1.
-	NodeWindow JobNodeStats
-	// BufferSize is how large the indexer's buffers for a node are, as a fraction of
+	TargetWindow JobTargetStats
+	// BufferSize is how large the bulk client's buffers for a node are, as a fraction of
 	// FlushBytes, averaged over the node's shards and smoothed over its last few
-	// requests (GAUGE, fraction). The indexer makes them smaller as a node serves its
+	// requests (GAUGE, fraction). The bulk client makes them smaller as a node serves its
 	// requests more slowly and larger while it keeps up. Before any node has been
 	// used every field is the size buffers start at.
-	BufferSize JobNodeStats
+	BufferSize JobTargetStats
 	// Slowdown is how much longer than expected a node takes for its requests,
 	// smoothed over its last few: 0 when it takes the expected time, 1 when
 	// it takes twice as long (GAUGE, ratio). The expected time is the one the buffer
 	// sizing judges a request by: the node's fixed cost per request plus the
 	// request's bytes at the best rate the node has shown. It is 0 before any node has
 	// been used.
-	Slowdown JobNodeStats
+	Slowdown JobTargetStats
 }
 
-// BudgetFill returns how full the indexer's memory is, from 0 to 1: the bytes it
+// Utilization returns how full the bulk client's memory is, from 0 to 1: the bytes it
 // holds, buffered and in requests, over MaxMemoryBytes. Add starts to wait when it
 // reaches 1. It is 0 when MaxMemoryBytes is not known.
-func (s BulkIndexerStats) BudgetFill() float64 {
+func (s BulkIndexerStats) Utilization() float64 {
 	if s.MaxMemoryBytes == 0 {
 		return 0
 	}
@@ -571,7 +571,7 @@ func (s BulkIndexerStats) TimerFlushRatio() float64 {
 	return float64(s.NumTimerFlushes) / float64(total)
 }
 
-// BulkIndexerItem represents an indexer item.
+// BulkIndexerItem represents a bulk client item.
 type BulkIndexerItem struct {
 	Index               string
 	Action              string
@@ -584,7 +584,7 @@ type BulkIndexerItem struct {
 	WaitForActiveShards any
 	Refresh             *string
 	RequireAlias        *bool
-	// Body is the document. The indexer reads it from offset 0, whatever the
+	// Body is the document. The bulk client reads it from offset 0, whatever the
 	// position it is handed in at, once to size it, once more if a Fingerprinter
 	// needs it, and again for each attempt to send it, and it leaves the reader at 0.
 	// A caller that keeps its own position in a reader must pass a reader of just the
@@ -594,14 +594,14 @@ type BulkIndexerItem struct {
 
 	// Metadata is opaque data the caller attaches to the item, such as the
 	// stream offset the document was read from. It is never serialized into the
-	// request and the indexer never reads it. It comes back unchanged in the
+	// request and the bulk client never reads it. It comes back unchanged in the
 	// BulkIndexerItem handed to OnSuccess and OnError, so a callback can
-	// recover it without a closure per item. The indexer keeps the value
+	// recover it without a closure per item. The bulk client keeps the value
 	// referenced until its OnSuccess or OnError has run.
 	Metadata any
 
 	// bodyBytes is the length of Body, for BulkItemEvent.Bytes and the ItemBytes
-	// statistic, and addedAt the indexer's clock when Add took the item, for the
+	// statistic, and addedAt the bulk client's clock when Add took the item, for the
 	// ItemLatencyNanos statistic. Add sets both.
 	bodyBytes int64
 	addedAt   time.Duration
@@ -628,19 +628,19 @@ type BulkIndexerItem struct {
 // as Data.
 var ErrZeroCopyBodySet = errors.New("opensearchutil: zero-copy item sets Body; use Data")
 
-// BulkIndexerZeroCopyItem is a [BulkIndexerItem] whose document the indexer sends
+// BulkIndexerZeroCopyItem is a [BulkIndexerItem] whose document the bulk client sends
 // from the caller's own memory instead of copying it. It is added with
 // [AddZeroCopy], so that code which lends memory says so where it adds it.
 //
-// Lending trades a copy for ownership. The indexer reads Data where it is, from
+// Lending trades a copy for ownership. The bulk client reads Data where it is, from
 // the moment the item is added until the request that carries it has finished and
 // the item's callbacks have returned, and the caller must not change it, or reuse
 // it, before Release is called. A caller that pools its buffers returns the slice
 // to the pool in Release.
 //
-// What a lent slice holds counts toward MaxMemoryBytes by its length. A slice cut
+// What a lent slice holds counts toward MaxMemoryBytes by its length. A slice shrink
 // from a larger buffer keeps the whole buffer alive until Release, though, and the
-// limit does not see that: a record cut from a large read buffer belongs in a
+// limit does not see that: a record sliced from a large read buffer belongs in a
 // plain [BulkIndexerItem], which copies the document and lets the buffer go.
 type BulkIndexerZeroCopyItem struct {
 	// BulkIndexerItem carries the action, the document ID, and the callbacks. Its
@@ -652,7 +652,7 @@ type BulkIndexerZeroCopyItem struct {
 	Data []byte
 
 	// Release, when set, is called once for each item that [AddZeroCopy] accepted,
-	// after the indexer is finished with Data: the request carrying it has ended,
+	// after the bulk client is finished with Data: the request carrying it has ended,
 	// retries included, and the callbacks have returned, whatever the outcome, and
 	// the transport has finished reading it. net/http can go on reading a request
 	// body after it has answered, when the server replies early or the context ends,
@@ -676,7 +676,7 @@ type WarningFunc func(ctx context.Context, err error)
 // the Add waited for buffer space.
 type AddBlockedFunc func(ctx context.Context, waited time.Duration)
 
-// lentBody is the Body of an item whose document the indexer was lent. It reads as
+// lentBody is the Body of an item whose document the bulk client was lent. It reads as
 // the document, so callbacks given the item can read it, and it tells the
 // serializer to take the slice and not copy it.
 type lentBody struct {
@@ -727,22 +727,22 @@ func (l *lentBody) Seek(offset int64, whence int) (int64, error) {
 	return pos, nil
 }
 
-// zeroCopyAdder is implemented by the indexers [NewBulkIndexer] returns.
-type zeroCopyAdder interface {
+// zeroCopyWriter is implemented by the bulk clients [NewBulkIndexer] returns.
+type zeroCopyWriter interface {
 	AddZeroCopy(context.Context, BulkIndexerZeroCopyItem) error
 }
 
-// AddZeroCopy adds a document the indexer sends from the caller's memory. See
+// AddZeroCopy adds a document the bulk client sends from the caller's memory. See
 // [BulkIndexerZeroCopyItem] for what the caller gives up in exchange for the copy
 // it saves.
 //
-// It behaves as bi.Add does, blocking while the indexer's memory is spent and
-// returning ErrBulkIndexerClosed after Close; an error means the item was not
-// taken and Release will not be called. For an indexer that cannot lend, a custom
+// It behaves as bi.Add does, blocking while the bulk client's memory is spent and
+// returning ErrBulkClientClosed after Close; an error means the item was not
+// taken and Release will not be called. For a bulk client that cannot lend, a custom
 // implementation of [BulkIndexer], it copies Data, calls Release at once, and adds
 // the copy.
 func AddZeroCopy(ctx context.Context, bi BulkIndexer, item BulkIndexerZeroCopyItem) error {
-	if adder, ok := bi.(zeroCopyAdder); ok {
+	if adder, ok := bi.(zeroCopyWriter); ok {
 		return adder.AddZeroCopy(ctx, item)
 	}
 
@@ -780,7 +780,7 @@ type bulkActionMetadata struct {
 	RetryOnConflict     *int    `json:"retry_on_conflict,omitempty"`
 }
 
-type bulkIndexer struct {
+type bulkClient struct {
 	wg sync.WaitGroup
 
 	sched *scheduler
@@ -837,14 +837,14 @@ type bulkIndexer struct {
 	// pieces supplies the small chunks that follow a document sent without a copy.
 	pieces *chunkPool
 	// budget bounds the bytes held from Add to the end of the request; nil when
-	// the indexer was built without init, as some tests do.
+	// the bulk client was built without init, as some tests do.
 	budget *byteBudget
 	// flushingBytes is the part of the budget in requests being sent.
 	flushingBytes atomic.Int64
 
 	// now is the clock request latency is read from.
 	now func() time.Time
-	// epoch is now when the indexer was built; item latency is measured from it.
+	// epoch is now when the bulk client was built; item latency is measured from it.
 	epoch time.Time
 
 	// implicitClient is true when NewBulkIndexer implicitly created the client
@@ -909,22 +909,22 @@ func (st *bulkIndexerStats) countError(err *BulkError) {
 	}
 }
 
-// sinceEpoch is the indexer's clock as a duration since it was built, the form an
+// sinceEpoch is the bulk client's clock as a duration since it was built, the form an
 // item's addedAt and the time it is done are compared in.
-func (bi *bulkIndexer) sinceEpoch() time.Duration {
+func (bi *bulkClient) sinceEpoch() time.Duration {
 	return bi.now().Sub(bi.epoch)
 }
 
 // recordDone adds the latency of n items, totaling sum and the longest max, from
-// Add to the moment the indexer was done with them.
-func (bi *bulkIndexer) recordDone(sum, maxLatency time.Duration) {
+// Add to the moment the bulk client was done with them.
+func (bi *bulkClient) recordDone(sum, maxLatency time.Duration) {
 	bi.stats.itemLatencyNanos.Add(uint64(max(sum, 0)))
 	storeMax(&bi.stats.maxItemLatencyNanos, uint64(max(maxLatency, 0)))
 }
 
-// NewBulkIndexer creates a new bulk indexer. It returns an error wrapping
+// NewBulkIndexer creates a new bulk client. It returns an error wrapping
 // [ErrInvalidConfig] for a negative byte limit (FlushBytes, MaxMemoryBytes,
-// NodeBytes, or BulkSizing's MinBytes, InitialBytes or StepBytes; zero selects the
+// TargetBytes, or BulkSizing's MinBytes, InitialBytes or StepBytes; zero selects the
 // default of each) and for a BulkSizing.Shard or Node that names no setting.
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	// Before the client is made, so that a refusal has nothing to release.
@@ -971,7 +971,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	}
 
 	// A node's byte window starts wide open, at the whole job's memory, unless the
-	// caller capped it with NodeBytes. Rejections teach it where the server's limit is.
+	// caller capped it with TargetBytes. Rejections teach it where the server's limit is.
 	sizing := cfg.Sizing.resolve(cfg.FlushBytes)
 	window := windowConfig{
 		start:   float64(cfg.MaxMemoryBytes),
@@ -979,14 +979,14 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		floor:   float64(cfg.FlushBytes),
 		unit:    float64(cfg.FlushBytes),
 		backoff: sizing.backoff,
-		fixed:   sizing.nodeFixed,
+		fixed:   sizing.targetFixed,
 	}
-	if cfg.NodeBytes > 0 {
-		window.ceiling = float64(min(cfg.NodeBytes, cfg.MaxMemoryBytes))
+	if cfg.TargetBytes > 0 {
+		window.ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))
 		window.start = window.ceiling
 	}
 
-	bi := bulkIndexer{
+	bi := bulkClient{
 		config:           cfg,
 		stats:            &bulkIndexerStats{},
 		router:           router,
@@ -1017,7 +1017,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 // validate returns an error wrapping [ErrInvalidConfig] for a byte limit below
 // zero, or a sizing setting that does not exist. Each is a size or a limit, and a
 // negative one would not be the default the zero value selects but a limit that
-// undoes itself, as a memory limit under which the indexer's accounting goes
+// undoes itself, as a memory limit under which the bulk client's accounting goes
 // negative.
 func (c BulkIndexerConfig) validate() error {
 	limits := []struct {
@@ -1026,7 +1026,7 @@ func (c BulkIndexerConfig) validate() error {
 	}{
 		{"FlushBytes", c.FlushBytes},
 		{"MaxMemoryBytes", c.MaxMemoryBytes},
-		{"NodeBytes", c.NodeBytes},
+		{"TargetBytes", c.TargetBytes},
 		{"Sizing.MinBytes", c.Sizing.MinBytes},
 		{"Sizing.InitialBytes", c.Sizing.InitialBytes},
 		{"Sizing.StepBytes", c.Sizing.StepBytes},
@@ -1040,8 +1040,8 @@ func (c BulkIndexerConfig) validate() error {
 	if c.Sizing.Shard >= numShardSizings {
 		return fmt.Errorf("%w: Sizing.Shard is %v, which is not a ShardSizing", ErrInvalidConfig, c.Sizing.Shard)
 	}
-	if c.Sizing.Node >= numNodeSizings {
-		return fmt.Errorf("%w: Sizing.Node is %v, which is not a NodeSizing", ErrInvalidConfig, c.Sizing.Node)
+	if c.Sizing.Target >= numTargetSizings {
+		return fmt.Errorf("%w: Sizing.Target is %v, which is not a TargetSizing", ErrInvalidConfig, c.Sizing.Target)
 	}
 
 	return nil
@@ -1051,7 +1051,7 @@ func (c BulkIndexerConfig) validate() error {
 // shard router at all.
 var errNoTransportRouter = errors.New("the client's transport does not report where shards live")
 
-// chooseRouter returns the router the indexer uses, and a reason when it had to
+// chooseRouter returns the router the bulk client uses, and a reason when it had to
 // fall back to none. A router the caller supplied is theirs and is not second
 // guessed: it may be a StaticShardRouter on a client that has no router.
 func chooseRouter(cfg BulkIndexerConfig) (ShardRouter, error) {
@@ -1083,7 +1083,7 @@ func defaultMemoryLimit() int64 {
 	return DefaultMaxMemoryBytes
 }
 
-// Add adds an item to the indexer.
+// Add adds an item to the bulk client.
 //
 // An item that has no DocumentID is given one by [BulkIndexerConfig].Fingerprinter
 // when it is set. When a RetryPolicy is set and no id can be had, the item is
@@ -1091,15 +1091,15 @@ func defaultMemoryLimit() int64 {
 // returns nil, and that OnError runs on the caller's goroutine.
 //
 // After Cancel an item is not queued either: it fails through its OnError with
-// [ErrIndexerCanceled], and Add returns nil. After Close, Add returns
-// [ErrBulkIndexerClosed].
-func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
+// [ErrBulkClientCanceled], and Add returns nil. After Close, Add returns
+// [ErrBulkClientClosed].
+func (bi *bulkClient) Add(ctx context.Context, item BulkIndexerItem) error {
 	return bi.add(ctx, item)
 }
 
-// AddZeroCopy adds an item whose document the indexer sends from the caller's
+// AddZeroCopy adds an item whose document the bulk client sends from the caller's
 // memory; see [AddZeroCopy].
-func (bi *bulkIndexer) AddZeroCopy(ctx context.Context, item BulkIndexerZeroCopyItem) error {
+func (bi *bulkClient) AddZeroCopy(ctx context.Context, item BulkIndexerZeroCopyItem) error {
 	if item.Body != nil {
 		return bi.addFailed(ctx, ErrZeroCopyBodySet)
 	}
@@ -1110,7 +1110,7 @@ func (bi *bulkIndexer) AddZeroCopy(ctx context.Context, item BulkIndexerZeroCopy
 	return bi.add(ctx, item.BulkIndexerItem)
 }
 
-// rewindBody moves a caller's body to its start. A body the indexer was lent is made
+// rewindBody moves a caller's body to its start. A body the bulk client was lent is made
 // to start there.
 func rewindBody(body io.ReadSeeker) error {
 	if body == nil {
@@ -1130,7 +1130,7 @@ func rewindBody(body io.ReadSeeker) error {
 // orderKey returns the value whose items are written in the order they were
 // added: the document id, or failing that the routing value. It is empty for an
 // item with neither, which has no order to keep.
-func (bi *bulkIndexer) orderKey(item BulkIndexerItem) string {
+func (bi *bulkClient) orderKey(item BulkIndexerItem) string {
 	switch {
 	case item.DocumentID != "":
 		return item.DocumentID
@@ -1141,12 +1141,12 @@ func (bi *bulkIndexer) orderKey(item BulkIndexerItem) string {
 	}
 }
 
-func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
+func (bi *bulkClient) add(ctx context.Context, item BulkIndexerItem) error {
 	if err := ctx.Err(); err != nil {
 		return bi.addFailed(ctx, err)
 	}
 
-	// Every read the indexer makes of the body starts at 0: its size, the
+	// Every read the bulk client makes of the body starts at 0: its size, the
 	// fingerprint, and each attempt to send it.
 	if err := rewindBody(item.Body); err != nil {
 		return bi.refuse(ctx, item, err)
@@ -1159,7 +1159,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 	item.addedAt = bi.sinceEpoch()
 
 	if bi.canceled() {
-		return bi.refuse(ctx, item, ErrIndexerCanceled)
+		return bi.refuse(ctx, item, ErrBulkClientCanceled)
 	}
 
 	item, err := bi.ensureDocumentID(ctx, item)
@@ -1186,7 +1186,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 		held, err := bi.budget.acquire(ctx, bi.workersDone(), budgetKey, itemHeldBytes(item, size))
 		if err != nil {
 			if bi.canceled() && errors.Is(err, errBudgetStopped) {
-				return bi.refuse(ctx, item, ErrIndexerCanceled)
+				return bi.refuse(ctx, item, ErrBulkClientCanceled)
 			}
 
 			return bi.addFailed(ctx, err)
@@ -1197,7 +1197,7 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 			bi.sched.Unlock()
 			bi.budget.release(budgetKey, held)
 
-			return ErrBulkIndexerClosed
+			return ErrBulkClientClosed
 		}
 		if key != nil {
 			if quiesced, valid := bi.validShardPlacement(key.index, generation); !valid {
@@ -1228,11 +1228,11 @@ func (bi *bulkIndexer) add(ctx context.Context, item BulkIndexerItem) error {
 
 // refuse fails an item that was taken from the caller but will not be queued:
 // Add returns nil and the item's OnError, or OnUnhandledError when it has none, hears
-// of err. A lent document is the caller's again, since the indexer is done with
+// of err. A lent document is the caller's again, since the bulk client is done with
 // it. After Close the item is not taken at all, and Add reports that instead.
-func (bi *bulkIndexer) refuse(ctx context.Context, item BulkIndexerItem, err error) error {
+func (bi *bulkClient) refuse(ctx context.Context, item BulkIndexerItem, err error) error {
 	if bi.isClosed() {
-		return ErrBulkIndexerClosed
+		return ErrBulkClientClosed
 	}
 
 	bi.rejectItem(ctx, item, err)
@@ -1242,7 +1242,7 @@ func (bi *bulkIndexer) refuse(ctx context.Context, item BulkIndexerItem, err err
 }
 
 // isClosed reports whether Close has begun.
-func (bi *bulkIndexer) isClosed() bool {
+func (bi *bulkClient) isClosed() bool {
 	bi.sched.Lock()
 	defer bi.sched.Unlock()
 
@@ -1250,7 +1250,7 @@ func (bi *bulkIndexer) isClosed() bool {
 }
 
 // addFailed counts and reports an Add that did not take its item.
-func (bi *bulkIndexer) addFailed(ctx context.Context, err error) error {
+func (bi *bulkClient) addFailed(ctx context.Context, err error) error {
 	bi.stats.bulkAddFailCount.Add(1)
 	if bi.config.OnUnhandledError != nil {
 		bi.config.OnUnhandledError(ctx, err)
@@ -1262,14 +1262,14 @@ func (bi *bulkIndexer) addFailed(ctx context.Context, err error) error {
 // place finds the shard an item belongs to, the node that hosts it, and the
 // generation of the shard map that answer comes from, which validShardPlacement
 // checks before the item is queued. The chain is nil, and the item is unplaced,
-// when the indexer cannot say: no index, no routing value, or no shard map for the
+// when the bulk client cannot say: no index, no routing value, or no shard map for the
 // index.
 //
 // The server's own order for the routing value: a routing value on the action
 // line, else the ?routing= of the request, which is only a default for actions
 // that carry none, else the document ID. An action with none of them gets a
 // generated ID and lands on a random shard.
-func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardKey, Node, uint64, error) {
+func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKey, Node, uint64, error) {
 	index := item.Index
 	if index == "" {
 		index = bi.config.Index
@@ -1338,7 +1338,7 @@ func (bi *bulkIndexer) place(ctx context.Context, item BulkIndexerItem) (*shardK
 // It is called with the scheduler's lock held, which sealIndex and endDrain also
 // take, so an item is either among the buffers a placementChanged waits for or is
 // turned back.
-func (bi *bulkIndexer) validShardPlacement(index string, generation uint64) (<-chan struct{}, bool) {
+func (bi *bulkClient) validShardPlacement(index string, generation uint64) (<-chan struct{}, bool) {
 	if quiesced, draining := bi.sched.draining[index]; draining {
 		return quiesced, false
 	}
@@ -1367,13 +1367,13 @@ func waitQuiesced(ctx context.Context, quiesced <-chan struct{}) error {
 // they are in no shard's order. The first placed item for the same document would
 // be sent without waiting for them, and the two could reach the server out of
 // order. To keep the order of a document's actions, the switch drains what the
-// indexer holds, as Flush does, before the first placed item for the index is
+// bulk client holds, as Flush does, before the first placed item for the index is
 // queued. That is one drain per index, and only for an index that had items
 // waiting for its shard map.
 //
 // Add must not be called from a callback, as ever, and least of all here: the
 // drain waits for every request, including the one running the callback.
-func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string, generation uint64) error {
+func (bi *bulkClient) firstPlacement(ctx context.Context, index string, generation uint64) error {
 	bi.placement.Lock()
 	defer bi.placement.Unlock()
 
@@ -1394,9 +1394,9 @@ func (bi *bulkIndexer) firstPlacement(ctx context.Context, index string, generat
 	return nil
 }
 
-// shardMapGeneration returns the generation of the shard map the indexer placed
+// shardMapGeneration returns the generation of the shard map the bulk client placed
 // index's documents with, and whether it has placed any yet.
-func (bi *bulkIndexer) shardMapGeneration(index string) (uint64, bool) {
+func (bi *bulkClient) shardMapGeneration(index string) (uint64, bool) {
 	v, known := bi.placement.known.Load(index)
 	generation, _ := v.(uint64)
 
@@ -1423,7 +1423,7 @@ func geometryChanged(from, to uint64) bool {
 //
 // Like firstPlacement it holds the placement lock for the wait, and Add must not be
 // called from a callback.
-func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, generation uint64, lost bool) error {
+func (bi *bulkClient) placementChanged(ctx context.Context, index string, generation uint64, lost bool) error {
 	bi.placement.Lock()
 	defer bi.placement.Unlock()
 
@@ -1454,22 +1454,22 @@ func (bi *bulkIndexer) placementChanged(ctx context.Context, index string, gener
 	return nil
 }
 
-// flushAll sends everything the indexer holds and waits for it. It fails only
+// flushAll sends everything the bulk client holds and waits for it. It fails only
 // when ctx does; a rejection the flush reports is not the caller's to handle.
 // Items rejected by the drain reach their own OnError, and what is left had
 // none and is reported the way a periodic flush reports it, through OnUnhandledError.
 //
-// What is held is mostly other callers' items, so it is sent on the indexer's
+// What is held is mostly other callers' items, so it is sent on the bulk client's
 // context, as a periodic flush sends it, and ctx only bounds the wait: a caller
 // that gives up must not fail documents whose own callers are still waiting.
-func (bi *bulkIndexer) flushAll(ctx context.Context) error {
+func (bi *bulkClient) flushAll(ctx context.Context) error {
 	return bi.sched.drain(flushRequested, bi.config.Context, ctx, false)
 }
 
 // workersDone returns a channel that closes when the workers stop for good
 // because the construction context ended; nil, which never closes, when the
-// indexer has none.
-func (bi *bulkIndexer) workersDone() <-chan struct{} {
+// bulk client has none.
+func (bi *bulkClient) workersDone() <-chan struct{} {
 	if bi.config.Context == nil {
 		return nil
 	}
@@ -1483,8 +1483,8 @@ func (bi *bulkIndexer) workersDone() <-chan struct{} {
 var itemStructBytes = int64(reflect.TypeFor[BulkIndexerItem]().Size()) //nolint:gochecknoglobals // A constant of the type.
 
 // lentPieceBytes is the size of the small chunk that follows a document lent to the
-// indexer: room for its newline and the next action line. It is what a lent
-// document costs the indexer to send beyond its length, and is counted with it
+// bulk client: room for its newline and the next action line. It is what a lent
+// document costs the bulk client to send beyond its length, and is counted with it
 // toward MaxMemoryBytes.
 const lentPieceBytes = 256
 
@@ -1598,11 +1598,11 @@ func bodyLen(body io.ReadSeeker) int64 {
 	return end - cur
 }
 
-// Flush drains every item added before the call, leaving the indexer open.
+// Flush drains every item added before the call, leaving the bulk client open.
 //
 // Errors reach the caller through the return value, so unlike the periodic
 // flush and Close there is nothing here for OnUnhandledError to report.
-func (bi *bulkIndexer) Flush(ctx context.Context) error {
+func (bi *bulkClient) Flush(ctx context.Context) error {
 	// Reject a dead context up front rather than letting the waits below
 	// choose randomly between a ready ctx.Done and a finished batch, so the
 	// caller either gets a drain or an error, never a coin flip.
@@ -1615,7 +1615,7 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 	bi.sched.Unlock()
 
 	if closed {
-		return ErrBulkIndexerClosed
+		return ErrBulkClientClosed
 	}
 
 	return bi.sched.drain(flushRequested, ctx, ctx, true)
@@ -1623,10 +1623,10 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 
 // Close stops the periodic flush, sends everything that is buffered, waits until
 // it is done with every added item, which includes the requests in
-// flight and the retry backoff, and stops the indexer. If ctx ends first, Close
-// cancels the indexer, as Cancel does, waits for the requests to unwind, and
+// flight and the retry backoff, and stops the bulk client. If ctx ends first, Close
+// cancels the bulk client, as Cancel does, waits for the requests to unwind, and
 // returns ctx's error.
-func (bi *bulkIndexer) Close(ctx context.Context) error {
+func (bi *bulkClient) Close(ctx context.Context) error {
 	bi.ticker.Stop()
 
 	// Stop the periodic flusher and wait for it to return before the final
@@ -1649,7 +1649,7 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	// Release the cancellation context once Close is done with it.
 	defer bi.cancel()
 
-	// A context that ends while Close waits cancels the indexer, so the wait
+	// A context that ends while Close waits cancels the bulk client, so the wait
 	// below is bounded. A context that has already ended does so at once and
 	// synchronously, since AfterFunc would run the cancel on its own goroutine.
 	if ctx.Err() != nil {
@@ -1680,16 +1680,16 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	return nil
 }
 
-// Stats returns indexer statistics.
-func (bi *bulkIndexer) Stats() BulkIndexerStats {
+// Stats returns bulk client statistics.
+func (bi *bulkClient) Stats() BulkIndexerStats {
 	var stats BulkIndexerStats
 	bi.loadStats(&stats)
 
 	return stats
 }
 
-// GetStats loads the indexer statistics into dst; see [BulkIndexer].
-func (bi *bulkIndexer) GetStats(dst *BulkIndexerStats) error {
+// GetStats loads the bulk client statistics into dst; see [BulkIndexer].
+func (bi *bulkClient) GetStats(dst *BulkIndexerStats) error {
 	if dst == nil {
 		return ErrNilStats
 	}
@@ -1699,7 +1699,7 @@ func (bi *bulkIndexer) GetStats(dst *BulkIndexerStats) error {
 }
 
 // loadStats overwrites dst with the statistics, each loaded from an atomic.
-func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
+func (bi *bulkClient) loadStats(dst *BulkIndexerStats) {
 	blocked, blockedFor := bi.budget.blockedStats()
 	inFlight := max(bi.flushingBytes.Load(), 0)
 
@@ -1740,8 +1740,8 @@ func (bi *bulkIndexer) loadStats(dst *BulkIndexerStats) {
 
 		MaxMemoryBytes: uint64(max(bi.config.MaxMemoryBytes, 0)),
 		NumRejections:  bi.stats.numRejections.Load(),
-		NumNodes:       bi.stats.numNodes.Load(),
-		NodeWindow:     bi.stats.nodeWindow.load(),
+		NumTargets:     bi.stats.numNodes.Load(),
+		TargetWindow:   bi.stats.nodeWindow.load(),
 		BufferSize:     bi.stats.bufferSize.load(),
 		Slowdown:       bi.stats.slowdown.load(),
 	}
@@ -1772,8 +1772,8 @@ const (
 	flushClose
 )
 
-// init initializes the bulk indexer.
-func (bi *bulkIndexer) init(ctx context.Context) {
+// init initializes the bulk client.
+func (bi *bulkClient) init(ctx context.Context) {
 	bi.chunks = newChunkPool(defaultChunkSize)
 	bi.pieces = newChunkPool(lentPieceBytes)
 	bi.sched = newScheduler(bi)
@@ -1788,10 +1788,10 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 		bi.slots = make(chan struct{}, bi.config.NumWorkers)
 	}
 
-	wideOpen := JobNodeStats{Min: 1, Median: 1, Mean: 1, Max: 1}
+	wideOpen := JobTargetStats{Min: 1, Median: 1, Mean: 1, Max: 1}
 	bi.stats.nodeWindow.store(wideOpen)
 	initial := bi.sizing.start() / bi.sizing.max
-	bi.stats.bufferSize.store(JobNodeStats{Min: initial, Median: initial, Mean: initial, Max: initial})
+	bi.stats.bufferSize.store(JobTargetStats{Min: initial, Median: initial, Mean: initial, Max: initial})
 
 	bi.itemPool.New = func() any { return new([]BulkIndexerItem) }
 	bi.workerPool.New = func() any { return &worker{bi: bi} }
@@ -1836,13 +1836,13 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 }
 
 // getItems returns an empty slice to collect a buffer's items in.
-func (bi *bulkIndexer) getItems() []BulkIndexerItem {
+func (bi *bulkClient) getItems() []BulkIndexerItem {
 	return (*bi.itemPool.Get().(*[]BulkIndexerItem))[:0]
 }
 
 // putItems recycles a buffer's items, dropping the references they hold so a
 // finished document is not kept alive by the pool.
-func (bi *bulkIndexer) putItems(items []BulkIndexerItem) {
+func (bi *bulkClient) putItems(items []BulkIndexerItem) {
 	// A slice that grew for a very large buffer is left to the collector.
 	const retainLimit = 1 << 16
 
@@ -1858,7 +1858,7 @@ func (bi *bulkIndexer) putItems(items []BulkIndexerItem) {
 // run sends one buffer, as a goroutine of its own: how many are out at once is
 // bounded by the scheduler, one per shard and a window per node, and optionally by
 // NumWorkers.
-func (bi *bulkIndexer) run(b *buffer) {
+func (bi *bulkClient) run(b *buffer) {
 	defer bi.wg.Done()
 
 	if bi.slots != nil {
@@ -1875,7 +1875,7 @@ func (bi *bulkIndexer) run(b *buffer) {
 // it as one bulk request, and reports the outcome to the scheduler. buf and items
 // are the buffer being sent, valid from the start of send to the end of flush.
 type worker struct {
-	bi *bulkIndexer
+	bi *bulkClient
 
 	buf   *chunkBuffer
 	items []BulkIndexerItem
@@ -1931,7 +1931,7 @@ func (w *worker) sendBuffer(b *buffer) {
 
 	for _, item := range b.items {
 		if bi.canceled() {
-			_ = w.failUnsent(ctx, item, ErrIndexerCanceled, 0) //nolint:errcheck // a canceled item is not an OnUnhandledError matter
+			_ = w.failUnsent(ctx, item, ErrBulkClientCanceled, 0) //nolint:errcheck // a canceled item is not an OnUnhandledError matter
 
 			continue
 		}
@@ -1953,7 +1953,7 @@ func (w *worker) sendBuffer(b *buffer) {
 	w.items = w.items[:0]
 
 	// Every attempt has ended and the callbacks have run: the chunks go back to the
-	// pool, and the documents lent to the indexer are the caller's again, before the
+	// pool, and the documents lent to the bulk client are the caller's again, before the
 	// memory they held is given back. With a retry policy that is the final attempt,
 	// not the first. If the transport is still reading the body, as net/http can
 	// after it has returned, both wait for it to finish.
@@ -1963,15 +1963,15 @@ func (w *worker) sendBuffer(b *buffer) {
 	buf.whenIdle(buf.Reset)
 	whenAllIdle(bufs, func() { releaseLentBodies(lent) })
 
-	bi.sched.complete(b, observeSample(w.node, w.sent, w.busy, w), err)
+	bi.sched.complete(b, makeFlushResult(w.node, w.sent, w.busy, w), err)
 }
 
-// releaseLent returns the documents lent to the indexer to their owners.
+// releaseLent returns the documents lent to the bulk client to their owners.
 func releaseLent(items []BulkIndexerItem) {
 	releaseLentBodies(lentBodies(items))
 }
 
-// lentBodies returns the documents lent to the indexer among items, or nil.
+// lentBodies returns the documents lent to the bulk client among items, or nil.
 func lentBodies(items []BulkIndexerItem) []*lentBody {
 	var lent []*lentBody
 	for i := range items {
@@ -2012,17 +2012,17 @@ func (w *worker) recycleBuf() {
 type batchNodeKey struct{}
 
 // withBatchNode returns a context that carries the name of the node a batch is
-// being sent to, which [FlushNode] reads.
+// being sent to, which [FlushTarget] reads.
 func withBatchNode(ctx context.Context, node Node) context.Context {
 	return context.WithValue(ctx, batchNodeKey{}, node.Name)
 }
 
-// FlushNode returns the name of the node the batch being flushed is sent to, for
+// FlushTarget returns the name of the node the batch being flushed is sent to, for
 // use in BulkIndexerConfig.OnFlushStart, where it can name the node on a trace
 // span or a metric. It returns the empty string for a context that does not come
 // from a flush, and for a batch with no node of its own, which the transport
 // routes as it sees fit.
-func FlushNode(ctx context.Context) string {
+func FlushTarget(ctx context.Context) string {
 	name, _ := ctx.Value(batchNodeKey{}).(string)
 
 	return name
@@ -2155,7 +2155,7 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 	return err
 }
 
-func (bi *bulkIndexer) putMetaEncoder(enc *metaEncoder) {
+func (bi *bulkClient) putMetaEncoder(enc *metaEncoder) {
 	if enc.buf.Cap() <= bi.metaPoolMaxBytes {
 		bi.metaPool.Put(enc)
 	}
@@ -2322,7 +2322,7 @@ func (w *worker) flush(ctx context.Context) error {
 		w.recycleBuf()
 	}()
 
-	// Nothing is sent once the indexer is canceled: the buffered items fail.
+	// Nothing is sent once the bulk client is canceled: the buffered items fail.
 	if w.bi.canceled() {
 		return w.failCanceled(ctx)
 	}

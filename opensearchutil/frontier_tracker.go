@@ -159,7 +159,7 @@ func (t *FrontierTracker[K]) Frontiers() map[K]int64 {
 //  3. Commit that frontier, and only that frontier, to the stream.
 //
 // A position taken from anywhere else, such as the highest record handed to the
-// indexer, can pass records that were never written.
+// bulk client, can pass records that were never written.
 //
 // What makes this order correct is that the flush comes first and the frontier
 // is read after it. Once Flush has returned and no more records are being

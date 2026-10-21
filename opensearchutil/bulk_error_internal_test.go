@@ -24,8 +24,8 @@ import (
 func TestBulkErrorIs(t *testing.T) {
 	t.Parallel()
 
-	layers := []error{ErrItemLayer, ErrRequestLayer, ErrIndexerLayer}
-	kinds := []error{ErrRejected, ErrUnavailable, ErrTransport, ErrPermanent, ErrIndexerCanceled}
+	layers := []error{ErrItemLayer, ErrRequestLayer, ErrClientLayer}
+	kinds := []error{ErrRejected, ErrUnavailable, ErrTransport, ErrPermanent, ErrBulkClientCanceled}
 	cause := errors.New("the cause")
 
 	tests := []struct {
@@ -60,9 +60,9 @@ func TestBulkErrorIs(t *testing.T) {
 		},
 		{
 			name:      "a canceled indexer",
-			err:       &BulkError{Layer: LayerIndexer, Kind: KindCanceled},
-			wantLayer: ErrIndexerLayer,
-			wantKind:  ErrIndexerCanceled,
+			err:       &BulkError{Layer: LayerClient, Kind: KindCanceled},
+			wantLayer: ErrClientLayer,
+			wantKind:  ErrBulkClientCanceled,
 		},
 		{name: "the zero value matches nothing", err: &BulkError{}},
 	}
@@ -129,7 +129,7 @@ func TestUnsentError(t *testing.T) {
 		wantLayer ErrorLayer
 		wantKind  ErrorKind
 	}{
-		{name: "the indexer was canceled", cause: ErrIndexerCanceled, wantLayer: LayerIndexer, wantKind: KindCanceled},
+		{name: "the indexer was canceled", cause: ErrBulkClientCanceled, wantLayer: LayerClient, wantKind: KindCanceled},
 		{name: "the item has no ID", cause: ErrMissingDocumentID, wantLayer: LayerItem, wantKind: KindPermanent},
 		{name: "the body cannot be read", cause: errors.New("read: broken pipe"), wantLayer: LayerItem, wantKind: KindPermanent},
 	}
@@ -195,8 +195,8 @@ func TestBulkIndexerOnErrorMatchesTheSentinels(t *testing.T) {
 		}))
 		require.NoError(t, bi.Close(t.Context()))
 
-		require.ErrorIs(t, got, ErrIndexerLayer)
-		require.ErrorIs(t, got, ErrIndexerCanceled)
+		require.ErrorIs(t, got, ErrClientLayer)
+		require.ErrorIs(t, got, ErrBulkClientCanceled)
 		require.ErrorIs(t, got, context.Canceled)
 	})
 }

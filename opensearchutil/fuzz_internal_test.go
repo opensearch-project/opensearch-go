@@ -152,9 +152,9 @@ func FuzzChunkBuffer(f *testing.F) {
 	})
 }
 
-// FuzzItemMeta checks the action line the indexer writes for an item: it is one
+// FuzzItemMeta checks the action line the bulk client writes for an item: it is one
 // line of valid JSON that carries the item's fields, and, for a plain item, the
-// indexer's estimate of its size is not below its real size.
+// bulk client's estimate of its size is not below its real size.
 func FuzzItemMeta(f *testing.F) {
 	f.Add("index", "events", "evt-1", "tenant-7", true)
 	f.Add("create", "", "", "", false)
@@ -167,7 +167,7 @@ func FuzzItemMeta(f *testing.F) {
 			item.Routing = &routing
 		}
 
-		bi := &bulkIndexer{
+		bi := &bulkClient{
 			metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 			metaPool:         sync.Pool{New: newMetaEncoder},
 		}
@@ -226,31 +226,31 @@ func plain(ss ...string) bool {
 	return true
 }
 
-// FuzzSizer feeds a sizer an arbitrary run of flushes and checks that its target
+// FuzzShardController feeds a shard controller an arbitrary run of flushes and checks that its target
 // never leaves the bounds it was given, is never NaN, and does not move at all
 // when it is fixed, whatever its settings.
-func FuzzSizer(f *testing.F) {
+func FuzzShardController(f *testing.F) {
 	f.Add(uint8(0), []byte{1, 200, 10, 0, 2, 100, 20, 0, 3, 50, 40, 1})
 	f.Add(uint8(1), []byte{255, 255, 255, 255, 0, 0, 0, 0})
 	f.Add(uint8(2), []byte{9, 9, 9, 8, 1, 1, 1, 2, 5, 5, 5, 4})
 	f.Add(uint8(4), []byte{7, 7, 7, 16, 7, 7, 7, 0})
 
 	f.Fuzz(func(t *testing.T, kind uint8, program []byte) {
-		cfg := BulkSizing{Shard: ShardSizing(kind % numShardSizings), Node: NodeSizing(kind / numShardSizings % numNodeSizings)}
+		cfg := BulkSizing{Shard: ShardSizing(kind % numShardSizings), Target: TargetSizing(kind / numShardSizings % numTargetSizings)}
 		resolved := cfg.resolve(testCeiling)
-		s := newSizer(resolved)
+		s := newShardController(resolved)
 		start := s.bytes()
 
 		for i := 0; i+3 < len(program); i += 4 {
 			flags := program[i+3]
-			s.observe(flushSample{
-				bytes:      int64(program[i]) << 14,
-				latency:    time.Duration(program[i+1]) * time.Millisecond,
-				distance:   time.Duration(program[i+2]) * time.Millisecond,
-				served:     flags&8 == 0,
-				rejected:   flags&1 != 0,
-				failed:     flags&2 != 0,
-				overloaded: flags&4 != 0,
+			s.observe(flushResult{
+				bytes:              int64(program[i]) << 14,
+				latency:            time.Duration(program[i+1]) * time.Millisecond,
+				idleRTT:            time.Duration(program[i+2]) * time.Millisecond,
+				served:             flags&8 == 0,
+				rejected:           flags&1 != 0,
+				failed:             flags&2 != 0,
+				nodeWriteSaturated: flags&4 != 0,
 			})
 
 			require.False(t, math.IsNaN(s.target) || math.IsInf(s.target, 0), "target %v", s.target)
@@ -281,7 +281,7 @@ func FuzzBulkSizingEnv(f *testing.F) {
 		}
 
 		t.Setenv(envvars.BulkShard, shard)
-		t.Setenv(envvars.BulkNode, node)
+		t.Setenv(envvars.BulkTarget, node)
 		t.Setenv(envvars.BulkPIDKp, kp)
 		t.Setenv(envvars.BulkPIDKi, ki)
 		t.Setenv(envvars.BulkPIDKd, kd)
@@ -293,7 +293,7 @@ func FuzzBulkSizingEnv(f *testing.F) {
 		require.LessOrEqual(t, r.min, r.initial)
 		require.LessOrEqual(t, r.initial, r.max)
 		require.Less(t, r.shard, ShardSizing(numShardSizings), "the shard setting is one that exists")
-		require.Less(t, r.node, NodeSizing(numNodeSizings), "the node setting is one that exists")
+		require.Less(t, r.node, TargetSizing(numTargetSizings), "the node setting is one that exists")
 	})
 }
 

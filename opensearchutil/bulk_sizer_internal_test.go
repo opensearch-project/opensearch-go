@@ -19,25 +19,25 @@ import (
 )
 
 const (
-	testCeiling  = 4 << 20 // 4 MiB.
-	testDistance = time.Millisecond
+	testCeiling = 4 << 20 // 4 MiB.
+	testIdleRTT = time.Millisecond
 )
 
-// flushOf is a flush of bytes that took the time a node serving rate bytes per
-// second needs, plus the distance.
-func flushOf(bytes int64, rate float64) flushSample {
-	service := time.Duration(float64(bytes) / rate * float64(time.Second))
+// flushAtThroughput is a flush of bytes to a node that indexes bytesPerSec: its
+// latency is the time that takes, plus the node's idle round trip time.
+func flushAtThroughput(bytes int64, bytesPerSec float64) flushResult {
+	service := time.Duration(float64(bytes) / bytesPerSec * float64(time.Second))
 
-	return flushSample{bytes: bytes, latency: service + testDistance, distance: testDistance, served: true}
+	return flushResult{bytes: bytes, latency: service + testIdleRTT, idleRTT: testIdleRTT, served: true}
 }
 
-func newTestSizer(cfg BulkSizing) *sizer {
-	return newSizer(cfg.resolve(testCeiling))
+func newTestShardController(cfg BulkSizing) *shardController {
+	return newShardController(cfg.resolve(testCeiling))
 }
 
-// TestSizerFraction: the fraction is the target as a part of the ceiling, and is 0
-// for a sizer that has no ceiling to measure against.
-func TestSizerFraction(t *testing.T) {
+// TestShardControllerFraction: the fraction is the target as a part of the ceiling, and is 0
+// for a shard controller that has no ceiling to measure against.
+func TestShardControllerFraction(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -56,7 +56,7 @@ func TestSizerFraction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := newSizer(resolvedSizing{max: tt.max, initial: tt.target})
+			s := newShardController(resolvedSizing{max: tt.max, initial: tt.target})
 
 			require.InDelta(t, tt.want, s.fraction(), 1e-9)
 		})
@@ -65,7 +65,7 @@ func TestSizerFraction(t *testing.T) {
 	t.Run("follows the target as it moves", func(t *testing.T) {
 		t.Parallel()
 
-		s := newTestSizer(BulkSizing{})
+		s := newTestShardController(BulkSizing{})
 		before := s.fraction()
 		require.Positive(t, before)
 		require.LessOrEqual(t, before, 1.0)
@@ -117,7 +117,7 @@ func TestBulkSizingResolve(t *testing.T) {
 		},
 		{
 			name:    "fixed pins the start to the ceiling and keeps the adaptive minimum",
-			sizing:  BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+			sizing:  BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 			ceiling: testCeiling,
 			want: resolved{
 				min: testCeiling / 32, initial: testCeiling, max: testCeiling, step: testCeiling / 16,
@@ -126,7 +126,7 @@ func TestBulkSizingResolve(t *testing.T) {
 		},
 		{
 			name:    "fixed keeps the minimum at least 1 on a tiny ceiling",
-			sizing:  BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+			sizing:  BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 			ceiling: 1,
 			want: resolved{
 				min: 1, initial: 1, max: 1, step: 1.0 / 16,
@@ -156,33 +156,33 @@ func TestBulkSizingResolve(t *testing.T) {
 	}
 }
 
-func TestSizerFixed(t *testing.T) {
+func TestShardControllerFixed(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{Shard: ShardFixed, Node: NodeFixed})
+	s := newTestShardController(BulkSizing{Shard: ShardFixed, Target: TargetFixed})
 	require.EqualValues(t, testCeiling, s.bytes())
 
-	s.observe(flushOf(testCeiling, 1e6))
+	s.observe(flushAtThroughput(testCeiling, 1e6))
 	require.EqualValues(t, testCeiling, s.bytes(), "a fixed size ignores every signal")
 }
 
-// TestSizerFixedReportsASustainedSlowdown: a fixed size reads the node for the slowdown
+// TestShardControllerFixedReportsASustainedSlowdown: a fixed size reads the node for the slowdown
 // it reports, and a node that stays 5x slower is still reported as slow after many
 // flushes. The fixed size is not the smallest batch the controller would ask for: if it
 // were, every request would teach the fixed cost of a request and the memory of the
 // best rate would fade at the rate for small requests, and the slowdown would be
 // absorbed as that cost.
-func TestSizerFixedReportsASustainedSlowdown(t *testing.T) {
+func TestShardControllerFixedReportsASustainedSlowdown(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{Shard: ShardFixed, Node: NodeFixed})
+	s := newTestShardController(BulkSizing{Shard: ShardFixed, Target: TargetFixed})
 	for range 200 {
-		s.observe(flushOf(s.bytes(), 100e6))
+		s.observe(flushAtThroughput(s.bytes(), 100e6))
 	}
 
 	var slowdown float64
 	for range 51 {
-		n, ok := s.observe(flushOf(s.bytes(), 20e6))
+		n, ok := s.observe(flushAtThroughput(s.bytes(), 20e6))
 		require.True(t, ok)
 		slowdown = n - 1
 	}
@@ -192,15 +192,15 @@ func TestSizerFixedReportsASustainedSlowdown(t *testing.T) {
 	require.EqualValues(t, testCeiling, s.bytes())
 }
 
-func TestSizerGrowsWhileTheNodeKeepsUp(t *testing.T) {
+func TestShardControllerGrowsWhileTheNodeKeepsUp(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	start := s.bytes()
 
 	var last int64
 	for range 200 {
-		s.observe(flushOf(s.bytes(), 100e6))
+		s.observe(flushAtThroughput(s.bytes(), 100e6))
 		require.GreaterOrEqual(t, s.bytes(), last, "a healthy node never makes the size shrink")
 		last = s.bytes()
 	}
@@ -209,34 +209,34 @@ func TestSizerGrowsWhileTheNodeKeepsUp(t *testing.T) {
 	require.EqualValues(t, testCeiling, last, "and it reaches the ceiling")
 }
 
-// TestSizerReadsOnlyWhatMeasuresIndexing: a flush's duration is read only when the node
+// TestShardControllerReadsOnlyWhatMeasuresIndexing: a flush's duration is read only when the node
 // indexed something and did not refuse it with a 429 or fail it without an answer. The
 // others are answered quickly, or not at all, and would read as a fast node.
-func TestSizerReadsOnlyWhatMeasuresIndexing(t *testing.T) {
+func TestShardControllerReadsOnlyWhatMeasuresIndexing(t *testing.T) {
 	t.Parallel()
 
-	healthy := func(f *flushSample) {}
+	healthy := func(f *flushResult) {}
 	tests := []struct {
 		name string
 		// shape turns a healthy, fast flush into the kind under test.
-		shape    func(f *flushSample)
+		shape    func(f *flushResult)
 		wantRead bool
 	}{
 		{name: "a healthy flush", shape: healthy, wantRead: true},
-		{name: "a flush the node rejected with a 429", shape: func(f *flushSample) { f.rejected = true }},
-		{name: "a request that failed without an answer", shape: func(f *flushSample) { f.failed = true }},
-		{name: "a request in which no item was indexed", shape: func(f *flushSample) { f.served = false }},
-		{name: "a request the node refused as too large", shape: func(f *flushSample) { f.failed, f.served, f.tooLarge = true, false, 1<<20 }},
-		{name: "a flush too small to say anything", shape: func(f *flushSample) { f.bytes = 1 }},
+		{name: "a flush the node rejected with a 429", shape: func(f *flushResult) { f.rejected = true }},
+		{name: "a request that failed without an answer", shape: func(f *flushResult) { f.failed = true }},
+		{name: "a request in which no item was indexed", shape: func(f *flushResult) { f.served = false }},
+		{name: "a request the node refused as too large", shape: func(f *flushResult) { f.failed, f.served, f.tooLarge = true, false, 1<<20 }},
+		{name: "a flush too small to say anything", shape: func(f *flushResult) { f.bytes = 1 }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := newTestSizer(BulkSizing{})
+			s := newTestShardController(BulkSizing{})
 			start := s.bytes()
 
-			f := flushOf(s.bytes(), 100e6)
+			f := flushAtThroughput(s.bytes(), 100e6)
 			tt.shape(&f)
 			s.observe(f)
 
@@ -251,112 +251,124 @@ func TestSizerReadsOnlyWhatMeasuresIndexing(t *testing.T) {
 	}
 }
 
-func TestSizerBacksOffBeforeTheNodeRejects(t *testing.T) {
+func TestShardControllerBacksOffBeforeTheNodeRejects(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	for range 200 {
-		s.observe(flushOf(s.bytes(), 100e6))
+		s.observe(flushAtThroughput(s.bytes(), 100e6))
 	}
 	healthy := s.bytes()
 
 	// The node slows to a quarter of its rate, as when it is busy with other
 	// requests. It rejects nothing.
 	for range 5 {
-		s.observe(flushOf(s.bytes(), 25e6))
+		s.observe(flushAtThroughput(s.bytes(), 25e6))
 	}
 
 	require.Less(t, s.bytes(), healthy/2, "a node four times slower must see far smaller batches")
 }
 
-func TestSizerRecoversWhenTheNodeDoes(t *testing.T) {
+func TestShardControllerRecoversWhenTheNodeDoes(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	for range 200 {
-		s.observe(flushOf(s.bytes(), 100e6))
+		s.observe(flushAtThroughput(s.bytes(), 100e6))
 	}
 	for range 10 {
-		s.observe(flushOf(s.bytes(), 25e6))
+		s.observe(flushAtThroughput(s.bytes(), 25e6))
 	}
 	slowed := s.bytes()
 	require.Less(t, slowed, int64(testCeiling))
 
 	for range 200 {
-		s.observe(flushOf(s.bytes(), 100e6))
+		s.observe(flushAtThroughput(s.bytes(), 100e6))
 	}
 	require.Greater(t, s.bytes(), slowed)
 	require.EqualValues(t, testCeiling, s.bytes())
 }
 
-func TestSizerAcceptsAPermanentlySlowerNode(t *testing.T) {
+func TestShardControllerAcceptsAPermanentlySlowerNode(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	for range 100 {
-		s.observe(flushOf(s.bytes(), 100e6))
+		s.observe(flushAtThroughput(s.bytes(), 100e6))
 	}
 
 	// The node settles at a quarter of its old rate and stays there. The memory of
-	// the old rate fades, and the size comes back instead of staying cut forever.
+	// the old rate fades, and the size comes back instead of staying shrunk forever.
 	for range 3000 {
-		s.observe(flushOf(s.bytes(), 25e6))
+		s.observe(flushAtThroughput(s.bytes(), 25e6))
 	}
 
 	require.Greater(t, s.bytes(), int64(testCeiling/2))
 }
 
-func TestSizerHoldsOnAnOverloadedPool(t *testing.T) {
+func TestShardControllerPinsGrowthWhenTheNodeBecomesWriteSaturated(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	before := s.bytes()
 
-	for range 20 {
-		f := flushOf(s.bytes(), 100e6)
-		f.overloaded = true
-		s.observe(f)
+	// The node becomes write-saturated and stays so. Its first pinFlushes
+	// flushes may not grow the buffer.
+	saturated := func() flushResult {
+		f := flushAtThroughput(s.bytes(), 100e6)
+		f.nodeWriteSaturated = true
+
+		return f
+	}
+	for range pinFlushes {
+		s.observe(saturated())
+		require.LessOrEqual(t, s.bytes(), before, "no growth while the pin lasts")
 	}
 
-	require.LessOrEqual(t, s.bytes(), before, "a pool that is rejecting is never a reason to grow")
+	// After that the buffer grows as usual, although the node is still reported
+	// write-saturated.
+	for range 20 {
+		s.observe(saturated())
+	}
+	require.Greater(t, s.bytes(), before, "growth resumes while the node is still reported write-saturated")
 }
 
-func TestSizerIgnoresTinyFlushes(t *testing.T) {
+func TestShardControllerIgnoresTinyFlushes(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	before := s.bytes()
 
 	// The last, partial batch of a burst: slow per byte because of fixed costs.
-	s.observe(flushOf(before/100, 1e3))
+	s.observe(flushAtThroughput(before/100, 1e3))
 	require.Equal(t, before, s.bytes())
 }
 
-func TestSizerDistanceIsNotTheNodesFault(t *testing.T) {
+func TestShardControllerIdleRTTIsNotTheNodesFault(t *testing.T) {
 	t.Parallel()
 
-	// A far node takes the same time on the node as a near one; only the distance
-	// differs. Both must be treated alike.
-	run := func(distance time.Duration) int64 {
-		s := newTestSizer(BulkSizing{})
+	// A node with a long idle round trip time takes the same time on the node as one
+	// with a short one; only the round trip differs. Both must be treated alike.
+	run := func(idleRTT time.Duration) int64 {
+		s := newTestShardController(BulkSizing{})
 		for range 200 {
-			f := flushOf(s.bytes(), 100e6)
-			f.latency += distance - testDistance
-			f.distance = distance
+			f := flushAtThroughput(s.bytes(), 100e6)
+			f.latency += idleRTT - testIdleRTT
+			f.idleRTT = idleRTT
 			s.observe(f)
 		}
 
 		return s.bytes()
 	}
 
-	require.Equal(t, run(testDistance), run(80*time.Millisecond))
+	require.Equal(t, run(testIdleRTT), run(80*time.Millisecond))
 }
 
-// TestSizerSettlesWhereLoadSlowsTheNode closes the loop: the node's rate falls
+// TestShardControllerSettlesWhereLoadSlowsTheNode closes the loop: the node's rate falls
 // as the batches it is sent grow, as a node whose write queue fills does. The
 // controller must find a size and stay near it, rather than ride the ceiling or
 // oscillate across the range.
-func TestSizerSettlesWhereLoadSlowsTheNode(t *testing.T) {
+func TestShardControllerSettlesWhereLoadSlowsTheNode(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -369,10 +381,10 @@ func TestSizerSettlesWhereLoadSlowsTheNode(t *testing.T) {
 
 	rate := func(bytes int64) float64 { return capacity / (1 + float64(bytes)/knee) }
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	sizes := make([]float64, 0, samples)
 	for range samples {
-		s.observe(flushOf(s.bytes(), rate(s.bytes())))
+		s.observe(flushAtThroughput(s.bytes(), rate(s.bytes())))
 		sizes = append(sizes, float64(s.bytes()))
 	}
 
@@ -387,18 +399,18 @@ func TestSizerSettlesWhereLoadSlowsTheNode(t *testing.T) {
 	require.Less(t, hi/lo, 3.0, "and must stay within a band instead of swinging across the range")
 }
 
-func TestSizerStaysInBounds(t *testing.T) {
+func TestShardControllerStaysInBounds(t *testing.T) {
 	t.Parallel()
 
 	for seed := int64(1); seed <= 10; seed++ {
 		rng := rand.New(rand.NewSource(seed))
-		s := newTestSizer(BulkSizing{})
+		s := newTestShardController(BulkSizing{})
 
 		for range 2000 {
-			f := flushOf(int64(rng.Intn(testCeiling)+1), 1e6+rng.Float64()*1e9)
+			f := flushAtThroughput(int64(rng.Intn(testCeiling)+1), 1e6+rng.Float64()*1e9)
 			f.rejected = rng.Intn(20) == 0
 			f.failed = rng.Intn(30) == 0
-			f.overloaded = rng.Intn(10) == 0
+			f.nodeWriteSaturated = rng.Intn(10) == 0
 			s.observe(f)
 
 			require.GreaterOrEqual(t, s.bytes(), int64(testCeiling/32))
@@ -407,27 +419,27 @@ func TestSizerStaysInBounds(t *testing.T) {
 	}
 }
 
-func TestSizerSeededFromTheNodeSeesASlowNodeOnItsFirstFlush(t *testing.T) {
+func TestShardControllerSeededFromTheNodeSeesASlowNodeOnItsFirstFlush(t *testing.T) {
 	t.Parallel()
 
 	node := rateTracker{floor: 1}
-	node.learn(flushOf(testCeiling/4, 100e6))
+	node.learn(flushAtThroughput(testCeiling/4, 100e6))
 
-	fresh := newTestSizer(BulkSizing{})
+	fresh := newTestShardController(BulkSizing{})
 	start := fresh.bytes()
-	fresh.observe(flushOf(fresh.bytes(), 20e6))
+	fresh.observe(flushAtThroughput(fresh.bytes(), 20e6))
 	require.Greater(t, fresh.bytes(), start, "unseeded, a first flush is the best the node has done")
 
-	seeded := newTestSizer(BulkSizing{})
+	seeded := newTestShardController(BulkSizing{})
 	seeded.seed(node.base)
-	seeded.observe(flushOf(seeded.bytes(), 20e6))
+	seeded.observe(flushAtThroughput(seeded.bytes(), 20e6))
 	require.Less(t, seeded.bytes(), start, "seeded, the same flush is a node that has slowed down")
 }
 
-func TestSizerSeedOnlyFillsAnEmptyBaseline(t *testing.T) {
+func TestShardControllerSeedOnlyFillsAnEmptyBaseline(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	s.seed(0)
 	require.Zero(t, s.baseRate, "nothing to seed from")
 
@@ -436,10 +448,10 @@ func TestSizerSeedOnlyFillsAnEmptyBaseline(t *testing.T) {
 	require.InDelta(t, 3, s.baseRate, 0, "a baseline the sizer has is not replaced")
 }
 
-// TestSizerHoldsThroughNoise: service times vary around a steady node, as they do on
+// TestShardControllerHoldsThroughNoise: service times vary around a steady node, as they do on
 // any real one. The variance says nothing about the node, so the size must hold near
 // the ceiling instead of being walked to the floor (see sizingSignalAlpha).
-func TestSizerHoldsThroughNoise(t *testing.T) {
+func TestShardControllerHoldsThroughNoise(t *testing.T) {
 	t.Parallel()
 
 	for seed := int64(1); seed <= 5; seed++ {
@@ -447,12 +459,12 @@ func TestSizerHoldsThroughNoise(t *testing.T) {
 			t.Parallel()
 
 			rng := rand.New(rand.NewSource(seed))
-			s := newTestSizer(BulkSizing{})
+			s := newTestShardController(BulkSizing{})
 
 			var tail float64
 			const flushes, window = 3000, 500
 			for i := range flushes {
-				f := flushOf(s.bytes(), 100e6)
+				f := flushAtThroughput(s.bytes(), 100e6)
 				f.latency = time.Duration(float64(f.latency) * math.Exp(0.3*rng.NormFloat64()))
 				s.observe(f)
 				if i >= flushes-window {
@@ -466,25 +478,25 @@ func TestSizerHoldsThroughNoise(t *testing.T) {
 	}
 }
 
-// TestSizerClimbsOutOfAFixedCost: every request costs the node a fixed time before
+// TestShardControllerClimbsOutOfAFixedCost: every request costs the node a fixed time before
 // its bytes count, so a small request moves fewer bytes per second than a large one
-// on the same healthy node. After a cut, the controller must read that for what it
+// on the same healthy node. After a reduction, the controller must read that for what it
 // is, the price of smallness, and climb back out, not take it for the node slowing
 // and pin itself to the floor.
-func TestSizerClimbsOutOfAFixedCost(t *testing.T) {
+func TestShardControllerClimbsOutOfAFixedCost(t *testing.T) {
 	t.Parallel()
 
 	const (
 		bandwidth = 100e6 // bytes per second the node moves once a request is parsed.
 		overhead  = 5 * time.Millisecond
 	)
-	affine := func(bytes int64) flushSample {
+	affine := func(bytes int64) flushResult {
 		service := overhead + time.Duration(float64(bytes)/bandwidth*float64(time.Second))
 
-		return flushSample{bytes: bytes, latency: service + testDistance, distance: testDistance, served: true}
+		return flushResult{bytes: bytes, latency: service + testIdleRTT, idleRTT: testIdleRTT, served: true}
 	}
 
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	for range 200 {
 		s.observe(affine(s.bytes()))
 	}
@@ -493,7 +505,7 @@ func TestSizerClimbsOutOfAFixedCost(t *testing.T) {
 	// The node has a bad spell: an eighth of its rate for a stretch.
 	for range 20 {
 		f := affine(s.bytes())
-		f.latency = (f.latency-testDistance)*8 + testDistance
+		f.latency = (f.latency-testIdleRTT)*8 + testIdleRTT
 		s.observe(f)
 	}
 	require.Less(t, s.bytes(), int64(testCeiling)/4, "the bad spell must have cut the size")
@@ -518,41 +530,41 @@ func TestSizerClimbsOutOfAFixedCost(t *testing.T) {
 // it against, the shard is measured against its own level, as the scheduler does.
 type peerNode struct{}
 
-func (peerNode) observe(s *sizer, f flushSample) {
+func (peerNode) observe(s *shardController, f flushResult) {
 	f.peer = s.normS
 	s.observe(f)
 }
 
-// TestSizerHoldsThroughASlowdownItsPeersShare: the whole node slows, as it does when
+// TestShardControllerHoldsThroughASlowdownItsPeersShare: the whole node slows, as it does when
 // it is busy, and every shard on it slows alike. That is the node's load, which its
 // window answers when the node rejects; a shard that is no slower than the rest of
 // the node keeps its size, so that the node is sent as much as it takes until it
 // says it is full.
-func TestSizerHoldsThroughASlowdownItsPeersShare(t *testing.T) {
+func TestShardControllerHoldsThroughASlowdownItsPeersShare(t *testing.T) {
 	t.Parallel()
 
 	node := peerNode{}
-	s := newTestSizer(BulkSizing{})
+	s := newTestShardController(BulkSizing{})
 	for range 200 {
-		node.observe(s, flushOf(s.bytes(), 100e6))
+		node.observe(s, flushAtThroughput(s.bytes(), 100e6))
 	}
 	require.EqualValues(t, testCeiling, s.bytes())
 
 	for range 200 {
-		node.observe(s, flushOf(s.bytes(), 20e6)) // Five times slower, all of it.
+		node.observe(s, flushAtThroughput(s.bytes(), 20e6)) // Five times slower, all of it.
 	}
 	require.EqualValues(t, testCeiling, s.bytes(), "a slowdown the shard shares with its node is not the shard's to answer")
 }
 
-// TestSizerBacksOffAShardSlowerThanItsPeers: the rest of the node is as quick as
+// TestShardControllerBacksOffAShardSlowerThanItsPeers: the rest of the node is as quick as
 // ever and this shard alone slows, as a hot shard or one with costly documents does.
 // It must shrink, so that it does not take the node's time from the others.
-func TestSizerBacksOffAShardSlowerThanItsPeers(t *testing.T) {
+func TestShardControllerBacksOffAShardSlowerThanItsPeers(t *testing.T) {
 	t.Parallel()
 
-	s := newTestSizer(BulkSizing{})
-	healthy := func(bytes int64, rate float64) flushSample {
-		f := flushOf(bytes, rate)
+	s := newTestShardController(BulkSizing{})
+	healthy := func(bytes int64, rate float64) flushResult {
+		f := flushAtThroughput(bytes, rate)
 		f.peer = 1 // The node's other shards are at their best.
 
 		return f

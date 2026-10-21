@@ -51,15 +51,15 @@ func TestBulkIndexerJobLimitCountsWhatItemsReallyCost(t *testing.T) {
 	server := stalledServer()
 	cfg := BulkIndexerConfig{
 		FlushBytes:     1 << 20, // Nothing fills a buffer by size.
-		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:         BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(held) * limitItems,
 		ShardRouter:    NoShardRouter,
 	}
-	bi := newClusterIndexer(t, server, cfg)
+	bi := newBulkClient(t, server, cfg)
 
 	blocked := make(chan struct{}, 4)
-	indexer := bi.(*bulkIndexer)
+	indexer := bi.(*bulkClient)
 	relieve := indexer.budget.onBlock
 	indexer.budget.onBlock = func() {
 		relieve()
@@ -110,9 +110,9 @@ func TestBulkIndexerJobLimitSendsTheFullestShardFirst(t *testing.T) {
 		total += n
 	}
 
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushBytes:     1 << 20,
-		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:         BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(held) * total,
 	})
@@ -186,13 +186,13 @@ func TestBulkIndexerByteWindowHoldsBackWhatDoesNotFit(t *testing.T) {
 			server.gate = make(chan struct{})
 			server.entered = make(chan string, 8)
 
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{
+			bi := newBulkClient(t, server, BulkIndexerConfig{
 				FlushBytes:    int(size) * 3,
-				NodeBytes:     int(float64(size) * 3 * tt.windowBuffers),
+				TargetBytes:   int(float64(size) * 3 * tt.windowBuffers),
 				FlushInterval: time.Hour,
 				Sizing:        BulkSizing{InitialBytes: int(size) * 3},
 			})
-			indexer := bi.(*bulkIndexer)
+			indexer := bi.(*bulkClient)
 
 			seq := 0
 			for shard := range 2 {
@@ -221,7 +221,7 @@ func TestBulkIndexerByteWindowHoldsBackWhatDoesNotFit(t *testing.T) {
 	}
 }
 
-// TestBulkIndexerForgetsIdleShards: an indexer that moves on from an index does
+// TestBulkIndexerForgetsIdleShards: a bulk client that moves on from an index does
 // not keep a record of every shard it wrote to.
 func TestBulkIndexerForgetsIdleShards(t *testing.T) {
 	t.Parallel()
@@ -231,8 +231,8 @@ func TestBulkIndexerForgetsIdleShards(t *testing.T) {
 	server := newFakeServer(cluster)
 	clock := newManualClock()
 
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Minute})
-	indexer := bi.(*bulkIndexer)
+	bi := newBulkClient(t, server, BulkIndexerConfig{FlushInterval: time.Minute})
+	indexer := bi.(*bulkClient)
 	indexer.now = clock.Now
 
 	for i := range 60 {

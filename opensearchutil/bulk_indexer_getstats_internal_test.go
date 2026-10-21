@@ -20,11 +20,11 @@ import (
 )
 
 // withoutLoad clears the fields of the stats that describe the load on the cluster,
-// and the sizes and times measured, and not what the indexer counted, for a test
+// and the sizes and times measured, and not what the bulk client counted, for a test
 // that compares the counters alone.
 func withoutLoad(s BulkIndexerStats) BulkIndexerStats {
-	s.MaxMemoryBytes, s.NumRejections, s.NumNodes = 0, 0, 0
-	s.NodeWindow, s.BufferSize, s.Slowdown = JobNodeStats{}, JobNodeStats{}, JobNodeStats{}
+	s.MaxMemoryBytes, s.NumRejections, s.NumTargets = 0, 0, 0
+	s.TargetWindow, s.BufferSize, s.Slowdown = JobTargetStats{}, JobTargetStats{}, JobTargetStats{}
 	s.ItemBytes, s.MaxItemBytes, s.RequestBytes = 0, 0, 0
 	s.ItemLatencyNanos, s.MaxItemLatencyNanos = 0, 0
 	s.RequestDurationNanos, s.MaxRequestDurationNanos = 0, 0
@@ -60,7 +60,7 @@ func TestBulkIndexerGetStatsFillsTheCallersStruct(t *testing.T) {
 		{
 			name: "a used struct is replaced entirely, not added to",
 			dirty: BulkIndexerStats{
-				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, NodeWindow: JobNodeStats{Min: 0.25},
+				NumAdded: 9999, NumRejections: 7, MaxMemoryBytes: 1, TargetWindow: JobTargetStats{Min: 0.25},
 				NumRetries: [numErrorKinds]uint64{1, 2, 3, 4},
 			},
 		},
@@ -102,7 +102,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 		reject     bool
 		fixed      bool
 		wantReject bool
-		wantCut    bool
+		wantShrink bool
 		wantSlow   bool
 	}{
 		{name: "a healthy node", rate: 100e6},
@@ -114,14 +114,14 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			name: "a node five times slower than it was is slow under fixed sizing",
 			rate: 20e6, fixed: true, wantSlow: true,
 		},
-		{name: "a node that rejects", rate: 100e6, reject: true, wantReject: true, wantCut: true},
+		{name: "a node that rejects", rate: 100e6, reject: true, wantReject: true, wantShrink: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			h := newSizingHarness(t, 200, 1, "n0")
-			h.bi.(*bulkIndexer).sizing.fixed = tt.fixed
+			h.bi.(*bulkClient).sizing.fixed = tt.fixed
 
 			var reject atomic.Bool
 			var rate atomic.Uint64
@@ -139,9 +139,9 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 			var stats BulkIndexerStats
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.InDelta(t, 1.0, stats.NodeWindow.Min, 0, "before any node is used the window is wide open")
+			require.InDelta(t, 1.0, stats.TargetWindow.Min, 0, "before any node is used the window is wide open")
 			require.Zero(t, stats.NumRejections)
-			require.Zero(t, stats.NumNodes)
+			require.Zero(t, stats.NumTargets)
 
 			for range 20 {
 				h.round("n0")
@@ -156,15 +156,15 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 			require.NoError(t, h.bi.GetStats(&stats))
 			require.Equal(t, tt.wantReject, stats.NumRejections > 0, "rejections counted: %d", stats.NumRejections)
-			require.Equal(t, tt.wantCut, stats.NodeWindow.Min < 1, "node window %+v", stats.NodeWindow)
-			require.EqualValues(t, 1, stats.NumNodes)
+			require.Equal(t, tt.wantShrink, stats.TargetWindow.Min < 1, "node window %+v", stats.TargetWindow)
+			require.EqualValues(t, 1, stats.NumTargets)
 			require.Equal(t, tt.wantSlow, stats.Slowdown.Max > 0.5, "slowdown %+v", stats.Slowdown)
 			if !tt.wantReject {
 				// With one node every point of the spread is that node.
 				require.InDelta(t, stats.Slowdown.Min, stats.Slowdown.Max, 1e-9)
 			}
 
-			if !tt.wantCut {
+			if !tt.wantShrink {
 				return
 			}
 
@@ -177,7 +177,7 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 			waitIdle(t, h.bi)
 
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.InDelta(t, 1.0, stats.NodeWindow.Min, 1e-9, "relief: the limit is back to wide open")
+			require.InDelta(t, 1.0, stats.TargetWindow.Min, 1e-9, "relief: the limit is back to wide open")
 			require.Equal(t, counted, stats.NumRejections, "the count only grows")
 		})
 	}
@@ -185,8 +185,8 @@ func TestBulkIndexerGetStatsLoad(t *testing.T) {
 
 // TestBulkIndexerGetStatsSlowdownCountsTheFixedCostOfARequest: a node that charges a
 // fixed cost per request serves small requests at fewer bytes per second than large
-// ones without being any slower. Its Slowdown must read 0 once the sizer has learned
-// that cost, which is the notion of slowdown the sizer acts on, and must not stay at
+// ones without being any slower. Its Slowdown must read 0 once the shard controller has learned
+// that cost, which is the notion of slowdown the shard controller acts on, and must not stay at
 // the gap between the first large request and the small ones that follow.
 func TestBulkIndexerGetStatsSlowdownCountsTheFixedCostOfARequest(t *testing.T) {
 	t.Parallel()
@@ -194,8 +194,8 @@ func TestBulkIndexerGetStatsSlowdownCountsTheFixedCostOfARequest(t *testing.T) {
 	const perRequest = 3 * time.Millisecond
 
 	h := newSizingHarness(t, 200, 1, "n0")
-	bi := h.bi.(*bulkIndexer)
-	// Hold every buffer at the smallest size the sizer asks for, which is where it
+	bi := h.bi.(*bulkClient)
+	// Hold every buffer at the smallest size the shard controller asks for, which is where it
 	// learns the fixed cost.
 	bi.sizing.min = bi.sizing.initial
 	bi.sizing.step = 1
@@ -260,10 +260,10 @@ func TestBulkIndexerGetStatsTakesNoLock(t *testing.T) {
 	t.Parallel()
 
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0")
-	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
+	bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
 	addDoc(t, bi, "idx", "doc", 1) // Buffered, not sent.
 
-	budget := bi.(*bulkIndexer).budget
+	budget := bi.(*bulkClient).budget
 	budget.mu.Lock()
 	unlocked := false
 	t.Cleanup(func() {
@@ -290,7 +290,7 @@ func TestBulkIndexerGetStatsTakesNoLock(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 }
 
-func TestBulkIndexerStatsBudgetFill(t *testing.T) {
+func TestBulkIndexerStatsUtilization(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -308,7 +308,7 @@ func TestBulkIndexerStatsBudgetFill(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			require.InDelta(t, tt.want, tt.stats.BudgetFill(), 1e-9)
+			require.InDelta(t, tt.want, tt.stats.Utilization(), 1e-9)
 		})
 	}
 }
@@ -334,11 +334,11 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 			check: func(t *testing.T, stats BulkIndexerStats) {
 				t.Helper()
 
-				require.Less(t, stats.NodeWindow.Min, 1.0, "the outlier is the minimum")
-				require.InDelta(t, 1.0, stats.NodeWindow.Median, 1e-9, "the median is the other four")
-				require.InDelta(t, 1.0, stats.NodeWindow.Max, 1e-9)
-				require.Greater(t, stats.NodeWindow.Mean, stats.NodeWindow.Min)
-				require.LessOrEqual(t, stats.NodeWindow.Mean, stats.NodeWindow.Median)
+				require.Less(t, stats.TargetWindow.Min, 1.0, "the outlier is the minimum")
+				require.InDelta(t, 1.0, stats.TargetWindow.Median, 1e-9, "the median is the other four")
+				require.InDelta(t, 1.0, stats.TargetWindow.Max, 1e-9)
+				require.Greater(t, stats.TargetWindow.Mean, stats.TargetWindow.Min)
+				require.LessOrEqual(t, stats.TargetWindow.Mean, stats.TargetWindow.Median)
 				require.Positive(t, stats.NumRejections)
 			},
 		},
@@ -352,7 +352,7 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 				require.Less(t, stats.Slowdown.Median, 0.1, "the median is the other four")
 				// A node slowing for all its shards is load, which only a rejection answers.
 				require.InDelta(t, stats.BufferSize.Median, stats.BufferSize.Min, 1e-9, "its buffers keep their size")
-				require.InDelta(t, 1.0, stats.NodeWindow.Min, 1e-9, "a slow node is not a rejecting one")
+				require.InDelta(t, 1.0, stats.TargetWindow.Min, 1e-9, "a slow node is not a rejecting one")
 				require.Zero(t, stats.NumRejections)
 			},
 		},
@@ -394,7 +394,7 @@ func TestBulkIndexerGetStatsSpread(t *testing.T) {
 
 			var stats BulkIndexerStats
 			require.NoError(t, h.bi.GetStats(&stats))
-			require.EqualValues(t, len(nodes), stats.NumNodes)
+			require.EqualValues(t, len(nodes), stats.NumTargets)
 			tt.check(t, stats)
 		})
 	}
@@ -407,42 +407,42 @@ func TestSummarize(t *testing.T) {
 		name    string
 		values  []float64
 		weights []float64
-		want    JobNodeStats
+		want    JobTargetStats
 	}{
-		{name: "no nodes", want: JobNodeStats{}},
-		{name: "one node", values: []float64{0.4}, weights: []float64{10}, want: JobNodeStats{Min: 0.4, Median: 0.4, Mean: 0.4, Max: 0.4}},
+		{name: "no nodes", want: JobTargetStats{}},
+		{name: "one node", values: []float64{0.4}, weights: []float64{10}, want: JobTargetStats{Min: 0.4, Median: 0.4, Mean: 0.4, Max: 0.4}},
 		{
 			name: "an odd count has a middle node", values: []float64{1, 0.2, 0.6}, weights: []float64{1, 1, 1},
-			want: JobNodeStats{Min: 0.2, Median: 0.6, Mean: 0.6, Max: 1},
+			want: JobTargetStats{Min: 0.2, Median: 0.6, Mean: 0.6, Max: 1},
 		},
 		{
 			name: "an even count takes the middle two", values: []float64{1, 0.2, 0.6, 0.4}, weights: []float64{1, 1, 1, 1},
-			want: JobNodeStats{Min: 0.2, Median: 0.5, Mean: 0.55, Max: 1},
+			want: JobTargetStats{Min: 0.2, Median: 0.5, Mean: 0.55, Max: 1},
 		},
 		{
 			name:   "one bad node among ten moves the minimum and not the median",
 			values: []float64{0.05, 1, 1, 1, 1, 1, 1, 1, 1, 1}, weights: []float64{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-			want: JobNodeStats{Min: 0.05, Median: 1, Mean: 0.905, Max: 1},
+			want: JobTargetStats{Min: 0.05, Median: 1, Mean: 0.905, Max: 1},
 		},
 		{
 			name:   "a node with little work waiting counts for little in the mean",
 			values: []float64{0.1, 1}, weights: []float64{1, 99},
-			want: JobNodeStats{Min: 0.1, Median: 0.55, Mean: 0.991, Max: 1},
+			want: JobTargetStats{Min: 0.1, Median: 0.55, Mean: 0.991, Max: 1},
 		},
 		{
 			name:   "no weights counts each node the same",
 			values: []float64{0, 1}, weights: []float64{0, 0},
-			want: JobNodeStats{Min: 0, Median: 0.5, Mean: 0.5, Max: 1},
+			want: JobTargetStats{Min: 0, Median: 0.5, Mean: 0.5, Max: 1},
 		},
 		{
 			name:   "an unusable weight counts as none",
 			values: []float64{0, 1, 1}, weights: []float64{-5, math.Inf(1), 2},
-			want: JobNodeStats{Min: 0, Median: 1, Mean: 1, Max: 1},
+			want: JobTargetStats{Min: 0, Median: 1, Mean: 1, Max: 1},
 		},
 		{
 			name:   "missing weights count each node the same",
 			values: []float64{0.2, 0.4},
-			want:   JobNodeStats{Min: 0.2, Median: 0.3, Mean: 0.3, Max: 0.4},
+			want:   JobTargetStats{Min: 0.2, Median: 0.3, Mean: 0.3, Max: 0.4},
 		},
 	}
 	for _, tt := range tests {

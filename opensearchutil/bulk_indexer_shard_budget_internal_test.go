@@ -62,9 +62,9 @@ func TestBulkIndexerStalledShardDoesNotStarveTheOthers(t *testing.T) {
 	}
 
 	itemBytes := docBytes("idx", "doc-000000", 1000)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushBytes:     int(itemBytes) * 4,
-		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:         BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(itemBytes) * 40,
 	})

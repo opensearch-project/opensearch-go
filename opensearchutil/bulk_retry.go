@@ -16,17 +16,17 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// RetryPolicy decides whether the indexer sends a failed item again, and after
-// how long. The indexer drives the loop; the policy supplies the backoff and
+// RetryPolicy decides whether the bulk client sends a failed item again, and after
+// how long. The bulk client drives the loop; the policy supplies the backoff and
 // the limit. Set it as [BulkIndexerConfig].RetryPolicy.
 //
 // Retrying requires idempotent writes: a failure of kind [KindTransport] is
 // ambiguous, because the batch may already have reached the cluster, and
 // sending it again would index an item without a DocumentID a second time under
 // a new generated _id. So when a RetryPolicy is set, every item must carry a
-// DocumentID, and the indexer enforces it: an item without one is not sent and
+// DocumentID, and the bulk client enforces it: an item without one is not sent and
 // fails through its own OnError with [ErrMissingDocumentID]. Set
-// [BulkIndexerConfig].Fingerprinter to have the indexer generate the id.
+// [BulkIndexerConfig].Fingerprinter to have the bulk client generate the id.
 //
 // Retry is asked about two layers of error, and err.Layer says which. With
 // [LayerRequest] the whole request failed: err.Err is the request's error, and one
@@ -37,13 +37,13 @@ import (
 // ErrRejected, ErrUnavailable, ErrTransport or ErrPermanent, says why. attempt
 // counts the requests that have carried the work so far: 1 after the first
 // request fails. [KindPermanent] is offered too, which no retry can fix; a policy
-// should return false for it. The indexer applies no limit of its own, so a
+// should return false for it. The bulk client applies no limit of its own, so a
 // policy that always returns true retries a persistent error forever.
 //
 // When retry is true the item is sent again, in a request of its own together
 // with the other items being retried, after the longest delay any of them was
 // given. While an item is being retried neither OnSuccess nor OnError fires
-// for it: each fires once, when the indexer is done with the item. When retry is
+// for it: each fires once, when the bulk client is done with the item. When retry is
 // false the item fails with the failure it was offered, and OnError fires.
 //
 // Retry runs on the goroutine that sends the buffer, as the item callbacks do, so
@@ -53,16 +53,16 @@ import (
 // memory the buffer holds stays counted against MaxMemoryBytes. Other shards are
 // not held up. The wait ends early, and the items still waiting fail with the
 // failure they last drew, when the context of the flush is done: the context
-// passed to Flush or Close, or the one the indexer was built with for a
+// passed to Flush or Close, or the one the bulk client was built with for a
 // periodic or size-triggered flush. Keep the delay short against FlushInterval.
 //
 // A retry happens above the transport's own: the transport has already resent,
 // up to its MaxRetries, a request that failed on a network error or drew a status
-// in its RetryOnStatus (502, 503 and 504 by default), before the indexer sees the
+// in its RetryOnStatus (502, 503 and 504 by default), before the bulk client sees the
 // error. It also resends a request a node answered with a 429 when the client
 // has a router and the node's write thread pool is tracked, as with the default
 // router, and it routes that resend afresh, so it can go to another node. A 429
-// the transport resent successfully never reaches the indexer, and does not cut
+// the transport resent successfully never reaches the bulk client, and does not shrink
 // the node's window. Attempts multiply with those, and DisableRetry on the
 // client turns the transport's side off.
 //
@@ -88,7 +88,7 @@ type bulkResponseMismatchError struct {
 }
 
 func (e *bulkResponseMismatchError) Error() string {
-	return fmt.Sprintf("bulk response has %d items, indexer serialized %d", e.got, e.want)
+	return fmt.Sprintf("bulk response has %d items, bulk client serialized %d", e.got, e.want)
 }
 
 // classifyItemFailure classifies the rejection of one item the cluster answered.
@@ -173,7 +173,7 @@ func (w *worker) decideRetry(ctx context.Context, ev BulkErrorEvent) (time.Durat
 		delay time.Duration
 		retry bool
 	)
-	// A canceled indexer or an ended context sends nothing more, so the policy is
+	// A canceled bulk client or an ended context sends nothing more, so the policy is
 	// not asked and the failure is not counted as a retry.
 	if policy := w.bi.config.RetryPolicy; policy != nil && ctx.Err() == nil && !w.bi.canceled() {
 		delay, retry = policy.Retry(ev.Attempt, ev.Err)
@@ -230,7 +230,7 @@ func (w *worker) failItem(ctx context.Context, item BulkIndexerItem, err *BulkEr
 	return err
 }
 
-// observeDone tells the observer that the indexer is done with an item. err is nil
+// observeDone tells the observer that the bulk client is done with an item. err is nil
 // for an item the cluster accepted.
 func (w *worker) observeDone(
 	ctx context.Context, item BulkIndexerItem, attempts int, resp opensearchapi.BulkRespItem, err *BulkError,
@@ -259,7 +259,7 @@ func (w *worker) observeDone(
 }
 
 // failUnsent fails an item that was never written to a request, for the reason
-// cause: it does not serialize, has no document ID, or the indexer was canceled.
+// cause: it does not serialize, has no document ID, or the bulk client was canceled.
 // A retry cannot help, so the policy is not asked.
 // attempts is the number of requests that carried the item before, 0 for an item
 // never sent. It returns what failItem does.
@@ -300,7 +300,7 @@ func (w *worker) sendWithRetry(ctx context.Context) error {
 		w.bi.stats.retryBackoffItems.Add(-waiting)
 		if waitErr != nil {
 			// Out of time: the items still waiting fail with the failure that
-			// put them there, and the caller learns the drain was cut short.
+			// put them there, and the caller learns the drain ended early.
 			errs = append(errs, waitErr, w.failPending(ctx, retry.items))
 			break
 		}

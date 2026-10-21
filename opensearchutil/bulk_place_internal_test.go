@@ -16,7 +16,7 @@ import (
 )
 
 // TestBulkIndexerPlaceUsesTheServersRoutingOrder checks the value an item is placed
-// by: the routing on the action line, else the indexer's default routing, else the
+// by: the routing on the action line, else the bulk client's default routing, else the
 // document ID, as the server does.
 func TestBulkIndexerPlaceUsesTheServersRoutingOrder(t *testing.T) {
 	t.Parallel()
@@ -68,9 +68,9 @@ func TestBulkIndexerPlaceUsesTheServersRoutingOrder(t *testing.T) {
 			maps := map[string]ShardMap{"alpha": DefaultShardMap(shards)}
 			cluster := newFakeCluster(maps, "n0", "n1")
 			server := newFakeServer(cluster)
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{
+			bi := newBulkClient(t, server, BulkIndexerConfig{
 				Routing: tt.defaultRout, FlushInterval: time.Hour,
-			}).(*bulkIndexer)
+			}).(*bulkClient)
 
 			key, node, _, err := bi.place(t.Context(), tt.item)
 			require.NoError(t, err)

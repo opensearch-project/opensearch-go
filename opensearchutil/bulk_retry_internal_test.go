@@ -174,7 +174,7 @@ func outcomeStatus(status int) bulkOutcome {
 	}
 }
 
-// retryRun is what an indexer did with a set of items under a policy.
+// retryRun is what a bulk client did with a set of items under a policy.
 type retryRun struct {
 	succeeded []string
 	failed    []string
@@ -190,7 +190,7 @@ type retryRun struct {
 func inherit(ctx context.Context) context.Context { return ctx }
 
 // runRetry adds one item per id, drains them with a single Flush on the context
-// flushCtx derives from the test's, and closes the indexer.
+// flushCtx derives from the test's, and closes the bulk client.
 func runRetry(
 	t *testing.T, flushCtx func(context.Context) context.Context, outcomes []bulkOutcome, policy *recordingPolicy,
 	ids ...string,

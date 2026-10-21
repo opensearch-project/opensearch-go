@@ -21,10 +21,10 @@ import (
 )
 
 // shardTargetOf returns the buffer size the controller currently asks for the
-// shard, and false when the indexer has not seen the shard yet.
+// shard, and false when the bulk client has not seen the shard yet.
 //
 //nolint:unparam // Every test here uses one index.
-func (bi *bulkIndexer) shardTargetOf(index string, shard int) (int64, bool) {
+func (bi *bulkClient) shardTargetOf(index string, shard int) (int64, bool) {
 	bi.sched.Lock()
 	defer bi.sched.Unlock()
 
@@ -33,12 +33,12 @@ func (bi *bulkIndexer) shardTargetOf(index string, shard int) (int64, bool) {
 		return 0, false
 	}
 
-	return ss.sizer.bytes(), true
+	return ss.controller.bytes(), true
 }
 
-// windowOf returns how many bytes the indexer currently allows outstanding to the
+// windowOf returns how many bytes the bulk client currently allows outstanding to the
 // node, and false when it has not seen the node yet.
-func (bi *bulkIndexer) windowOf(name string) (int64, bool) {
+func (bi *bulkClient) windowOf(name string) (int64, bool) {
 	bi.sched.Lock()
 	defer bi.sched.Unlock()
 
@@ -55,7 +55,7 @@ func (bi *bulkIndexer) windowOf(name string) (int64, bool) {
 func waitIdle(t *testing.T, bi BulkIndexer) {
 	t.Helper()
 
-	sched := bi.(*bulkIndexer).sched
+	sched := bi.(*bulkClient).sched
 	require.Eventually(t, func() bool {
 		sched.Lock()
 		defer sched.Unlock()
@@ -106,7 +106,7 @@ func (c *manualClock) advance(d time.Duration) {
 	c.now = c.now.Add(d)
 }
 
-// sizingHarness drives an indexer one buffer at a time, so each buffer is sized by
+// sizingHarness drives a bulk client one buffer at a time, so each buffer is sized by
 // everything the controllers learned from the ones before. It runs a cluster of
 // nodes with shardsPerNode shards each, shard n*shardsPerNode+k on node n.
 type sizingHarness struct {
@@ -122,7 +122,7 @@ type sizingHarness struct {
 	shardsPerNode int
 }
 
-// newSizingHarness builds an indexer over the named nodes, whose shard buffers
+// newSizingHarness builds a bulk client over the named nodes, whose shard buffers
 // are at most ceilingDocs documents.
 func newSizingHarness(t *testing.T, ceilingDocs, shardsPerNode int, nodes ...string) *sizingHarness {
 	t.Helper()
@@ -131,7 +131,7 @@ func newSizingHarness(t *testing.T, ceilingDocs, shardsPerNode int, nodes ...str
 }
 
 // newSizingHarnessFrom is newSizingHarness with shards starting at initialDocs
-// documents, or where the indexer starts them when it is 0. A test of whether a
+// documents, or where the bulk client starts them when it is 0. A test of whether a
 // flush is read starts them low, where the reading shows as growth.
 func newSizingHarnessFrom(t *testing.T, ceilingDocs, initialDocs, shardsPerNode int, nodes ...string) *sizingHarness {
 	t.Helper()
@@ -145,16 +145,16 @@ func newSizingHarnessFrom(t *testing.T, ceilingDocs, initialDocs, shardsPerNode 
 		t: t, server: newFakeServer(cluster), clock: newManualClock(),
 		itemBytes: itemBytes, nodes: nodes, shardsPerNode: shardsPerNode,
 	}
-	h.bi = newClusterIndexer(t, h.server, BulkIndexerConfig{
+	h.bi = newBulkClient(t, h.server, BulkIndexerConfig{
 		// One request at a time, so the controllers see each outcome before the next
 		// buffer is sealed.
 		NumWorkers:    1,
 		FlushBytes:    int(itemBytes) * ceilingDocs,
-		NodeBytes:     int(itemBytes) * ceilingDocs * 8,
+		TargetBytes:   int(itemBytes) * ceilingDocs * 8,
 		FlushInterval: time.Hour,
 		Sizing:        BulkSizing{InitialBytes: int(itemBytes) * initialDocs},
 	})
-	h.bi.(*bulkIndexer).now = h.clock.Now
+	h.bi.(*bulkClient).now = h.clock.Now
 
 	return h
 }
@@ -183,11 +183,11 @@ func (h *sizingHarness) idsFor(shard, n int) []string {
 func (h *sizingHarness) roundShard(shard int) int {
 	h.t.Helper()
 
-	target, ok := h.bi.(*bulkIndexer).shardTargetOf("idx", shard)
+	target, ok := h.bi.(*bulkClient).shardTargetOf("idx", shard)
 	if !ok {
 		// The first buffer of a shard on a node that is not overloaded starts at
 		// the size sizing.start gives: the ceiling, unless InitialBytes is set.
-		target = int64(h.bi.(*bulkIndexer).sizing.start())
+		target = int64(h.bi.(*bulkClient).sizing.start())
 	}
 	docs := int((target + h.itemBytes - 1) / h.itemBytes)
 
@@ -225,7 +225,7 @@ func (h *sizingHarness) shardTarget(node string) int64 {
 
 	for n, name := range h.nodes {
 		if name == node {
-			target, _ := h.bi.(*bulkIndexer).shardTargetOf("idx", n*h.shardsPerNode)
+			target, _ := h.bi.(*bulkClient).shardTargetOf("idx", n*h.shardsPerNode)
 
 			return target
 		}
@@ -236,24 +236,24 @@ func (h *sizingHarness) shardTarget(node string) int64 {
 	return 0
 }
 
-// window is how many bytes the indexer allows outstanding to the node.
+// window is how many bytes the bulk client allows outstanding to the node.
 func (h *sizingHarness) window(node string) int64 {
 	h.t.Helper()
 
-	size, _ := h.bi.(*bulkIndexer).windowOf(node)
+	size, _ := h.bi.(*bulkClient).windowOf(node)
 
 	return size
 }
 
-// TestBulkIndexerByteWindowIsCutByARejection: a 429 is the node's, so it cuts the
-// bytes the indexer allows outstanding to the node, from what was outstanding when it
-// arrived and not from the window, which started far above that. The cut is held for a
-// few requests. It says nothing about any one shard, so the shard's buffer is not cut.
-func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
+// TestBulkIndexerByteWindowShrinksOnARejection: a 429 is the node's, so it shrinks the
+// bytes the bulk client allows outstanding to the node, from what was outstanding when it
+// arrived and not from the window, which started far above that. The reduction is held for a
+// few requests. It says nothing about any one shard, so the shard's buffer is not shrunk.
+func TestBulkIndexerByteWindowShrinksOnARejection(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarnessFrom(t, 200, 50, 1, "n0")
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 	var reject atomic.Bool
 	h.server.respond = func(r sentRequest, _ string) (int, string) {
 		if reject.Load() {
@@ -290,7 +290,7 @@ func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 	require.GreaterOrEqual(t, shardAfter, shardBefore, "and the shard's buffer is left alone")
 
 	// The window is held for a few requests before it may grow again.
-	for range sizingHoldFlushes {
+	for range pinFlushes {
 		h.round("n0")
 		require.LessOrEqual(t, h.window("n0"), windowAfter, "no growth while the hold lasts")
 	}
@@ -298,21 +298,21 @@ func TestBulkIndexerByteWindowIsCutByARejection(t *testing.T) {
 	require.Greater(t, h.window("n0"), windowAfter, "growth resumes after the hold")
 }
 
-// TestBulkIndexerByteWindowPausesWhenThePoolStartsRejecting: the transport reports
-// the node's write pool as rejecting, which may be other clients' requests, until a
-// statistics poll finds no new rejections. The byte window takes the start of that
-// as one event and pauses for a few requests, as after a 429, and is not held while
-// the report lasts: it goes back to probing, and this client's own 429s govern it.
-func TestBulkIndexerByteWindowPausesWhenThePoolStartsRejecting(t *testing.T) {
+// TestBulkIndexerByteWindowHoldsGrowthWhenTheNodeStartsRefusingWrites: the transport
+// reports the target node as refusing writes, which may be other clients' writes,
+// until a node statistics poll finds no new refusals. The byte window holds its
+// growth for pinFlushes flushes when that report starts, as after a reduction, and
+// then grows again although the report continues.
+func TestBulkIndexerByteWindowHoldsGrowthWhenTheNodeStartsRefusingWrites(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		// rejectFirst sends one 429 before the pool starts rejecting.
+		// rejectFirst sends one 429 before the node is reported refusing writes.
 		rejectFirst bool
 	}{
-		{name: "after a 429, the pool goes on rejecting", rejectFirst: true},
-		{name: "the pool starts rejecting with no 429 of the client's own"},
+		{name: "after a 429, the node goes on refusing writes", rejectFirst: true},
+		{name: "the node starts refusing writes with no 429 to this client"},
 	}
 
 	for _, tt := range tests {
@@ -329,11 +329,11 @@ func TestBulkIndexerByteWindowPausesWhenThePoolStartsRejecting(t *testing.T) {
 				return 200, okResponse(len(r.actions))
 			}
 
-			// A window that can grow: cut it, and wait out the hold that follows.
+			// A window that can grow: shrink it, and wait out the hold that follows.
 			reject.Store(true)
 			h.round("n0")
 			reject.Store(false)
-			for range sizingHoldFlushes + 1 {
+			for range pinFlushes + 1 {
 				h.round("n0")
 			}
 
@@ -342,24 +342,24 @@ func TestBulkIndexerByteWindowPausesWhenThePoolStartsRejecting(t *testing.T) {
 				h.round("n0")
 				reject.Store(false)
 			}
-			h.server.cluster.setWindow(1, true)
+			h.server.cluster.setWindow(1, true) // The node is reported refusing writes from here on.
 
-			paused := h.window("n0")
-			for range sizingHoldFlushes {
+			held := h.window("n0")
+			for range pinFlushes {
 				h.round("n0")
-				require.LessOrEqual(t, h.window("n0"), paused, "no growth while the pause lasts")
+				require.LessOrEqual(t, h.window("n0"), held, "no growth while the hold lasts")
 			}
 			for range 3 {
 				h.round("n0")
 			}
-			require.Greater(t, h.window("n0"), paused, "growth resumes while the pool is still reported rejecting")
+			require.Greater(t, h.window("n0"), held, "growth resumes while the node is still reported refusing writes")
 		})
 	}
 }
 
 // TestBulkIndexerHoldsWhileTheWholeNodeSlows: the node only gets slower, as when it
 // is busy with other requests, and nothing is rejected. That is the node's load,
-// which the indexer answers when the node says it is full: until a rejection cuts
+// which the bulk client answers when the node says it is full: until a rejection shrinks
 // the node's window, the node is sent as much as it takes, and its shard keeps its
 // size. A shard gives way only when it is slower than the rest of its node; see
 // TestBulkIndexerSlowShardShrinksAlone.
@@ -381,7 +381,7 @@ func TestBulkIndexerHoldsWhileTheWholeNodeSlows(t *testing.T) {
 		h.round("n0")
 	}
 	shardHealthy, windowHealthy := h.shardTarget("n0"), h.window("n0")
-	require.Equal(t, int64(h.bi.(*bulkIndexer).sizing.max), shardHealthy, "a healthy shard ends up at the ceiling")
+	require.Equal(t, int64(h.bi.(*bulkClient).sizing.max), shardHealthy, "a healthy shard ends up at the ceiling")
 
 	setRate(20e6) // Five times slower. Nothing is rejected.
 	for range 40 {
@@ -429,7 +429,7 @@ func TestBulkIndexerSlowShardShrinksAlone(t *testing.T) {
 		h.roundShard(fastShard)
 	}
 
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 	slow, _ := bi.shardTargetOf("idx", slowShard)
 	fast, _ := bi.shardTargetOf("idx", fastShard)
 
@@ -461,7 +461,7 @@ func TestBulkIndexerSizesEachNodeOnItsOwn(t *testing.T) {
 		h.round("n1")
 	}
 
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 	require.Equal(t, int64(bi.window.floor), h.window("n0"), "the node that keeps rejecting is allowed the least")
 	require.GreaterOrEqual(t, h.window("n1"), int64(bi.window.start), "the other node is not held back by it")
 	require.Greater(t, h.shardTarget("n1"), int64(bi.sizing.initial))
@@ -518,15 +518,15 @@ func TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode(t *testing.T) {
 			} else {
 				require.Equal(t, sizes[0], sizes[len(sizes)-1], "nothing was indexed, so the buffers are not moved: %v", sizes)
 			}
-			require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkIndexer).window.start))
+			require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkClient).window.start))
 		})
 	}
 }
 
 // TestBulkIndexerRequestErrorsDoNotMoveTheControllers: an error that is not a 429 and not
 // about one shard, a 5xx, a 4xx, a refusal to answer, is read by neither controller: the
-// shard's buffer is not cut or grown, no rate is learned from it, and the node's window
-// is not cut, since only a 429 does that.
+// shard's buffer is not shrunk or grown, no rate is learned from it, and the node's window
+// is not shrunk, since only a 429 does that.
 func TestBulkIndexerRequestErrorsDoNotMoveTheControllers(t *testing.T) {
 	t.Parallel()
 
@@ -575,13 +575,13 @@ func TestBulkIndexerRequestErrorsDoNotMoveTheControllers(t *testing.T) {
 
 // TestBulkIndexerLearnsTheLargestRequestANodeAccepts: a 413 says a request was too large,
 // which is a fact about the cluster's settings and not about its load. No later request
-// is larger than half of what was refused, so the indexer stops sending what cannot be
+// is larger than half of what was refused, so the bulk client stops sending what cannot be
 // accepted instead of growing its buffers back to the same size.
 func TestBulkIndexerLearnsTheLargestRequestANodeAccepts(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 400, 1, "n0")
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 
 	const accepts = 6_000
 	var refused atomic.Int64
@@ -621,7 +621,7 @@ func TestBulkIndexerLearnsTheLargestRequestANodeAccepts(t *testing.T) {
 
 // TestBulkIndexerNewShardStartsFromTheNodesBaseline: a shard that starts on a node
 // that has slowed down is measured against the best the node has shown, so it is
-// cut at once, and does not take the node's slow rate for the best it can do.
+// shrink at once, and does not take the node's slow rate for the best it can do.
 func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
 	t.Parallel()
 
@@ -645,7 +645,7 @@ func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
 	rate.Store(uint64(20e6)) // The node slows down before the second shard has sent anything.
 	h.roundShard(newShard)
 
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 	got, ok := bi.shardTargetOf("idx", newShard)
 	require.True(t, ok)
 	require.Less(t, got, int64(bi.sizing.start()), "its first flush shows a node slower than it was")
@@ -653,7 +653,7 @@ func TestBulkIndexerNewShardStartsFromTheNodesBaseline(t *testing.T) {
 
 // TestBulkIndexerRejectedRequestsDoNotTeachTheShardController answers every request
 // with a rejection, far faster than the node serves real work, as a node does, and
-// checks that the node's window is cut and the shard's buffer is left where it was,
+// checks that the node's window is shrunk and the shard's buffer is left where it was,
 // where a shard controller that took the quick answer for a fast flush would grow it.
 func TestBulkIndexerRejectedRequestsDoNotTeachTheShardController(t *testing.T) {
 	t.Parallel()
@@ -722,7 +722,7 @@ func TestBulkIndexerStartsAShardAtFullSizeOnAnIdleNode(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 400, 1, "n0")
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 
 	addDoc(t, h.bi, "idx", h.idsFor(0, 1)[0], 1)
 	target, ok := bi.shardTargetOf("idx", 0)
@@ -731,13 +731,13 @@ func TestBulkIndexerStartsAShardAtFullSizeOnAnIdleNode(t *testing.T) {
 }
 
 // TestBulkIndexerRampsAShardThatStartsOnAnOverloadedNode: a shard that starts on
-// an overloaded node, one whose write pool is rejecting, is not sent full buffers.
-// It starts at InitialBytes and climbs to full as the node keeps up.
+// an overloaded node, one the transport reports refusing writes, is not sent full
+// buffers. It starts at InitialBytes and climbs to full as the node keeps up.
 func TestBulkIndexerRampsAShardThatStartsOnAnOverloadedNode(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 400, 1, "n0")
-	bi := h.bi.(*bulkIndexer)
+	bi := h.bi.(*bulkClient)
 	h.server.cluster.setWindow(1, true)
 
 	addDoc(t, h.bi, "idx", h.idsFor(0, 1)[0], 1)
@@ -755,11 +755,11 @@ func TestBulkIndexerStartsEveryShardAtAnInitialBytesThatIsSet(t *testing.T) {
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(1)}, "n0")
 	server := newFakeServer(cluster)
 	itemBytes := docBytes("idx", "doc-0000", 1000)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushBytes:    int(itemBytes) * 400,
 		Sizing:        BulkSizing{InitialBytes: int(itemBytes) * 100},
 		FlushInterval: time.Hour,
-	}).(*bulkIndexer)
+	}).(*bulkClient)
 
 	addDoc(t, bi, "idx", "doc-0000", 1)
 	target, ok := bi.shardTargetOf("idx", 0)

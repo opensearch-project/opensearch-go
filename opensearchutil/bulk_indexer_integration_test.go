@@ -186,9 +186,9 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		}
 
 		// Registered before the index-delete cleanup below so it runs after it:
-		// cleanups are LIFO, and the delete needs a live client. The indexer
+		// cleanups are LIFO, and the delete needs a live client. The bulk client
 		// does not own this client (it was passed in, not created implicitly),
-		// so closing the indexer would not release it.
+		// so closing the bulk client would not release it.
 		t.Cleanup(func() { _ = client.Close() })
 
 		t.Cleanup(func() {

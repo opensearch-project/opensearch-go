@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
-// BulkSizing tunes how the indexer follows what a node can take. Every field is
+// BulkSizing tunes how the bulk client follows what a node can take. Every field is
 // optional; the zero value selects the defaults below, which are all derived from
 // BulkIndexerConfig.FlushBytes.
 //
@@ -28,17 +28,18 @@ import (
 // The shard-buffer controller is a PID controller on latency (ShardPID, the
 // default). The size of a shard's buffer, the bytes it collects before it is sent,
 // follows how fast the node serves that shard's requests next to the node's other
-// shards. Each flush's time on the node (the round trip less the network distance)
-// is compared with what the shard's best recent self would need for a request of
-// that size: a fixed cost per request, learned from small requests where it is a
-// visible part of the time, plus the bytes at the best service rate seen recently.
+// shards. Each flush's time on the node (the round trip less the node's idle round
+// trip time) is compared with what the shard's best recent self would need for a
+// request of that size: a fixed cost per request, learned from small requests where
+// it is a visible part of the time, plus the bytes at the best throughput seen
+// recently.
 // That level is smoothed over the last several flushes (see sizingSignalAlpha) and
 // read against the mean level of the node's other shards, so a slowdown the whole
-// node shares, which is the node's load, cuts no shard. A shard alone on its node,
+// node shares, which is the node's load, shrinks no shard. A shard alone on its node,
 // such as the sink of documents that belong to no shard, is read against itself and
 // keeps its size. While a shard stays within Headroom of the rest of its node, its
 // size grows by up to StepBytes per flush. When it is slower than that, as a hot
-// shard or one with costly documents is, its size is cut in proportion to how far
+// shard or one with costly documents is, its size is shrunk in proportion to how far
 // past Headroom it is, so that it does not take the node's time from the others.
 // The PID gains (see [PIDGains]) set the size of each step. A shard's buffer reads
 // nothing else: not a request the node rejected with a 429, which was answered
@@ -50,40 +51,41 @@ import (
 // refused. ShardFixed turns this controller off: every buffer is FlushBytes.
 //
 // The node-window controller is additive increase, multiplicative decrease on 429s
-// (NodeAIMD, the default). How many bytes may be out to a node at once is the
+// (TargetAIMD, the default). How many bytes may be out to a node at once is the
 // node's window, and a 429 is the only thing that moves it. When a request is
 // answered with a 429, for the request or for any item in it, the window becomes
 // Backoff times the smaller of itself and the bytes that were out to the node when
 // the answer arrived, so that the first rejection counts even though the window
-// starts wide open. Rejections of requests sent before that cut are the same event
-// and do not cut again. The window then grows by FlushBytes for each window's worth
-// of bytes the node answers, held for a few answers after a rejection and while the
-// node's write pool is overloaded. A sealed buffer that would take the node past its
+// starts wide open. Rejections of requests sent before that reduction are the same event
+// and do not shrink again. The window then grows by FlushBytes for each window's worth
+// of bytes the node answers. Its growth is held for a few answers after a reduction, and
+// for a few answers when the transport starts reporting the node as refusing writes,
+// which may be other clients' writes. A sealed buffer that would take the node past its
 // window waits until the requests out are answered; when nothing is out, one is
 // sent whatever its size. The window does not change the size of any buffer. It
-// starts at NodeBytes, or at MaxMemoryBytes when that is not set. NodeFixed turns
+// starts at TargetBytes, or at MaxMemoryBytes when that is not set. TargetFixed turns
 // this controller off: the window stays where it started.
 //
 // An operator can override Shard, Node and the PID gains without a code change
-// through OPENSEARCH_GO_BULK_SHARD, OPENSEARCH_GO_BULK_NODE and
-// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD, read when the indexer is built. A variable
+// through OPENSEARCH_GO_BULK_SHARD, OPENSEARCH_GO_BULK_TARGET and
+// OPENSEARCH_GO_BULK_PID_KP, _KI and _KD, read when the bulk client is built. A variable
 // that is set and valid wins over the field it names; see guides/config-envvars.md.
 type BulkSizing struct {
 	// Shard chooses how a shard's buffer is sized: ShardPID, the PID controller on
 	// latency, or ShardFixed, every buffer at FlushBytes. ShardUnset, the zero
 	// value, is ShardPID. OPENSEARCH_GO_BULK_SHARD=pid|fixed overrides it.
 	Shard ShardSizing
-	// Node chooses how a node's window follows the node: NodeAIMD, cut on a 429 and
-	// grown back slowly, or NodeFixed, held where it started. NodeUnset, the zero
-	// value, is NodeAIMD. OPENSEARCH_GO_BULK_NODE=aimd|fixed overrides it.
-	Node NodeSizing
+	// Target chooses how a node's window follows the node: TargetAIMD, shrunk on a 429 and
+	// grown back slowly, or TargetFixed, held where it started. TargetUnset, the zero
+	// value, is TargetAIMD. OPENSEARCH_GO_BULK_TARGET=aimd|fixed overrides it.
+	Target TargetSizing
 
 	// MinBytes is the smallest batch the shard-buffer controller will ask for.
 	// Defaults to FlushBytes/32, and at least 1.
 	MinBytes int
 	// InitialBytes is where a shard's buffer starts when the shard starts on an
-	// overloaded node: one whose write pool is rejecting, or whose byte window a
-	// 429 cut and has not grown back. From there the buffer climbs to full size as
+	// overloaded node: one that is refusing writes with 429s, or whose byte window a
+	// 429 shrank and has not grown back. From there the buffer climbs to full size as
 	// the node keeps up. On a node that is not overloaded, a shard starts at
 	// FlushBytes, the most the node is sent, and shrinks only when it is slower
 	// than the node's other shards. When set, every shard starts here. Defaults to
@@ -95,12 +97,12 @@ type BulkSizing struct {
 	StepBytes int
 
 	// Headroom is how much slower than the rest of its node a shard may be before
-	// its size is cut: 0.25 allows its time to rise to 125% of the others'. Defaults
+	// its size is shrunk: 0.25 allows its time to rise to 125% of the others'. Defaults
 	// to 0.25.
 	Headroom float64
 	// Backoff is the factor a node's window is multiplied by when the node answers
 	// a request with a 429. After a 413 it also caps every request at Backoff times
-	// the size that was refused, unless Shard is ShardFixed, which cuts no buffer.
+	// the size that was refused, unless Shard is ShardFixed, which shrinks no buffer.
 	// Defaults to 0.5.
 	Backoff float64
 
@@ -139,34 +141,34 @@ func (m ShardSizing) String() string {
 	}
 }
 
-// NodeSizing is how a [BulkSizing] moves each node's window.
-type NodeSizing uint8
+// TargetSizing is how a [BulkSizing] moves each node's window.
+type TargetSizing uint8
 
 const (
-	// NodeUnset is the zero value, and means NodeAIMD.
-	NodeUnset NodeSizing = iota
-	// NodeAIMD cuts a node's window when the node answers with a 429 and grows it
+	// TargetUnset is the zero value, and means TargetAIMD.
+	TargetUnset TargetSizing = iota
+	// TargetAIMD shrinks a node's window when the node answers with a 429 and grows it
 	// back slowly while the node keeps accepting writes.
-	NodeAIMD
-	// NodeFixed holds every node's window where it started, NodeBytes or
+	TargetAIMD
+	// TargetFixed holds every node's window where it started, TargetBytes or
 	// MaxMemoryBytes.
-	NodeFixed
+	TargetFixed
 
-	numNodeSizings = iota
+	numTargetSizings = iota
 )
 
-// String returns the setting as OPENSEARCH_GO_BULK_NODE spells it, "aimd" or
-// "fixed", or "unset" for NodeUnset.
-func (m NodeSizing) String() string {
+// String returns the setting as OPENSEARCH_GO_BULK_TARGET spells it, "aimd" or
+// "fixed", or "unset" for TargetUnset.
+func (m TargetSizing) String() string {
 	switch m {
-	case NodeUnset:
+	case TargetUnset:
 		return "unset"
-	case NodeAIMD:
+	case TargetAIMD:
 		return "aimd"
-	case NodeFixed:
+	case TargetFixed:
 		return "fixed"
 	default:
-		return "NodeSizing(" + strconv.Itoa(int(m)) + ")"
+		return "TargetSizing(" + strconv.Itoa(int(m)) + ")"
 	}
 }
 
@@ -203,11 +205,12 @@ const (
 	// sizingIntegralLimit bounds the integral term, which stops a long healthy
 	// stretch from muting the response to the first sign of trouble.
 	sizingIntegralLimit = 2.0
-	// sizingMaxCut is the largest fraction a single non-rejecting flush removes.
-	sizingMaxCut = 0.5
-	// sizingHoldFlushes is how many healthy flushes after a rejection pass before
-	// the size may grow again.
-	sizingHoldFlushes = 3
+	// sizingMaxShrink is the largest fraction a single non-rejecting flush removes.
+	sizingMaxShrink = 0.5
+	// pinFlushes is how many accepted flushes a pin lasts. After shrinkWindowSize or
+	// pinWindowSize the node's window does not grow for that many, and after
+	// pinShardSize the shard's buffer does not.
+	pinFlushes = 3
 	// sizingBaseDecay is how fast the memory of the best rate fades per sample while
 	// the batches are large. It is slow because a node slows gradually as the
 	// batches grow, and a memory that faded as fast as that would never notice; it
@@ -217,19 +220,19 @@ const (
 	// sizingFloorDecay is how fast it fades when the requests are small, at or near
 	// the smallest batch. A node that is slow even for the smallest batches has not
 	// been made slow by them, so it is how the node is now, and the size is allowed
-	// to climb back after a few hundred flushes instead of staying cut forever.
+	// to climb back after a few hundred flushes instead of staying shrunk forever.
 	sizingFloorDecay = 0.995
 	// sizingMinSampleFraction is the part of the current target a flush must
 	// carry for its rate to say anything: the last, partial batch of a burst is
 	// dominated by fixed overhead.
 	sizingMinSampleFraction = 0.25
 	// sizingMinServiceFraction floors the service time at this part of the round
-	// trip, so a round trip shorter than the measured distance cannot give an
-	// absurd rate.
+	// trip, so a round trip shorter than the node's idle round trip time cannot give
+	// an absurd throughput.
 	sizingMinServiceFraction = 0.25
 	// sizingSignalAlpha is how much one flush moves the smoothed service rate and
 	// the smoothed slowdown. One flush's time is mostly noise: queueing, a GC, a
-	// merge. The cuts are multiplicative and the growth additive, so a controller
+	// merge. The shrinks are multiplicative and the growth additive, so a controller
 	// that believed every sample would be walked to the floor by variance alone.
 	sizingSignalAlpha = 0.08
 	// sizingOverheadAlpha is how fast the fixed per-request cost is believed as
@@ -256,14 +259,14 @@ const (
 // resolvedSizing is BulkSizing with its defaults applied.
 type resolvedSizing struct {
 	shard ShardSizing
-	node  NodeSizing
-	// fixed is whether shard buffers are fixed, and nodeFixed whether node windows
+	node  TargetSizing
+	// fixed is set when shard buffers are fixed, and nodeFixed when node windows
 	// are: shard and node spelled out for the controllers' tests.
-	fixed     bool
-	nodeFixed bool
-	min, max  float64
-	initial   float64
-	// initialSet is whether the caller chose initial, which then holds for every
+	fixed       bool
+	targetFixed bool
+	min, max    float64
+	initial     float64
+	// initialSet is set when the caller chose initial, which then holds for every
 	// shard, on an overloaded node or not.
 	initialSet bool
 	step       float64
@@ -278,7 +281,7 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 
 	r := resolvedSizing{
 		shard:      c.Shard,
-		node:       c.Node,
+		node:       c.Target,
 		max:        ceiling,
 		min:        pick(float64(c.MinBytes), ceiling/sizingMinDivisor),
 		initial:    pick(float64(c.InitialBytes), ceiling/sizingInitialDivisor),
@@ -296,14 +299,14 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 	}
 
 	r.applyEnv()
-	r.fixed, r.nodeFixed = r.shard == ShardFixed, r.node == NodeFixed
+	r.fixed, r.targetFixed = r.shard == ShardFixed, r.node == TargetFixed
 
 	r.min = max(math.Min(r.min, ceiling), 1)
 	r.initial = math.Min(math.Max(r.initial, r.min), ceiling)
 	r.backoff = math.Min(math.Max(r.backoff, 0.05), 0.95)
 
 	// A fixed size starts, and stays, at the ceiling. It keeps the minimum the
-	// controller would use, because the minimum is also how the sizer tells a small
+	// controller would use, because the minimum is also how the shard controller tells a small
 	// request, which teaches the fixed cost of a request and fades the memory of the
 	// best rate faster, from a large one. Pinned to the ceiling it would make every
 	// request small, and the slowdown a fixed size reports would be absorbed as that
@@ -316,7 +319,7 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 }
 
 // applyEnv applies the operator's overrides from the environment. It runs once,
-// as the indexer is built, so that the controller tests plain fields afterwards
+// as the bulk client is built, so that the controller tests plain fields afterwards
 // and never looks at the environment again.
 func (r *resolvedSizing) applyEnv() {
 	if v, ok := lookupEnv(envvars.BulkShard); ok {
@@ -325,8 +328,8 @@ func (r *resolvedSizing) applyEnv() {
 		}
 	}
 
-	if v, ok := lookupEnv(envvars.BulkNode); ok {
-		if m, ok := parseSetting(v, NodeAIMD, NodeFixed); ok {
+	if v, ok := lookupEnv(envvars.BulkTarget); ok {
+		if m, ok := parseSetting(v, TargetAIMD, TargetFixed); ok {
 			r.node = m
 		}
 	}
@@ -375,15 +378,19 @@ func pick(v, def float64) float64 {
 	return def
 }
 
-// flushSample is what the indexer learned from one flush to a node.
-type flushSample struct {
-	// bytes is the size of the request body.
+// flushResult is what one buffer's flush to a node showed, across every attempt to
+// send it, retries included. The worker builds it when the last attempt has ended,
+// and the scheduler hands it to the node's byte window, the node's rate tracker and
+// the shard's controller.
+type flushResult struct {
+	// bytes is the size of the request bodies sent, summed over the attempts.
 	bytes int64
-	// latency is the time from sending the request to the end of the response.
+	// latency is the time the attempts took, from sending each request to the end of
+	// its response.
 	latency time.Duration
-	// distance is the node's round trip time on an idle connection, which is not
+	// idleRTT is the node's round trip time on an idle connection, which is not
 	// the node's doing; 0 when unknown.
-	distance time.Duration
+	idleRTT time.Duration
 	// served is set when the node indexed at least one item of the request. A request
 	// in which every item failed did no indexing, so how long it took says nothing
 	// about how fast the node indexes.
@@ -395,8 +402,10 @@ type flushSample struct {
 	// tooLarge is the size of a request the node refused for being too large (413),
 	// or 0.
 	tooLarge int64
-	// overloaded is set when the transport sees the node's write pool rejecting.
-	overloaded bool
+	// nodeWriteSaturated is the target node's writeSaturated as the flush ends. The
+	// worker reads it when the flush ends and the scheduler acts on it under its
+	// lock, so the result carries it.
+	nodeWriteSaturated bool
 	// peer is what the shard is measured against: the mean level of the other shards
 	// on its node, or the shard's own level when it is alone there, and 0 when there
 	// is nothing to measure against yet. Measuring a shard against its node means a
@@ -406,16 +415,17 @@ type flushSample struct {
 	peer float64
 }
 
-// timed reports whether the flush's duration measures how fast the node indexes:
-// it indexed something, and the node did not reject it with a 429, which is
-// answered at once because no work was done, nor fail it without an answer.
-func (f flushSample) timed() bool {
+// hasValidLatency reports whether the flush's latency is a valid measurement of how
+// fast the node indexes: the node indexed something, did not answer with a 429,
+// which it does at once because it did no work, and did not fail the flush without
+// an answer.
+func (f flushResult) hasValidLatency() bool {
 	return f.served && !f.rejected && !f.failed
 }
 
-// sizer decides how large a batch for one node should be. It is not safe for
+// shardController decides how large a batch for one node should be. It is not safe for
 // concurrent use; the scheduler's lock serializes it.
-type sizer struct {
+type shardController struct {
 	cfg resolvedSizing
 
 	target   float64
@@ -427,10 +437,15 @@ type sizer struct {
 	devS     float64 // smoothed absolute deviation of the signal around normS
 	integral float64
 	prevErr  float64
+	// nodeWriteSaturated is set when the target node is write-saturated as the last
+	// flush that steer reads ends. pinnedFlushes is how many more flushes may not
+	// grow the buffer; see pinShardSize.
+	nodeWriteSaturated bool
+	pinnedFlushes      int
 }
 
-func newSizer(cfg resolvedSizing) *sizer {
-	return &sizer{cfg: cfg, target: cfg.initial}
+func newShardController(cfg resolvedSizing) *shardController {
+	return &shardController{cfg: cfg, target: cfg.initial}
 }
 
 // start is where a shard on a node that is not overloaded starts: the ceiling,
@@ -447,7 +462,7 @@ func (r resolvedSizing) start() float64 {
 // size on a node that is not overloaded, so that a node able to take full requests
 // is sent them from the first, and initial on one that is, so that a shard joining
 // an overloaded node climbs to full size instead of adding to the load at once.
-func (s *sizer) begin(overloaded bool) {
+func (s *shardController) begin(overloaded bool) {
 	if s.begun {
 		return
 	}
@@ -459,17 +474,17 @@ func (s *sizer) begin(overloaded bool) {
 }
 
 // sampleFloor is the smallest request, in bytes, whose rate means anything.
-func (s *sizer) sampleFloor() float64 {
+func (s *shardController) sampleFloor() float64 {
 	return s.target * sizingMinSampleFraction
 }
 
 // ceiling returns the largest size the controller ever asks for.
-func (s *sizer) ceiling() int64 {
+func (s *shardController) ceiling() int64 {
 	return int64(s.cfg.max)
 }
 
 // bytes returns the batch size to aim for now.
-func (s *sizer) bytes() int64 {
+func (s *shardController) bytes() int64 {
 	return int64(s.target)
 }
 
@@ -485,12 +500,12 @@ func (s *sizer) bytes() int64 {
 //
 // It returns how many times the expected time the flush took, and false when the flush
 // was not read.
-func (s *sizer) observe(f flushSample) (float64, bool) {
-	if !f.timed() || float64(f.bytes) < s.sampleFloor() {
+func (s *shardController) observe(f flushResult) (float64, bool) {
+	if !f.hasValidLatency() || float64(f.bytes) < s.sampleFloor() {
 		return 0, false
 	}
 
-	n, ok := s.steer(f)
+	n, ok := s.update(f)
 
 	if !s.cfg.fixed {
 		s.target = math.Min(math.Max(s.target, s.cfg.min), s.cfg.max)
@@ -499,20 +514,27 @@ func (s *sizer) observe(f flushSample) (float64, bool) {
 	return n, ok
 }
 
-// seed gives a sizer that has seen nothing the best rate its node has shown, so
+// seed gives a shard controller that has seen nothing the best rate its node has shown, so
 // that its first flush is measured against what the node can do and not against
 // itself.
-func (s *sizer) seed(rate float64) {
+func (s *shardController) seed(rate float64) {
 	if s.baseRate == 0 && rate > 0 {
 		s.baseRate = rate
 	}
 }
 
-// serviceTime is the part of the round trip spent on the node: the latency less
-// the distance, but never less than a part of the whole, so that a trip shorter
-// than the measured distance cannot read as instant.
-func (f flushSample) serviceTime() time.Duration {
-	service := f.latency - f.distance
+// pinShardSize stops steer from growing the buffer for the next pinFlushes flushes it
+// reads, or leaves a longer pin in place. It does not shrink the buffer, and a
+// slowdown during the pin still does.
+func (s *shardController) pinShardSize() {
+	s.pinnedFlushes = max(s.pinnedFlushes, pinFlushes)
+}
+
+// serviceTime is the part of the round trip spent on the node: the latency less the
+// node's idle round trip time, but never less than a part of the whole, so that a
+// trip shorter than the idle round trip time cannot read as instant.
+func (f flushResult) serviceTime() time.Duration {
+	service := f.latency - f.idleRTT
 	if floor := time.Duration(float64(f.latency) * sizingMinServiceFraction); service < floor {
 		service = floor
 	}
@@ -520,9 +542,9 @@ func (f flushSample) serviceTime() time.Duration {
 	return service
 }
 
-// rate is the node's service rate for the flush, in bytes per nanosecond of time
-// on the node, and false when the flush says nothing about it.
-func (f flushSample) rate() (float64, bool) {
+// throughput is the bytes per nanosecond the node indexed for the flush, measured
+// over its service time, and false when the flush says nothing about it.
+func (f flushResult) throughput() (float64, bool) {
 	service := f.serviceTime()
 	if service <= 0 {
 		return 0, false
@@ -531,10 +553,10 @@ func (f flushSample) rate() (float64, bool) {
 	return float64(f.bytes) / float64(service), true
 }
 
-// steer applies the PID-modulated step for a flush that completed, and returns the
+// update applies the PID-modulated step for a flush that completed, and returns the
 // flush's service time over the expected.
-func (s *sizer) steer(f flushSample) (float64, bool) {
-	rate, ok := f.rate()
+func (s *shardController) update(f flushResult) (float64, bool) {
+	rate, ok := f.throughput()
 	if !ok {
 		return 0, false
 	}
@@ -554,7 +576,7 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 	// its fixed cost, then the bytes at the best rate. Without the fixed cost a
 	// small request would be judged against the bytes-per-second of large ones,
 	// which it cannot reach on any healthy node, and a controller that read that
-	// as the node slowing would answer every cut with another cut.
+	// as the node slowing would answer every reduction with another reduction.
 	expected := s.overhead + float64(f.bytes)/s.baseRate
 	n := float64(f.serviceTime()) / expected
 	if s.normS != 0 {
@@ -584,7 +606,19 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 	// e is +1 for a node as quick as ever, 0 at the headroom plus slack, and -1 or
 	// below (clamped) when it has slowed by twice the headroom plus the slack or more.
 	e := math.Min(math.Max((s.cfg.headroom+slack-slowdown)/s.cfg.headroom, -1), 1)
-	if f.overloaded {
+
+	// When the node becomes write-saturated the buffer is pinned: for the next
+	// pinFlushes flushes, e is at most 0, so the buffer cannot grow. While the node
+	// stays write-saturated after that, e is computed as usual. The transport reports
+	// saturation until a node statistics poll finds no new refusals, which can last
+	// as long as other clients are being refused, and a buffer pinned for all of it
+	// would not grow back.
+	if f.nodeWriteSaturated && !s.nodeWriteSaturated {
+		s.pinShardSize()
+	}
+	s.nodeWriteSaturated = f.nodeWriteSaturated
+	if s.pinnedFlushes > 0 {
+		s.pinnedFlushes--
 		e = math.Min(e, 0)
 	}
 
@@ -598,7 +632,7 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 	case u >= 0:
 		s.target += s.cfg.step * math.Min(u, 1)
 	default:
-		s.target *= 1 + math.Max(u, -sizingMaxCut)
+		s.target *= 1 + math.Max(u, -sizingMaxShrink)
 	}
 
 	return n, true
@@ -612,7 +646,7 @@ func (s *sizer) steer(f flushSample) (float64, bool) {
 // Only requests close to the smallest batch teach it; in larger ones the residue
 // is dominated by load, and reading load as fixed cost would absorb a node slowing
 // under its own batches.
-func (s *sizer) learnOverhead(f flushSample) {
+func (s *shardController) learnOverhead(f flushResult) {
 	s.overhead *= sizingOverheadDecay
 	if float64(f.bytes) > s.cfg.min*sizingOverheadZone {
 		return
@@ -634,8 +668,8 @@ func smoothInto(old, v float64) float64 {
 	return ewma(old, v, sizingSignalAlpha)
 }
 
-// fraction is the target as a part of the most the sizer would ask for.
-func (s *sizer) fraction() float64 {
+// fraction is the target as a part of the most the shard controller would ask for.
+func (s *shardController) fraction() float64 {
 	if s.cfg.max <= 0 {
 		return 0
 	}

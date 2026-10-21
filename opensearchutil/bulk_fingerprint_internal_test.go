@@ -25,7 +25,7 @@ import (
 )
 
 // bodyHash fingerprints an item by hashing its body. It deliberately leaves the
-// body at its end, which the indexer must repair.
+// body at its end, which the bulk client must repair.
 func bodyHash(_ context.Context, item BulkIndexerItem) (string, error) {
 	body, err := io.ReadAll(item.Body)
 	if err != nil {

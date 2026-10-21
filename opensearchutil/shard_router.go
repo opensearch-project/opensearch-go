@@ -52,26 +52,35 @@ func (n Node) pool() opensearchtransport.PoolWindow {
 	}
 }
 
+// writeSaturated reports whether the transport reports the node as write-saturated:
+// its write thread pool's queue is full, so it refuses writes with 429s. The
+// transport sets this when a client gets a 429 from the node, or when a node
+// statistics poll finds that the node refused writes since the last poll, from any
+// client, and clears it when a later poll finds no new refusals.
+func (n Node) writeSaturated() bool {
+	return n.pool().Overloaded
+}
+
 // ShardTarget is where a document with a given routing value lives.
 type ShardTarget struct {
 	// Shard is the shard number.
 	Shard int
 	// Node hosts the shard's primary. Its Name is empty when the placement is not
-	// known, in which case the indexer sends the document's batch to the node it
+	// known, in which case the bulk client sends the document's batch to the node it
 	// chooses.
 	Node Node
 	// Generation identifies the shard geometry behind this answer: the shard count
 	// and routing factor that map a routing value to a shard. It changes when the
 	// geometry does, as when an index is recreated, split or shrunk, and not when a
-	// shard moves to another node. The indexer compares it between lookups to tell
+	// shard moves to another node. The bulk client compares it between lookups to tell
 	// when a document's earlier actions may be on a different shard; see
-	// [BulkIndexer]. A router that cannot tell returns 0, and the indexer then
+	// [BulkIndexer]. A router that cannot tell returns 0, and the bulk client then
 	// never treats its answers as a change.
 	Generation uint64
 }
 
 // ShardRouter maps documents to shards and shards to nodes, and ranks nodes for
-// documents that have no shard. The indexer uses it to buffer a document with
+// documents that have no shard. The bulk client uses it to buffer a document with
 // the other documents bound for the same node, and to keep every document of
 // one shard in order.
 //
@@ -86,7 +95,7 @@ type ShardRouter interface {
 	LookupShard(index, routing string) (ShardTarget, bool)
 
 	// WriteNodes returns the nodes a document that has no shard should go to,
-	// best first. The indexer fills the first one it finds with room before it
+	// best first. The bulk client fills the first one it finds with room before it
 	// moves on.
 	WriteNodes() []Node
 }
@@ -99,7 +108,7 @@ func (noShardRouter) LookupShard(string, string) (ShardTarget, bool) { return Sh
 // WriteNodes implements [ShardRouter]; it knows no node.
 func (noShardRouter) WriteNodes() []Node { return nil }
 
-// NoShardRouter is a [ShardRouter] that knows nothing. With it the indexer ties
+// NoShardRouter is a [ShardRouter] that knows nothing. With it the bulk client ties
 // no document to a shard or a node: it buffers documents together and leaves
 // every request to the transport's own routing. Set it as
 // BulkIndexerConfig.ShardRouter to turn shard-aware buffering off.
@@ -113,7 +122,7 @@ var NoShardRouter ShardRouter = noShardRouter{}
 //
 // An index absent from the map, or mapped to a shard map that cannot be used
 // (a non-positive shard count, or a routing_num_shards that is not a multiple
-// of it), is reported as unknown. The map must not be modified while an indexer
+// of it), is reported as unknown. The map must not be modified while a bulk client
 // is using it.
 type StaticShardRouter map[string]ShardMap
 
@@ -301,7 +310,7 @@ func ClientShardRouter(client *opensearchapi.Client) ShardRouter {
 	return r
 }
 
-// clientRouter is [ClientShardRouter] with its concrete type, for the indexer's
+// clientRouter is [ClientShardRouter] with its concrete type, for the bulk client's
 // own use.
 func clientRouter(client *opensearchapi.Client) *clientShardRouter {
 	if client == nil || client.Client == nil {

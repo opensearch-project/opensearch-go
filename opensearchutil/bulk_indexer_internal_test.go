@@ -69,7 +69,7 @@ var defaultRoundTripFunc = func(*http.Request) (*http.Response, error) {
 
 // bulkOKResponse answers a bulk request that carried n actions with a success
 // for each, as the cluster does; a response with fewer results than actions is
-// one the indexer rejects.
+// one the bulk client rejects.
 func bulkOKResponse(n int) *http.Response {
 	items := strings.TrimSuffix(strings.Repeat(`{"index":{"status":200}},`, n), ",")
 
@@ -251,7 +251,7 @@ func TestWriteMeta(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bi := &bulkIndexer{
+			bi := &bulkClient{
 				metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 				metaPool:         sync.Pool{New: newMetaEncoder},
 			}
@@ -317,7 +317,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
 					FlushBytes:    50,
-					Sizing:        BulkSizing{Shard: ShardFixed, Node: NodeFixed}, // FlushBytes is the batch size, not a ceiling.
+					Sizing:        BulkSizing{Shard: ShardFixed, Target: TargetFixed}, // FlushBytes is the batch size, not a ceiling.
 					FlushInterval: time.Hour,
 					Client:        client,
 				}
@@ -458,7 +458,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				client, _ := opensearchapi.NewClient(cfg)
 				t.Cleanup(func() { _ = client.Close() })
 
-				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Sizing: BulkSizing{Shard: ShardFixed, Node: NodeFixed}, Client: client}
+				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Sizing: BulkSizing{Shard: ShardFixed, Target: TargetFixed}, Client: client}
 				bi, _ := NewBulkIndexer(biCfg)
 
 				for i := 1; i <= 2; i++ {
@@ -607,7 +607,7 @@ func TestBulkIndexerContext(t *testing.T) {
 				// and return (closing flusherDone).
 				cancel()
 				select {
-				case <-bi.(*bulkIndexer).flusherDone:
+				case <-bi.(*bulkClient).flusherDone:
 				case <-time.After(time.Second):
 					t.Fatal("flusher did not stop after construction context was cancelled")
 				}
@@ -676,7 +676,7 @@ func maskedBulkItems(cfg *opensearchapi.Config) {
 	cfg.Errors = errmask.New(errmask.BulkItems)
 }
 
-// newBulkIndexer builds an indexer on client, attaching a debug logger when
+// newBulkIndexer builds a bulk client on client, attaching a debug logger when
 // debugging is on.
 //
 // A cfg with NumWorkers set to 1 puts every item and flush callback on one
@@ -693,7 +693,7 @@ func newBulkIndexer(t *testing.T, cfg BulkIndexerConfig) BulkIndexer {
 
 // testItemCallback is what one item's OnSuccess or OnError callback reported. A
 // rejection the cluster made carries a status, and an error type when the
-// response item named one; a rejection the indexer made while writing the
+// response item named one; a rejection the bulk client made while writing the
 // request carries an error instead.
 type testItemCallback struct {
 	ID        string
@@ -985,9 +985,9 @@ func TestBulkIndexerOnErrorForARequestError(t *testing.T) {
 }
 
 // TestBulkIndexerOnErrorDetail covers what OnError reports for a rejected
-// item, whether the cluster rejected it or the indexer rejected it while writing
+// item, whether the cluster rejected it or the bulk client rejected it while writing
 // the request. In both cases the response item's Error field is readable without
-// a nil check, because the indexer fills it in for an item that has none.
+// a nil check, because the bulk client fills it in for an item that has none.
 func TestBulkIndexerOnErrorDetail(t *testing.T) {
 	t.Parallel()
 
@@ -1096,7 +1096,7 @@ func TestBulkIndexerOnErrorDetail(t *testing.T) {
 }
 
 // TestBulkIndexerOnErrorOnWriteErrors pins which write failures reach the
-// indexer's OnUnhandledError. Both failures below reject one item and both reach its
+// bulk client's OnUnhandledError. Both failures below reject one item and both reach its
 // OnError, but only a body that cannot be read is also reported to OnUnhandledError; a
 // metadata line that cannot be serialized is not.
 func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
@@ -1154,7 +1154,7 @@ func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
 	}
 }
 
-// readItemBody reads the item body a callback received. The indexer rewinds the
+// readItemBody reads the item body a callback received. The bulk client rewinds the
 // body before sending, so a callback sees it from the start and a case can assert
 // on which document reached which callback.
 //
@@ -1183,7 +1183,7 @@ const (
 	// an error after len(data) bytes reached the bulk buffer. Empty data fails
 	// the first Read, having written nothing.
 	failOnRead bodyFailure = iota
-	// failOnSeek serves the whole payload, then fails the rewind the indexer
+	// failOnSeek serves the whole payload, then fails the rewind the bulk client
 	// performs so the caller-supplied body stays reusable.
 	failOnSeek
 )
@@ -1222,7 +1222,7 @@ func TestBulkIndexerOwnClientFlag(t *testing.T) {
 	t.Run("implicit client is owned", func(t *testing.T) {
 		bi, err := NewBulkIndexer(BulkIndexerConfig{})
 		require.NoError(t, err)
-		require.True(t, bi.(*bulkIndexer).implicitClient)
+		require.True(t, bi.(*bulkClient).implicitClient)
 		require.NoError(t, bi.Close(context.Background()))
 	})
 
@@ -1233,13 +1233,13 @@ func TestBulkIndexerOwnClientFlag(t *testing.T) {
 
 		bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client})
 		require.NoError(t, err)
-		require.False(t, bi.(*bulkIndexer).implicitClient)
+		require.False(t, bi.(*bulkClient).implicitClient)
 		require.NoError(t, bi.Close(context.Background()))
 	})
 
 	t.Run("owned client is closed even when Close context is cancelled", func(t *testing.T) {
 		// bulkIndexer.Close early-returns on a cancelled context; the owned
-		// client must still be closed (via defer), or the leak this indexer
+		// client must still be closed (via defer), or the leak this bulk client
 		// avoids would resurface on the cancel path. Observe the close through
 		// the transport's CloseIdleConnections passthrough.
 		tr := &closeRecordingTransport{}
@@ -1250,7 +1250,7 @@ func TestBulkIndexerOwnClientFlag(t *testing.T) {
 		require.NoError(t, err)
 		// Force ownership so Close treats this supplied client as implicitly
 		// created (the real nil-client path also sets this).
-		bi.(*bulkIndexer).implicitClient = true
+		bi.(*bulkClient).implicitClient = true
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -1304,7 +1304,7 @@ func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
 	)
 
 	var mu sync.Mutex
-	// requests holds the action lines of each bulk request the indexer sent.
+	// requests holds the action lines of each bulk request the bulk client sent.
 	var requests [][]string
 
 	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{
@@ -1373,7 +1373,7 @@ func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
 	require.Equal(t, 1, requestsCarryingHotDoc, "actions for %s must not be split across requests", hotDocID)
 }
 
-// bulkRecorder records the action lines of every bulk request an indexer sends.
+// bulkRecorder records the action lines of every bulk request a bulk client sends.
 type bulkRecorder struct {
 	mu struct {
 		sync.Mutex
@@ -1657,7 +1657,7 @@ func TestBulkIndexerFlushRejectsCancelledContext(t *testing.T) {
 
 // newParkedBulkTestClient returns a client that parks every bulk request until
 // the test ends, plus a channel that receives once the first such request has
-// arrived. Non-bulk requests are answered normally so the indexer still starts.
+// arrived. Non-bulk requests are answered normally so the bulk client still starts.
 // A parked request holds the worker that issued it, so that worker stops
 // draining its queue, which is how a test sequences Flush without sleeping.
 func newParkedBulkTestClient(t *testing.T) (*opensearchapi.Client, <-chan struct{}) {
@@ -1731,7 +1731,7 @@ func TestBulkIndexerFlushDoesNotHangWhenConstructionContextCancelled(t *testing.
 	require.NoError(t, err)
 
 	cancel()
-	<-bi.(*bulkIndexer).flusherDone
+	<-bi.(*bulkClient).flusherDone
 
 	// A live context, deliberately, rather than the cancelled one: the workers
 	// are gone, so a Flush that only watched the caller's context would wait
@@ -1857,7 +1857,7 @@ func TestBulkIndexerFlushIsSafeForConcurrentUse(t *testing.T) {
 }
 
 func newTestWorker() *worker {
-	bi := &bulkIndexer{
+	bi := &bulkClient{
 		stats:            &bulkIndexerStats{},
 		now:              time.Now,
 		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
@@ -2053,14 +2053,14 @@ func TestWorkerFlushGuardsMismatchedResponseCount(t *testing.T) {
 	require.NoError(t, err)
 
 	err = w.flush(t.Context())
-	require.ErrorContains(t, err, "bulk response has 2 items, indexer serialized 1")
+	require.ErrorContains(t, err, "bulk response has 2 items, bulk client serialized 1")
 	require.Equal(t, uint64(1), failed.Load())
 	require.Equal(t, uint64(1), w.bi.stats.numFailed.Load())
 	require.Equal(t, 0, w.buf.Len())
 	require.Empty(t, w.items)
 }
 
-// referenceMeta writes the action line as the indexer did before metaEncoder: a fresh
+// referenceMeta writes the action line as the bulk client did before metaEncoder: a fresh
 // encoder and a map of the metadata for every item.
 func referenceMeta(t *testing.T, item BulkIndexerItem) string {
 	t.Helper()
@@ -2084,7 +2084,7 @@ func referenceMeta(t *testing.T, item BulkIndexerItem) string {
 }
 
 // TestMetaEncoderReuse writes the action line for a series of items with one
-// metaEncoder, as the pool does, and checks each line against the one the indexer used
+// metaEncoder, as the pool does, and checks each line against the one the bulk client used
 // to write: byte for byte, and with nothing of an earlier item's fields, key or pointers
 // left in the encoder.
 func TestMetaEncoderReuse(t *testing.T) {
@@ -2143,7 +2143,7 @@ func TestMetaEncoderFailure(t *testing.T) {
 
 // TestBulkIndexerOrderKey: items that share an order key are written in the order
 // they were added. The key is the document id, else the item's routing, else the
-// indexer's routing; an item with none has no order to keep.
+// bulk client's routing; an item with none has no order to keep.
 func TestBulkIndexerOrderKey(t *testing.T) {
 	t.Parallel()
 
@@ -2177,7 +2177,7 @@ func TestBulkIndexerOrderKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			bi := &bulkIndexer{config: BulkIndexerConfig{Routing: tt.configRouting}}
+			bi := &bulkClient{config: BulkIndexerConfig{Routing: tt.configRouting}}
 
 			require.Equal(t, tt.want, bi.orderKey(tt.item))
 		})
@@ -2265,14 +2265,14 @@ func TestBulkIndexerWorkersDone(t *testing.T) {
 	t.Run("an indexer without a construction context never signals", func(t *testing.T) {
 		t.Parallel()
 
-		require.Nil(t, (&bulkIndexer{}).workersDone())
+		require.Nil(t, (&bulkClient{}).workersDone())
 	})
 
 	t.Run("the construction context ends the workers", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithCancel(t.Context())
-		bi := &bulkIndexer{config: BulkIndexerConfig{Context: ctx}}
+		bi := &bulkClient{config: BulkIndexerConfig{Context: ctx}}
 		done := bi.workersDone()
 
 		select {
@@ -2357,7 +2357,7 @@ func TestIsThrottled(t *testing.T) {
 }
 
 func BenchmarkWriteMeta(b *testing.B) {
-	bi := &bulkIndexer{
+	bi := &bulkClient{
 		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 		metaPool:         sync.Pool{New: newMetaEncoder},
 	}

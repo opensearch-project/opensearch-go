@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBulkIndexerChunkPoolReturnsEveryChunk sends many batches through an indexer and
-// checks that no pooled chunk leaks: once the indexer is idle, every chunk that was
+// TestBulkIndexerChunkPoolReturnsEveryChunk sends many batches through a bulk client and
+// checks that no pooled chunk leaks: once the bulk client is idle, every chunk that was
 // handed out has been given back, and the pool served some of them from what it already
 // held. How many it can reuse depends on the garbage collector, which empties a
 // sync.Pool, so the test does not ask for a ratio.
@@ -41,7 +41,7 @@ func TestBulkIndexerChunkPoolReturnsEveryChunk(t *testing.T) {
 			t.Parallel()
 
 			h := newSizingHarness(t, ceilingDocs, tt.shardsPerNode, tt.nodes...)
-			bi := h.bi.(*bulkIndexer)
+			bi := h.bi.(*bulkClient)
 
 			for range rounds {
 				for _, node := range tt.nodes {

@@ -369,7 +369,7 @@ func (b *chunkBuffer) String() string {
 	return string(out)
 }
 
-// byteBudget bounds the bytes an indexer holds between Add and the end of the
+// byteBudget bounds the bytes a bulk client holds between Add and the end of the
 // flush that sends them. Add allocates bytes from the budget before it queues an
 // item, a worker adjusts the amount to what it actually wrote, and the flush that
 // ends the item's life returns them. When the budget is spent Add waits; that wait
@@ -404,7 +404,7 @@ type byteBudget struct {
 	}
 
 	// onBlock, when set, is called without the lock each time an acquire begins
-	// to wait. The indexer uses it to flush buffered data that is not on its way
+	// to wait. The bulk client uses it to flush buffered data that is not on its way
 	// out already, so the wait does not last until the next flush interval.
 	onBlock budgetBlockFunc
 	// onUnblock, when set, is called with the time an acquire waited, once the
@@ -412,7 +412,7 @@ type byteBudget struct {
 	onUnblock AddBlockedFunc
 	// now is the clock the blocked time is read from.
 	now func() time.Time
-	// halt, when set, ends every wait for room when it closes, as the indexer's
+	// halt, when set, ends every wait for room when it closes, as the bulk client's
 	// Cancel does.
 	halt <-chan struct{}
 
@@ -438,7 +438,7 @@ func newByteBudget(limit int64) *byteBudget {
 }
 
 // errBudgetStopped is returned by acquire when the stop channel closes first.
-var errBudgetStopped = errors.New("opensearchutil: bulk indexer stopped while waiting for buffer space")
+var errBudgetStopped = errors.New("opensearchutil: bulk client stopped while waiting for buffer space")
 
 // acquire takes n bytes for the shard key, waiting while they are not there. It
 // returns the amount taken: n, or the limit when n is larger, because an item

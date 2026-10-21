@@ -25,7 +25,7 @@ import (
 const quiet = 100 * time.Millisecond
 
 // heldRequest is a cluster, a server whose bulk requests are held until release
-// is called, and an indexer that sends every item as a request of its own. Add of
+// is called, and a bulk client that sends every item as a request of its own. Add of
 // the first item returns with its request in flight.
 type heldRequest struct {
 	cluster *fakeCluster
@@ -47,7 +47,7 @@ func newHeldRequest(t *testing.T, m ShardMap) *heldRequest {
 	h.release = sync.OnceFunc(func() { close(server.gate) })
 	t.Cleanup(h.release)
 
-	h.bi = newClusterIndexer(t, server, fixedBatches(docBytes("idx", "x", 1), 1))
+	h.bi = newBulkClient(t, server, fixedBatches(docBytes("idx", "x", 1), 1))
 
 	return h
 }
@@ -173,7 +173,7 @@ func TestBulkIndexerSendsBufferedItemsWhenTheShardMapChanges(t *testing.T) {
 			cluster := newFakeCluster(map[string]ShardMap{"idx": before}, "n0")
 			cluster.setShardMap("idx", before)
 			server := newFakeServer(cluster)
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
+			bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
 
 			var succeeded, failed atomic.Int64
 			item := func(seq int) BulkIndexerItem {
@@ -284,7 +284,7 @@ func TestBulkIndexerKeepsOrderWhenAnAddWaitingForMemorySpansAChange(t *testing.T
 			if tt.heldElsewhere {
 				cfg.MaxMemoryBytes = int(2 * oneItem)
 			}
-			bi := newClusterIndexer(t, server, cfg).(*bulkIndexer)
+			bi := newBulkClient(t, server, cfg).(*bulkClient)
 
 			blocked := make(chan struct{}, 4)
 			relieve := bi.budget.onBlock
@@ -353,7 +353,7 @@ func TestBulkIndexerIgnoresAChangeAnUnversionedRouterReports(t *testing.T) {
 
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0")
 	server := newFakeServer(cluster)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
+	bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 2, FlushInterval: time.Hour})
 
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Index: "idx", Action: actionIndex, DocumentID: "a", Body: seqBody(1),
@@ -399,7 +399,7 @@ func TestBulkIndexerKeepsOrderWhenAShardRelocates(t *testing.T) {
 
 // TestBulkIndexerKeepsOrderWhenTheShardsNodeDisappears: the router still places the
 // document's shard but no longer knows a node for it. The shard keeps its order,
-// and its next request goes to the node the indexer chooses.
+// and its next request goes to the node the bulk client chooses.
 func TestBulkIndexerKeepsOrderWhenTheShardsNodeDisappears(t *testing.T) {
 	t.Parallel()
 

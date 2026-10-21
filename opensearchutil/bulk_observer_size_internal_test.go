@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// doneSizes records the Bytes of each item the indexer is done with, by document id.
+// doneSizes records the Bytes of each item the bulk client is done with, by document id.
 type doneSizes struct {
 	BaseBulkIndexerObserver
 
@@ -57,7 +57,7 @@ func TestBulkItemEventBytes(t *testing.T) {
 	}
 
 	sizes := &doneSizes{}
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter, Observer: sizes})
+	bi := newBulkClient(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter, Observer: sizes})
 
 	add := func(item BulkIndexerItem) {
 		t.Helper()
@@ -106,7 +106,7 @@ func TestBulkItemEventBytesOfARefusedItem(t *testing.T) {
 	const doc = `{"title":"never sent"}`
 
 	sizes := &doneSizes{}
-	bi := newClusterIndexer(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{
+	bi := newBulkClient(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{
 		ShardRouter: NoShardRouter,
 		Observer:    sizes,
 		RetryPolicy: retryOnce, // A retry needs an id, and this item has none.

@@ -14,7 +14,7 @@ import (
 )
 
 // ErrMissingDocumentID is the error an item fails with when it has no
-// DocumentID and the indexer must not send it without one: a [RetryPolicy] is
+// DocumentID and the bulk client must not send it without one: a [RetryPolicy] is
 // set, so a retried item has to keep the id it was first sent under, and no
 // [DocumentFingerprinter] supplied one.
 var ErrMissingDocumentID = errors.New("opensearchutil: bulk item has no document ID")
@@ -35,7 +35,7 @@ var ErrMissingDocumentID = errors.New("opensearchutil: bulk item has no document
 // A hash of the body is the usual choice. The returned id must not be empty;
 // an empty id is [ErrMissingDocumentID].
 //
-// item.Body may be read to compute the id. The indexer rewinds it afterwards,
+// item.Body may be read to compute the id. The bulk client rewinds it afterwards,
 // so the fingerprinter need not, but it must not close it.
 //
 // An error returned here fails only that item, through its OnError, without
@@ -43,13 +43,13 @@ var ErrMissingDocumentID = errors.New("opensearchutil: bulk item has no document
 // OnError the error goes to OnUnhandledError instead.
 type DocumentFingerprinter func(ctx context.Context, item BulkIndexerItem) (string, error)
 
-// ensureDocumentID gives item a DocumentID when it lacks one and the indexer's
+// ensureDocumentID gives item a DocumentID when it lacks one and the bulk client's
 // configuration says it needs one, returning the item to queue. It returns an
 // error when the item cannot be given one and must not be sent.
 //
 // An item without an id is left alone when no fingerprinter and no retry policy
 // is configured: the cluster then generates the id, as it always has.
-func (bi *bulkIndexer) ensureDocumentID(ctx context.Context, item BulkIndexerItem) (BulkIndexerItem, error) {
+func (bi *bulkClient) ensureDocumentID(ctx context.Context, item BulkIndexerItem) (BulkIndexerItem, error) {
 	if item.DocumentID != "" {
 		return item, nil
 	}
@@ -71,7 +71,7 @@ func (bi *bulkIndexer) ensureDocumentID(ctx context.Context, item BulkIndexerIte
 	}
 	item.DocumentID = id
 
-	// The fingerprinter may have read the body; the indexer reads it from the start.
+	// The fingerprinter may have read the body; the bulk client reads it from the start.
 	if item.Body != nil {
 		if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
 			return item, fmt.Errorf("rewind body after fingerprinting: %w", err)
@@ -84,7 +84,7 @@ func (bi *bulkIndexer) ensureDocumentID(ctx context.Context, item BulkIndexerIte
 // rejectItem fails an item that was refused before it was placed in a buffer. The
 // item's OnError hears of it; an item without one has the error reported to
 // OnUnhandledError, since nothing else would. It runs on the caller's goroutine.
-func (bi *bulkIndexer) rejectItem(ctx context.Context, item BulkIndexerItem, err error) {
+func (bi *bulkClient) rejectItem(ctx context.Context, item BulkIndexerItem, err error) {
 	w := worker{bi: bi}
 	if unhandled := w.failUnsent(ctx, item, err, 0); unhandled != nil && bi.config.OnUnhandledError != nil {
 		bi.config.OnUnhandledError(ctx, unhandled)

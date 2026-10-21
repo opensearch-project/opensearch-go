@@ -30,9 +30,9 @@ func itemErrorResponse(status int) func(sentRequest, string) (int, string) {
 	}
 }
 
-// newTimedIndexer builds an indexer that sends everything in one request at Close,
+// newTimedIndexer builds a bulk client that sends everything in one request at Close,
 // reads the time from clock, and whose server takes took to answer each request.
-func newTimedIndexer(t *testing.T, server *fakeServer, cfg BulkIndexerConfig, took time.Duration) (*bulkIndexer, *manualClock) {
+func newTimedIndexer(t *testing.T, server *fakeServer, cfg BulkIndexerConfig, took time.Duration) (*bulkClient, *manualClock) {
 	t.Helper()
 
 	clock := newManualClock()
@@ -40,7 +40,7 @@ func newTimedIndexer(t *testing.T, server *fakeServer, cfg BulkIndexerConfig, to
 	cfg.NumWorkers = 1
 	cfg.FlushInterval = time.Hour
 	cfg.ShardRouter = NoShardRouter
-	bi := newClusterIndexer(t, server, cfg).(*bulkIndexer)
+	bi := newBulkClient(t, server, cfg).(*bulkClient)
 	bi.now = clock.Now
 	bi.epoch = clock.Now()
 
@@ -53,7 +53,7 @@ func TestBulkIndexerStatsCountsBytes(t *testing.T) {
 	t.Parallel()
 
 	server := newFakeServer(newFakeCluster(nil))
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 1, FlushInterval: time.Hour, ShardRouter: NoShardRouter})
+	bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 1, FlushInterval: time.Hour, ShardRouter: NoShardRouter})
 
 	bodies := []string{`{"a":1}`, `{"bb":22}`, `{"c":3}`}
 	for i, body := range bodies {
@@ -192,7 +192,7 @@ func TestBulkIndexerStatsCountsErrorsByLayerAndKind(t *testing.T) {
 
 		stats := bi.Stats()
 		require.EqualValues(t, 2, stats.NumFailed)
-		require.EqualValues(t, 2, stats.Errors[LayerIndexer][KindCanceled])
+		require.EqualValues(t, 2, stats.Errors[LayerClient][KindCanceled])
 	})
 }
 
@@ -206,7 +206,7 @@ type gaugeHarness struct {
 	server *fakeServer
 	// ids holds document IDs on each shard.
 	ids [2][]string
-	// end ends the indexer's construction context.
+	// end ends the bulk client's construction context.
 	end context.CancelFunc
 }
 
@@ -227,7 +227,7 @@ func newGaugeHarness(t *testing.T) *gaugeHarness {
 	cfg := fixedBatches(docBytes("idx", h.ids[0][0], 1000000), 1)
 	cfg.NumWorkers = 1
 	cfg.Context, h.end = context.WithCancel(t.Context())
-	h.bi = newClusterIndexer(t, h.server, cfg)
+	h.bi = newBulkClient(t, h.server, cfg)
 
 	return h
 }
@@ -348,7 +348,7 @@ func TestBulkIndexerStatsCountsPressureFlushes(t *testing.T) {
 	cfg.NumWorkers = 1
 	cfg.MaxMemoryBytes = int(itemBytes) * 4
 	cfg.ShardRouter = NoShardRouter
-	bi := newClusterIndexer(t, server, cfg)
+	bi := newBulkClient(t, server, cfg)
 
 	for i := range 20 {
 		addDoc(t, bi, "idx", "doc", 1000+i%10)
