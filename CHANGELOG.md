@@ -18,6 +18,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Fix `opensearchutil.BulkIndexer` throughput when it buffers by shard. It held each node to the write pool window the transport tracks, which starts at one request, moves only on each node statistics poll, never exceeds the pool's thread count, and halves whenever the pool is busy with work queued, and to one request while the node was write-saturated. A node now has up to `NumWorkers` requests in flight, or `GOMAXPROCS` when `NumWorkers` is 0, and a 429 backs it off by shrinking its byte window. The pool window still chooses the node for documents that belong to no shard
 - Fix `opensearchutil.BulkIndexer` holding a node's byte window and its shards' buffers at their size for as long as the transport reported the node write-saturated. That report lasts until a node statistics poll finds no new refusals, seconds later, and longer while other clients keep being refused, so a window shrunk by a 429 could not grow back. The start of the report now pins the window's and each shard buffer's growth for a few flushes, as a 429 does, and they then grow again, the node's own 429s governing the window
+- Fix `opensearchtransport.Connection.WritePool` reporting a window of one request for a node whose pool sizes had not arrived yet. It now reports the transport's initial window, four requests per allocated processor, as its documentation says and as the routers use
 
 ### Security
 

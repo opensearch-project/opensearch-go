@@ -263,21 +263,23 @@ type PoolWindow struct {
 }
 
 // WritePool returns the node's write thread pool window. A node whose pool
-// information has not arrived yet reports the transport's initial window.
+// information has not arrived yet, so that its pool size is unknown, reports the
+// transport's initial window, as the routers use: four requests per allocated
+// processor.
 func (conn *Connection) WritePool() PoolWindow {
-	w := PoolWindow{
-		Window:     int(conn.loadCwnd(poolWrite, true)),
-		InFlight:   int(conn.loadInFlight(poolWrite)),
-		Overloaded: conn.isPoolOverloaded(poolWrite),
-	}
-
+	var maxWindow int
 	if pc := conn.pools.get(poolWrite); pc != nil {
 		pc.mu.Lock()
-		w.MaxWindow = int(pc.mu.maxCwnd)
+		maxWindow = int(pc.mu.maxCwnd)
 		pc.mu.Unlock()
 	}
 
-	return w
+	return PoolWindow{
+		Window:     int(conn.loadCwnd(poolWrite, maxWindow > 0)),
+		MaxWindow:  maxWindow,
+		InFlight:   int(conn.loadInFlight(poolWrite)),
+		Overloaded: conn.isPoolOverloaded(poolWrite),
+	}
 }
 
 // writeNodeKey is the context key for [WithWriteNode].
