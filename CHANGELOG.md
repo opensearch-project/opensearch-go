@@ -8,13 +8,16 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Rename the `opensearchutil` names added in 5.1.0 to describe the bulk client rather than an indexer, and to say which unit they measure. 5.1.2 supersedes 5.1.0 and 5.1.1, so the old names are removed rather than deprecated: `ErrBulkIndexerClosed`, `ErrIndexerCanceled` and `ErrIndexerLayer` are `ErrBulkClientClosed`, `ErrBulkClientCanceled` and `ErrClientLayer`; `LayerIndexer` is `LayerClient`, whose `String()`, and the `layer` label the `osprom` and `osotel` bulk observers record, is `client`; `BulkIndexerStats.BudgetFill` is `Utilization`; `NodeSizing`, `NodeUnset`, `NodeAIMD`, `NodeFixed`, `BulkSizing.Node` and `BulkIndexerConfig.NodeBytes` are `TargetSizing`, `TargetUnset`, `TargetAIMD`, `TargetFixed`, `BulkSizing.Target` and `TargetBytes`; `OPENSEARCH_GO_BULK_NODE` is `OPENSEARCH_GO_BULK_TARGET`; `NodeStats`, `GetNodeStats` and `JobNodeStats` are `BulkTargetStats`, `GetTargetStats` and `JobTargetStats`; and `BulkIndexerStats.NodeWindow`, `NumNodes` and `FlushNode` are `TargetWindow`, `NumTargets` and `FlushTarget`. The bulk client's error messages say "bulk client"
+
 ### Deprecated
 
 ### Removed
 
 ### Fixed
 
-- Fix `opensearchutil.BulkIndexer` throughput when it buffers by shard. It held each node to the write pool window the transport tracks, which starts at one request, moves only on each node statistics poll, never exceeds the pool's thread count, and halves whenever the pool is busy with work queued, and to one request while the pool rejected. A node now has up to `NumWorkers` requests in flight, or `GOMAXPROCS` when `NumWorkers` is 0, and a 429 backs it off by shrinking its byte window. The pool window still chooses the node for documents that belong to no shard
+- Fix `opensearchutil.BulkIndexer` throughput when it buffers by shard. It held each node to the write pool window the transport tracks, which starts at one request, moves only on each node statistics poll, never exceeds the pool's thread count, and halves whenever the pool is busy with work queued, and to one request while the node was write-saturated. A node now has up to `NumWorkers` requests in flight, or `GOMAXPROCS` when `NumWorkers` is 0, and a 429 backs it off by shrinking its byte window. The pool window still chooses the node for documents that belong to no shard
+- Fix `opensearchutil.BulkIndexer` holding a node's byte window and its shards' buffers at their size for as long as the transport reported the node write-saturated. That report lasts until a node statistics poll finds no new refusals, seconds later, and longer while other clients keep being refused, so a window shrunk by a 429 could not grow back. The start of the report now pins the window's and each shard buffer's growth for a few flushes, as a 429 does, and they then grow again, the node's own 429s governing the window
 
 ### Security
 
