@@ -469,23 +469,20 @@ endif
 		done; \
 	}
 
-RELEASE_ENV = RELEASE_TAG="$(release-tag)" SUBMODULES="$(SUBMODULES)" DRY_RUN="$(DRY_RUN)" ALLOW_EMPTY="$(allow-empty)" \
-	UPSTREAM_REMOTE="$(UPSTREAM_REMOTE)" RELEASE_REMOTE="$(RELEASE_REMOTE)" MERGE_COMMIT="$(MERGE_COMMIT)"
+RELEASE_ENV = RELEASE_TAG="$(release-tag)" SUBMODULES="$(SUBMODULES)" ALLOW_EMPTY="$(allow-empty)" \
+	UPSTREAM_REMOTE="$(UPSTREAM_REMOTE)" RELEASE_REMOTE="$(RELEASE_REMOTE)"
 
-release: ## Show how to cut a release, and the next release tags
-	@$(RELEASE_ENV) .github/release.sh overview
+release: ## Print the release runbook for release-tag=vX.Y.Z, marking the current step
+	@$(RELEASE_ENV) .github/release.sh plan
 
-start-release: ## Stage a release in a new worktree for review (release-tag=vX.Y.Z)
-	@$(RELEASE_ENV) .github/release.sh start
+release-prepare: ## Edit CHANGELOG.md and version.go for release-tag=vX.Y.Z (no commit)
+	@$(RELEASE_ENV) .github/release.sh prepare
 
-finish-release: ## In the release worktree: commit, pin nested modules, push, open the PR (allow-empty=1; DRY_RUN=1 to preview)
-	@$(RELEASE_ENV) .github/release.sh finish
+release-pin: ## Point nested modules at the merged prepare commit for release-tag=vX.Y.Z (no commit)
+	@$(RELEASE_ENV) .github/release.sh pin
 
-abort-release: ## Discard a started release (in its worktree, or release-tag=vX.Y.Z)
-	@$(RELEASE_ENV) .github/release.sh abort
-
-release-tag-request: ## After the release PR merges, verify it and file the signed-tag request (release-tag=vX.Y.Z)
-	@$(RELEASE_ENV) .github/release.sh tag-request
+release-verify: ## Check the merged pin commit for release-tag=vX.Y.Z and print the tag request
+	@$(RELEASE_ENV) .github/release.sh verify
 
 godoc: ## Display documentation for the package
 	@printf "\033[2m-> Generating documentation...\033[0m\n"
