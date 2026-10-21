@@ -7,7 +7,6 @@
 package opensearchtransport
 
 import (
-	"math"
 	"sync"
 	"sync/atomic"
 )
@@ -40,9 +39,11 @@ type poolCongestion struct {
 	mu struct {
 		sync.Mutex
 		maxCwnd          int32 // ceiling from thread pool config (0 = unknown)
+		maxQueue         int32 // queue capacity from thread pool config (0 = unknown or unbounded)
 		ssthresh         int32 // slow-start threshold
 		prevCompleted    int64
 		prevRejected     int64
+		prevQueue        int
 		prevWaitTimeNano int64
 		hasWaitTime      bool // pool reports total_wait_time_in_nanos (RESIZABLE)
 	}
@@ -139,6 +140,17 @@ func (r *poolRegistry) setMaxCwnd(name string, size int32) {
 		Msg("setMaxCwnd: updated congestion window ceiling")
 }
 
+// setMaxQueue stores the thread pool's configured queue capacity, which the stats
+// poller reads to tell a pool about to reject from one that is merely busy. A
+// capacity of 0 or less, which the node reports as -1 for an unbounded queue, is
+// stored as unknown. Called by discovery with the pool sizes.
+func (r *poolRegistry) setMaxQueue(name string, capacity int32) {
+	pc := r.getOrCreate(name)
+	pc.mu.Lock()
+	pc.mu.maxQueue = max(capacity, 0)
+	pc.mu.Unlock()
+}
+
 // maxCwndOrDefault returns maxCwnd if positive, otherwise a default ceiling
 // of defaultSyntheticCwndMultiplier * defaultServerCoreCount.
 func maxCwndOrDefault(maxCwnd int32) int32 {
@@ -169,7 +181,9 @@ type ThreadPoolStats struct {
 //   - delta(rejected) > 0 -> pool-overloaded: set overloaded flag, halve cwnd
 //   - No rejected, delta(completed) > 0:
 //   - RESIZABLE pool with wait-time: use wait_per_completed as signal
-//   - Other pools: use queue saturation as fallback signal
+//   - Other pools: congested when the queue is at half its capacity or more, or
+//     grew by more than the pool's thread count since the last poll; see
+//     queueCongested
 //   - Congested -> multiplicative decrease (cwnd /= 2)
 //   - Not congested, cwnd < ssthresh -> slow start (cwnd *= 2)
 //   - Not congested, cwnd >= ssthresh -> congestion avoidance (cwnd += 1)
@@ -179,8 +193,10 @@ func applyPoolAIMD(pc *poolCongestion, stats ThreadPoolStats) {
 
 	deltaCompleted := stats.Completed - pc.mu.prevCompleted
 	deltaRejected := stats.Rejected - pc.mu.prevRejected
+	prevQueue := pc.mu.prevQueue
 	pc.mu.prevCompleted = stats.Completed
 	pc.mu.prevRejected = stats.Rejected
+	pc.mu.prevQueue = stats.Queue
 
 	cwnd := max(pc.cwnd.Load(), 1)
 	maxCwnd := pc.mu.maxCwnd
@@ -215,9 +231,7 @@ func applyPoolAIMD(pc *poolCongestion, stats ThreadPoolStats) {
 			congested = waitPerCompleted >= waitThresholdNanos
 		}
 	} else if !pc.mu.hasWaitTime {
-		// Fallback: queue saturation for pools without wait-time data.
-		active := int32(min(stats.Active, math.MaxInt32)) //nolint:gosec // thread count; overflow impossible
-		congested = stats.Queue > 0 && active >= maxCwndOrDefault(maxCwnd)
+		congested = queueCongested(stats.Queue, prevQueue, int(pc.mu.maxQueue), int(maxCwndOrDefault(maxCwnd)))
 	}
 
 	switch {
@@ -233,6 +247,20 @@ func applyPoolAIMD(pc *poolCongestion, stats ThreadPoolStats) {
 		// Congestion avoidance: additive increase.
 		pc.cwnd.Store(min(cwnd+1, maxCwndOrDefault(maxCwnd)))
 	}
+}
+
+// queueCongested is the congestion signal of a pool that reports no wait time,
+// such as the FIXED write pool: its queue is at half its capacity or more, so it
+// is close to rejecting, or the queue grew by more than threads, the pool's
+// thread count, since the last poll, so work is arriving faster than the pool
+// serves it. A pool whose threads are all busy with a steady queue is fully used,
+// which is how a pool being fed well looks, and is not congested. capacity is 0
+// when the queue's capacity is unknown or unbounded.
+func queueCongested(queue, prevQueue, capacity, threads int) bool {
+	nearCapacity := capacity > 0 && 2*queue >= capacity
+	growing := queue-prevQueue > threads
+
+	return nearCapacity || growing
 }
 
 // updatePoolCongestion updates all pool congestion states for a connection

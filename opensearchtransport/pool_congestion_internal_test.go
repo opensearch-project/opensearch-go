@@ -147,24 +147,76 @@ func TestApplyPoolAIMD_MultiplicativeDecrease_WaitTime(t *testing.T) {
 	pc.mu.Unlock()
 }
 
-func TestApplyPoolAIMD_QueueSaturationFallback(t *testing.T) {
+// TestApplyPoolAIMD_QueueCongestion: a pool that reports no wait time, such as the
+// FIXED write and get pools, is congested when its queue nears capacity or grows
+// faster than its threads drain it, and not merely because every thread is busy
+// with work queued, which is how a pool being fed well looks.
+func TestApplyPoolAIMD_QueueCongestion(t *testing.T) {
 	t.Parallel()
 
-	pc := &poolCongestion{}
-	pc.cwnd.Store(8)
-	pc.mu.Lock()
-	pc.mu.maxCwnd = 8
-	pc.mu.ssthresh = 8
-	// hasWaitTime = false (non-RESIZABLE pool)
-	pc.mu.Unlock()
+	const threads = 8
 
-	// Queue > 0 and Active >= maxCwnd -> congested.
-	applyPoolAIMD(pc, ThreadPoolStats{
-		Completed: 100,
-		Queue:     5,
-		Active:    8, // == maxCwnd
-	})
-	require.Equal(t, int32(4), pc.cwnd.Load(), "queue saturation should halve cwnd")
+	tests := []struct {
+		name      string
+		maxQueue  int32
+		prevQueue int
+		queue     int
+		wantCwnd  int32
+	}{
+		{name: "all threads busy with a steady queue grows", prevQueue: 5, queue: 5, wantCwnd: 8},
+		{name: "a queue that grew by no more than the threads grows", prevQueue: 5, queue: 5 + threads, wantCwnd: 8},
+		{name: "a queue that grew by more than the threads halves", prevQueue: 5, queue: 6 + threads, wantCwnd: 2},
+		{name: "a queue at half its capacity halves", maxQueue: 20, prevQueue: 10, queue: 10, wantCwnd: 2},
+		{name: "a queue below half its capacity grows", maxQueue: 20, prevQueue: 9, queue: 9, wantCwnd: 8},
+		{name: "a long steady queue of unknown capacity grows", prevQueue: 500, queue: 500, wantCwnd: 8},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			pc := &poolCongestion{}
+			pc.cwnd.Store(4)
+			pc.mu.Lock()
+			pc.mu.maxCwnd = threads
+			pc.mu.ssthresh = threads
+			pc.mu.maxQueue = tt.maxQueue
+			pc.mu.prevQueue = tt.prevQueue
+			pc.mu.Unlock()
+
+			applyPoolAIMD(pc, ThreadPoolStats{Completed: 100, Queue: tt.queue, Active: threads})
+
+			require.Equal(t, tt.wantCwnd, pc.cwnd.Load())
+		})
+	}
+}
+
+func TestStoreThreadPoolSizesRecordsTheQueueCapacity(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		queueSize int
+		want      int32
+	}{
+		{name: "a bounded queue", queueSize: 10000, want: 10000},
+		{name: "an unbounded queue is unknown", queueSize: -1, want: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conn := &Connection{}
+			storeThreadPoolSizes(conn, map[string]nodeInfoThreadPool{poolWrite: {Size: 8, QueueSize: tt.queueSize}})
+
+			pc := conn.pools.get(poolWrite)
+			require.NotNil(t, pc)
+			pc.mu.Lock()
+			defer pc.mu.Unlock()
+			require.Equal(t, tt.want, pc.mu.maxQueue)
+		})
+	}
 }
 
 func TestApplyPoolAIMD_RejectedSetsOverloaded(t *testing.T) {

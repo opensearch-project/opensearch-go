@@ -29,6 +29,7 @@ package opensearchtransport
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"sync"
@@ -562,6 +563,12 @@ func (conn *Connection) isPoolOverloaded(poolName string) bool {
 // Called by discovery when pool sizes are received.
 func (conn *Connection) storeMaxCwnd(poolName string, size int) {
 	conn.pools.setMaxCwnd(poolName, int32(size)) //nolint:gosec // pool sizes fit int32
+}
+
+// storeMaxQueue sets the thread pool's configured queue capacity, -1 for an
+// unbounded queue. Called by discovery when pool sizes are received.
+func (conn *Connection) storeMaxQueue(poolName string, capacity int) {
+	conn.pools.setMaxQueue(poolName, int32(min(capacity, math.MaxInt32))) //nolint:gosec // bounded above
 }
 
 // String returns a readable connection representation.
