@@ -46,6 +46,10 @@ type poolCongestion struct {
 		prevQueue        int
 		prevWaitTimeNano int64
 		hasWaitTime      bool // pool reports total_wait_time_in_nanos (RESIZABLE)
+		// polled is set by the first stats poll, which only records the
+		// cumulative counters. Until then the prev* fields are zero, not a
+		// baseline, and a delta against them would be the node's lifetime totals.
+		polled bool
 	}
 }
 
@@ -177,6 +181,11 @@ type ThreadPoolStats struct {
 // the latest stats snapshot. Called by the stats poller under the pool's
 // mutex.
 //
+// The first poll of a pool only records the cumulative counters and changes
+// nothing: the counters count from the node's start, so a delta against zero
+// would read every rejection and every queued task since then as new. This is
+// the baseline [clusterSearchAIMD.update] takes for a node it has not seen.
+//
 // AIMD transitions:
 //   - delta(rejected) > 0 -> pool-overloaded: set overloaded flag, halve cwnd
 //   - No rejected, delta(completed) > 0:
@@ -190,6 +199,18 @@ type ThreadPoolStats struct {
 func applyPoolAIMD(pc *poolCongestion, stats ThreadPoolStats) {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
+
+	if !pc.mu.polled {
+		pc.mu.polled = true
+		pc.mu.prevCompleted = stats.Completed
+		pc.mu.prevRejected = stats.Rejected
+		pc.mu.prevQueue = stats.Queue
+		if stats.TotalWaitTimeInNanos != nil {
+			pc.mu.hasWaitTime = true
+			pc.mu.prevWaitTimeNano = *stats.TotalWaitTimeInNanos
+		}
+		return
+	}
 
 	deltaCompleted := stats.Completed - pc.mu.prevCompleted
 	deltaRejected := stats.Rejected - pc.mu.prevRejected
