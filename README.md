@@ -136,7 +136,7 @@ Next steps:
 - [Documentation](https://docs.opensearch.org/latest/clients/go/)
 - [API Documentation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5)
 - Need help? Try [Forums](https://forum.opensearch.org/c/clients/60)
-- [Project Principles](https://opensearch.org/#principles)
+- [Project Principles](https://opensearch.org/about/#principles-for-development)
 - [Contributing to OpenSearch](CONTRIBUTING.md)
 - [Maintainer Responsibilities](MAINTAINERS.md)
 - [Release Management](RELEASING.md)
