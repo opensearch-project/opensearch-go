@@ -22,9 +22,15 @@ import "context"
 // alone, one attempt at a time, so it needs no lock. A request that succeeds at
 // once never allocates one.
 type routeAttempt struct {
-	conns  []*Connection
-	tries  []int
-	inPass []bool
+	tried []triedConn
+}
+
+// triedConn is one node a request was sent to: how many times, and whether in the
+// current pass.
+type triedConn struct {
+	conn   *Connection
+	tries  int
+	inPass bool
 }
 
 // routeAttemptKey is the context key for a request's routeAttempt.
@@ -49,17 +55,15 @@ func routeAttemptFrom(ctx context.Context) *routeAttempt {
 
 // record notes a failed attempt sent to conn.
 func (a *routeAttempt) record(conn *Connection) {
-	for i, c := range a.conns {
-		if c == conn {
-			a.tries[i]++
-			a.inPass[i] = true
+	for i := range a.tried {
+		if t := &a.tried[i]; t.conn == conn {
+			t.tries++
+			t.inPass = true
 
 			return
 		}
 	}
-	a.conns = append(a.conns, conn)
-	a.tries = append(a.tries, 1)
-	a.inPass = append(a.inPass, true)
+	a.tried = append(a.tried, triedConn{conn: conn, tries: 1, inPass: true})
 }
 
 // lookup returns how many times the request has tried conn, and whether it tried
@@ -68,9 +72,9 @@ func (a *routeAttempt) lookup(conn *Connection) (int, bool) {
 	if a == nil {
 		return 0, false
 	}
-	for i, c := range a.conns {
-		if c == conn {
-			return a.tries[i], a.inPass[i]
+	for _, t := range a.tried {
+		if t.conn == conn {
+			return t.tries, t.inPass
 		}
 	}
 
@@ -80,5 +84,7 @@ func (a *routeAttempt) lookup(conn *Connection) (int, bool) {
 // newPass begins a new pass: every candidate may be tried again. The counts of
 // tries are kept.
 func (a *routeAttempt) newPass() {
-	clear(a.inPass)
+	for i := range a.tried {
+		a.tried[i].inPass = false
+	}
 }

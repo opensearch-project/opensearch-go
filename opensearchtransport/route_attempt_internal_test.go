@@ -67,9 +67,7 @@ func TestConnScoreSelectRoutesARetryAroundTriedNodes(t *testing.T) {
 			if tt.tried != nil {
 				att = &routeAttempt{}
 				for _, tr := range tt.tried {
-					att.conns = append(att.conns, conns[tr.node])
-					att.tries = append(att.tries, tr.tries)
-					att.inPass = append(att.inPass, tr.inPass)
+					att.tried = append(att.tried, triedConn{conn: conns[tr.node], tries: tr.tries, inPass: tr.inPass})
 				}
 			}
 
@@ -79,7 +77,11 @@ func TestConnScoreSelectRoutesARetryAroundTriedNodes(t *testing.T) {
 
 			require.Same(t, conns[tt.want], best)
 			if tt.wantInPass != nil {
-				require.Equal(t, tt.wantInPass, att.inPass)
+				inPass := make([]bool, len(att.tried))
+				for i, tc := range att.tried {
+					inPass[i] = tc.inPass
+				}
+				require.Equal(t, tt.wantInPass, inPass)
 			}
 		})
 	}
