@@ -96,16 +96,6 @@ func TestPoolRegistryRemove(t *testing.T) {
 
 // --- AIMD tests ---
 
-// polledPool returns a pool with window cwnd that has had its first stats poll,
-// with every counter of that poll zero, so the next poll's counters are deltas.
-func polledPool(cwnd int32) *poolCongestion {
-	pc := &poolCongestion{}
-	pc.cwnd.Store(cwnd)
-	pc.mu.polled = true
-
-	return pc
-}
-
 // TestApplyPoolAIMD_FirstPollIsBaseline: a node's thread pool counters count from
 // the node's start, so the first poll of a pool records them and changes nothing.
 // Read as deltas from zero, a node that rejected writes at any time before the
@@ -170,7 +160,8 @@ func TestApplyPoolAIMD_FirstPollIsBaseline(t *testing.T) {
 func TestApplyPoolAIMD_FirstPollKeepsA429(t *testing.T) {
 	t.Parallel()
 
-	pc := &poolCongestion{}
+	var reg poolRegistry
+	pc := reg.getOrCreate(poolWrite)
 	pc.cwnd.Store(4)
 	pc.overloaded.Store(true)
 
@@ -185,13 +176,15 @@ func TestApplyPoolAIMD_FirstPollKeepsA429(t *testing.T) {
 func TestApplyPoolAIMD_SlowStart(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(1)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(1)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 16
 	pc.mu.ssthresh = 8
 	pc.mu.Unlock()
 
-	// 100 completions since the last poll, no rejections, no wait time.
+	// First poll: 100 completions, no rejections, no wait time.
 	applyPoolAIMD(pc, ThreadPoolStats{Completed: 100})
 	require.Equal(t, int32(2), pc.cwnd.Load(), "slow start should double cwnd")
 
@@ -211,7 +204,9 @@ func TestApplyPoolAIMD_SlowStart(t *testing.T) {
 func TestApplyPoolAIMD_MultiplicativeDecrease_WaitTime(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(10)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(10)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 16
 	pc.mu.ssthresh = 16
@@ -259,7 +254,9 @@ func TestApplyPoolAIMD_QueueCongestion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			pc := polledPool(4)
+			pc := &poolCongestion{}
+
+			pc.cwnd.Store(4)
 			pc.mu.Lock()
 			pc.mu.maxCwnd = threads
 			pc.mu.ssthresh = threads
@@ -305,7 +302,9 @@ func TestStoreThreadPoolSizesRecordsTheQueueCapacity(t *testing.T) {
 func TestApplyPoolAIMD_RejectedSetsOverloaded(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(10)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(10)
 
 	// Rejected delta > 0.
 	applyPoolAIMD(pc, ThreadPoolStats{
@@ -319,7 +318,9 @@ func TestApplyPoolAIMD_RejectedSetsOverloaded(t *testing.T) {
 func TestApplyPoolAIMD_OverloadClearedOnlyByPoller(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(10)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(10)
 
 	// First: rejection sets overloaded.
 	applyPoolAIMD(pc, ThreadPoolStats{Rejected: 1, Completed: 10})
@@ -333,7 +334,9 @@ func TestApplyPoolAIMD_OverloadClearedOnlyByPoller(t *testing.T) {
 func TestApplyPoolAIMD_CwndNeverBelowOne(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(1)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(1)
 
 	// Rejection with cwnd=1 should keep cwnd=1.
 	applyPoolAIMD(pc, ThreadPoolStats{Rejected: 1, Completed: 1})
@@ -343,7 +346,9 @@ func TestApplyPoolAIMD_CwndNeverBelowOne(t *testing.T) {
 func TestApplyPoolAIMD_CwndCappedAtMaxCwnd(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(1)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(1)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 4
 	pc.mu.ssthresh = 4
@@ -362,7 +367,9 @@ func TestApplyPoolAIMD_CwndCappedAtMaxCwnd(t *testing.T) {
 func TestApplyPoolAIMD_NoCompletionsDelta(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(5)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(5)
 
 	// Same completed count as previous -> no change.
 	applyPoolAIMD(pc, ThreadPoolStats{Completed: 0})
@@ -372,7 +379,9 @@ func TestApplyPoolAIMD_NoCompletionsDelta(t *testing.T) {
 func TestApplyPoolAIMD_RecoveryAfterCongestion(t *testing.T) {
 	t.Parallel()
 
-	pc := polledPool(16)
+	pc := &poolCongestion{}
+
+	pc.cwnd.Store(16)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 16
 	pc.mu.ssthresh = 16

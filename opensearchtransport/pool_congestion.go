@@ -21,6 +21,10 @@ const (
 	// defaultSyntheticCwndMultiplier sizes the synthetic default pool for
 	// unmapped routes. The default pool has cwnd = multiplier * allocatedProcessors.
 	defaultSyntheticCwndMultiplier = 4
+
+	// unpolled is the prevCompleted of a pool that has had no stats poll yet.
+	// A node's counters are never negative, so it is never a count.
+	unpolled = -1
 )
 
 // poolCongestion tracks AIMD congestion state for a single thread pool
@@ -41,15 +45,11 @@ type poolCongestion struct {
 		maxCwnd          int32 // ceiling from thread pool config (0 = unknown)
 		maxQueue         int32 // queue capacity from thread pool config (0 = unknown or unbounded)
 		ssthresh         int32 // slow-start threshold
-		prevCompleted    int64
+		prevCompleted    int64 // unpolled until the first stats poll
 		prevRejected     int64
 		prevQueue        int
 		prevWaitTimeNano int64
 		hasWaitTime      bool // pool reports total_wait_time_in_nanos (RESIZABLE)
-		// polled is set by the first stats poll, which only records the
-		// cumulative counters. Until then the prev* fields are zero, not a
-		// baseline, and a delta against them would be the node's lifetime totals.
-		polled bool
 	}
 }
 
@@ -86,13 +86,13 @@ func (r *poolRegistry) getOrCreate(name string) *poolCongestion {
 	if name == "" {
 		return &r.defaultPool
 	}
-	v, loaded := r.pools.LoadOrStore(name, &poolCongestion{})
-	pc := v.(*poolCongestion)
-	if !loaded {
-		// Initialize cwnd to 1 for new pools (slow start).
-		pc.cwnd.Store(1)
-	}
-	return pc
+	// A new pool starts at cwnd=1 (slow start) and unpolled. It is set up before
+	// it is stored, so the stats poller never sees it half initialized.
+	pc := &poolCongestion{}
+	pc.cwnd.Store(1)
+	pc.mu.prevCompleted = unpolled
+	v, _ := r.pools.LoadOrStore(name, pc)
+	return v.(*poolCongestion)
 }
 
 // getForScoring returns the poolCongestion for the named pool. Falls back
@@ -200,8 +200,7 @@ func applyPoolAIMD(pc *poolCongestion, stats ThreadPoolStats) {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 
-	if !pc.mu.polled {
-		pc.mu.polled = true
+	if pc.mu.prevCompleted == unpolled {
 		pc.mu.prevCompleted = stats.Completed
 		pc.mu.prevRejected = stats.Rejected
 		pc.mu.prevQueue = stats.Queue
