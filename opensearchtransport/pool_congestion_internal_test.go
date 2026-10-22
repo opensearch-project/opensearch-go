@@ -106,6 +106,64 @@ func polledPool(cwnd int32) *poolCongestion {
 	return pc
 }
 
+// TestApplyPoolAIMD_FirstPollIsBaseline: a node's thread pool counters count from
+// the node's start, so the first poll of a pool records them and changes nothing.
+// Read as deltas from zero, a node that rejected writes at any time before the
+// client connected would be marked overloaded and its window halved.
+func TestApplyPoolAIMD_FirstPollIsBaseline(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		first ThreadPoolStats
+	}{
+		{name: "rejections from before the first poll", first: ThreadPoolStats{Completed: 1_000_000, Rejected: 500}},
+		{name: "a queue already there at the first poll", first: ThreadPoolStats{Completed: 1_000_000, Queue: 100, Active: 8}},
+		{
+			name:  "wait time from before the first poll",
+			first: ThreadPoolStats{Completed: 1_000, TotalWaitTimeInNanos: new(int64(1_000 * 10_000_000))},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// A window above 1, so that a first poll read as congestion would halve it.
+			var reg poolRegistry
+			pc := reg.getOrCreate(poolWrite)
+			pc.cwnd.Store(4)
+			pc.mu.Lock()
+			pc.mu.maxCwnd = 8
+			pc.mu.ssthresh = 8
+			pc.mu.Unlock()
+
+			applyPoolAIMD(pc, tt.first)
+			require.False(t, pc.overloaded.Load(), "the first poll is a baseline, not an overload")
+			require.Equal(t, int32(4), pc.cwnd.Load(), "the first poll leaves the window alone")
+
+			// The second poll measures from the first: no new rejections, the queue
+			// and the wait per completion are steady, so the window grows.
+			second := tt.first
+			second.Completed += 100
+			if second.TotalWaitTimeInNanos != nil {
+				second.TotalWaitTimeInNanos = new(*tt.first.TotalWaitTimeInNanos + 100)
+			}
+			applyPoolAIMD(pc, second)
+			require.False(t, pc.overloaded.Load())
+			require.Equal(t, int32(8), pc.cwnd.Load(), "slow start from the baseline")
+
+			// A rejection after the baseline is an overload.
+			third := second
+			third.Completed += 100
+			third.Rejected++
+			applyPoolAIMD(pc, third)
+			require.True(t, pc.overloaded.Load(), "a rejection since the last poll is an overload")
+			require.Equal(t, int32(4), pc.cwnd.Load())
+		})
+	}
+}
+
 func TestApplyPoolAIMD_SlowStart(t *testing.T) {
 	t.Parallel()
 
