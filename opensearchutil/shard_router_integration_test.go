@@ -198,18 +198,18 @@ func primaryNodeOf(
 	require.NoError(t, err)
 	require.Len(t, res.Shards, 1)
 
-	for _, copy := range res.Shards[0] {
-		if !copy.Primary {
+	for _, shardCopy := range res.Shards[0] {
+		if !shardCopy.Primary {
 			continue
 		}
 
-		require.NotNil(t, copy.Node)
-		node := *copy.Node
+		require.NotNil(t, shardCopy.Node)
+		node := *shardCopy.Node
 		if attrs, ok := res.Nodes[node]; ok {
 			node = attrs.Name
 		}
 
-		return copy.Shard, node
+		return shardCopy.Shard, node
 	}
 
 	t.Fatalf("no primary for routing %q in %q", routing, index)

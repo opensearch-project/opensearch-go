@@ -2123,7 +2123,7 @@ func isTransportFailure(err error) bool {
 		return false
 	}
 
-	_, partial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+	_, partial := errors.AsType[*opensearchapi.PartialBulkError](err)
 
 	return !partial
 }
@@ -2399,7 +2399,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 			StatusCode: batchStatus(blk),
 		}
 		// A *PartialBulkError means the cluster answered, so the request did not fail.
-		_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+		_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err)
 		if err != nil && !isPartial {
 			ev.Err = err
 		}
@@ -2425,7 +2425,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 func (w *worker) processBulkResp(
 	ctx context.Context, blk *opensearchapi.BulkResp, err error, attempt int,
 ) (retryBatch, error) {
-	_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+	_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err)
 	if err != nil && !isPartial {
 		wrapped := fmt.Errorf("flush: %w", err)
 		status := batchStatus(blk)

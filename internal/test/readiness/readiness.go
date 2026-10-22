@@ -125,7 +125,9 @@ func (s State) String() string {
 }
 
 func layerName(l State) string {
-	//exhaustive:ignore -- only layer constants are handled here; client-state bits and compound targets are not layers.
+	// Only layer constants are handled here; client-state bits and compound
+	// targets are not layers.
+	//exhaustive:ignore
 	switch l {
 	case LayerTCP:
 		return "LayerTCP"

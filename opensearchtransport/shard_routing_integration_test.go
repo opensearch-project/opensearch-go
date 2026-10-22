@@ -201,8 +201,8 @@ func querySearchShardsForRouting(t *testing.T, transport *Transport, ctx context
 
 	// All copies in the first (and only) shard group should have the same number.
 	shardNum := result.Shards[0][0].Shard
-	for _, copy := range result.Shards[0] {
-		require.Equal(t, shardNum, copy.Shard,
+	for _, shardCopy := range result.Shards[0] {
+		require.Equal(t, shardNum, shardCopy.Shard,
 			"inconsistent shard numbers within shard group for routing=%q", routing)
 	}
 
@@ -579,9 +579,9 @@ func querySearchShardsWithNodes(
 
 	// Build the set of node names that host this shard.
 	nodeNames := make(map[string]struct{})
-	for _, copy := range result.Shards[0] {
-		require.Equal(t, shardNum, copy.Shard)
-		if node, ok := result.Nodes[copy.Node]; ok {
+	for _, shardCopy := range result.Shards[0] {
+		require.Equal(t, shardNum, shardCopy.Shard)
+		if node, ok := result.Nodes[shardCopy.Node]; ok {
 			nodeNames[node.Name] = struct{}{}
 		}
 	}

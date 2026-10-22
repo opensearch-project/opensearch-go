@@ -22,6 +22,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Bump golangci-lint from v2.14.0 to v2.15.0
+
 ## [5.1.2]
 
 ### Changed
