@@ -571,7 +571,10 @@ func TestStoreThreadPoolSizes_SkipsZeroSize(t *testing.T) {
 
 // --- calcConnDefaultScore with pool overload ---
 
-func TestCalcConnScore_OverloadedReturnsMaxFloat(t *testing.T) {
+// TestCalcConnScore_OverloadedIsNotExcluded: a pool marked overloaded still gets a
+// finite score, the same as before it was marked: the overload acts through the
+// halved cwnd and the request's own retries, not by removing the node.
+func TestCalcConnScore_OverloadedIsNotExcluded(t *testing.T) {
 	t.Parallel()
 
 	u := &url.URL{Scheme: "https", Host: "node:9200"}
@@ -584,12 +587,16 @@ func TestCalcConnScore_OverloadedReturnsMaxFloat(t *testing.T) {
 		conn.rttRing.add(1 * time.Millisecond)
 	}
 
-	// Set pool overloaded.
 	pc := conn.pools.getOrCreate("search")
-	pc.overloaded.Store(true)
+	pc.cwnd.Store(4)
+	cost := shardCostForReads.forNode(&shardNodeInfo{Replicas: 1})
+	before := calcConnDefaultScore(conn, cost, "search", true)
 
-	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "search", true)
-	require.InDelta(t, math.MaxFloat64, score, 1, "overloaded pool should return MaxFloat64")
+	pc.overloaded.Store(true)
+	after := calcConnDefaultScore(conn, cost, "search", true)
+
+	require.Less(t, after, math.MaxFloat64)
+	require.InDelta(t, before, after, 1e-9)
 }
 
 func TestCalcConnScore_EmptyPoolNameNoOverloadCheck(t *testing.T) {

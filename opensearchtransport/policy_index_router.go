@@ -119,7 +119,7 @@ func (p *IndexRouter) IsEnabled() bool {
 
 // Eval extracts the index name from the request path and routes to
 // a consistent node subset. Returns (NextHop{}, nil) for non-index requests.
-func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) {
+func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if p.policyState.Load()&psEnvDisabled != 0 {
 		return NextHop{}, nil
 	}
@@ -138,7 +138,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 
 		scores := acquireFloats(len(conns))
 		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
 		scores.Release()
 		if best == nil {
 			return NextHop{}, nil
@@ -176,7 +176,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), routeAttemptFrom(ctx))
 		scores.Release()
 		extraCost.Release()
 
@@ -235,7 +235,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -447,6 +447,10 @@ func warmupPenalty(cs connState) float64 {
 // all candidates. This allows operation-specific scoring strategies (e.g.,
 // dynamic read cost that adjusts primary shard cost based on write-pool
 // utilization). When nil, the static formula is used via [calcConnDefaultScore].
+//
+// att is the request's failed attempts, nil for a request routed for the first
+// time: candidates it tried in the current pass are skipped, and each earlier try
+// of a candidate raises its score; see [routeAttempt].
 func connScoreSelect(
 	candidates []*Connection,
 	slot *indexSlot,
@@ -457,10 +461,25 @@ func connScoreSelect(
 	scores []float64,
 	scoreFunc connScoreFunc,
 	extraCost []float64,
+	att *routeAttempt,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
 		return nil
+	}
+
+	// A retried request skips the candidates it tried in this pass. When it has
+	// tried them all, a new pass begins over this candidate set.
+	if att != nil {
+		untried := 0
+		for _, c := range candidates {
+			if _, inPass := att.lookup(c); !inPass {
+				untried++
+			}
+		}
+		if untried == 0 {
+			att.newPass()
+		}
 	}
 
 	// Compute scores once upfront.
@@ -487,6 +506,14 @@ func connScoreSelect(
 
 		if extraCost != nil {
 			scores[i] += extraCost[i]
+		}
+
+		// Each time the request tried this node raises its cost, and a node tried
+		// in this pass is not tried again until the pass ends.
+		if tries, inPass := att.lookup(c); inPass {
+			scores[i] = math.Inf(1)
+		} else if tries > 0 {
+			scores[i] *= float64(1 + tries)
 		}
 	}
 

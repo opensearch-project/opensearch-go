@@ -191,10 +191,12 @@ func (tr *Transport) WriteNodes() []*Connection {
 
 	poolInfoReady := tr.poolInfoReady.Load()
 	score := func(conn *Connection) float64 {
-		rtt, utilization, overloaded := connBaseScore(conn, poolWrite, poolInfoReady)
-		if overloaded {
+		// Listed last, not left out: the caller still sends to a refusing node
+		// when no other node will take the write.
+		if conn.isPoolOverloaded(poolWrite) {
 			return math.MaxFloat64
 		}
+		rtt, utilization := connBaseScore(conn, poolWrite, poolInfoReady)
 
 		return rtt * utilization
 	}

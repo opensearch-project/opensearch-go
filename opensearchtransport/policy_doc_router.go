@@ -131,7 +131,7 @@ var documentEndpoints = map[string]struct{}{
 
 // Eval extracts {index}/{docID} from the request path and routes to a
 // consistent node. Returns (NextHop{}, nil) for non-document requests.
-func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) {
+func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if p.policyState.Load()&psEnvDisabled != 0 {
 		return NextHop{}, nil
 	}
@@ -178,7 +178,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), routeAttemptFrom(ctx))
 		scores.Release()
 		extraCost.Release()
 
@@ -234,7 +234,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
 	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {

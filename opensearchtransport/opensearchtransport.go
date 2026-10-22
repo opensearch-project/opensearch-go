@@ -1669,6 +1669,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// req.Body open for whatever runs next to send or close.
 	var bodyOpen bool
 
+	// attempts records the nodes this request failed on, for the router to route
+	// each retry around; see routeAttempt. Created at the first failure.
+	var attempts *routeAttempt
+
 	for i := 0; i <= tr.maxRetries; i++ {
 		// Retry from a copy, rebinding req so routing, the rest of the loop, and
 		// the seed fallback after it all work on this attempt's request. Clone
@@ -1685,7 +1689,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		// neither: nothing holds its request yet, and its path is still pristine,
 		// so a request that succeeds first time never pays for the clone.
 		if i > 0 {
-			req = req.Clone(req.Context())
+			ctx := req.Context()
+			if attempts != nil {
+				ctx = withRouteAttempt(ctx, attempts)
+			}
+			req = req.Clone(ctx)
 			restoreReqPath(req, origPath, origRawPath)
 		}
 
@@ -2019,6 +2027,13 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		// Break if retry should not be performed
 		if !shouldRetry {
 			break
+		}
+
+		if conn != nil {
+			if attempts == nil {
+				attempts = &routeAttempt{}
+			}
+			attempts.record(conn)
 		}
 
 		// Drain and close body when retrying after response
