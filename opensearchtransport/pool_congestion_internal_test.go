@@ -164,6 +164,24 @@ func TestApplyPoolAIMD_FirstPollIsBaseline(t *testing.T) {
 	}
 }
 
+// TestApplyPoolAIMD_FirstPollKeepsA429: the first poll knows nothing about recent
+// rejections, so it leaves an overload a 429 reported in place for the next poll
+// to clear.
+func TestApplyPoolAIMD_FirstPollKeepsA429(t *testing.T) {
+	t.Parallel()
+
+	pc := &poolCongestion{}
+	pc.cwnd.Store(4)
+	pc.overloaded.Store(true)
+
+	applyPoolAIMD(pc, ThreadPoolStats{Completed: 100, Rejected: 7})
+	require.True(t, pc.overloaded.Load(), "the first poll does not clear an overload")
+	require.Equal(t, int32(4), pc.cwnd.Load())
+
+	applyPoolAIMD(pc, ThreadPoolStats{Completed: 200, Rejected: 7})
+	require.False(t, pc.overloaded.Load(), "a poll with no new rejections clears it")
+}
+
 func TestApplyPoolAIMD_SlowStart(t *testing.T) {
 	t.Parallel()
 
