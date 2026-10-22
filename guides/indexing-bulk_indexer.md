@@ -484,7 +484,7 @@ if err := indexer.GetStats(&stats); err != nil {
 	return err
 }
 
-fill := stats.BudgetFill()          // 0 to 1: how much of MaxMemoryBytes is held
+fill := stats.Utilization()         // 0 to 1: how much of MaxMemoryBytes is held
 typical := stats.Slowdown.Median    // how much longer than expected the typical node takes
 pushedBack := stats.NumRejections   // only grows: compare with the last reading
 ```
@@ -554,7 +554,7 @@ Item latency runs from `Add` to the item's outcome, across every attempt. It inc
 
 ```go
 var nodes []opensearchutil.BulkTargetStats
-nodes = indexer.GetNodeStats(nodes)
+nodes = indexer.GetTargetStats(nodes)
 for _, n := range nodes {
 	slowdown.WithLabelValues(n.Name).Set(n.Slowdown)
 }

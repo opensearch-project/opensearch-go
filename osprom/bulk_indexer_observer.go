@@ -71,21 +71,21 @@ func NewBulkIndexerObserver() *BulkIndexerObserver {
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_requests_total",
-			Help: "Bulk requests the indexer sent, labeled ok when the cluster answered and error when the whole request " +
+			Help: "Bulk requests the bulk client sent, labeled ok when the cluster answered and error when the whole request " +
 				"failed (RED: rate, errors).",
 		}, []string{labelResult}),
 		duration: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_request_duration_seconds",
-			Help:      "Duration of bulk requests the indexer sent (RED: duration).",
+			Help:      "Duration of bulk requests the bulk client sent (RED: duration).",
 			Buckets:   prometheus.DefBuckets,
 		}),
 		bytes: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_request_size_bytes",
-			Help:      "Body size of bulk requests the indexer sent.",
+			Help:      "Body size of bulk requests the bulk client sent.",
 			Buckets:   prometheus.ExponentialBuckets(1<<10, 4, 9), // 1 KiB .. 64 MiB
 		}),
 		errs: prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -98,19 +98,19 @@ func NewBulkIndexerObserver() *BulkIndexerObserver {
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_retries_total",
-			Help:      "Items the indexer sent again after a failure, by failure kind.",
+			Help:      "Items the bulk client sent again after a failure, by failure kind.",
 		}, []string{labelKind}),
 		items: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_items_total",
-			Help:      "Items the indexer is done with, by outcome.",
+			Help:      "Items the bulk client is done with, by outcome.",
 		}, []string{labelOutcome}),
 		itemSize: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Namespace: metricNamespace,
 			Subsystem: metricSubsystem,
 			Name:      "bulk_item_size_bytes",
-			Help: "Size of the document of each item the indexer is done with, in bytes, excluding the action line. " +
+			Help: "Size of the document of each item the bulk client is done with, in bytes, excluding the action line. " +
 				"Sum over count is the average document size; the upper buckets show outliers.",
 			Buckets: []float64{100, 512, 1 << 10, 4 << 10, 16 << 10, 64 << 10, 256 << 10, 1 << 20, 4 << 20, 10 << 20},
 		}),

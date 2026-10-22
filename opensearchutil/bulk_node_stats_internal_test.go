@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBulkIndexerGetNodeStatsFollowsEachNode: each node is listed in the order it
+// TestBulkIndexerGetTargetStatsFollowsEachNode: each node is listed in the order it
 // was first used, with its own requests out, queue and held bytes, and every
 // gauge is back to zero once the bulk client is closed.
-func TestBulkIndexerGetNodeStatsFollowsEachNode(t *testing.T) {
+func TestBulkIndexerGetTargetStatsFollowsEachNode(t *testing.T) {
 	t.Parallel()
 
 	m := DefaultShardMap(2)
@@ -78,10 +78,10 @@ func TestBulkIndexerGetNodeStatsFollowsEachNode(t *testing.T) {
 	}
 }
 
-// TestBulkIndexerGetNodeStatsReadsEachNodesController: a node that answers 429
+// TestBulkIndexerGetTargetStatsReadsEachNodesController: a node that answers 429
 // counts its rejections and has its window shrunk, and a node beside it that does
 // not keeps its window open.
-func TestBulkIndexerGetNodeStatsReadsEachNodesController(t *testing.T) {
+func TestBulkIndexerGetTargetStatsReadsEachNodesController(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 200, 1, "n0", "n1")
@@ -115,9 +115,9 @@ func TestBulkIndexerGetNodeStatsReadsEachNodesController(t *testing.T) {
 	require.InDelta(t, stats.TargetWindow.Min, byName["n0"].Window, 1e-9, "the summary's lowest window is n0's")
 }
 
-// TestBulkIndexerGetNodeStatsWhenStopped: buffers left queued when the
+// TestBulkIndexerGetTargetStatsWhenStopped: buffers left queued when the
 // construction context ends are failed by Close, and leave no node with a queue.
-func TestBulkIndexerGetNodeStatsWhenStopped(t *testing.T) {
+func TestBulkIndexerGetTargetStatsWhenStopped(t *testing.T) {
 	t.Parallel()
 
 	h := newGaugeHarness(t)
@@ -138,9 +138,9 @@ func TestBulkIndexerGetNodeStatsWhenStopped(t *testing.T) {
 	require.Zero(t, nodes[0].HeldBytes)
 }
 
-// TestBulkIndexerGetNodeStatsReadsSlowdown: a node that becomes slower than it
+// TestBulkIndexerGetTargetStatsReadsSlowdown: a node that becomes slower than it
 // was reads as slowed down, and alone it is the whole of the bulk client's summary.
-func TestBulkIndexerGetNodeStatsReadsSlowdown(t *testing.T) {
+func TestBulkIndexerGetTargetStatsReadsSlowdown(t *testing.T) {
 	t.Parallel()
 
 	h := newSizingHarness(t, 200, 1, "n0")
@@ -168,9 +168,9 @@ func TestBulkIndexerGetNodeStatsReadsSlowdown(t *testing.T) {
 	require.InDelta(t, stats.BufferSize.Median, nodes[0].BufferSize, 1e-9)
 }
 
-// TestBulkIndexerGetNodeStatsWithoutARouter: with no shard router the bulk client
+// TestBulkIndexerGetTargetStatsWithoutARouter: with no shard router the bulk client
 // writes to one node that stands for the cluster, and lists it without a name.
-func TestBulkIndexerGetNodeStatsWithoutARouter(t *testing.T) {
+func TestBulkIndexerGetTargetStatsWithoutARouter(t *testing.T) {
 	t.Parallel()
 
 	bi := newBulkClient(t, newFakeServer(newFakeCluster(nil)),
@@ -184,13 +184,13 @@ func TestBulkIndexerGetNodeStatsWithoutARouter(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 }
 
-// TestBulkIndexerGetNodeStatsTakesNoLockAndDoesNotAllocate: GetTargetStats returns
+// TestBulkIndexerGetTargetStatsTakesNoLockAndDoesNotAllocate: GetTargetStats returns
 // while the scheduler's lock is held, and a caller that passes back the slice it
 // got allocates nothing. It is not parallel, as AllocsPerRun cannot run in a
 // parallel test.
 //
 //nolint:paralleltest // See above.
-func TestBulkIndexerGetNodeStatsTakesNoLockAndDoesNotAllocate(t *testing.T) {
+func TestBulkIndexerGetTargetStatsTakesNoLockAndDoesNotAllocate(t *testing.T) {
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0", "n1", "n2")
 	bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
 	for i := range 16 {

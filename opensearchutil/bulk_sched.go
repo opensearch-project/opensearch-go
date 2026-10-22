@@ -69,7 +69,8 @@ type buffer struct {
 	sealed     bool
 	dispatched bool
 	// sentAt is how many times the node's byte window had been shrunk when the buffer
-	// was sent, so that a rejection of a request sent before a reduction is not shrunk again.
+	// was sent, so that a rejection of a request sent before a shrink does not shrink
+	// the window again.
 	sentAt uint64
 	// ctx is the context the bulk request runs on.
 	ctx context.Context //nolint:containedctx // A buffer carries the context of the flush that sends it.
@@ -187,7 +188,7 @@ type nodeState struct {
 // and 1 while the node is reported refusing writes, never more than maxReqs. It
 // ranks nodes and does not cap requests. The transport updates it once per node
 // statistics poll, keeps it at or below the pool's thread count, and halves it when
-// every thread is busy with work queued, as is normal under sustained bulk load.
+// the pool's queue nears its capacity or grows faster than the pool serves it.
 // Requests to a node are capped by nodeReqLimit, and a 429 shrinks windowBytes.
 func (ns *nodeState) windowReqs(maxReqs int) int {
 	p := ns.node.pool()

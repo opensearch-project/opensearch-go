@@ -638,7 +638,7 @@ var ErrZeroCopyBodySet = errors.New("opensearchutil: zero-copy item sets Body; u
 // it, before Release is called. A caller that pools its buffers returns the slice
 // to the pool in Release.
 //
-// What a lent slice holds counts toward MaxMemoryBytes by its length. A slice shrink
+// What a lent slice holds counts toward MaxMemoryBytes by its length. A slice taken
 // from a larger buffer keeps the whole buffer alive until Release, though, and the
 // limit does not see that: a record sliced from a large read buffer belongs in a
 // plain [BulkIndexerItem], which copies the document and lets the buffer go.
@@ -1038,10 +1038,10 @@ func (c BulkIndexerConfig) validate() error {
 	}
 
 	if c.Sizing.Shard >= numShardSizings {
-		return fmt.Errorf("%w: Sizing.Shard is %v, which is not a ShardSizing", ErrInvalidConfig, c.Sizing.Shard)
+		return fmt.Errorf("%w: Sizing.Shard is %q, which is not a ShardSizing", ErrInvalidConfig, c.Sizing.Shard)
 	}
 	if c.Sizing.Target >= numTargetSizings {
-		return fmt.Errorf("%w: Sizing.Target is %v, which is not a TargetSizing", ErrInvalidConfig, c.Sizing.Target)
+		return fmt.Errorf("%w: Sizing.Target is %q, which is not a TargetSizing", ErrInvalidConfig, c.Sizing.Target)
 	}
 
 	return nil

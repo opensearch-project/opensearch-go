@@ -13,7 +13,7 @@ import (
 )
 
 // BulkTargetStats is the bulk client's reading of one node it writes to. It is what
-// [BulkIndexerStats.NodeWindow], [BulkIndexerStats.BufferSize] and
+// [BulkIndexerStats.TargetWindow], [BulkIndexerStats.BufferSize] and
 // [BulkIndexerStats.Slowdown] summarize across the nodes, with the node's own
 // load beside it, so a caller can name the node an outlier is.
 type BulkTargetStats struct {

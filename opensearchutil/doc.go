@@ -30,13 +30,13 @@ Package opensearchutil provides helper utilities to the Go client for OpenSearch
 # Bulk indexing
 
 [NewBulkIndexer] returns a [BulkIndexer], a long-lived, asynchronous indexer built on the bulk API.
-Add documents one at a time with [BulkIndexer.Add]; the indexer keeps a buffer for each shard, sends
-each full buffer as one bulk request to the node that hosts the shard's primary, and reports the
-outcome of each document through the item's OnSuccess and OnError callbacks, exactly one of which
-runs when the indexer is done with the item. OnError gets a [BulkError], which says which layer
-failed ([ErrorLayer]) and why ([ErrorKind]), and matches their sentinels with errors.Is.
-[BulkIndexer.Flush] drains what has been added and keeps the indexer open, [BulkIndexer.Close]
-waits for every item and releases the indexer, and [BulkIndexer.Cancel] stops it immediately.
+Add documents one at a time with [BulkIndexer.Add]; the bulk client keeps a buffer for each shard,
+sends each full buffer as one bulk request to the node that hosts the shard's primary, and reports
+the outcome of each document through the item's OnSuccess and OnError callbacks, exactly one of
+which runs when the bulk client is done with the item. OnError gets a [BulkError], which says which
+layer failed ([ErrorLayer]) and why ([ErrorKind]), and matches their sentinels with errors.Is.
+[BulkIndexer.Flush] drains what has been added and keeps the bulk client open, [BulkIndexer.Close]
+waits for every item and releases the bulk client, and [BulkIndexer.Cancel] stops it immediately.
 
 A [BulkIndexerConfig] can also set:
 
@@ -54,15 +54,15 @@ without being sent to the cluster.
 
 # Batch sizing
 
-Two controllers adapt what the indexer sends, each from one signal. FlushBytes is the most a shard's
-buffer collects. Beneath it, a PID controller sizes each shard's buffer by how fast the node serves
-that shard compared with its other shards: a shard slower than the rest of its node, past its
+Two controllers adapt what the bulk client sends, each from one signal. FlushBytes is the most a
+shard's buffer collects. Beneath it, a PID controller sizes each shard's buffer by how fast the node
+serves that shard compared with its other shards: a shard slower than the rest of its node, past its
 headroom and by more than its own usual variation, gets smaller batches, so it gives way to the
 others. A slowdown the whole node shares means the node is busy, and cuts no shard. Separately, each
-node has a window: the number of bytes the indexer may have in flight to it. The window starts wide
-open; a 429 from the node cuts it to half of what was in flight when the 429 arrived, and it then
-grows back slowly. A buffer that would take a node past its window waits for requests in flight to
-be answered. [BulkSizing] turns either controller off, [ShardFixed] for the shard buffers and
+node has a window: the number of bytes the bulk client may have in flight to it. The window starts
+wide open; a 429 from the node cuts it to half of what was in flight when the 429 arrived, and it
+then grows back slowly. A buffer that would take a node past its window waits for requests in flight
+to be answered. [BulkSizing] turns either controller off, [ShardFixed] for the shard buffers and
 [TargetFixed] for the node windows, and sets the PID gains.
 
 The number of requests in flight to a node is limited separately, to NumWorkers, or GOMAXPROCS when
@@ -70,7 +70,7 @@ NumWorkers is 0. The write thread pool window that the transport tracks for each
 not a limit: it chooses the node for documents that belong to no shard.
 
 An operator can override those settings without a code change, through environment variables read
-when the indexer is built. A variable that is set and valid wins over the code:
+when the bulk client is built. A variable that is set and valid wins over the code:
 
   - OPENSEARCH_GO_BULK_SHARD, pid or fixed, overrides [BulkSizing].Shard.
   - OPENSEARCH_GO_BULK_TARGET, aimd or fixed, overrides [BulkSizing].Node.
