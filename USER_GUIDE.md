@@ -238,7 +238,7 @@ Before starting, we strongly recommend reading the full AWS documentation regard
 
 > Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also must be signed using AWS Signature Version 4.
 >
-> See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
+> See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-signing-service-requests.html)
 
 Import the request signer from `signer/awsv2`. It signs each request with AWS Signature Version 4 (SigV4) using AWS SDK for Go v2 and automatically discovers AWS credentials from the `~/.aws` folder or environment variables.
 

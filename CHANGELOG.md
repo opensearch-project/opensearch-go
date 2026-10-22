@@ -14,6 +14,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Fix the transport reading a node's thread pool counters as new on its first statistics poll. The counters count from the node's start, so a node that had rejected writes at any time before the client connected was marked overloaded and had its pool window halved, and a queue or wait time already there read as congestion. The first poll of a pool now records the counters as a baseline and changes nothing, as the cluster-wide search window already did for a node it had not seen. ([#1235](https://github.com/opensearch-project/opensearch-go/pull/1235))
+
 ### Security
 
 ### Dependencies

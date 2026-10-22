@@ -96,10 +96,105 @@ func TestPoolRegistryRemove(t *testing.T) {
 
 // --- AIMD tests ---
 
+// TestApplyPoolAIMD_FirstPollIsBaseline: a node's thread pool counters count from
+// the node's start, so the first poll of a pool records them and changes nothing.
+// Read as deltas from zero, a node that rejected writes at any time before the
+// client connected would be marked overloaded and its window halved.
+func TestApplyPoolAIMD_FirstPollIsBaseline(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		first ThreadPoolStats
+	}{
+		{name: "rejections from before the first poll", first: ThreadPoolStats{Completed: 1_000_000, Rejected: 500}},
+		{name: "a queue already there at the first poll", first: ThreadPoolStats{Completed: 1_000_000, Queue: 100, Active: 8}},
+		{
+			name:  "wait time from before the first poll",
+			first: ThreadPoolStats{Completed: 1_000, TotalWaitTimeInNanos: new(int64(1_000 * 10_000_000))},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// A window above 1, so that a first poll read as congestion would halve it.
+			var reg poolRegistry
+			pc := reg.getOrCreate(poolWrite)
+			pc.cwnd.Store(4)
+			pc.mu.Lock()
+			pc.mu.maxCwnd = 8
+			pc.mu.ssthresh = 8
+			pc.mu.Unlock()
+
+			applyPoolAIMD(pc, tt.first)
+			require.False(t, pc.overloaded.Load(), "the first poll is a baseline, not an overload")
+			require.Equal(t, int32(4), pc.cwnd.Load(), "the first poll leaves the window alone")
+
+			// The second poll measures from the first: no new rejections, the queue
+			// and the wait per completion are steady, so the window grows.
+			second := tt.first
+			second.Completed += 100
+			if second.TotalWaitTimeInNanos != nil {
+				second.TotalWaitTimeInNanos = new(*tt.first.TotalWaitTimeInNanos + 100)
+			}
+			applyPoolAIMD(pc, second)
+			require.False(t, pc.overloaded.Load())
+			require.Equal(t, int32(8), pc.cwnd.Load(), "slow start from the baseline")
+
+			// A rejection after the baseline is an overload.
+			third := second
+			third.Completed += 100
+			third.Rejected++
+			applyPoolAIMD(pc, third)
+			require.True(t, pc.overloaded.Load(), "a rejection since the last poll is an overload")
+			require.Equal(t, int32(4), pc.cwnd.Load())
+		})
+	}
+}
+
+// TestApplyPoolAIMD_FirstPollKeepsA429: the first poll knows nothing about recent
+// rejections, so it leaves an overload a 429 reported in place for the next poll
+// to clear.
+func TestApplyPoolAIMD_FirstPollKeepsA429(t *testing.T) {
+	t.Parallel()
+
+	var reg poolRegistry
+	pc := reg.getOrCreate(poolWrite)
+	pc.cwnd.Store(4)
+	pc.overloaded.Store(true)
+
+	applyPoolAIMD(pc, ThreadPoolStats{Completed: 100, Rejected: 7})
+	require.True(t, pc.overloaded.Load(), "the first poll does not clear an overload")
+	require.Equal(t, int32(4), pc.cwnd.Load())
+
+	applyPoolAIMD(pc, ThreadPoolStats{Completed: 200, Rejected: 7})
+	require.False(t, pc.overloaded.Load(), "a poll with no new rejections clears it")
+}
+
+// TestApplyPoolAIMD_RejectingBeforeAnyCompletion: a pool that has completed nothing,
+// because the node rejects all of its work, has still been polled, so its
+// rejections are an overload. This is why an unpolled pool is marked with -1 and
+// not told apart by a completed count of zero.
+func TestApplyPoolAIMD_RejectingBeforeAnyCompletion(t *testing.T) {
+	t.Parallel()
+
+	var reg poolRegistry
+	pc := reg.getOrCreate(poolWrite)
+	pc.cwnd.Store(4)
+
+	applyPoolAIMD(pc, ThreadPoolStats{})
+	applyPoolAIMD(pc, ThreadPoolStats{Rejected: 5})
+	require.True(t, pc.overloaded.Load(), "rejections with nothing completed are an overload")
+	require.Equal(t, int32(2), pc.cwnd.Load())
+}
+
 func TestApplyPoolAIMD_SlowStart(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(1)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 16
@@ -127,6 +222,7 @@ func TestApplyPoolAIMD_MultiplicativeDecrease_WaitTime(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(10)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 16
@@ -176,6 +272,7 @@ func TestApplyPoolAIMD_QueueCongestion(t *testing.T) {
 			t.Parallel()
 
 			pc := &poolCongestion{}
+
 			pc.cwnd.Store(4)
 			pc.mu.Lock()
 			pc.mu.maxCwnd = threads
@@ -223,6 +320,7 @@ func TestApplyPoolAIMD_RejectedSetsOverloaded(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(10)
 
 	// Rejected delta > 0.
@@ -238,6 +336,7 @@ func TestApplyPoolAIMD_OverloadClearedOnlyByPoller(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(10)
 
 	// First: rejection sets overloaded.
@@ -253,6 +352,7 @@ func TestApplyPoolAIMD_CwndNeverBelowOne(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(1)
 
 	// Rejection with cwnd=1 should keep cwnd=1.
@@ -264,6 +364,7 @@ func TestApplyPoolAIMD_CwndCappedAtMaxCwnd(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(1)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 4
@@ -284,6 +385,7 @@ func TestApplyPoolAIMD_NoCompletionsDelta(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(5)
 
 	// Same completed count as previous -> no change.
@@ -295,6 +397,7 @@ func TestApplyPoolAIMD_RecoveryAfterCongestion(t *testing.T) {
 	t.Parallel()
 
 	pc := &poolCongestion{}
+
 	pc.cwnd.Store(16)
 	pc.mu.Lock()
 	pc.mu.maxCwnd = 16
@@ -345,6 +448,27 @@ func TestUpdatePoolCongestion_NilMap(t *testing.T) {
 	// Should be a no-op.
 	updatePoolCongestion(conn, nil)
 	require.NotNil(t, conn.pools.get("search"), "nil map should not remove pools")
+}
+
+// TestUpdatePoolCongestion_BaselineAfterDiscovery: discovery creates a pool when it
+// records the pool's size, before any stats poll. The first stats poll is still
+// the pool's baseline, so a node that rejected writes before the client connected
+// is not reported overloaded.
+func TestUpdatePoolCongestion_BaselineAfterDiscovery(t *testing.T) {
+	t.Parallel()
+
+	conn := &Connection{}
+	conn.pools.setMaxCwnd(poolWrite, 8)
+
+	updatePoolCongestion(conn, map[string]ThreadPoolStats{
+		poolWrite: {Threads: 8, Completed: 1_000_000, Rejected: 42},
+	})
+	require.False(t, conn.isPoolOverloaded(poolWrite), "rejections before the first poll are not an overload")
+
+	updatePoolCongestion(conn, map[string]ThreadPoolStats{
+		poolWrite: {Threads: 8, Completed: 1_000_100, Rejected: 43},
+	})
+	require.True(t, conn.isPoolOverloaded(poolWrite), "a rejection since the first poll is")
 }
 
 // --- Connection in-flight tests ---
@@ -470,9 +594,10 @@ func TestConnectionIsPoolOverloaded(t *testing.T) {
 	conn := &Connection{}
 	require.False(t, conn.isPoolOverloaded("search"))
 
-	// Simulate overload via AIMD rejection.
+	// Simulate overload via AIMD rejection, after the first poll's baseline.
 	pc := conn.pools.getOrCreate("search")
 	pc.cwnd.Store(10)
+	applyPoolAIMD(pc, ThreadPoolStats{})
 	applyPoolAIMD(pc, ThreadPoolStats{Rejected: 1, Completed: 10})
 	require.True(t, conn.isPoolOverloaded("search"))
 
