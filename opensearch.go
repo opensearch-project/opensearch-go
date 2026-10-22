@@ -123,7 +123,7 @@ type Config struct {
 	RetryOnStatus        []int // List of status codes for retry. Default: 502, 503, 504.
 	DisableRetry         bool  // Default: false.
 	EnableRetryOnTimeout bool  // Default: false.
-	MaxRetries           int   // Default: 6.
+	MaxRetries           int   // Default: 3.
 
 	// RequestTimeout sets a per-attempt timeout for each HTTP round-trip.
 	// When set, a context deadline is applied to each individual request attempt
@@ -280,7 +280,14 @@ type Config struct {
 	// Default: 3
 	StandbyPromotionChecks int
 
-	RetryBackoff func(attempt int) time.Duration // Optional backoff duration. Default: nil.
+	// RetryBackoff returns the delay before retry attempt, counted from 1. Default:
+	// a delay drawn uniformly from zero to 100ms doubled for each retry after the
+	// first (exponential backoff with full jitter).
+	RetryBackoff func(attempt int) time.Duration
+	// RetryBudget bounds the delays of one request's retries together: a retry
+	// whose delay would take the total past it is not made, and the last response
+	// or error is returned. Default: 5s. A negative value sets no bound.
+	RetryBudget time.Duration
 
 	Transport http.RoundTripper                      // The HTTP transport object.
 	Logger    opensearchtransport.Logger             // The logger object.
@@ -505,6 +512,7 @@ func NewClient(cfg Config) (*Client, error) {
 		EnableRetryOnTimeout: cfg.EnableRetryOnTimeout,
 		MaxRetries:           cfg.MaxRetries,
 		RetryBackoff:         cfg.RetryBackoff,
+		RetryBudget:          cfg.RetryBudget,
 		RequestTimeout:       cfg.RequestTimeout,
 
 		DNSCacheRefresh: cfg.DNSCacheRefresh,
@@ -672,6 +680,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	b.Bool(cfg.DisableRetry).
 		Bool(cfg.EnableRetryOnTimeout).
 		Int(int64(cfg.MaxRetries)).
+		Int(int64(cfg.RetryBudget)).
 		Int(int64(cfg.RequestTimeout)).
 		Int(int64(cfg.DNSCacheRefresh)).
 		Int(int64(cfg.DNSDialTimeout)).

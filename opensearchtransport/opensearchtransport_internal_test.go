@@ -147,7 +147,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected enableRetryOnTimeout: %v", tp.enableRetryOnTimeout)
 		}
 
-		if tp.maxRetries != 6 {
+		if tp.maxRetries != defaultMaxRetries {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
@@ -1294,7 +1294,7 @@ func TestMaxRetries(t *testing.T) {
 		{
 			name:              "MaxRetries Active set to default",
 			disableRetry:      false,
-			expectedCallCount: 7, // 1 original + 6 retries (new default)
+			expectedCallCount: 1 + defaultMaxRetries, // 1 original + the default retries
 		},
 		{
 			name:              "MaxRetries Active set to 1",
