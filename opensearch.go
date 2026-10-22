@@ -123,7 +123,7 @@ type Config struct {
 	RetryOnStatus        []int // List of status codes for retry. Default: 502, 503, 504.
 	DisableRetry         bool  // Default: false.
 	EnableRetryOnTimeout bool  // Default: false.
-	MaxRetries           int   // Default: 3.
+	MaxRetries           int   // Default: 6.
 
 	// RequestTimeout sets a per-attempt timeout for each HTTP round-trip.
 	// When set, a context deadline is applied to each individual request attempt

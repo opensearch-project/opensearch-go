@@ -62,7 +62,7 @@ import (
 const (
 	// Version is the package version as a string.
 	Version                      = version.Client
-	defaultMaxRetries            = 3
+	defaultMaxRetries            = 6
 	defaultHealthCheckMaxRetries = 6
 
 	// defaultRetryBackoffBase is the default backoff's ceiling before the first
