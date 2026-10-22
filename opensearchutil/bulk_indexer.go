@@ -1289,8 +1289,13 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 		return nil, Node{}, 0, nil
 	}
 
-	target, ok := bi.router.LookupShard(index, routing)
-	if !ok {
+	targets := getShardTargets()
+	defer putShardTargets(targets)
+
+	var target ShardTarget
+	if err := bi.router.LookupShard(index, routing, targets); err == nil && len(*targets) > 0 {
+		target = *(*targets)[0]
+	} else {
 		// Load first: this runs for every item of an index still waiting for its
 		// shard map, and a sync.Map store is a write.
 		if _, marked := bi.placement.unplaced.Load(index); !marked {

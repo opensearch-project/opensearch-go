@@ -71,14 +71,16 @@ func (tr *Transport) ShardMap(index string) (ShardMap, bool) {
 	return ShardMap{RoutingNumShards: sm.RoutingNumShards, PrimaryShards: sm.NumberOfPrimaryShards}, true
 }
 
-// ShardTarget is where a document with a given routing value lives.
+// ShardTarget is one copy of the shard a document with a given key lives on.
 type ShardTarget struct {
 	// Shard is the shard number.
 	Shard int
-	// Node is a node that hosts the shard's primary and is ready to take a
+	// Node is a node that hosts this copy of the shard and is ready to take a
 	// request, or nil when the placement is not known or the node is not usable.
 	// Send to it with [WithWriteNode]; nil leaves the choice to the router.
 	Node *Connection
+	// Primary reports that this copy is the shard's primary.
+	Primary bool
 	// Generation identifies the shard geometry Shard was computed with: the primary
 	// shard count and the routing factor. It changes when the index's geometry does,
 	// as when the index is recreated, split or shrunk, and not when a shard moves
@@ -86,34 +88,96 @@ type ShardTarget struct {
 	Generation uint64
 }
 
-// LookupShard maps a routing value in index to its shard and, when the transport
-// knows where the shard's primary is, to the node hosting it. It returns false
-// when the index's shard map is not known; see [Transport.ShardMap].
+// ErrShardMapUnknown is returned by [Transport.LookupShard] when the index's
+// shard map is not known yet; see [Transport.ShardMap].
+var ErrShardMapUnknown = errors.New("the shard map of the index is not known")
+
+// LookupShard maps key in index to its shard and fills *dst with the shard's
+// copies: the primary first, then each replica whose node is ready to take a
+// request. The primary is always listed, with a nil Node when the transport does
+// not know where it is or the node is not usable; a replica on a node that is not
+// usable is left out.
 //
-// The node is looked up in the transport's current placement on every call, so
-// a shard that has moved is found where it is now. A caller that holds on to the
+// key is what the server hashes to pick the shard: the document's routing value
+// when it has one, otherwise its ID.
+//
+// *dst is reset to length zero and refilled. The ShardTargets it points to are
+// reused when its backing array already holds some, so a caller that keeps and
+// reuses the slice, as from a sync.Pool, makes the lookup allocate nothing once
+// the slice has grown to the largest number of copies. The pointers are only
+// valid until the caller next passes *dst to LookupShard; copy a ShardTarget to
+// keep it.
+//
+// It returns [ErrShardMapUnknown] when the index's shard map is not known yet
+// (see [Transport.ShardMap]), and the reason from [Transport.ShardMapUnavailable]
+// when the transport can never answer. *dst is empty on an error.
+//
+// Nodes are looked up in the transport's current placement on every call, so a
+// shard that has moved is found where it is now. A caller that holds on to the
 // result decides for itself how long to trust it.
-func (tr *Transport) LookupShard(index, routing string) (ShardTarget, bool) {
+func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
 	cache := tr.shardMapCache()
 	if cache == nil {
-		return ShardTarget{}, false
+		if err := tr.ShardMapUnavailable(); err != nil {
+			return err
+		}
+
+		return ErrShardMapUnknown
 	}
 
 	sm := cache.register(index).shardMap.Load()
 	if sm == nil || sm.RoutingNumShards <= 0 || sm.NumberOfPrimaryShards <= 0 {
-		return ShardTarget{}, false
+		return ErrShardMapUnknown
 	}
 
-	shard := shardForRouting(routing, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
-	target := ShardTarget{Shard: shard, Generation: sm.Generation}
+	shard := shardForRouting(key, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+	nodes := sm.Shards[shard]
 
-	if nodes := sm.Shards[shard]; nodes != nil && nodes.Primary != "" {
+	primary := nextShardTarget(dst)
+	*primary = ShardTarget{Shard: shard, Primary: true, Generation: sm.Generation}
+
+	if nodes == nil {
+		return nil
+	}
+
+	if nodes.Primary != "" {
 		if conn := tr.readyConnectionByName(nodes.Primary); conn != nil && !conn.needsCatUpdate() {
-			target.Node = conn
+			primary.Node = conn
 		}
 	}
 
-	return target, true
+	for _, name := range nodes.Replicas {
+		conn := tr.readyConnectionByName(name)
+		if conn == nil || conn.needsCatUpdate() {
+			continue
+		}
+
+		replica := nextShardTarget(dst)
+		*replica = ShardTarget{Shard: shard, Node: conn, Generation: sm.Generation}
+	}
+
+	return nil
+}
+
+// nextShardTarget extends *dst by one element and returns it, reusing the
+// pointer already in the backing array when there is one.
+func nextShardTarget(dst *[]*ShardTarget) *ShardTarget {
+	n := len(*dst)
+	if n < cap(*dst) {
+		*dst = (*dst)[:n+1]
+		if (*dst)[n] == nil {
+			(*dst)[n] = new(ShardTarget)
+		}
+
+		return (*dst)[n]
+	}
+
+	t := new(ShardTarget)
+	*dst = append(*dst, t)
+
+	return t
 }
 
 // connectionNamer is implemented by the built-in connection pools.

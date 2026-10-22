@@ -146,22 +146,22 @@ func TestShardMapShard(t *testing.T) {
 
 	m := ShardMap{RoutingNumShards: 640, PrimaryShards: 5}
 	tests := []struct {
-		name    string
-		routing string
+		name string
+		key  string
 	}{
-		{name: "a single character", routing: "a"},
-		{name: "a document id", routing: "doc-1"},
-		{name: "a tenant key with a colon", routing: "tenant:acme"},
-		{name: "a short hex word", routing: "cafe"},
+		{name: "a single character", key: "a"},
+		{name: "a document id", key: "doc-1"},
+		{name: "a tenant key with a colon", key: "tenant:acme"},
+		{name: "a short hex word", key: "cafe"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := m.Shard(tt.routing)
+			got := m.Shard(tt.key)
 			require.GreaterOrEqual(t, got, 0)
 			require.Less(t, got, 5)
-			require.Equal(t, shardForRouting(tt.routing, 640, 5), got)
+			require.Equal(t, shardForRouting(tt.key, 640, 5), got)
 		})
 	}
 }
@@ -169,9 +169,9 @@ func TestShardMapShard(t *testing.T) {
 func TestTransportLookupShard(t *testing.T) {
 	t.Parallel()
 
-	const routing = "doc-1"
+	const key = "doc-1"
 	m := ShardMap{RoutingNumShards: 640, PrimaryShards: 5}
-	shard := m.Shard(routing)
+	shard := m.Shard(key)
 
 	tests := []struct {
 		name string
@@ -245,7 +245,7 @@ func TestTransportLookupShard(t *testing.T) {
 				r.cache.getOrCreate("idx").shardMap.Store(sm)
 			}
 
-			target, ok := tr.LookupShard("idx", routing)
+			target, ok := lookupPrimary(tr, "idx", key)
 			require.Equal(t, tt.wantOK, ok)
 			if !tt.wantOK {
 				return
@@ -265,9 +265,9 @@ func TestTransportLookupShard(t *testing.T) {
 func TestTransportLookupShardFollowsAMovedShard(t *testing.T) {
 	t.Parallel()
 
-	const routing = "doc-1"
+	const key = "doc-1"
 	m := ShardMap{RoutingNumShards: 640, PrimaryShards: 5}
-	shard := m.Shard(routing)
+	shard := m.Shard(key)
 
 	tr, r := shardMapTransport(routableConn(t, "n1", time.Millisecond), routableConn(t, "n2", time.Millisecond))
 	slot := r.cache.getOrCreate("idx")
@@ -280,12 +280,12 @@ func TestTransportLookupShardFollowsAMovedShard(t *testing.T) {
 	}
 
 	place("n1")
-	target, ok := tr.LookupShard("idx", routing)
+	target, ok := lookupPrimary(tr, "idx", key)
 	require.True(t, ok)
 	require.Equal(t, "n1", target.Node.Name)
 
 	place("n2") // Discovery sees the shard relocate.
-	moved, ok := tr.LookupShard("idx", routing)
+	moved, ok := lookupPrimary(tr, "idx", key)
 	require.True(t, ok)
 	require.Equal(t, shard, moved.Shard, "the shard does not change when it moves")
 	require.Equal(t, "n2", moved.Node.Name, "the node does")
@@ -413,9 +413,9 @@ func TestSingleServerPoolConnectionByName(t *testing.T) {
 func TestTransportShardRoutingOverSingleServerPool(t *testing.T) {
 	t.Parallel()
 
-	const routing = "doc-1"
+	const key = "doc-1"
 	m := ShardMap{RoutingNumShards: 640, PrimaryShards: 5}
-	shard := m.Shard(routing)
+	shard := m.Shard(key)
 
 	tests := []struct {
 		name string
@@ -447,7 +447,7 @@ func TestTransportShardRoutingOverSingleServerPool(t *testing.T) {
 				Shards:                map[int]*shardNodes{shard: {Primary: tt.primary}},
 			})
 
-			target, ok := tr.LookupShard("idx", routing)
+			target, ok := lookupPrimary(tr, "idx", key)
 			require.True(t, ok)
 			require.Equal(t, shard, target.Shard)
 			if tt.wantNode == "" {
@@ -753,8 +753,19 @@ func TestTransportLookupShardReportsTheGeneration(t *testing.T) {
 		ShardToNodes:          map[int]*shardNodes{0: {Primary: "n1"}},
 	})
 
-	target, ok := tr.LookupShard("idx", "doc-1")
+	target, ok := lookupPrimary(tr, "idx", "doc-1")
 	require.True(t, ok)
 	require.NotZero(t, target.Generation)
 	require.Equal(t, slot.shardMap.Load().Generation, target.Generation)
+}
+
+// lookupPrimary returns the first copy LookupShard lists, the primary, and whether
+// the shard map of index is known.
+func lookupPrimary(tr *Transport, index, key string) (ShardTarget, bool) {
+	var targets []*ShardTarget
+	if err := tr.LookupShard(index, key, &targets); err != nil || len(targets) == 0 {
+		return ShardTarget{}, false
+	}
+
+	return *targets[0], true
 }

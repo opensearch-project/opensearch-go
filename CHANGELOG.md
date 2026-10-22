@@ -8,6 +8,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- **BREAKING**: Change `opensearchtransport.Transport.LookupShard` and `opensearchutil.ShardRouter.LookupShard` to `LookupShard(index, key string, dst *[]*ShardTarget) error`. The lookup fills the caller's slice with every copy of the shard, the primary first and then each replica on a ready node, and reuses the `ShardTarget`s already in the slice, so a caller that keeps the slice, as from a `sync.Pool`, allocates nothing per lookup. It returns `ErrShardMapUnknown`, or the reason from `ShardMapUnavailable`, in place of the old `false`. `ShardTarget` gains a `Primary` field, and the second argument is named `key`, the routing value or else the document ID, which is what the server hashes. Callers that took the single result read `(*dst)[0]`.
+
 ### Deprecated
 
 ### Removed

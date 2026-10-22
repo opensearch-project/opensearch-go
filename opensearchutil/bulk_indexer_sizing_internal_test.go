@@ -167,7 +167,7 @@ func (h *sizingHarness) idsFor(shard, n int) []string {
 	var ids []string
 	for i := 0; len(ids) < n; i++ {
 		id := fmt.Sprintf("doc-%04d", i)
-		target, ok := cluster.LookupShard("idx", id)
+		target, ok := lookupOne(cluster, "idx", id)
 		require.True(h.t, ok)
 		if target.Shard == shard {
 			ids = append(ids, id)

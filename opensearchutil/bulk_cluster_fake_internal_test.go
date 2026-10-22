@@ -62,23 +62,38 @@ func newFakeCluster(maps map[string]ShardMap, nodeNames ...string) *fakeCluster 
 	return c
 }
 
-func (c *fakeCluster) LookupShard(index, routing string) (ShardTarget, bool) {
+func (c *fakeCluster) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.mu.lookups++
 	m, ok := c.mu.maps[index]
 	if _, unknown := c.mu.unknown[index]; !ok || unknown {
-		return ShardTarget{}, false
+		return ErrShardMapUnknown
 	}
 
-	shard := m.Shard(routing)
-	target := ShardTarget{Shard: shard, Generation: c.mu.generation[index]}
+	shard := m.Shard(key)
+	target := nextShardTarget(dst)
+	*target = ShardTarget{Shard: shard, Primary: true, Generation: c.mu.generation[index]}
 	if name := c.mu.place(index, shard); name != "" {
 		target.Node = Node{Name: name, Pool: c.poolOf(name)}
 	}
 
-	return target, true
+	return nil
+}
+
+// lookupOne returns the first copy of the shard key lives on, and whether router knows it.
+func lookupOne(router ShardRouter, index, key string) (ShardTarget, bool) {
+	targets := getShardTargets()
+	defer putShardTargets(targets)
+
+	if err := router.LookupShard(index, key, targets); err != nil || len(*targets) == 0 {
+		return ShardTarget{}, false
+	}
+
+	return *(*targets)[0], true
 }
 
 func (c *fakeCluster) WriteNodes() []Node {

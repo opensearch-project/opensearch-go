@@ -24,7 +24,7 @@ func idsOnShard(t *testing.T, router ShardRouter, index string, shard, n int) []
 	var ids []string
 	for i := 0; len(ids) < n; i++ {
 		id := fmt.Sprintf("doc-%05d", i)
-		target, ok := router.LookupShard(index, id)
+		target, ok := lookupOne(router, index, id)
 		require.True(t, ok)
 		if target.Shard == shard {
 			ids = append(ids, id)

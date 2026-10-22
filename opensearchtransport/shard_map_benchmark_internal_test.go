@@ -29,7 +29,7 @@ func benchShardConn(name string) *Connection {
 }
 
 // BenchmarkLookupShard measures Transport.LookupShard, which a BulkIndexer calls once per
-// added item, against pools of 3, 30 and 300 nodes. The pool scans its ready list for the
+// added item, against pools of 3, 30 and 300 nodes with one reused dst slice. The pool scans its ready list for the
 // primary's name, so "last" is the worst case. It must not allocate.
 func BenchmarkLookupShard(b *testing.B) {
 	for _, nodes := range []int{3, 30, 300} {
@@ -54,10 +54,12 @@ func BenchmarkLookupShard(b *testing.B) {
 
 				b.ReportAllocs()
 
-				var found int
+				var (
+					found int
+					dst   []*ShardTarget
+				)
 				for b.Loop() {
-					target, ok := tr.LookupShard("idx", "doc-1")
-					if ok && target.Node != nil {
+					if err := tr.LookupShard("idx", "doc-1", &dst); err == nil && len(dst) > 0 && dst[0].Node != nil {
 						found++
 					}
 				}

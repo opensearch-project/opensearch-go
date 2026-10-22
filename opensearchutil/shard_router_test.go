@@ -95,7 +95,7 @@ func TestStaticShardRouter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			target, ok := router.LookupShard(tt.index, "doc-1")
+			target, ok := lookupOne(router, tt.index, "doc-1")
 			require.Equal(t, tt.wantFound, ok)
 			if !tt.wantFound {
 				return
@@ -114,14 +114,14 @@ func TestStaticShardRouterNil(t *testing.T) {
 
 	var router opensearchutil.StaticShardRouter
 
-	_, ok := router.LookupShard("any", "id")
+	_, ok := lookupOne(router, "any", "id")
 	require.False(t, ok)
 }
 
 func TestNoShardRouter(t *testing.T) {
 	t.Parallel()
 
-	_, ok := opensearchutil.NoShardRouter.LookupShard("idx", "id")
+	_, ok := lookupOne(opensearchutil.NoShardRouter, "idx", "id")
 	require.False(t, ok)
 	require.Empty(t, opensearchutil.NoShardRouter.WriteNodes())
 }
@@ -136,7 +136,7 @@ func TestStaticShardRouterAgainstShardhash(t *testing.T) {
 		router := opensearchutil.StaticShardRouter{"idx": opensearchutil.DefaultShardMap(numShards)}
 
 		for _, id := range []string{"a", "doc-1", "user42", "tenant:acme", "café"} {
-			target, ok := router.LookupShard("idx", id)
+			target, ok := lookupOne(router, "idx", id)
 			require.True(t, ok)
 			require.GreaterOrEqual(t, target.Shard, 0)
 			require.Less(t, target.Shard, numShards, "numShards=%d id=%q", numShards, id)
@@ -152,13 +152,20 @@ type recordingRouter struct {
 	lookups  int
 }
 
-func (r *recordingRouter) LookupShard(_, routing string) (opensearchutil.ShardTarget, bool) {
+func (r *recordingRouter) LookupShard(_, key string, dst *[]*opensearchutil.ShardTarget) error {
 	r.lookups++
+	*dst = (*dst)[:0]
 	if !r.known {
-		return opensearchutil.ShardTarget{}, false
+		return opensearchutil.ErrShardMapUnknown
 	}
 
-	return opensearchutil.ShardTarget{Shard: r.shardMap.Shard(routing), Node: opensearchutil.Node{Name: "cluster"}}, true
+	*dst = append(*dst, &opensearchutil.ShardTarget{
+		Shard:   r.shardMap.Shard(key),
+		Node:    opensearchutil.Node{Name: "cluster"},
+		Primary: true,
+	})
+
+	return nil
 }
 
 func (r *recordingRouter) WriteNodes() []opensearchutil.Node { return r.nodes }
@@ -177,7 +184,7 @@ func TestChainShardRouter(t *testing.T) {
 
 		first := cluster(true)
 		second := &recordingRouter{shardMap: derived, known: true}
-		target, ok := opensearchutil.ChainShardRouter(first, second).LookupShard("idx", "doc-1")
+		target, ok := lookupOne(opensearchutil.ChainShardRouter(first, second), "idx", "doc-1")
 
 		require.True(t, ok)
 		require.Equal(t, split.Shard("doc-1"), target.Shard)
@@ -190,7 +197,7 @@ func TestChainShardRouter(t *testing.T) {
 
 		first := cluster(false)
 		second := &recordingRouter{shardMap: derived, known: true}
-		target, ok := opensearchutil.ChainShardRouter(first, second).LookupShard("idx", "doc-1")
+		target, ok := lookupOne(opensearchutil.ChainShardRouter(first, second), "idx", "doc-1")
 
 		require.True(t, ok)
 		require.Equal(t, derived.Shard("doc-1"), target.Shard)
@@ -200,7 +207,7 @@ func TestChainShardRouter(t *testing.T) {
 	t.Run("nobody knows", func(t *testing.T) {
 		t.Parallel()
 
-		_, ok := opensearchutil.ChainShardRouter(cluster(false), cluster(false)).LookupShard("idx", "id")
+		_, ok := lookupOne(opensearchutil.ChainShardRouter(cluster(false), cluster(false)), "idx", "id")
 		require.False(t, ok)
 	})
 
@@ -224,7 +231,7 @@ func TestChainShardRouter(t *testing.T) {
 		t.Parallel()
 
 		only := &recordingRouter{shardMap: derived, known: true}
-		_, ok := opensearchutil.ChainShardRouter(nil, only, nil).LookupShard("idx", "id")
+		_, ok := lookupOne(opensearchutil.ChainShardRouter(nil, only, nil), "idx", "id")
 		require.True(t, ok)
 
 		require.Nil(t, opensearchutil.ChainShardRouter())

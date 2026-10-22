@@ -9,6 +9,7 @@ package opensearchutil
 import (
 	"math"
 	"math/bits"
+	"sync"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -61,14 +62,21 @@ func (n Node) writeSaturated() bool {
 	return n.pool().Overloaded
 }
 
-// ShardTarget is where a document with a given routing value lives.
+// ErrShardMapUnknown is what a [ShardRouter] returns from LookupShard when it does
+// not know the index's shard map.
+var ErrShardMapUnknown = opensearchtransport.ErrShardMapUnknown
+
+// ShardTarget is one copy of the shard a document with a given key lives on.
 type ShardTarget struct {
 	// Shard is the shard number.
 	Shard int
-	// Node hosts the shard's primary. Its Name is empty when the placement is not
+	// Node hosts this copy of the shard. Its Name is empty when the placement is not
 	// known, in which case the bulk client sends the document's batch to the node it
 	// chooses.
 	Node Node
+	// Primary reports that this copy is the shard's primary. A router that cannot
+	// tell a primary from a replica lists its one copy as the primary.
+	Primary bool
 	// Generation identifies the shard geometry behind this answer: the shard count
 	// and routing factor that map a routing value to a shard. It changes when the
 	// geometry does, as when an index is recreated, split or shrunk, and not when a
@@ -89,10 +97,18 @@ type ShardTarget struct {
 // is defined here, in the consumer package, so the transport satisfies it
 // without importing this package.
 type ShardRouter interface {
-	// LookupShard maps a routing value in index to its shard, and to the node
-	// hosting the shard. It returns false when the index's shard map is not
-	// known, in which case documents for the index are not tied to a shard.
-	LookupShard(index, routing string) (ShardTarget, bool)
+	// LookupShard maps key in index to its shard, and fills *dst with the copies
+	// of the shard: the primary first, then the replicas the router knows. key is
+	// what the server hashes to pick the shard, the routing value or else the
+	// document ID. It returns an error, [ErrShardMapUnknown] or the reason the
+	// router can never answer, when the index's shard map is not known, in which
+	// case documents for the index are not tied to a shard.
+	//
+	// *dst is reset and refilled, and the ShardTargets it points to are reused when
+	// its backing array holds some, so a caller that keeps the slice, as from
+	// a sync.Pool, makes the lookup allocate nothing. The pointers are valid until
+	// *dst is next passed to LookupShard.
+	LookupShard(index, key string, dst *[]*ShardTarget) error
 
 	// WriteNodes returns the nodes a document that has no shard should go to,
 	// best first. The bulk client fills the first one it finds with room before it
@@ -103,7 +119,11 @@ type ShardRouter interface {
 type noShardRouter struct{}
 
 // LookupShard implements [ShardRouter]; it knows no shard.
-func (noShardRouter) LookupShard(string, string) (ShardTarget, bool) { return ShardTarget{}, false }
+func (noShardRouter) LookupShard(_, _ string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
+	return ErrShardMapUnknown
+}
 
 // WriteNodes implements [ShardRouter]; it knows no node.
 func (noShardRouter) WriteNodes() []Node { return nil }
@@ -127,13 +147,57 @@ var NoShardRouter ShardRouter = noShardRouter{}
 type StaticShardRouter map[string]ShardMap
 
 // LookupShard implements [ShardRouter].
-func (r StaticShardRouter) LookupShard(index, routing string) (ShardTarget, bool) {
+func (r StaticShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
 	m, found := r[index]
 	if !found || !validShardMap(m) {
-		return ShardTarget{}, false
+		return ErrShardMapUnknown
 	}
 
-	return ShardTarget{Shard: m.Shard(routing)}, true
+	*nextShardTarget(dst) = ShardTarget{Shard: m.Shard(key), Primary: true}
+
+	return nil
+}
+
+// nextShardTarget extends *dst by one element and returns it, reusing the
+// pointer already in the backing array when there is one.
+func nextShardTarget(dst *[]*ShardTarget) *ShardTarget {
+	n := len(*dst)
+	if n < cap(*dst) {
+		*dst = (*dst)[:n+1]
+		if (*dst)[n] == nil {
+			(*dst)[n] = new(ShardTarget)
+		}
+
+		return (*dst)[n]
+	}
+
+	t := new(ShardTarget)
+	*dst = append(*dst, t)
+
+	return t
+}
+
+// shardTargetPool holds scratch slices for LookupShard, so a lookup on the hot
+// path allocates neither the slice nor its ShardTargets.
+//
+//nolint:gochecknoglobals // A pool is process-wide by design.
+var shardTargetPool = sync.Pool{New: func() any {
+	s := make([]*ShardTarget, 0, 4)
+
+	return &s
+}}
+
+func getShardTargets() *[]*ShardTarget {
+	s, _ := shardTargetPool.Get().(*[]*ShardTarget)
+
+	return s
+}
+
+func putShardTargets(s *[]*ShardTarget) {
+	*s = (*s)[:0]
+	shardTargetPool.Put(s)
 }
 
 // WriteNodes implements [ShardRouter]; a static router knows no nodes.
@@ -216,14 +280,21 @@ func ChainShardRouter(routers ...ShardRouter) ShardRouter {
 }
 
 // LookupShard implements [ShardRouter].
-func (c chainShardRouter) LookupShard(index, routing string) (ShardTarget, bool) {
+func (c chainShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	var first error
 	for _, r := range c {
-		if target, ok := r.LookupShard(index, routing); ok {
-			return target, true
+		err := r.LookupShard(index, key, dst)
+		if err == nil {
+			return nil
+		}
+		if first == nil {
+			first = err
 		}
 	}
 
-	return ShardTarget{}, false
+	*dst = (*dst)[:0]
+
+	return first
 }
 
 // WriteNodes implements [ShardRouter].
@@ -240,7 +311,7 @@ func (c chainShardRouter) WriteNodes() []Node {
 // transportRouter is what a transport offers; [opensearchtransport.Transport]
 // provides it.
 type transportRouter interface {
-	LookupShard(index, routing string) (opensearchtransport.ShardTarget, bool)
+	LookupShard(index, key string, dst *[]*opensearchtransport.ShardTarget) error
 	WriteNodes() []*opensearchtransport.Connection
 }
 
@@ -260,19 +331,36 @@ func nodeOf(conn *opensearchtransport.Connection) Node {
 }
 
 // LookupShard implements [ShardRouter].
-func (r clientShardRouter) LookupShard(index, routing string) (ShardTarget, bool) {
-	target, ok := r.tr.LookupShard(index, routing)
-	if !ok {
-		return ShardTarget{}, false
+func (r clientShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
+	scratch, _ := transportTargetPool.Get().(*[]*opensearchtransport.ShardTarget)
+	defer func() {
+		*scratch = (*scratch)[:0]
+		transportTargetPool.Put(scratch)
+	}()
+
+	if err := r.tr.LookupShard(index, key, scratch); err != nil {
+		return err
 	}
 
-	out := ShardTarget{Shard: target.Shard, Generation: target.Generation}
-	if target.Node != nil {
-		out.Node = nodeOf(target.Node)
+	for _, target := range *scratch {
+		out := nextShardTarget(dst)
+		*out = ShardTarget{Shard: target.Shard, Primary: target.Primary, Generation: target.Generation}
+		if target.Node != nil {
+			out.Node = nodeOf(target.Node)
+		}
 	}
 
-	return out, true
+	return nil
 }
+
+//nolint:gochecknoglobals // A pool is process-wide by design.
+var transportTargetPool = sync.Pool{New: func() any {
+	s := make([]*opensearchtransport.ShardTarget, 0, 4)
+
+	return &s
+}}
 
 // WriteNodes implements [ShardRouter].
 func (r clientShardRouter) WriteNodes() []Node {
