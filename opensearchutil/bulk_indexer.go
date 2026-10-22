@@ -1292,26 +1292,10 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 	targets := getShardTargets()
 	defer putShardTargets(targets)
 
-	var target ShardTarget
-	if err := bi.router.LookupShard(index, routing, targets); err == nil && len(*targets) > 0 {
-		target = *(*targets)[0]
-	} else {
-		// Load first: this runs for every item of an index still waiting for its
-		// shard map, and a sync.Map store is a write.
-		if _, marked := bi.placement.unplaced.Load(index); !marked {
-			bi.placement.unplaced.Store(index, struct{}{})
-		}
-		// A shard map that was known and is gone is unknown again, and the next
-		// answer will need the same drain. The documents of its shards, which the
-		// unordered buffers this item now joins do not wait for, are dealt with first.
-		if _, known := bi.shardMapGeneration(index); known {
-			if err := bi.placementChanged(ctx, index, 0, true); err != nil {
-				return nil, Node{}, 0, err
-			}
-		}
-
-		return nil, Node{}, 0, nil
+	if err := bi.router.LookupShard(index, routing, targets); err != nil || len(*targets) == 0 {
+		return nil, Node{}, 0, bi.unplaceable(ctx, index)
 	}
+	target := *(*targets)[0]
 
 	placed, known := bi.shardMapGeneration(index)
 	switch {
@@ -1328,6 +1312,24 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 	}
 
 	return &shardKey{index: index, shard: target.Shard}, target.Node, placed, nil
+}
+
+// unplaceable records that index has no shard map, for an item place could not
+// tie to a shard.
+func (bi *bulkClient) unplaceable(ctx context.Context, index string) error {
+	// Load first: this runs for every item of an index still waiting for its
+	// shard map, and a sync.Map store is a write.
+	if _, marked := bi.placement.unplaced.Load(index); !marked {
+		bi.placement.unplaced.Store(index, struct{}{})
+	}
+	// A shard map that was known and is gone is unknown again, and the next
+	// answer will need the same drain. The documents of its shards, which the
+	// unordered buffers this item now joins do not wait for, are dealt with first.
+	if _, known := bi.shardMapGeneration(index); known {
+		return bi.placementChanged(ctx, index, 0, true)
+	}
+
+	return nil
 }
 
 // validShardPlacement reports whether an item that place put on a shard of index,

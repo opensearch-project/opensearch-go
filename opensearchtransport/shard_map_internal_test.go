@@ -245,7 +245,7 @@ func TestTransportLookupShard(t *testing.T) {
 				r.cache.getOrCreate("idx").shardMap.Store(sm)
 			}
 
-			target, ok := lookupPrimary(tr, "idx", key)
+			target, ok := lookupPrimary(tr)
 			require.Equal(t, tt.wantOK, ok)
 			if !tt.wantOK {
 				return
@@ -280,12 +280,12 @@ func TestTransportLookupShardFollowsAMovedShard(t *testing.T) {
 	}
 
 	place("n1")
-	target, ok := lookupPrimary(tr, "idx", key)
+	target, ok := lookupPrimary(tr)
 	require.True(t, ok)
 	require.Equal(t, "n1", target.Node.Name)
 
 	place("n2") // Discovery sees the shard relocate.
-	moved, ok := lookupPrimary(tr, "idx", key)
+	moved, ok := lookupPrimary(tr)
 	require.True(t, ok)
 	require.Equal(t, shard, moved.Shard, "the shard does not change when it moves")
 	require.Equal(t, "n2", moved.Node.Name, "the node does")
@@ -447,7 +447,7 @@ func TestTransportShardRoutingOverSingleServerPool(t *testing.T) {
 				Shards:                map[int]*shardNodes{shard: {Primary: tt.primary}},
 			})
 
-			target, ok := lookupPrimary(tr, "idx", key)
+			target, ok := lookupPrimary(tr)
 			require.True(t, ok)
 			require.Equal(t, shard, target.Shard)
 			if tt.wantNode == "" {
@@ -753,17 +753,17 @@ func TestTransportLookupShardReportsTheGeneration(t *testing.T) {
 		ShardToNodes:          map[int]*shardNodes{0: {Primary: "n1"}},
 	})
 
-	target, ok := lookupPrimary(tr, "idx", "doc-1")
+	target, ok := lookupPrimary(tr)
 	require.True(t, ok)
 	require.NotZero(t, target.Generation)
 	require.Equal(t, slot.shardMap.Load().Generation, target.Generation)
 }
 
-// lookupPrimary returns the first copy LookupShard lists, the primary, and whether
-// the shard map of index is known.
-func lookupPrimary(tr *Transport, index, key string) (ShardTarget, bool) {
+// lookupPrimary returns the first copy LookupShard lists for "doc-1" in index
+// "idx", the primary, and whether the index's shard map is known.
+func lookupPrimary(tr *Transport) (ShardTarget, bool) {
 	var targets []*ShardTarget
-	if err := tr.LookupShard(index, key, &targets); err != nil || len(targets) == 0 {
+	if err := tr.LookupShard("idx", "doc-1", &targets); err != nil || len(targets) == 0 {
 		return ShardTarget{}, false
 	}
 

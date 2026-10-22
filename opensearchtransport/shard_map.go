@@ -81,6 +81,10 @@ type ShardTarget struct {
 	Node *Connection
 	// Primary reports that this copy is the shard's primary.
 	Primary bool
+	// SegmentReplication reports that the index uses segment replication, so a
+	// replica can trail the primary: a realtime read that must see the latest
+	// write goes to the primary.
+	SegmentReplication bool
 	// Generation identifies the shard geometry Shard was computed with: the primary
 	// shard count and the routing factor. It changes when the index's geometry does,
 	// as when the index is recreated, split or shrunk, and not when a shard moves
@@ -136,7 +140,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 	nodes := sm.Shards[shard]
 
 	primary := nextShardTarget(dst)
-	*primary = ShardTarget{Shard: shard, Primary: true, Generation: sm.Generation}
+	*primary = ShardTarget{Shard: shard, Primary: true, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
 
 	if nodes == nil {
 		return nil
@@ -155,7 +159,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 		}
 
 		replica := nextShardTarget(dst)
-		*replica = ShardTarget{Shard: shard, Node: conn, Generation: sm.Generation}
+		*replica = ShardTarget{Shard: shard, Node: conn, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
 	}
 
 	return nil
@@ -333,23 +337,40 @@ type PoolWindow struct {
 // transport's initial window, as the routers use: four requests per allocated
 // processor.
 func (conn *Connection) WritePool() PoolWindow {
+	return conn.poolWindow(poolWrite)
+}
+
+// GetPool returns the node's get thread pool window, which serves get and mget
+// requests, in the same terms as [Connection.WritePool].
+func (conn *Connection) GetPool() PoolWindow {
+	return conn.poolWindow(poolGet)
+}
+
+func (conn *Connection) poolWindow(name string) PoolWindow {
 	var maxWindow int
-	if pc := conn.pools.get(poolWrite); pc != nil {
+	if pc := conn.pools.get(name); pc != nil {
 		pc.mu.Lock()
 		maxWindow = int(pc.mu.maxCwnd)
 		pc.mu.Unlock()
 	}
 
 	return PoolWindow{
-		Window:     int(conn.loadCwnd(poolWrite, maxWindow > 0)),
+		Window:     int(conn.loadCwnd(name, maxWindow > 0)),
 		MaxWindow:  maxWindow,
-		InFlight:   int(conn.loadInFlight(poolWrite)),
-		Overloaded: conn.isPoolOverloaded(poolWrite),
+		InFlight:   int(conn.loadInFlight(name)),
+		Overloaded: conn.isPoolOverloaded(name),
 	}
 }
 
-// writeNodeKey is the context key for [WithWriteNode].
-type writeNodeKey struct{}
+// pinnedNodeKey is the context key for [WithWriteNode] and [WithReadNode].
+type pinnedNodeKey struct{}
+
+// pinnedNode is a node a context asks for and the thread pool the request is
+// accounted to.
+type pinnedNode struct {
+	conn *Connection
+	pool string
+}
 
 // WithWriteNode returns a context that sends a write request to conn, a node
 // from [Transport.LookupShard] or [Transport.WriteNodes], in place of the node
@@ -361,15 +382,23 @@ type writeNodeKey struct{}
 // not one to go back to. The transport still retries, marks nodes dead and
 // updates its windows as for any request.
 func WithWriteNode(ctx context.Context, conn *Connection) context.Context {
-	return context.WithValue(ctx, writeNodeKey{}, conn)
+	return context.WithValue(ctx, pinnedNodeKey{}, pinnedNode{conn: conn, pool: poolWrite})
 }
 
-// pinnedWriteNode returns the node a context asks for, if it is usable.
-func pinnedWriteNode(ctx context.Context) *Connection {
-	conn, _ := ctx.Value(writeNodeKey{}).(*Connection)
-	if conn == nil || !conn.isReady() || !conn.availableForRouting() {
-		return nil
+// WithReadNode is [WithWriteNode] for a get or mget request: it sends the
+// request to conn, a node from [Transport.LookupShard], and accounts it to the
+// node's get pool. The same preference rules apply.
+func WithReadNode(ctx context.Context, conn *Connection) context.Context {
+	return context.WithValue(ctx, pinnedNodeKey{}, pinnedNode{conn: conn, pool: poolGet})
+}
+
+// pinnedRequestNode returns the node a context asks for, if it is usable, and
+// the pool to account the request to.
+func pinnedRequestNode(ctx context.Context) (*Connection, string) {
+	pin, _ := ctx.Value(pinnedNodeKey{}).(pinnedNode)
+	if pin.conn == nil || !pin.conn.isReady() || !pin.conn.availableForRouting() {
+		return nil, ""
 	}
 
-	return conn
+	return pin.conn, pin.pool
 }
