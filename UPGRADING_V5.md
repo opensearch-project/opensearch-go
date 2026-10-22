@@ -799,7 +799,7 @@ DiscoverNodesInterval: -1, // no periodic discovery
 
 The bulk client keeps a buffer for each shard of the indexes it writes to and sends each buffer, as one bulk request, to the node hosting the shard, where it used to hand every item to one of `NumWorkers` workers by hashing its `DocumentID`. Three things change for code that was tuned to the old model:
 
-- **`NumWorkers` is a cap, not a pool.** It limits the bulk requests outstanding at once, and the default, 0, sets no cap beyond the ones that are always there: a shard has one request out at a time, and a node has as many as the window the transport allows its write pool. A node the transport reports no pool for, such as the one that stands for the cluster when the bulk client knows no shard map, has as many as `NumWorkers`, or `GOMAXPROCS` when it is 0, which follows a container's CPU limit. If you set it to size a pool, delete it; if you set it to 1 to serialize requests, it still does.
+- **`NumWorkers` is a cap, not a pool.** It limits the bulk requests outstanding at once, across all nodes and to any one node. The default, 0, sets no cap across nodes and caps each node at `GOMAXPROCS`, which follows a container's CPU limit. Beyond that, a shard has one request out at a time. The write pool window the transport tracks for a node chooses where documents that belong to no shard go, and caps nothing. If you set it to size a pool, delete it; if you set it to 1 to serialize requests, it still does.
 - **Memory is limited.** `MaxMemoryBytes` limits what the bulk client holds from `Add` until the request that sends the item has finished, and `Add` waits when it is spent, or when its shard is over an even share of the limit while other shards are waiting. The limit is not a hard bound: a shard that holds nothing may always take one item, so the total can pass it by up to one item for each such shard. It defaults to `max(GOMEMLIMIT/4, 4 GiB, DefaultMaxMemoryBytes)` when the process has a Go memory limit, and to 512 MiB when it does not. A process with a Go memory limit under 16 GiB that wants the bulk client held inside it sets `MaxMemoryBytes`. While other shards are waiting for room, a shard holds no more than an even share of the limit, so one slow shard makes only the callers adding to it wait.
 - **Buffer sizes follow the cluster.** `FlushBytes` is now the ceiling for a shard's buffer. A shard starts at `FlushBytes` on a node that shows no load, and at the default `InitialBytes` on one that is already rejecting or whose window was shrunk; an `InitialBytes` you set starts every shard at that size, loaded node or not. The bulk client shrinks a shard's buffer when that shard is slower than the rest of its node. The bytes the bulk client will have out to a node at once are a window that starts wide open and is shrunk only by a 429, to half of what was out when it arrived, so a node that is merely slow, for all its shards alike, keeps both its buffer sizes and its window. `BulkSizing{Shard: ShardFixed, Target: TargetFixed}` turns both controllers off.
 
@@ -818,4 +818,57 @@ bi.Add(ctx, opensearchutil.BulkIndexerItem{Action: "index", DocumentID: id, Body
 bi.Add(ctx, opensearchutil.BulkIndexerItem{
 	Action: "index", DocumentID: id, Body: io.NewSectionReader(f, offset, length),
 })
+```
+
+## Transport retries wait before they are sent
+
+When `RetryBackoff` is nil, the default, the transport waits before each retry. It used to retry at once. The delay is drawn uniformly from zero to 100ms, and the ceiling doubles for each retry after the first, so with the default `MaxRetries` of 6 a request that uses every retry waits about 3s in all on average. A new `RetryBudget`, default 5s, bounds the delays of one request's retries together. A retry whose delay would take the total past the budget is not made, and the caller gets the last response or error. The budget also applies to a `RetryBackoff` you set.
+
+To retry at once, as before:
+
+```go
+// Before: retries were sent at once.
+cfg := opensearch.Config{}
+
+// After: same behavior.
+cfg := opensearch.Config{
+	RetryBackoff: func(int) time.Duration { return 0 },
+}
+```
+
+A `RetryBackoff` whose delays add up to more than 5s needs a larger `RetryBudget`, or a negative one for no bound:
+
+```go
+cfg := opensearch.Config{
+	RetryBackoff: func(attempt int) time.Duration { return time.Duration(attempt) * 2 * time.Second },
+	RetryBudget:  -1, // no bound; 0 selects 5s
+}
+```
+
+## `opensearchutil` bulk client names renamed in 5.1.2
+
+5.1.2 renames `opensearchutil` names added in 5.1.0. The old names are removed, not deprecated. `BulkIndexer`, `NewBulkIndexer`, `BulkIndexerConfig`, `BulkIndexerStats` and `BulkIndexerItem` keep their names.
+
+| Before (5.1.0, 5.1.1)                                   | After (5.1.2)                                                     |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| `ErrBulkIndexerClosed`                                  | `ErrBulkClientClosed`                                             |
+| `ErrIndexerCanceled`                                    | `ErrBulkClientCanceled`                                           |
+| `ErrIndexerLayer`                                       | `ErrClientLayer`                                                  |
+| `LayerIndexer`, `String()` `"indexer"`                  | `LayerClient`, `String()` `"client"`                              |
+| `BulkIndexerStats.BudgetFill`                           | `BulkIndexerStats.Utilization`                                    |
+| `NodeSizing`, `NodeUnset`, `NodeAIMD`, `NodeFixed`      | `TargetSizing`, `TargetUnset`, `TargetAIMD`, `TargetFixed`        |
+| `BulkSizing.Node`                                       | `BulkSizing.Target`                                               |
+| `BulkIndexerConfig.NodeBytes`                           | `BulkIndexerConfig.TargetBytes`                                   |
+| `OPENSEARCH_GO_BULK_NODE`                               | `OPENSEARCH_GO_BULK_TARGET`                                       |
+| `NodeStats`, `BulkIndexer.GetNodeStats`, `JobNodeStats` | `BulkTargetStats`, `BulkIndexer.GetTargetStats`, `JobTargetStats` |
+| `BulkIndexerStats.NodeWindow`, `NumNodes`, `FlushNode`  | `BulkIndexerStats.TargetWindow`, `NumTargets`, `FlushTarget`      |
+
+The `layer` label the `osprom` and `osotel` bulk observers record is now `client` where it was `indexer`, so a dashboard or alert that matches `layer="indexer"` needs updating:
+
+```promql
+# Before
+opensearch_client_bulk_errors_total{layer="indexer"}
+
+# After
+opensearch_client_bulk_errors_total{layer="client"}
 ```
