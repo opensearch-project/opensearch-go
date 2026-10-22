@@ -424,6 +424,27 @@ func TestUpdatePoolCongestion_NilMap(t *testing.T) {
 	require.NotNil(t, conn.pools.get("search"), "nil map should not remove pools")
 }
 
+// TestUpdatePoolCongestion_BaselineAfterDiscovery: discovery creates a pool when it
+// records the pool's size, before any stats poll. The first stats poll is still
+// the pool's baseline, so a node that rejected writes before the client connected
+// is not reported overloaded.
+func TestUpdatePoolCongestion_BaselineAfterDiscovery(t *testing.T) {
+	t.Parallel()
+
+	conn := &Connection{}
+	conn.pools.setMaxCwnd(poolWrite, 8)
+
+	updatePoolCongestion(conn, map[string]ThreadPoolStats{
+		poolWrite: {Threads: 8, Completed: 1_000_000, Rejected: 42},
+	})
+	require.False(t, conn.isPoolOverloaded(poolWrite), "rejections before the first poll are not an overload")
+
+	updatePoolCongestion(conn, map[string]ThreadPoolStats{
+		poolWrite: {Threads: 8, Completed: 1_000_100, Rejected: 43},
+	})
+	require.True(t, conn.isPoolOverloaded(poolWrite), "a rejection since the first poll is")
+}
+
 // --- Connection in-flight tests ---
 
 func TestConnectionInFlight(t *testing.T) {
