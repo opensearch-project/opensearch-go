@@ -173,6 +173,23 @@ func TestApplyPoolAIMD_FirstPollKeepsA429(t *testing.T) {
 	require.False(t, pc.overloaded.Load(), "a poll with no new rejections clears it")
 }
 
+// TestApplyPoolAIMD_RejectingBeforeAnyCompletion: a pool that has completed nothing,
+// because the node rejects all of its work, has still been polled, so its
+// rejections are an overload. This is why an unpolled pool is marked with -1 and
+// not told apart by a completed count of zero.
+func TestApplyPoolAIMD_RejectingBeforeAnyCompletion(t *testing.T) {
+	t.Parallel()
+
+	var reg poolRegistry
+	pc := reg.getOrCreate(poolWrite)
+	pc.cwnd.Store(4)
+
+	applyPoolAIMD(pc, ThreadPoolStats{})
+	applyPoolAIMD(pc, ThreadPoolStats{Rejected: 5})
+	require.True(t, pc.overloaded.Load(), "rejections with nothing completed are an overload")
+	require.Equal(t, int32(2), pc.cwnd.Load())
+}
+
 func TestApplyPoolAIMD_SlowStart(t *testing.T) {
 	t.Parallel()
 
