@@ -38,6 +38,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -63,7 +64,13 @@ func TestTransportRetries(t *testing.T) {
 	}))
 	serverURL, _ := url.Parse(server.URL)
 
-	transport, _ := opensearchtransport.New(opensearchtransport.Config{URLs: []*url.URL{serverURL}})
+	// Zero backoff keeps the attempt count at MaxRetries+1: with the default
+	// delays the retry budget can end the loop early, and the pause lets
+	// health checks of the dead node reach the server and inflate the count.
+	transport, _ := opensearchtransport.New(opensearchtransport.Config{
+		URLs:         []*url.URL{serverURL},
+		RetryBackoff: func(int) time.Duration { return 0 },
+	})
 	t.Cleanup(func() { _ = transport.Close() })
 
 	bodies := []io.Reader{
