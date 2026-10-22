@@ -137,6 +137,16 @@ pin_commit() {
     done
 }
 
+# diff_anchor prints the fragment GitHub gives file $1 on a diff page: the
+# SHA-256 of its path.
+diff_anchor() {
+    if command -v sha256sum >/dev/null; then
+        printf '%s' "$1" | sha256sum
+    else
+        printf '%s' "$1" | shasum -a 256
+    fi | cut -d' ' -f1
+}
+
 owner() {
     local url
     url=$(git remote get-url "$RELEASE_REMOTE" 2>/dev/null) || { printf '<owner>\n'; return; }
@@ -403,6 +413,16 @@ verify() {
         return
     fi
 
+    # changes is the prepare PR's diff page, or the prepare commit's when its
+    # subject names no PR.
+    local changes pr
+    pr=$(git show -s --format=%s "$prep" | sed -nE 's/.*\(#([0-9]+)\)$/\1/p')
+    if [ -n "$pr" ]; then
+        changes=https://github.com/$SLUG/pull/$pr/changes
+    else
+        changes=https://github.com/$SLUG/commit/$prep
+    fi
+
     printf '\n\033[1mAll checks passed. Tag %s on %s.\033[0m\n\n' "$tag" "$pin"
     printf 'File the signed-tag request:\n\n'
     printf 'gh issue create --repo opensearch-project/.github --label github-request \\\n'
@@ -414,7 +434,8 @@ verify() {
         printf -- '- repository: https://github.com/%s\n- target branch: `main`\n- module path: `%s`\n\n' "$SLUG" "$ROOT"
         printf '```\ngit tag -s %s %s -m "Tag %s"\n```\n\n' "$tag" "$pin" "$tag"
         printf '### Additional information to support your request\n\n'
-        printf -- '- Prepare commit: https://github.com/%s/commit/%s\n' "$SLUG" "$prep"
+        printf -- '- version file: %s#diff-%s\n' "$changes" "$(diff_anchor internal/version/version.go)"
+        printf -- '- CHANGELOG: %s#diff-%s\n' "$changes" "$(diff_anchor CHANGELOG.md)"
         printf -- '- Pin commit: https://github.com/%s/commit/%s\n\n' "$SLUG" "$pin"
         printf '### When does this request need to be completed?\n\nASAP\n'
     }
