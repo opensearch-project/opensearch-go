@@ -77,6 +77,10 @@ type Config struct {
 	// The OPENSEARCH_GO_ERROR_MASK environment variable can override
 	// this value with comma-separated +/- tokens (see [errmask.Parse]).
 	Errors *errmask.ErrorMask
+
+	// MGet selects and tunes how [DocumentClient.MGet] fetches documents; see
+	// [MGetConfig]. The zero value uses this release's default engine.
+	MGet MGetConfig
 }
 
 // NewClient returns an api client wrapping an [opensearch.Client]. When the
@@ -102,7 +106,10 @@ func buildClient(config Config) (*Client, error) {
 		return nil, err
 	}
 
-	return clientInit(rootClient, resolveErrorMask(config)), nil
+	client := clientInit(rootClient, resolveErrorMask(config))
+	client.mget = newMGetEngine(config.MGet, rootClient)
+
+	return client, nil
 }
 
 // Close releases the client's background resources by closing the underlying
@@ -126,7 +133,11 @@ func NewDefaultClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return clientInit(root, resolveErrorMask(Config{})), nil
+
+	client := clientInit(root, resolveErrorMask(Config{}))
+	client.mget = newMGetEngine(MGetConfig{}, root)
+
+	return client, nil
 }
 
 // errMaskWidth is the storage type backing a Client's live error mask.
@@ -202,7 +213,10 @@ func (e *ErrorMaskConflictError) Error() string {
 // transport with plugin clients instead, pass the exported [Client.Client]
 // field to their constructors.
 func (c *Client) Clone() *Client {
-	return clientInit(c.Client, c.errorMask())
+	clone := clientInit(c.Client, c.errorMask())
+	clone.mget = c.mget
+
+	return clone
 }
 
 // request calls [opensearch.Execute] and checks the response for OpenSearch API errors.

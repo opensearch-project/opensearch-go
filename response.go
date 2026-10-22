@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 )
 
 const httpStatusCodeThreshold = 299
@@ -87,6 +89,21 @@ func NewResponse(statusCode int, body io.ReadCloser, header http.Header) *Respon
 		StatusCode: statusCode,
 		Body:       body,
 		Header:     header,
+		render:     &renderCache{},
+	}
+}
+
+// NewBufferedResponse creates a Response that holds body in memory, as one
+// returned by Client.Do does: RawBody returns body and Body reads it. It is for
+// a response the client assembles itself rather than reads from one node, such
+// as an mget merged from the answers of several. body must not be modified
+// afterwards.
+func NewBufferedResponse(statusCode int, body []byte, header http.Header) *Response {
+	return &Response{
+		StatusCode: statusCode,
+		Body:       bufbody.New(body),
+		Header:     header,
+		rawBody:    body,
 		render:     &renderCache{},
 	}
 }

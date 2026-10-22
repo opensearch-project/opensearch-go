@@ -39,6 +39,7 @@ func TestClientsFragment_Body(t *testing.T) {
 		{name: "Client field", want: "Client *opensearch.Client"},
 		{name: "errors mask field", want: "errors *errMaskWidth"},
 		{name: "search_after retry backoff field", want: "searchAfterRetryBackoff time.Duration"},
+		{name: "mget engine field", want: "mget *mgetEngine"},
 		{name: "top-level Cat", want: "Cat CatClient"},
 		{name: "top-level Indices", want: "Indices IndicesClient"},
 		{name: "clientInit", want: "func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client"},

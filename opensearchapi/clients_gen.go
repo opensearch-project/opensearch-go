@@ -30,22 +30,25 @@ type Client struct {
 	// searchAfterRetryBackoff overrides the search_after retry backoff for
 	// this client; zero means the default. Only tests set it.
 	searchAfterRetryBackoff time.Duration
-	Cat                     CatClient
-	Cluster                 ClusterClient
-	Dangling                DanglingClient
-	Doc                     DocumentClient
-	Document                DocumentClient
-	Index                   IndicesClient
-	Indices                 IndicesClient
-	Indexes                 IndicesClient
-	Nodes                   NodesClient
-	PIT                     PointInTimeClient
-	PointInTime             PointInTimeClient
-	Ingest                  IngestClient
-	Tasks                   TasksClient
-	Scroll                  ScrollClient
-	SearchPipeline          SearchPipelineClient
-	Snapshot                SnapshotClient
+	// mget is the engine DocumentClient.MGet tries first; nil sends every
+	// mget through one coordinating node, as the cluster routes it.
+	mget           *mgetEngine
+	Cat            CatClient
+	Cluster        ClusterClient
+	Dangling       DanglingClient
+	Doc            DocumentClient
+	Document       DocumentClient
+	Index          IndicesClient
+	Indices        IndicesClient
+	Indexes        IndicesClient
+	Nodes          NodesClient
+	PIT            PointInTimeClient
+	PointInTime    PointInTimeClient
+	Ingest         IngestClient
+	Tasks          TasksClient
+	Scroll         ScrollClient
+	SearchPipeline SearchPipelineClient
+	Snapshot       SnapshotClient
 }
 
 // clientInit initializes a Client with all sub-clients.

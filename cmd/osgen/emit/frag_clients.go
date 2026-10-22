@@ -139,6 +139,9 @@ type Client struct {
 	// searchAfterRetryBackoff overrides the search_after retry backoff for
 	// this client; zero means the default. Only tests set it.
 	searchAfterRetryBackoff time.Duration
+	// mget is the engine DocumentClient.MGet tries first; nil sends every
+	// mget through one coordinating node, as the cluster routes it.
+	mget *mgetEngine
 {{- range .TopLevel}}
 	{{- $typeName := .TypeName}}
 	{{.FieldName}} {{.TypeName}}
