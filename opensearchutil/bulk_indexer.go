@@ -43,6 +43,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
@@ -789,7 +790,7 @@ type bulkClient struct {
 	// sizing sizes a shard's buffers, and window is what each node's byte window
 	// starts from.
 	sizing resolvedSizing
-	window windowConfig
+	window sched.WindowConfig
 	// slots, when the config caps NumWorkers, holds a token for each request that
 	// is out.
 	slots chan struct{}
@@ -973,17 +974,17 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	// A node's byte window starts wide open, at the whole job's memory, unless the
 	// caller capped it with TargetBytes. Rejections teach it where the server's limit is.
 	sizing := cfg.Sizing.resolve(cfg.FlushBytes)
-	window := windowConfig{
-		start:   float64(cfg.MaxMemoryBytes),
-		ceiling: float64(cfg.MaxMemoryBytes),
-		floor:   float64(cfg.FlushBytes),
-		unit:    float64(cfg.FlushBytes),
-		backoff: sizing.backoff,
-		fixed:   sizing.targetFixed,
+	window := sched.WindowConfig{
+		Start:   float64(cfg.MaxMemoryBytes),
+		Ceiling: float64(cfg.MaxMemoryBytes),
+		Floor:   float64(cfg.FlushBytes),
+		Unit:    float64(cfg.FlushBytes),
+		Backoff: sizing.backoff,
+		Fixed:   sizing.targetFixed,
 	}
 	if cfg.TargetBytes > 0 {
-		window.ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))
-		window.start = window.ceiling
+		window.Ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))
+		window.Start = window.Ceiling
 	}
 
 	bi := bulkClient{

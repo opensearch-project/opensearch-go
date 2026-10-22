@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 )
 
 // BulkSizing tunes how the bulk client follows what a node can take. Every field is
@@ -207,10 +208,10 @@ const (
 	sizingIntegralLimit = 2.0
 	// sizingMaxShrink is the largest fraction a single non-rejecting flush removes.
 	sizingMaxShrink = 0.5
-	// pinFlushes is how many accepted flushes a pin lasts. After shrinkWindowSize or
-	// pinWindowSize the node's window does not grow for that many, and after
-	// pinShardSize the shard's buffer does not.
-	pinFlushes = 3
+	// pinFlushes is how many accepted flushes a pin lasts. After a window Shrink or
+	// Pin the node's window does not grow for that many, and after pinShardSize the
+	// shard's buffer does not; the two last as long as each other.
+	pinFlushes = sched.PinCompletions
 	// sizingBaseDecay is how fast the memory of the best rate fades per sample while
 	// the batches are large. It is slow because a node slows gradually as the
 	// batches grow, and a memory that faded as fast as that would never notice; it
