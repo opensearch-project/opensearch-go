@@ -18,7 +18,7 @@ import (
 )
 
 // TestBulkIndexerKeepsOrderOfDocumentsWithoutAShard: documents of one id are
-// written in the order they were added whether or not the indexer can place them
+// written in the order they were added whether or not the bulk client can place them
 // in a shard. With no shard router, a request is held and a later write of the
 // same id waits for it, where a write of another id does not.
 func TestBulkIndexerKeepsOrderOfDocumentsWithoutAShard(t *testing.T) {
@@ -32,7 +32,7 @@ func TestBulkIndexerKeepsOrderOfDocumentsWithoutAShard(t *testing.T) {
 		server.entered = make(chan string, 8)
 
 		// One byte sends every document as a request of its own.
-		return server, newClusterIndexer(t, server, BulkIndexerConfig{
+		return server, newBulkClient(t, server, BulkIndexerConfig{
 			ShardRouter: NoShardRouter, FlushBytes: 1, FlushInterval: time.Hour,
 		})
 	}
@@ -104,16 +104,16 @@ func TestBulkIndexerKeepsOrderOfDocumentsWithoutAShard(t *testing.T) {
 		require.Equal(t, []int{1, 2, 3, 4, 5}, seqs, "in the order added, none lost")
 		require.Equal(t, 1, server.maxInflight())
 
-		sched := bi.(*bulkIndexer).sched
+		sched := bi.(*bulkClient).sched
 		sched.Lock()
 		defer sched.Unlock()
 		require.Empty(t, sched.lastByID, "nothing is remembered once the buffers have finished")
 	})
 }
 
-// sealedWaiting is how many sealed buffers the indexer holds back from sending.
+// sealedWaiting is how many sealed buffers the bulk client holds back from sending.
 func sealedWaiting(bi BulkIndexer) int {
-	sched := bi.(*bulkIndexer).sched
+	sched := bi.(*bulkClient).sched
 	sched.Lock()
 	defer sched.Unlock()
 
@@ -121,7 +121,7 @@ func sealedWaiting(bi BulkIndexer) int {
 }
 
 // TestBulkIndexerWithoutAShardMapKeepsOneRequestPerCPUOut: with no shard map the
-// indexer has one node standing for the cluster, and the transport reports no window
+// bulk client has one node standing for the cluster, and the transport reports no window
 // for it. When NumWorkers is not set the node's request window is GOMAXPROCS, the CPUs
 // the program may use, which follows a container's CPU limit, and that window
 // is then the only cap on requests out, so a cluster of any size is not held to what
@@ -137,7 +137,7 @@ func TestBulkIndexerWithoutAShardMapKeepsOneRequestPerCPUOut(t *testing.T) {
 	server.entered = make(chan string, want+8)
 
 	// One byte sends every document as a request of its own.
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		ShardRouter: NoShardRouter, FlushBytes: 1, FlushInterval: time.Hour,
 	})
 

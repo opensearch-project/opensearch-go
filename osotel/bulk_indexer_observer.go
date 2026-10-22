@@ -16,7 +16,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
-// Attribute names specific to the bulk indexer.
+// Attribute names specific to the bulk client.
 const (
 	attrResult   = "result"
 	attrLayer    = "layer"
@@ -33,7 +33,7 @@ const (
 
 // BulkIndexerObserver records what an [opensearchutil.BulkIndexer] does as
 // OpenTelemetry metrics. It implements [opensearchutil.BulkIndexerObserver], so
-// set it as the indexer's Observer; it is independent of [Registry] and of the
+// set it as the bulk client's Observer; it is independent of [Registry] and of the
 // transport. Every attribute is low-cardinality (result, layer, kind, retrying,
 // outcome); none carries an index name or a document id.
 //
@@ -43,11 +43,11 @@ const (
 //   - Errors: a counter by layer (request or item), kind (rejected,
 //     unavailable, transport, permanent) and whether the retry policy retried it.
 //   - Retries: a counter of items sent again, by kind.
-//   - Items: a counter of items the indexer is done with, by outcome.
+//   - Items: a counter of items the bulk client is done with, by outcome.
 //
-// Each call is recorded on the context the indexer's flush runs on, so a tracing
+// Each call is recorded on the context the bulk client's flush runs on, so a tracing
 // SDK can attach the flush's span as an exemplar. The methods run on the
-// indexer's worker goroutines and only record instruments, which do not block.
+// bulk client's worker goroutines and only record instruments, which do not block.
 type BulkIndexerObserver struct {
 	opensearchutil.BaseBulkIndexerObserver
 
@@ -71,7 +71,7 @@ func (o *BulkIndexerObserver) Register(meter metric.Meter) error {
 	var err error
 	if o.requests, err = meter.Int64Counter(
 		instrumentPrefix+"bulk.requests",
-		metric.WithDescription("Bulk requests the indexer sent, attributed ok when the cluster answered and error when the whole "+
+		metric.WithDescription("Bulk requests the bulk client sent, attributed ok when the cluster answered and error when the whole "+
 			"request failed (RED: rate, errors)."),
 		metric.WithUnit("{request}"),
 	); err != nil {
@@ -79,14 +79,14 @@ func (o *BulkIndexerObserver) Register(meter metric.Meter) error {
 	}
 	if o.duration, err = meter.Float64Histogram(
 		instrumentPrefix+"bulk.request.duration",
-		metric.WithDescription("Duration of bulk requests the indexer sent (RED: duration)."),
+		metric.WithDescription("Duration of bulk requests the bulk client sent (RED: duration)."),
 		metric.WithUnit("s"),
 	); err != nil {
 		return err
 	}
 	if o.bytes, err = meter.Int64Histogram(
 		instrumentPrefix+"bulk.request.size",
-		metric.WithDescription("Body size of bulk requests the indexer sent."),
+		metric.WithDescription("Body size of bulk requests the bulk client sent."),
 		metric.WithUnit("By"),
 	); err != nil {
 		return err
@@ -101,14 +101,14 @@ func (o *BulkIndexerObserver) Register(meter metric.Meter) error {
 	}
 	if o.retries, err = meter.Int64Counter(
 		instrumentPrefix+"bulk.retries",
-		metric.WithDescription("Items the indexer sent again after a failure, by failure kind."),
+		metric.WithDescription("Items the bulk client sent again after a failure, by failure kind."),
 		metric.WithUnit("{item}"),
 	); err != nil {
 		return err
 	}
 	o.items, err = meter.Int64Counter(
 		instrumentPrefix+"bulk.items",
-		metric.WithDescription("Items the indexer is done with, by outcome."),
+		metric.WithDescription("Items the bulk client is done with, by outcome."),
 		metric.WithUnit("{item}"),
 	)
 	return err

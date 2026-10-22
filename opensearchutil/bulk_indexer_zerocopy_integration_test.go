@@ -28,7 +28,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
-// TestBulkIndexerZeroCopy_Integration indexes documents lent to the indexer, which
+// TestBulkIndexerZeroCopy_Integration indexes documents lent to the bulk client, which
 // spans many chunks of the request body and, with the second case, is compressed on
 // the way out, and requires the server to hold exactly what was lent and every
 // document to have been released once.

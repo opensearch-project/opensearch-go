@@ -20,7 +20,7 @@ import (
 // TestBulkIndexerHoldsWhileTheWholeNodeSlowsInABubble is
 // TestBulkIndexerHoldsWhileTheWholeNodeSlows with the clock of a synctest bubble in
 // place of the hand-written manualClock: the fake server takes the time a request needs
-// by sleeping, the indexer measures it with time.Now, and the bubble moves its clock on
+// by sleeping, the bulk client measures it with time.Now, and the bubble moves its clock on
 // when every goroutine in it is waiting.
 func TestBulkIndexerHoldsWhileTheWholeNodeSlowsInABubble(t *testing.T) {
 	t.Parallel()
@@ -29,7 +29,7 @@ func TestBulkIndexerHoldsWhileTheWholeNodeSlowsInABubble(t *testing.T) {
 		const ceilingDocs = 400
 
 		h := newSizingHarness(t, ceilingDocs, 1, "n0")
-		bi := h.bi.(*bulkIndexer)
+		bi := h.bi.(*bulkClient)
 		bi.now = time.Now // The bubble's fake clock, not the harness's.
 
 		var rate atomic.Uint64
@@ -54,7 +54,7 @@ func TestBulkIndexerHoldsWhileTheWholeNodeSlowsInABubble(t *testing.T) {
 		require.Equal(t, shardHealthy, h.shardTarget("n0"), "a node that slows without rejecting keeps being sent full buffers")
 		require.GreaterOrEqual(t, h.window("n0"), windowHealthy, "and a slow node is not a rejecting one, so its window is not cut")
 
-		// A bubble ends only when every goroutine in it has, so the indexer is closed
+		// A bubble ends only when every goroutine in it has, so the bulk client is closed
 		// here and not left to a cleanup.
 		require.NoError(t, h.bi.Close(t.Context()))
 	})

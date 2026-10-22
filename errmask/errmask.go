@@ -7,9 +7,9 @@
 // Package errmask defines the bitfield used by opensearchapi to mask
 // (ignore) specific categories of partial-failure errors.
 //
-// Each bit corresponds to one wrapper schema in the
-// "x-error-responses" extension proposed for the OpenAPI spec
-// (see issue-x-partial-failure-mode.md in opensearch-api-specification).
+// Each bit corresponds to one wrapper schema in the "x-error-responses"
+// extension proposed for the OpenAPI spec in
+// https://github.com/opensearch-project/opensearch-api-specification/issues/1136.
 // Until that extension lands upstream, cmd/osgen carries a hardcoded
 // per-operation map of which wrappers each operation can return.
 //
@@ -67,8 +67,7 @@ func New(bits ...ErrorMask) *ErrorMask {
 // ErrorMask bits. One bit per wrapper schema in the proposed
 // x-error-responses catalog. Append new wrappers at the end so existing
 // values remain stable across releases. The set of bits assigned here
-// matches the catalog in
-// opensearch-api-specification/issue-x-partial-failure-mode.md.
+// matches the wrapper catalog in that proposal.
 const (
 	// BulkItems masks PartialBulkError on bulk-style responses with
 	// errors=true and per-item error objects (Bulk, BulkStream).

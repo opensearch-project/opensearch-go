@@ -75,7 +75,7 @@ func TestBulkIndexerObserverEventsNameTheNode(t *testing.T) {
 	}
 
 	obs := &nodeObserver{}
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushInterval: time.Hour,
 		Observer:      obs,
 		RetryPolicy:   retryOnce,

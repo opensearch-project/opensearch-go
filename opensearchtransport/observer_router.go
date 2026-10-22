@@ -7,7 +7,6 @@
 package opensearchtransport
 
 import (
-	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -202,8 +201,6 @@ func newRouteCandidate(
 	// Compute score using the same logic as connScoreSelect.
 	var score float64
 	switch {
-	case overloaded:
-		score = math.MaxFloat64
 	case scoreFunc != nil:
 		score = scoreFunc(conn, scm, primaryPct, poolName, poolInfoReady)
 	default:

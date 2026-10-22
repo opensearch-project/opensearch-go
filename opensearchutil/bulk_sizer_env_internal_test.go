@@ -45,7 +45,7 @@ func TestBulkSizingEnvShard(t *testing.T) {
 			r := BulkSizing{Shard: tt.shard}.resolve(testCeiling)
 			require.Equal(t, tt.wantShard, r.shard)
 			require.Equal(t, tt.wantShard == ShardFixed, r.fixed)
-			require.False(t, r.nodeFixed, "the shard setting leaves the node window alone")
+			require.False(t, r.targetFixed, "the shard setting leaves the node window alone")
 			if tt.wantShard == ShardFixed {
 				require.InDelta(t, testCeiling, r.initial, 0, "a fixed size starts at the ceiling")
 				require.InDelta(t, testCeiling/sizingMinDivisor, r.min, 0, "a fixed size keeps the minimum the controller would use")
@@ -57,26 +57,26 @@ func TestBulkSizingEnvShard(t *testing.T) {
 func TestBulkSizingEnvNode(t *testing.T) {
 	tests := []struct {
 		name     string
-		node     NodeSizing
+		node     TargetSizing
 		env      string
-		wantNode NodeSizing
+		wantNode TargetSizing
 	}{
-		{name: "unset stays unset, which is aimd", wantNode: NodeUnset},
-		{name: "unset keeps aimd", node: NodeAIMD, wantNode: NodeAIMD},
-		{name: "unset keeps fixed", node: NodeFixed, wantNode: NodeFixed},
-		{name: "fixed overrides aimd", node: NodeAIMD, env: "fixed", wantNode: NodeFixed},
-		{name: "aimd overrides fixed", node: NodeFixed, env: "aimd", wantNode: NodeAIMD},
-		{name: "case and space are ignored", env: " Fixed", wantNode: NodeFixed},
-		{name: "a shard setting is unknown here", node: NodeFixed, env: "pid", wantNode: NodeFixed},
-		{name: "an empty value is ignored", node: NodeFixed, env: "", wantNode: NodeFixed},
+		{name: "unset stays unset, which is aimd", wantNode: TargetUnset},
+		{name: "unset keeps aimd", node: TargetAIMD, wantNode: TargetAIMD},
+		{name: "unset keeps fixed", node: TargetFixed, wantNode: TargetFixed},
+		{name: "fixed overrides aimd", node: TargetAIMD, env: "fixed", wantNode: TargetFixed},
+		{name: "aimd overrides fixed", node: TargetFixed, env: "aimd", wantNode: TargetAIMD},
+		{name: "case and space are ignored", env: " Fixed", wantNode: TargetFixed},
+		{name: "a shard setting is unknown here", node: TargetFixed, env: "pid", wantNode: TargetFixed},
+		{name: "an empty value is ignored", node: TargetFixed, env: "", wantNode: TargetFixed},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(envvars.BulkNode, tt.env)
+			t.Setenv(envvars.BulkTarget, tt.env)
 
-			r := BulkSizing{Node: tt.node}.resolve(testCeiling)
+			r := BulkSizing{Target: tt.node}.resolve(testCeiling)
 			require.Equal(t, tt.wantNode, r.node)
-			require.Equal(t, tt.wantNode == NodeFixed, r.nodeFixed)
+			require.Equal(t, tt.wantNode == TargetFixed, r.targetFixed)
 			require.False(t, r.fixed, "the node setting leaves the shard buffers alone")
 		})
 	}
@@ -93,10 +93,10 @@ func TestSizingString(t *testing.T) {
 		{ShardPID, "pid"},
 		{ShardFixed, "fixed"},
 		{ShardSizing(numShardSizings), "ShardSizing(3)"},
-		{NodeUnset, "unset"},
-		{NodeAIMD, "aimd"},
-		{NodeFixed, "fixed"},
-		{NodeSizing(numNodeSizings), "NodeSizing(3)"},
+		{TargetUnset, "unset"},
+		{TargetAIMD, "aimd"},
+		{TargetFixed, "fixed"},
+		{TargetSizing(numTargetSizings), "TargetSizing(3)"},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%T %d", tt.setting, tt.setting), func(t *testing.T) {
@@ -156,18 +156,18 @@ func TestBulkIndexerByteWindowStart(t *testing.T) {
 	tests := []struct {
 		name string
 		env  map[string]string
-		// nodeBytes is NodeBytes in the config, 0 for unset.
+		// nodeBytes is TargetBytes in the config, 0 for unset.
 		nodeBytes int
 		// wantCeiling is where the window starts and the most it grows to, wantFixed
 		// whether it can move.
 		wantCeiling float64
 		wantFixed   bool
 	}{
-		{name: "an unset NodeBytes leaves the window as wide as the job", wantCeiling: 64 << 20},
-		{name: "NodeBytes caps the window", nodeBytes: 8 << 20, wantCeiling: 8 << 20},
-		{name: "NodeBytes is held to the job", nodeBytes: 1 << 40, wantCeiling: 64 << 20},
+		{name: "an unset TargetBytes leaves the window as wide as the job", wantCeiling: 64 << 20},
+		{name: "TargetBytes caps the window", nodeBytes: 8 << 20, wantCeiling: 8 << 20},
+		{name: "TargetBytes is held to the job", nodeBytes: 1 << 40, wantCeiling: 64 << 20},
 		{
-			name: "a fixed node holds the window where it started", env: map[string]string{envvars.BulkNode: "fixed"},
+			name: "a fixed node holds the window where it started", env: map[string]string{envvars.BulkTarget: "fixed"},
 			nodeBytes: 8 << 20, wantCeiling: 8 << 20, wantFixed: true,
 		},
 	}
@@ -178,9 +178,9 @@ func TestBulkIndexerByteWindowStart(t *testing.T) {
 			}
 
 			cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
-			bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
-				NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, NodeBytes: tt.nodeBytes, FlushInterval: time.Hour,
-			}).(*bulkIndexer)
+			bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{
+				NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, TargetBytes: tt.nodeBytes, FlushInterval: time.Hour,
+			}).(*bulkClient)
 
 			require.InDelta(t, tt.wantCeiling, bi.window.start, 0, "it starts wide open")
 			require.InDelta(t, tt.wantCeiling, bi.window.ceiling, 0)
@@ -196,32 +196,32 @@ func TestBulkSizingControllersAreIndependent(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		sizing         BulkSizing
-		wantShardFixed bool
-		wantNodeFixed  bool
+		name            string
+		sizing          BulkSizing
+		wantShardFixed  bool
+		wantTargetFixed bool
 	}{
 		{name: "the defaults", sizing: BulkSizing{}},
 		{name: "fixed shards, adaptive window", sizing: BulkSizing{Shard: ShardFixed}, wantShardFixed: true},
-		{name: "adaptive shards, fixed window", sizing: BulkSizing{Node: NodeFixed}, wantNodeFixed: true},
-		{name: "both fixed", sizing: BulkSizing{Shard: ShardFixed, Node: NodeFixed}, wantShardFixed: true, wantNodeFixed: true},
+		{name: "adaptive shards, fixed window", sizing: BulkSizing{Target: TargetFixed}, wantTargetFixed: true},
+		{name: "both fixed", sizing: BulkSizing{Shard: ShardFixed, Target: TargetFixed}, wantShardFixed: true, wantTargetFixed: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0")
-			bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{
+			bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{
 				NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, FlushInterval: time.Hour, Sizing: tt.sizing,
-			}).(*bulkIndexer)
+			}).(*bulkClient)
 			t.Cleanup(func() { _ = bi.Close(t.Context()) })
 
 			require.Equal(t, tt.wantShardFixed, bi.sizing.fixed, "shard buffers fixed")
-			require.Equal(t, tt.wantNodeFixed, bi.window.fixed, "node window fixed")
+			require.Equal(t, tt.wantTargetFixed, bi.window.fixed, "node window fixed")
 
-			// A 429 cuts the window unless the window is fixed, whatever the shards do.
+			// A 429 shrinks the window unless the window is fixed, whatever the shards do.
 			w := newByteWindow(bi.window)
-			require.Equal(t, !tt.wantNodeFixed, w.reject(int64(bi.window.start), 0))
+			require.Equal(t, !tt.wantTargetFixed, w.shrinkWindowSize(int64(bi.window.start), 0))
 		})
 	}
 }

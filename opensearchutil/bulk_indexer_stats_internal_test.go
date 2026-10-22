@@ -47,7 +47,7 @@ func TestBulkIndexerStatsTimerFlushRatio(t *testing.T) {
 	}
 }
 
-// TestBulkIndexerCountsGroupedAndUngroupedItems: an item the indexer cannot place
+// TestBulkIndexerCountsGroupedAndUngroupedItems: an item the bulk client cannot place
 // in a shard takes the unplaced path and is counted, and every item is still sent.
 func TestBulkIndexerCountsGroupedAndUngroupedItems(t *testing.T) {
 	t.Parallel()
@@ -100,7 +100,7 @@ func TestBulkIndexerCountsGroupedAndUngroupedItems(t *testing.T) {
 			t.Parallel()
 
 			server := newFakeServer(newFakeCluster(nil))
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 2, ShardRouter: tt.router})
+			bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 2, ShardRouter: tt.router})
 
 			for i := range numItems {
 				require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
@@ -225,7 +225,7 @@ func TestBulkIndexerWarnsOnceWhenShardRoutingIsUnavailable(t *testing.T) { //nol
 				require.ErrorContains(t, got.all()[0], tt.wantWarning)
 			}
 
-			// Adding items warns no further, and an indexer whose transport can never
+			// Adding items warns no further, and a bulk client whose transport can never
 			// answer does not ask it about every item.
 			if tt.client == nil {
 				for i := range numItems {
@@ -238,7 +238,7 @@ func TestBulkIndexerWarnsOnceWhenShardRoutingIsUnavailable(t *testing.T) { //nol
 				wantWarnings := 0
 				if tt.wantWarning != "" {
 					wantWarnings = 1
-					require.Equal(t, NoShardRouter, bi.(*bulkIndexer).router, "a router that can never answer is not kept")
+					require.Equal(t, NoShardRouter, bi.(*bulkClient).router, "a router that can never answer is not kept")
 					require.EqualValues(t, numItems, bi.Stats().NumUngroupedItems)
 				}
 				require.Len(t, got.all(), wantWarnings)
@@ -256,10 +256,10 @@ func TestBulkIndexerUserRouterIsNotDiagnosed(t *testing.T) { //nolint:parallelte
 	server := newFakeServer(newFakeCluster(nil))
 	var got warnings
 	router := StaticShardRouter{"idx": DefaultShardMap(8)}
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 1, ShardRouter: router, OnWarning: got.add})
+	bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 1, ShardRouter: router, OnWarning: got.add})
 
 	require.Empty(t, got.all())
-	require.NotEqual(t, NoShardRouter, bi.(*bulkIndexer).router)
+	require.NotEqual(t, NoShardRouter, bi.(*bulkClient).router)
 	require.NoError(t, bi.Close(t.Context()))
 }
 
@@ -272,8 +272,8 @@ func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 		t.Parallel()
 
 		server := newFakeServer(newFakeCluster(nil))
-		bi := newClusterIndexer(t, server, BulkIndexerConfig{
-			NumWorkers: 1, FlushBytes: 1, Sizing: BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		bi := newBulkClient(t, server, BulkIndexerConfig{
+			NumWorkers: 1, FlushBytes: 1, Sizing: BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 			FlushInterval: time.Hour, ShardRouter: NoShardRouter,
 		})
 
@@ -293,7 +293,7 @@ func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 		t.Parallel()
 
 		server := newFakeServer(newFakeCluster(nil))
-		bi := newClusterIndexer(t, server, BulkIndexerConfig{
+		bi := newBulkClient(t, server, BulkIndexerConfig{
 			NumWorkers: 1, FlushInterval: 5 * time.Millisecond, ShardRouter: NoShardRouter,
 		})
 
@@ -312,7 +312,7 @@ func TestBulkIndexerCountsFlushesByTrigger(t *testing.T) {
 		t.Parallel()
 
 		server := newFakeServer(newFakeCluster(nil))
-		bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 1, FlushInterval: time.Hour, ShardRouter: NoShardRouter})
+		bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 1, FlushInterval: time.Hour, ShardRouter: NoShardRouter})
 
 		addDoc(t, bi, "idx", "a", 1)
 		require.NoError(t, bi.Flush(t.Context()))
@@ -331,11 +331,11 @@ func TestBulkIndexerRejectsUseAfterClose(t *testing.T) {
 	t.Parallel()
 
 	server := newFakeServer(newFakeCluster(nil))
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 1, ShardRouter: NoShardRouter})
+	bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 1, ShardRouter: NoShardRouter})
 	require.NoError(t, bi.Close(t.Context()))
 
-	require.ErrorIs(t, bi.Add(t.Context(), BulkIndexerItem{Action: actionIndex}), ErrBulkIndexerClosed)
-	require.ErrorIs(t, bi.Flush(t.Context()), ErrBulkIndexerClosed)
+	require.ErrorIs(t, bi.Add(t.Context(), BulkIndexerItem{Action: actionIndex}), ErrBulkClientClosed)
+	require.ErrorIs(t, bi.Flush(t.Context()), ErrBulkClientClosed)
 }
 
 // fakeTransportRouter is what a transport offers, for the adapter.

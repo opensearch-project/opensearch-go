@@ -233,6 +233,43 @@ To get multiple documents, use the `mget` API action:
 	fmt.Printf("MGet Document:\n%s\n", respAsJson)
 ```
 
+### Choosing which copy serves a read
+
+A `get` or `mget` runs on one copy of each document's shard: the primary or one of its replicas. Two parameters decide which, and both matter when a few nodes are hot.
+
+- **`Realtime`** (default `true`). A realtime read returns the latest version of a document, even one written since the last refresh. On an index that uses segment replication (`index.replication.type: SEGMENT`), only the primary has that version, so since OpenSearch 2.10 the server sends every realtime read that has no `Preference` to the primary. All reads of a hot document then land on the one node that holds its primary, however many replicas the index has. `Realtime: new(false)` reads the last refreshed state instead, which any copy can serve, so the server spreads the reads across the copies. The cost: a document written within the last refresh interval (`index.refresh_interval`, 1s by default) may not be found, or may come back as its previous version.
+- **`Preference`** chooses the copy explicitly: `_primary`, `_replica`, `_local`, `_only_nodes:<ids>`, or any custom string, which sends every request that uses the same string to the same copy and so keeps one caller's reads consistent with each other. A read with any `Preference` is not forced to the primary.
+
+```go
+	// Read the last refreshed state, from whichever copy the server chooses.
+	getResp, err = client.Doc.Get(
+		ctx,
+		opensearchapi.GetReq{
+			Index:  "movies",
+			ID:     "1",
+			Params: &opensearchapi.GetParams{Realtime: new(false)},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	// The same for mget, with reads pinned per user to one copy.
+	mgetResp, err = client.Doc.MGet(
+		ctx,
+		opensearchapi.MGetReq{
+			Index:      "movies",
+			BodyReader: strings.NewReader(`{ "docs": [{ "_id": "1" }, { "_id": "2" }] }`),
+			Params:     &opensearchapi.MGetParams{Realtime: new(false), Preference: "user-42"},
+		},
+	)
+	if err != nil {
+		return err
+	}
+```
+
+Use the default when a read must see the caller's own latest write. Turn `Realtime` off for reads that tolerate a second of staleness, such as lookups of documents that rarely change, especially on an index that uses segment replication.
+
 ### Check if a document exists
 
 To check if a document exists, use the `exists` API action. The following code checks if the document with ID `1` exists in the `movies` index:

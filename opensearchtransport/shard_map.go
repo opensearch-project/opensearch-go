@@ -191,10 +191,12 @@ func (tr *Transport) WriteNodes() []*Connection {
 
 	poolInfoReady := tr.poolInfoReady.Load()
 	score := func(conn *Connection) float64 {
-		rtt, utilization, overloaded := connBaseScore(conn, poolWrite, poolInfoReady)
-		if overloaded {
+		// Listed last, not left out: the caller still sends to a refusing node
+		// when no other node will take the write.
+		if conn.isPoolOverloaded(poolWrite) {
 			return math.MaxFloat64
 		}
+		rtt, utilization := connBaseScore(conn, poolWrite, poolInfoReady)
 
 		return rtt * utilization
 	}
@@ -212,7 +214,7 @@ func (tr *Transport) WriteNodes() []*Connection {
 
 // ShardMapUnavailable reports why [Transport.ShardMap] and
 // [Transport.LookupShard] can never answer on this transport, or nil when they
-// can. A caller that depends on the shard map, such as a bulk indexer sending
+// can. A caller that depends on the shard map, such as a bulk client sending
 // each shard's documents to the node that hosts it, uses it to say so once at
 // start-up instead of silently losing the benefit.
 //
@@ -263,21 +265,23 @@ type PoolWindow struct {
 }
 
 // WritePool returns the node's write thread pool window. A node whose pool
-// information has not arrived yet reports the transport's initial window.
+// information has not arrived yet, so that its pool size is unknown, reports the
+// transport's initial window, as the routers use: four requests per allocated
+// processor.
 func (conn *Connection) WritePool() PoolWindow {
-	w := PoolWindow{
-		Window:     int(conn.loadCwnd(poolWrite, true)),
-		InFlight:   int(conn.loadInFlight(poolWrite)),
-		Overloaded: conn.isPoolOverloaded(poolWrite),
-	}
-
+	var maxWindow int
 	if pc := conn.pools.get(poolWrite); pc != nil {
 		pc.mu.Lock()
-		w.MaxWindow = int(pc.mu.maxCwnd)
+		maxWindow = int(pc.mu.maxCwnd)
 		pc.mu.Unlock()
 	}
 
-	return w
+	return PoolWindow{
+		Window:     int(conn.loadCwnd(poolWrite, maxWindow > 0)),
+		MaxWindow:  maxWindow,
+		InFlight:   int(conn.loadInFlight(poolWrite)),
+		Overloaded: conn.isPoolOverloaded(poolWrite),
+	}
 }
 
 // writeNodeKey is the context key for [WithWriteNode].

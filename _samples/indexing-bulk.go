@@ -90,9 +90,9 @@ func example() error {
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "create": { "_index": "movies" } }
 { "title": "Beauty and the Beast 2", "year": 2030 }
-{ "create": { "_index": "movies", "_id": 1 } }
+{ "create": { "_index": "movies", "_id": 5 } }
 { "title": "Beauty and the Beast 3", "year": 2031 }
-{ "create": { "_index": "movies", "_id": 2 } }
+{ "create": { "_index": "movies", "_id": 6 } }
 { "title": "Beauty and the Beast 4", "year": 2049 }
 { "create": { "_index": "books" } }
 { "title": "The Lion King 2", "year": 1998 }

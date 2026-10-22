@@ -140,7 +140,7 @@ func TestBulkIndexerObserverWithIndexer(t *testing.T) {
 	require.InDelta(t, 0, testutil.ToFloat64(o.items.WithLabelValues("failed")), 0)
 }
 
-// TestBulkIndexerObserverItemSize: every item the indexer is done with adds its
+// TestBulkIndexerObserverItemSize: every item the bulk client is done with adds its
 // document size to one histogram, whether it was accepted or failed, with no labels
 // and buckets that span a small document to one large enough to flag.
 func TestBulkIndexerObserverItemSize(t *testing.T) {

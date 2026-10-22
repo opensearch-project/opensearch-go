@@ -131,7 +131,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 }
 
 // echoTransp answers a bulk request with one created item for every action in it,
-// as a cluster does, so that the indexer parses a response that matches its batch
+// as a cluster does, so that the bulk client parses a response that matches its batch
 // and runs a callback for each item. mockTransp answers every request with one item,
 // which a batch of more than one never matches.
 type echoTransp struct{}

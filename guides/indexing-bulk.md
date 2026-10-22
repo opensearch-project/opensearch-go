@@ -1,18 +1,16 @@
 # Bulk
 
 > **Runnable example:** [`_samples/indexing-bulk.go`](../_samples/indexing-bulk.go)
->
-> For continuous ingestion, where you add documents one at a time and want batching, retries, and per-document callbacks handled for you, see [Bulk Indexer](indexing-bulk_indexer.md).
 
-In this guide, you'll learn how to use the OpenSearch Golang Client API to perform bulk operations. You'll learn how to index, update, and delete multiple documents in a single request.
+This guide covers the `bulk` API: one request, built by the caller, that indexes, creates, updates or deletes many documents, and a response the caller checks item by item.
 
-> **Surface note**: the `bulk` API returns `BulkResp.Items` as `[]BulkItem` -- a struct with named fields per operation (`Index`, `Create`, `Update`, `Delete`), each a `*BulkRespItem`. `BulkRespItem.ID` is a `*string`, so deref before formatting. Multi-index `Req` types use `Index []string` (e.g. `IndicesDeleteReq.Index`); `BulkReq.Index` (singular, the default per-request `_index`) is unchanged. See the [Handling errors](#handling-errors) section for an example.
->
-> See [`opensearchapi/UPGRADING_V4_TO_V5.md`](../opensearchapi/UPGRADING_V4_TO_V5.md) for the full delta from the hand-written v4 surface.
+**Which one to use.** Use the `bulk` API directly when you already have a batch in hand and want to send it as one request, for example a one-off import or a test fixture. For continuous ingestion, where documents arrive one at a time and you want them batched, sent to the right node, retried and reported back per document, use [`opensearchutil.BulkIndexer`](indexing-bulk_indexer.md) instead. It builds these requests for you. The [timeout](#timeout-configuration) and [document ID](#use-client-assigned-document-ids-for-recoverability) advice below applies to both.
+
+> **Surface note:** `BulkResp.Items` is a `[]BulkItem`. Each `BulkItem` has one field per operation (`Index`, `Create`, `Update`, `Delete`), and the one that is set is a `*BulkRespItem`. `BulkRespItem.ID` is a `*string`, so dereference it before formatting it. `BulkReq.Index` is a single `string`, the default `_index` for actions that do not name one. Requests that take several indices use `Indices []string`, as in `IndicesDeleteReq.Indices`. See [`opensearchapi/UPGRADING_V4_TO_V5.md`](../opensearchapi/UPGRADING_V4_TO_V5.md) for the full change from the hand-written v4 surface.
 
 ## Setup
 
-First, create a client instance with the following code:
+First, create a client:
 
 ```go
 package main
@@ -20,6 +18,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -32,13 +31,12 @@ import (
 
 func main() {
 	if err := example(); err != nil {
-		fmt.Println(fmt.Sprintf("Error: %s", err))
+		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
 	}
 }
 
 func example() error {
-	// Basic client setup
 	client, err := opensearchapi.NewDefaultClient()
 	if err != nil {
 		return err
@@ -47,39 +45,7 @@ func example() error {
 	ctx := context.Background()
 ```
 
-### Advanced Setup: Optimized for Bulk Operations
-
-For high-throughput bulk operations, you can configure the client to automatically route requests to appropriate nodes:
-
-```go
-	// Advanced client setup with connection scoring for mixed workloads
-	router, err := opensearchtransport.NewDefaultRouter()
-	if err != nil {
-		return err
-	}
-
-	advancedClient, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-
-		// Enable node discovery to find all cluster nodes
-		DiscoverNodesOnStart:  new(true),
-		DiscoverNodesInterval: 5 * time.Minute,
-
-		// Configure routing: bulk operations go to ingest nodes, searches go to data nodes
-		Router: router,
-	})
-	if err != nil {
-		return err
-	}
-
-	// This client will automatically route operations to appropriate nodes:
-	// - Bulk operations -> ingest nodes
-	// - Search operations -> data nodes
-	// - Other operations -> round-robin
-	_ = advancedClient
-```
-
-Next, create an index named `movies` and another named `books` with the default settings:
+Next, create two indices, `movies` and `books`, with the default settings:
 
 ```go
 	movies := "movies"
@@ -98,16 +64,19 @@ Next, create an index named `movies` and another named `books` with the default 
 	fmt.Printf("Index created: %t\n", createResp.Acknowledged)
 ```
 
-## Bulk API
+## The bulk API
 
-The `bulk` API action allows you to perform document operations in a single request. The body of the request consist of minimum two objects that contains the bulk operations and the target documents to index, create, update, or delete.
+A bulk request body is newline-delimited JSON. Each operation is an action line, such as `{ "index": { "_index": "movies", "_id": 1 } }`, and, for every action except `delete`, the document on the line after it. The body must end with a newline.
 
 ### Indexing multiple documents
 
-The following code creates two documents in the `movies` index and one document in the `books` index:
+The following request indexes two documents in `movies` and one in `books`:
 
 ```go
 	bulkResp, err := client.Doc.Bulk(
+		ctx,
+		opensearchapi.BulkReq{
+			Body: strings.NewReader(`{ "index": { "_index": "movies", "_id": 1 } }
 { "title": "Beauty and the Beast", "year": 1991 }
 { "index": { "_index": "movies", "_id": 2 } }
 { "title": "Beauty and the Beast - Live Action", "year": 2017 }
@@ -128,7 +97,7 @@ The following code creates two documents in the `movies` index and one document 
 
 ### Creating multiple documents
 
-Similarly, instead of calling the `create` method for each document, you can use the `bulk` API to create multiple documents in a single request. The following code creates three documents in the `movies` index and one in the `books` index:
+`create` differs from `index` in that it fails for a document whose ID already exists, where `index` replaces it. The following request creates three documents in `movies` and one in `books`:
 
 ```go
 	bulkResp, err = client.Doc.Bulk(
@@ -136,9 +105,9 @@ Similarly, instead of calling the `create` method for each document, you can use
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "create": { "_index": "movies" } }
 { "title": "Beauty and the Beast 2", "year": 2030 }
-{ "create": { "_index": "movies", "_id": 1 } }
+{ "create": { "_index": "movies", "_id": 5 } }
 { "title": "Beauty and the Beast 3", "year": 2031 }
-{ "create": { "_index": "movies", "_id": 2 } }
+{ "create": { "_index": "movies", "_id": 6 } }
 { "title": "Beauty and the Beast 4", "year": 2049 }
 { "create": { "_index": "books" } }
 { "title": "The Lion King 2", "year": 1998 }
@@ -155,7 +124,7 @@ Similarly, instead of calling the `create` method for each document, you can use
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 ```
 
-We omit the `_id` for each document and let OpenSearch generate them for us in this example, just like we can with the `create` method.
+The first and last actions omit `_id`, so OpenSearch generates one, as the `create` API does. Had the other two reused IDs 1 or 2, which the previous request indexed, those items would have failed with a version conflict; see [Handling errors](#handling-errors).
 
 ### Updating multiple documents
 
@@ -180,19 +149,19 @@ We omit the `_id` for each document and let OpenSearch generate them for us in t
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 ```
 
-Note that the updated data is specified in the `doc` with a full or partial JSON document, depending on how much of the document you want to update.
+The line after an `update` action holds the change in `doc`: a full document, or only the fields to change.
 
 ### Deleting multiple documents
 
-If the document doesn't exist, OpenSearch doesn't return an error, but instead returns not_found under result. Delete actions don't require documents on the next line
+A `delete` action has no document line after it. Deleting a document that does not exist is not an error: the item's `result` is `not_found`.
 
 ```go
 	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "delete": { "_index": "movies", "_id": 1 } }
-    { "delete": { "_index": "movies", "_id": 2 } }
-    `),
+{ "delete": { "_index": "movies", "_id": 2 } }
+`),
 		},
 	)
 	if err != nil {
@@ -205,9 +174,9 @@ If the document doesn't exist, OpenSearch doesn't return an error, but instead r
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 ```
 
-### Mix and match operations
+### Mixing operations
 
-You can mix and match the different operations in a single request. The following code creates two documents, updates one document, and deletes another document:
+One request can mix operations. The following request creates two documents, updates one of them and deletes the other:
 
 ```go
 	bulkResp, err = client.Doc.Bulk(
@@ -235,22 +204,38 @@ You can mix and match the different operations in a single request. The followin
 
 ### Handling errors
 
-The `bulk` API returns an array of responses for each operation in the request body. Each response contains a `status` field that indicates whether the operation was successful or not. If the operation was successful, the `status` field is set to a `2xx` code. Otherwise, the response contains an error message in the `error` field.
+A bulk request is not all-or-nothing. The cluster answers `200` and reports each operation separately, so some items can succeed while others fail. Each item has a `status`: `2xx` when it succeeded, and otherwise an `error` that says why.
 
-For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](usage-error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Doc.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
-
-The following code shows an example on how to look for errors in the response. `BulkResp.Items` is `[]BulkItem`; each `BulkItem` has named operation fields (`Index`, `Create`, `Update`, `Delete`), and `BulkRespItem.Error.Reason` is a `*string`:
+By default the client reports failed items as an error: `client.Doc.Bulk` returns a `*opensearchapi.PartialBulkError` along with a fully populated response. The error lists the failed items, and the response still holds every item. A partial failure is therefore an error the caller should inspect rather than return:
 
 ```go
 	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
-			Body: strings.NewReader("{\"delete\":{\"_index\":\"movies\",\"_id\":1}}\n"),
+			Body: strings.NewReader(`{ "create": { "_index": "movies", "_id": 3 } }
+{ "title": "Beauty and the Beast 5", "year": 2050 }
+`),
 		},
 	)
-	if err != nil {
-		return err
+	var partial *opensearchapi.PartialBulkError
+	switch {
+	case errors.As(err, &partial):
+		for _, item := range partial.FailedItems {
+			reason := ""
+			if item.Error != nil && item.Error.Reason != nil {
+				reason = *item.Error.Reason
+			}
+			fmt.Printf("Bulk item failed (status %d): %s\n", item.Status, reason)
+		}
+		fmt.Printf("%d items succeeded\n", partial.SucceededCount)
+	case err != nil:
+		return err // the request itself failed
 	}
+```
+
+A client configured with `Config.Errors` to mask the `BulkItems` category returns no error for failed items, and the caller has to find them in the response instead. Each `BulkItem` has one operation field set, and that field's `Error` is set when the item failed:
+
+```go
 	for _, item := range bulkResp.Items {
 		var op string
 		var sub *opensearchapi.BulkRespItem
@@ -274,12 +259,14 @@ The following code shows an example on how to look for errors in the response. `
 	}
 ```
 
-## Timeout Configuration
+[Error Handling and Partial Failures](usage-error_handling.md) covers the error mask, which failures are worth retrying, and how to monitor partial failures.
 
-Bulk operations can be long-running, especially when indexing large batches. Two independent timeout mechanisms control how long the operation is allowed to run:
+## Timeout configuration
 
-- **Server-side timeout** (`BulkParams.Timeout`): Tells the OpenSearch server to abort the bulk operation if it hasn't completed within the specified duration. This is sent as the `?timeout=` query parameter.
-- **Client-side timeout** (`context.Context`): Controls how long the Go HTTP client waits for a response before cancelling the request.
+A bulk request can run for a long time, especially a large one. Two separate timeouts bound it:
+
+- **Server-side** (`BulkParams.Timeout`, sent as `?timeout=`): how long each action may wait for the cluster before the server gives up on it. An action waits when its index has to be created, when a dynamic mapping update is needed, or when its shard's primary is not active. The server's default is one minute. It bounds waiting only: a write that has started runs to completion.
+- **Client-side** (the `context.Context`): how long the client waits for the answer before it cancels the request.
 
 ### Setting a server-side timeout
 
@@ -303,16 +290,16 @@ Bulk operations can be long-running, especially when indexing large batches. Two
 	}
 ```
 
-### Layering server-side and client-side timeouts
+### Layering the two timeouts
 
-Set the server-side timeout shorter than the client-side context deadline. This ensures the server aborts the operation before the client gives up, preventing orphaned server-side work that continues consuming resources after the client has disconnected.
+Set the server-side timeout shorter than the client-side deadline. Then an action that is stuck waiting, for example on a shard whose primary is relocating, comes back as a failed item (`unavailable_shards_exception`, status 503) before the client gives up, and the client knows which items to retry.
 
 ```go
-	// Client-side deadline: 60s
+	// Client-side deadline: 60s.
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// Server-side timeout: 45s (shorter than the client deadline)
+	// Server-side timeout: 45s, shorter than the client's deadline.
 	bulkResp, err := client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
@@ -328,31 +315,29 @@ Set the server-side timeout shorter than the client-side context deadline. This 
 	}
 ```
 
-If the server-side timeout fires first, the response will contain items with `timeout_exception` errors that can be inspected and retried. If the client-side context expires first, the client receives a context deadline error but the server may still be processing the request -- which is the situation to avoid.
+When the client's deadline passes first, the client gets a context error and learns nothing about the items. The server does not see the cancellation: it goes on with the request, and some or all of the documents may be written.
 
-### Why missing server-side timeouts can cause cascading overload
+### How blind retries lead to overload
 
-In codebases that perform bulk inserts without setting `BulkParams.Timeout`, a common failure pattern emerges when the client-side context deadline expires:
+That ambiguity is where overload starts. A writer that treats a deadline as transient and resends the whole batch tends to fail like this:
 
-1. The client cancels the HTTP request and receives `context.DeadlineExceeded`.
-2. The server does not observe the cancellation immediately. The bulk operation continues writing documents to shards.
-3. The client's retry logic treats the deadline error as transient and resubmits the same batch.
-4. The retry typically lands on the same primary shards (routing is deterministic by document ID). The server may now be processing both the original request and the retry concurrently.
-5. Subsequent retries can add further concurrent bulk operations to the same shards. As thread pools fill and queues back up, the server begins rejecting requests with `es_rejected_execution_exception`.
-6. Rejections from overloaded shards can trigger retries from other clients sharing those shards, widening the impact.
+1. The client's deadline passes, it cancels the request and gets `context.DeadlineExceeded`.
+2. The server goes on writing the batch to its shards.
+3. The client sends the same batch again.
+4. Routing by document ID is deterministic, so the retry reaches the same primary shards, which now have both requests to work through.
+5. Each further retry adds another request for the same shards. Their write queues fill, and the server starts rejecting requests with `es_rejected_execution_exception` (HTTP 429).
+6. Other clients writing to those shards get the same rejections, and their retries spread the overload further.
 
-The root cause is that without a server-side timeout, the server has no instruction to abort. The client's context cancellation closes the HTTP connection, but server-side shard operations that have already been dispatched run to completion.
+Three things keep a writer out of this loop: a server-side timeout shorter than the client's deadline, so waiting actions come back as failed items rather than as an unknown; client-assigned document IDs, so a retry can be limited to what failed and cannot duplicate what succeeded; and retries that back off, and slow down further on a 429. `BulkIndexer` does the last for you; see [Retrying failed items](indexing-bulk_indexer.md#retrying-failed-items).
 
-**Always set `BulkParams.Timeout`**. The server-side timeout is the only mechanism that causes the server to abort incomplete shard operations. The client-side context deadline controls how long the _client_ waits, but does not stop server-side work.
+### Use client-assigned document IDs for recoverability
 
-#### Use client-assigned document IDs for recoverability
+When bulk actions carry no `_id`, OpenSearch generates the IDs. If the client's deadline passes before the response arrives, there is no way to tell which documents were written: some may exist under IDs the client never saw, and a retry writes them a second time under new IDs.
 
-When bulk-inserting documents without explicit `_id` values, OpenSearch auto-generates IDs. If the client-side context expires before the response is received, there is no way to determine which documents were written and which were not. The batch becomes an unknown: some documents may exist on the server with auto-generated IDs that the client never received.
-
-Setting `_id` on each bulk item makes the outcome recoverable. After a timeout or ambiguous failure, the client can query for the expected document IDs to determine which items were persisted and which need to be retried. This turns a blind retry (which risks duplicates or pile-up) into a targeted one.
+With an `_id` on every action, the outcome can be recovered. After a timeout or any other ambiguous failure, the client can look up the IDs it sent to find which documents were written, and retry only the rest. A retry of a document that was written replaces it rather than duplicating it.
 
 ```go
-// With client-assigned IDs, the outcome of a failed bulk request is recoverable
+// With client-assigned IDs, the outcome of a failed bulk request is recoverable.
 { "index": { "_index": "events", "_id": "evt-20260226-0001" } }
 { "index": { "_index": "events", "_id": "evt-20260226-0002" } }
 
@@ -360,16 +345,13 @@ Setting `_id` on each bulk item makes the outcome recoverable. After a timeout o
 //   GET /events/_mget { "ids": ["evt-20260226-0001", "evt-20260226-0002"] }
 ```
 
-For retry strategies that account for this failure mode, see [Error Handling and Partial Failures](usage-error_handling.md).
+[Error Handling and Partial Failures](usage-error_handling.md) describes retry strategies that account for this.
 
-## Performance Optimization for Bulk Operations
+## Routing bulk requests
 
-### Automatic Ingest Node Routing
-
-For production environments with dedicated ingest nodes, you can optimize bulk operation performance by routing requests to the most appropriate nodes:
+With a router, the client sends each request to a node suited to it, and bulk requests (`/_bulk`) go to ingest nodes. `NewDefaultRouter` routes by request type and adds connection scoring; it is the recommended router. Routing needs node discovery, so the client knows the cluster's nodes and their roles:
 
 ```go
-	// Create a client optimized for bulk operations
 	router, err := opensearchtransport.NewDefaultRouter()
 	if err != nil {
 		return err
@@ -379,11 +361,10 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 		Client: opensearch.Config{
 			Addresses: []string{"http://localhost:9200"},
 
-			// Enable node discovery
+			// Discover the cluster's nodes and their roles.
 			DiscoverNodesOnStart:  new(true),
 			DiscoverNodesInterval: 5 * time.Minute,
 
-			// Use default router for automatic operation routing (recommended)
 			Router: router,
 		},
 	})
@@ -391,8 +372,8 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 		return err
 	}
 
-	// This bulk request will automatically route to ingest nodes
-	bulkResp, err := bulkClient.Bulk(
+	// This request goes to an ingest node.
+	bulkResp, err := bulkClient.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "index": { "_index": "movies", "_id": "perf-1" } }
@@ -405,51 +386,27 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Optimized bulk completed with %d items\n", len(bulkResp.Items))
+	fmt.Printf("Bulk completed with %d items\n", len(bulkResp.Items))
 ```
 
-### Choosing the Right Selector
-
-You can choose different routing strategies based on your cluster setup:
+To send bulk requests to ingest nodes without the rest of the default router, build a router from policies. Policies are tried in order, so this one prefers ingest nodes and falls back to any node; drop the second policy to fail when no ingest node is available:
 
 ```go
-	// Option 1: Prefer ingest nodes, fallback to any available node
-	ingestPolicy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleIngest)
+	ingestPolicy, err := opensearchtransport.NewRolePolicy(opensearchtransport.RoleIngest)
+	if err != nil {
+		return err
+	}
 	ingestPreferred := opensearchtransport.NewRouter(
 		ingestPolicy,
 		opensearchtransport.NewRoundRobinPolicy(),
 	)
-
-	// Option 2: Only use ingest nodes, fail if none available (strict mode)
-	ingestOnly := opensearchtransport.NewRouter(ingestPolicy)
-
-	// Option 3: Automatically detect operation type and route appropriately (recommended)
-	// NewDefaultRouter() includes connection scoring.
-	// Use NewMuxRouter() for role-based routing without connection scoring.
-	defaultRouter, err := opensearchtransport.NewDefaultRouter()
-	if err != nil {
-		return err
-	}
-
-	// Option 4: Custom policy for specific requirements
-	// Note: In practice, avoid excluding cluster managers as they're excluded by default
-	ingestPolicy, _ = opensearchtransport.NewRolePolicy(opensearchtransport.RoleIngest)
-	customRouter := opensearchtransport.NewRouter(
-		ingestPolicy,
-		opensearchtransport.NewRoundRobinPolicy(),
-	)
 ```
 
-The router automatically detects different operation types:
-
-- **Bulk operations** (`/_bulk`) -> Routes to ingest nodes
-- **Ingest pipeline operations** (`/_ingest/`) -> Routes to ingest nodes
-- **Search operations** (`/_search`) -> Routes to data nodes
-- **Other operations** -> Uses default routing
+[Request Routing](transport-routing.md) describes the routers, the policies and connection scoring in full. `BulkIndexer` goes further than routing by request type: it groups documents by shard and sends each group to the node that hosts the shard's primary. See [Bulk Indexer](indexing-bulk_indexer.md).
 
 ## Cleanup
 
-To clean up the resources created in this guide, delete the `movies` and `books` indices:
+To remove what this guide created, delete the `movies` and `books` indices:
 
 ```go
 	delResp, err := client.Indices.Delete(

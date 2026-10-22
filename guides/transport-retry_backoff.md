@@ -1,8 +1,8 @@
 # Retry and Backoff
 
-The OpenSearch client retries on certain errors, such as `503 Service Unavailable`, immediately upon receiving the error response. The retry behavior is configurable.
+The OpenSearch client retries on certain errors, such as `503 Service Unavailable`. By default it retries up to 6 times (`MaxRetries`), and waits before each retry a delay drawn uniformly from zero to 100ms, doubled for each retry after the first: exponential backoff with full jitter, so that clients a node refused at the same moment do not retry at the same moment. `RetryBackoff` replaces that delay. `RetryBudget` (default 5s) bounds the delays of one request's retries together: a retry whose delay would take the total past the budget is not made, and the caller gets the last response or error. A negative `RetryBudget` sets no bound.
 
-With a router, as with the default router, the client also retries a request answered with `429 Too Many Requests` when the node's thread pool for the request is tracked, whatever `RetryOnStatus` holds: it marks that pool overloaded and routes the retry afresh, so it can go to another node. `DisableRetry` turns this off too.
+With a router, as with the default router, the client also retries a request answered with `429 Too Many Requests` when the node's thread pool for the request is tracked, whatever `RetryOnStatus` holds: it halves that pool's routing window, and routes the retry afresh, to a candidate the request has not tried yet. Once the request has tried every candidate, it starts over with each candidate ranked lower for every time it refused. A single 429 is not returned to the caller; one that persists through the retries, or past the budget, is. `DisableRetry` turns this off too.
 
 These are the transport's own retries. `opensearchutil.BulkIndexer` can add a second layer above them, a `RetryPolicy` that resends failed items after the transport has given up; the two multiply, and `DisableRetry` turns off only the transport's. See [Bulk Indexer](indexing-bulk_indexer.md#retrying-failed-items).
 

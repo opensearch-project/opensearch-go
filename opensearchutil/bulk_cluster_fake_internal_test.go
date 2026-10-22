@@ -24,7 +24,7 @@ import (
 )
 
 // fakeCluster is a ShardRouter over a made-up cluster. Where a shard lives can
-// be changed while an indexer runs, which is how a test relocates shards.
+// be changed while a bulk client runs, which is how a test relocates shards.
 type fakeCluster struct {
 	mu struct {
 		sync.Mutex
@@ -107,14 +107,15 @@ func (c *fakeCluster) setPlacement(place func(index string, shard int) string) {
 	c.mu.place = place
 }
 
-// setWindow gives every listed node a write pool window.
-func (c *fakeCluster) setWindow(window int, overloaded bool) {
+// setWindow gives every listed node a write pool window, and reports each node as
+// refusing writes when writeOverloaded is set.
+func (c *fakeCluster) setWindow(window int, writeOverloaded bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for i := range c.mu.nodes {
 		c.mu.nodes[i].Pool = func() opensearchtransport.PoolWindow {
-			return opensearchtransport.PoolWindow{Window: window, MaxWindow: window, Overloaded: overloaded}
+			return opensearchtransport.PoolWindow{Window: window, MaxWindow: window, Overloaded: writeOverloaded}
 		}
 	}
 }
@@ -222,7 +223,7 @@ func (s *fakeServer) roundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	sent := sentRequest{
-		node:    FlushNode(req.Context()),
+		node:    FlushTarget(req.Context()),
 		actions: parseRecordedActions(string(raw)),
 		shards:  map[shardKey]struct{}{},
 		bytes:   len(raw),
@@ -296,8 +297,8 @@ func (s *fakeServer) maxInflight() int {
 	return s.mu.maxInflight
 }
 
-// newClusterIndexer builds an indexer over the fake cluster and server.
-func newClusterIndexer(t *testing.T, server *fakeServer, cfg BulkIndexerConfig) BulkIndexer {
+// newBulkClient builds a bulk client over the fake cluster and server.
+func newBulkClient(t *testing.T, server *fakeServer, cfg BulkIndexerConfig) BulkIndexer {
 	t.Helper()
 
 	cfg.Client = newBulkTestClient(t, server.roundTrip)

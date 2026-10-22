@@ -571,9 +571,9 @@ type BulkIndexer interface {
 }
 ```
 
-`BulkIndexer` is a buffered queue that flushes its queue on `Close()` and explicitly via `Flush()`. Callers that build their indexer with `NewBulkIndexer` have nothing to do. Only code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add a `Flush(context.Context) error` method.
+`BulkIndexer` is a buffered queue that flushes its queue on `Close()` and explicitly via `Flush()`. Callers that build their bulk client with `NewBulkIndexer` have nothing to do. Only code that implements the interface itself, most often a fake standing in for the bulk client in tests, has to add a `Flush(context.Context) error` method.
 
-`Flush` sends every item added before the call and leaves the indexer open. A handler that had to construct an indexer per invocation, because `Close` was the only way to force a drain, can now keep one indexer and flush at the end of each unit of work:
+`Flush` sends every item added before the call and leaves the bulk client open. A handler that had to construct a bulk client per invocation, because `Close` was the only way to force a drain, can now keep one bulk client and flush at the end of each unit of work:
 
 ```go
 // Before: Close is the only way to drain, and it makes the indexer unusable,
@@ -596,11 +596,13 @@ func handler(ctx context.Context) error {
 }
 ```
 
-`Flush` covers the items the indexer held when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. After `Close`, `Flush` and `Add` return `ErrBulkIndexerClosed`.
+`Flush` covers the items the bulk client held when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. After `Close`, `Flush` and `Add` return `ErrBulkClientClosed`.
 
-## `opensearchutil.BulkIndexer` interface gained `Cancel()`, `GetStats()` and `GetNodeStats()`, and `Close` waits for every item
+<a id="opensearchutilbulkindexer-interface-gained-cancel-getstats-and-getnodestats-and-close-waits-for-every-item"></a>
 
-The exported `BulkIndexer` interface gained three methods in v5.1, `Cancel`, `GetStats` and `GetNodeStats`, so a type that implements the interface no longer satisfies it until it adds them:
+## `opensearchutil.BulkIndexer` interface gained `Cancel()`, `GetStats()` and `GetTargetStats()`, and `Close` waits for every item
+
+The exported `BulkIndexer` interface gained three methods in v5.1, `Cancel`, `GetStats` and `GetTargetStats`, so a type that implements the interface no longer satisfies it until it adds them:
 
 ```go
 type BulkIndexer interface {
@@ -610,24 +612,24 @@ type BulkIndexer interface {
     Cancel() // new in v5.1
     Stats() BulkIndexerStats
     GetStats(dst *BulkIndexerStats) error // new in v5.1
-    GetNodeStats(dst []NodeStats) []NodeStats // new in v5.1
+    GetTargetStats(dst []BulkTargetStats) []BulkTargetStats // new in v5.1
 }
 ```
 
-Callers that build their indexer with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add `Cancel()`, `GetStats(*BulkIndexerStats) error` and `GetNodeStats([]NodeStats) []NodeStats` methods. A fake's `GetStats` can copy its own `BulkIndexerStats` into `*dst` and return `ErrNilStats` for a nil `dst`, and its `GetNodeStats` can return `dst[:0]`.
+Callers that build their bulk client with `NewBulkIndexer` have nothing to do. Code that implements the interface itself, most often a fake standing in for the bulk client in tests, has to add `Cancel()`, `GetStats(*BulkIndexerStats) error` and `GetTargetStats([]BulkTargetStats) []BulkTargetStats` methods. A fake's `GetStats` can copy its own `BulkIndexerStats` into `*dst` and return `ErrNilStats` for a nil `dst`, and its `GetTargetStats` can return `dst[:0]`.
 
-`Cancel` stops the indexer immediately: requests in flight and retry backoff end, and every item the indexer is not yet done with fails through its own `OnError` exactly once. An item that was never sent fails with an error that matches the new `opensearchutil.ErrIndexerCanceled`, which wraps `context.Canceled`. It does not wait and does not replace `Close`.
+`Cancel` stops the bulk client immediately: requests in flight and retry backoff end, and every item the bulk client is not yet done with fails through its own `OnError` exactly once. An item that was never sent fails with an error that matches the new `opensearchutil.ErrBulkClientCanceled`, which wraps `context.Canceled`. It does not wait and does not replace `Close`.
 
 `Close` changes in two ways that matter if you depended on the old behavior:
 
-- **`Close` blocks until the indexer is done with every item**, including requests in flight and any retry backoff, and it now escalates to `Cancel` when its own context ends. It then waits for the requests in flight to unwind and returns the context's error, so it always returns in bounded time, with `OnSuccess` or `OnError` called for every item.
-- **A `Close` whose context had already ended used to return at once**, without waiting for or failing the items the indexer still held, and an indexer stopped by the construction context could leave buffered items without a callback. Both now get their callback. If your `OnError` is not expecting `context.Canceled` or `ErrIndexerCanceled` during shutdown, add that case.
+- **`Close` blocks until the bulk client is done with every item**, including requests in flight and any retry backoff, and it now escalates to `Cancel` when its own context ends. It then waits for the requests in flight to unwind and returns the context's error, so it always returns in bounded time, with `OnSuccess` or `OnError` called for every item.
+- **A `Close` whose context had already ended used to return at once**, without waiting for or failing the items the bulk client still held, and a bulk client stopped by the construction context could leave buffered items without a callback. Both now get their callback. If your `OnError` is not expecting `context.Canceled` or `ErrBulkClientCanceled` during shutdown, add that case.
 
 The rest of the v5.1 additions are opt-in and change nothing until you set them: `BulkIndexerConfig.RetryPolicy`, `Fingerprinter`, and `Observer`, and `BulkIndexerItem.Metadata`. One exception to "nothing changes": with a `RetryPolicy` set, an item without a `DocumentID` is refused with `ErrMissingDocumentID` rather than sent. See [Bulk Indexer](guides/indexing-bulk_indexer.md).
 
 ## `opensearchutil.BulkIndexer` reports errors as `*BulkError`, and `OnFailure` is now `OnError`
 
-In v5.1 every error the indexer reports for failed work is a `*opensearchutil.BulkError`, which says which layer failed (`ErrorLayer`: item, request, index or indexer) and why (`ErrorKind`: rejected, unavailable, transport, permanent or canceled), and keeps the cause. New callbacks receive it, named so that one word, "error", is used throughout. The v5.0 callbacks keep working, deprecated, so code written for v5.0 still builds and behaves as it did; move to the new names when convenient:
+In v5.1 every error the bulk client reports for failed work is a `*opensearchutil.BulkError`, which says which layer failed (`ErrorLayer`: item, request or client) and why (`ErrorKind`: rejected, unavailable, transport, permanent or canceled), and keeps the cause. New callbacks receive it, named so that one word, "error", is used throughout. The v5.0 callbacks keep working, deprecated, so code written for v5.0 still builds and behaves as it did; move to the new names when convenient:
 
 | v5.0                                                                                      | v5.1                                                             |
 | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -664,7 +666,7 @@ cfg.OnUnhandledError = func(ctx context.Context, err error) { log.Print(err) }
 
 In v5.1 the item callback `OnFailure` is deprecated in favor of `OnError`, and this callback in favor of `OnUnhandledError`; both still work. See [above](#opensearchutilbulkindexer-reports-errors-as-bulkerror-and-onfailure-is-now-onerror). This section describes v5.0 under its v5.0 names.
 
-When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
+When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the bulk client ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
 
 A rejected document with no `OnFailure` of its own now has its error surfaced through `OnError` instead. A document that sets `OnFailure` is unchanged and reaches only that callback, and a batch whose rejections are all handled by `OnFailure` still triggers no `OnError`.
 
@@ -698,7 +700,7 @@ Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 
 ## `opensearchutil.BulkIndexer` `DebugLogger` removed
 
-`BulkIndexerConfig` no longer has a `DebugLogger` field, and the `BulkIndexerDebugLogger` interface is gone. The bulk indexer used to take its own `Printf`-style logger, separate from the client's:
+`BulkIndexerConfig` no longer has a `DebugLogger` field, and the `BulkIndexerDebugLogger` interface is gone. The bulk client used to take its own `Printf`-style logger, separate from the client's:
 
 ```go
 // Before
@@ -795,17 +797,17 @@ DiscoverNodesInterval: -1, // no periodic discovery
 
 ## `opensearchutil.BulkIndexer` buffers per shard, under a memory limit
 
-The indexer keeps a buffer for each shard of the indexes it writes to and sends each buffer, as one bulk request, to the node hosting the shard, where it used to hand every item to one of `NumWorkers` workers by hashing its `DocumentID`. Three things change for code that was tuned to the old model:
+The bulk client keeps a buffer for each shard of the indexes it writes to and sends each buffer, as one bulk request, to the node hosting the shard, where it used to hand every item to one of `NumWorkers` workers by hashing its `DocumentID`. Three things change for code that was tuned to the old model:
 
-- **`NumWorkers` is a cap, not a pool.** It limits the bulk requests outstanding at once, and the default, 0, sets no cap beyond the ones that are always there: a shard has one request out at a time, and a node has as many as the window the transport allows its write pool. A node the transport reports no pool for, such as the one that stands for the cluster when the indexer knows no shard map, has as many as `NumWorkers`, or `GOMAXPROCS` when it is 0, which follows a container's CPU limit. If you set it to size a pool, delete it; if you set it to 1 to serialize requests, it still does.
-- **Memory is limited.** `MaxMemoryBytes` limits what the indexer holds from `Add` until the request that sends the item has finished, and `Add` waits when it is spent, or when its shard is over an even share of the limit while other shards are waiting. The limit is not a hard bound: a shard that holds nothing may always take one item, so the total can pass it by up to one item for each such shard. It defaults to `max(GOMEMLIMIT/4, 4 GiB, DefaultMaxMemoryBytes)` when the process has a Go memory limit, and to 512 MiB when it does not. A process with a Go memory limit under 16 GiB that wants the indexer held inside it sets `MaxMemoryBytes`. While other shards are waiting for room, a shard holds no more than an even share of the limit, so one slow shard makes only the callers adding to it wait.
-- **Buffer sizes follow the cluster.** `FlushBytes` is now the ceiling for a shard's buffer. A shard starts at `FlushBytes` on a node that shows no load, and at the default `InitialBytes` on one that is already rejecting or whose window was cut; an `InitialBytes` you set starts every shard at that size, loaded node or not. The indexer shrinks a shard's buffer when that shard is slower than the rest of its node. The bytes the indexer will have out to a node at once are a window that starts wide open and is cut only by a 429, to half of what was out when it arrived, so a node that is merely slow, for all its shards alike, keeps both its buffer sizes and its window. `BulkSizing{Shard: ShardFixed, Node: NodeFixed}` turns both controllers off.
+- **`NumWorkers` is a cap, not a pool.** It limits the bulk requests outstanding at once, across all nodes and to any one node. The default, 0, sets no cap across nodes and caps each node at `GOMAXPROCS`, which follows a container's CPU limit. Beyond that, a shard has one request out at a time. The write pool window the transport tracks for a node chooses where documents that belong to no shard go, and caps nothing. If you set it to size a pool, delete it; if you set it to 1 to serialize requests, it still does.
+- **Memory is limited.** `MaxMemoryBytes` limits what the bulk client holds from `Add` until the request that sends the item has finished, and `Add` waits when it is spent, or when its shard is over an even share of the limit while other shards are waiting. The limit is not a hard bound: a shard that holds nothing may always take one item, so the total can pass it by up to one item for each such shard. It defaults to `max(GOMEMLIMIT/4, 4 GiB, DefaultMaxMemoryBytes)` when the process has a Go memory limit, and to 512 MiB when it does not. A process with a Go memory limit under 16 GiB that wants the bulk client held inside it sets `MaxMemoryBytes`. While other shards are waiting for room, a shard holds no more than an even share of the limit, so one slow shard makes only the callers adding to it wait.
+- **Buffer sizes follow the cluster.** `FlushBytes` is now the ceiling for a shard's buffer. A shard starts at `FlushBytes` on a node that shows no load, and at the default `InitialBytes` on one that is already rejecting or whose window was shrunk; an `InitialBytes` you set starts every shard at that size, loaded node or not. The bulk client shrinks a shard's buffer when that shard is slower than the rest of its node. The bytes the bulk client will have out to a node at once are a window that starts wide open and is shrunk only by a 429, to half of what was out when it arrived, so a node that is merely slow, for all its shards alike, keeps both its buffer sizes and its window. `BulkSizing{Shard: ShardFixed, Target: TargetFixed}` turns both controllers off.
 
 `opensearchutil.AddZeroCopy` sends a document from the caller's own slice instead of copying it, and gives the slice back through `Release`; see its documentation for what the caller gives up.
 
 ## `opensearchutil.BulkIndexerItem.Body` is read from offset 0
 
-The indexer reads an item's `Body` from offset 0, whatever the reader's position when the item is added: to size it, to fingerprint it, and on every attempt to send it, so a retry sends the same bytes as the first attempt. It used to read from the reader's current position. Code that passes a reader already positioned at the start of the document is unaffected. Code that positions one reader at each document in turn sends the whole reader instead, and must pass a reader of only the document:
+The bulk client reads an item's `Body` from offset 0, whatever the reader's position when the item is added: to size it, to fingerprint it, and on every attempt to send it, so a retry sends the same bytes as the first attempt. It used to read from the reader's current position. Code that passes a reader already positioned at the start of the document is unaffected. Code that positions one reader at each document in turn sends the whole reader instead, and must pass a reader of only the document:
 
 ```go
 // Before: one file of several documents, positioned at the one to send.
@@ -816,4 +818,57 @@ bi.Add(ctx, opensearchutil.BulkIndexerItem{Action: "index", DocumentID: id, Body
 bi.Add(ctx, opensearchutil.BulkIndexerItem{
 	Action: "index", DocumentID: id, Body: io.NewSectionReader(f, offset, length),
 })
+```
+
+## Transport retries wait before they are sent
+
+When `RetryBackoff` is nil, the default, the transport waits before each retry. It used to retry at once. The delay is drawn uniformly from zero to 100ms, and the ceiling doubles for each retry after the first, so with the default `MaxRetries` of 6 a request that uses every retry waits about 3s in all on average. A new `RetryBudget`, default 5s, bounds the delays of one request's retries together. A retry whose delay would take the total past the budget is not made, and the caller gets the last response or error. The budget also applies to a `RetryBackoff` you set.
+
+To retry at once, as before:
+
+```go
+// Before: retries were sent at once.
+cfg := opensearch.Config{}
+
+// After: same behavior.
+cfg := opensearch.Config{
+	RetryBackoff: func(int) time.Duration { return 0 },
+}
+```
+
+A `RetryBackoff` whose delays add up to more than 5s needs a larger `RetryBudget`, or a negative one for no bound:
+
+```go
+cfg := opensearch.Config{
+	RetryBackoff: func(attempt int) time.Duration { return time.Duration(attempt) * 2 * time.Second },
+	RetryBudget:  -1, // no bound; 0 selects 5s
+}
+```
+
+## `opensearchutil` bulk client names renamed in 5.1.2
+
+5.1.2 renames `opensearchutil` names added in 5.1.0. The old names are removed, not deprecated. `BulkIndexer`, `NewBulkIndexer`, `BulkIndexerConfig`, `BulkIndexerStats` and `BulkIndexerItem` keep their names.
+
+| Before (5.1.0, 5.1.1)                                   | After (5.1.2)                                                     |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| `ErrBulkIndexerClosed`                                  | `ErrBulkClientClosed`                                             |
+| `ErrIndexerCanceled`                                    | `ErrBulkClientCanceled`                                           |
+| `ErrIndexerLayer`                                       | `ErrClientLayer`                                                  |
+| `LayerIndexer`, `String()` `"indexer"`                  | `LayerClient`, `String()` `"client"`                              |
+| `BulkIndexerStats.BudgetFill`                           | `BulkIndexerStats.Utilization`                                    |
+| `NodeSizing`, `NodeUnset`, `NodeAIMD`, `NodeFixed`      | `TargetSizing`, `TargetUnset`, `TargetAIMD`, `TargetFixed`        |
+| `BulkSizing.Node`                                       | `BulkSizing.Target`                                               |
+| `BulkIndexerConfig.NodeBytes`                           | `BulkIndexerConfig.TargetBytes`                                   |
+| `OPENSEARCH_GO_BULK_NODE`                               | `OPENSEARCH_GO_BULK_TARGET`                                       |
+| `NodeStats`, `BulkIndexer.GetNodeStats`, `JobNodeStats` | `BulkTargetStats`, `BulkIndexer.GetTargetStats`, `JobTargetStats` |
+| `BulkIndexerStats.NodeWindow`, `NumNodes`, `FlushNode`  | `BulkIndexerStats.TargetWindow`, `NumTargets`, `FlushTarget`      |
+
+The `layer` label the `osprom` and `osotel` bulk observers record is now `client` where it was `indexer`, so a dashboard or alert that matches `layer="indexer"` needs updating:
+
+```promql
+# Before
+opensearch_client_bulk_errors_total{layer="indexer"}
+
+# After
+opensearch_client_bulk_errors_total{layer="client"}
 ```

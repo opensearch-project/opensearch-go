@@ -66,7 +66,7 @@ func ExampleNewBulkIndexer() {
 	}
 	defer func() { _ = client.Close() }()
 
-	// Create the indexer
+	// Create the bulk client
 	//
 	indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 		Client:     client,     // The OpenSearch client
@@ -78,7 +78,7 @@ func ExampleNewBulkIndexer() {
 		log.Panicf("Error creating the indexer: %s", err)
 	}
 
-	// Add an item to the indexer
+	// Add an item to the bulk client
 	//
 	// source is the kind of value Metadata carries: where the document came
 	// from, so a callback can report on it without a closure per item.
@@ -99,7 +99,7 @@ func ExampleNewBulkIndexer() {
 			// Body is an `io.Reader` with the payload
 			Body: strings.NewReader(`{"title":"Test"}`),
 
-			// Metadata is opaque to the indexer: it is never sent to the
+			// Metadata is opaque to the bulk client: it is never sent to the
 			// cluster and comes back unchanged in the callbacks below
 			Metadata: source{Topic: "events", Offset: 42},
 
@@ -130,13 +130,13 @@ func ExampleNewBulkIndexer() {
 		log.Panicf("Unexpected error: %s", err)
 	}
 
-	// Close the indexer channel and flush remaining items
+	// Close the bulk client channel and flush remaining items
 	//
 	if err := indexer.Close(context.Background()); err != nil {
 		log.Panicf("Unexpected error: %s", err)
 	}
 
-	// Report the indexer statistics
+	// Report the bulk client statistics
 	//
 	stats := indexer.Stats()
 	if stats.NumFailed > 0 {

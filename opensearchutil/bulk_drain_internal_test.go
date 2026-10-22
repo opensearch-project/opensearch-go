@@ -64,7 +64,7 @@ func TestBulkIndexerFlushThatEndedStillLetsBufferReportItsError(t *testing.T) {
 	// Flush has joined the buffer once the cancel can end it; the request is held,
 	// so the buffer is still in flight.
 	require.Eventually(t, func() bool {
-		s := bi.(*bulkIndexer).sched
+		s := bi.(*bulkClient).sched
 		s.Lock()
 		defer s.Unlock()
 		for b := range s.live {

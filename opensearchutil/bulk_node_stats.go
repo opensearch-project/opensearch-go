@@ -12,13 +12,13 @@ import (
 	"sync/atomic"
 )
 
-// NodeStats is the indexer's reading of one node it writes to. It is what
-// [BulkIndexerStats.NodeWindow], [BulkIndexerStats.BufferSize] and
+// BulkTargetStats is the bulk client's reading of one node it writes to. It is what
+// [BulkIndexerStats.TargetWindow], [BulkIndexerStats.BufferSize] and
 // [BulkIndexerStats.Slowdown] summarize across the nodes, with the node's own
 // load beside it, so a caller can name the node an outlier is.
-type NodeStats struct {
+type BulkTargetStats struct {
 	// Name is the node's name. It is empty for the one node that stands for the
-	// cluster when the indexer has no shard router.
+	// cluster when the bulk client has no shard router.
 	Name string
 
 	// InFlightRequests is the requests out to the node (GAUGE, requests), and
@@ -27,7 +27,7 @@ type NodeStats struct {
 	InFlightBytes    uint64
 	// QueuedBuffers is the node's sealed buffers not yet sent (GAUGE, buffers).
 	QueuedBuffers uint64
-	// HeldBytes is everything the indexer holds for the node: open buffers, queued
+	// HeldBytes is everything the bulk client holds for the node: open buffers, queued
 	// buffers and requests out (GAUGE, bytes).
 	HeldBytes uint64
 	// NumRejections counts the node's requests answered with a 429 (COUNTER,
@@ -44,7 +44,7 @@ type NodeStats struct {
 }
 
 // nodeAtomicStats holds a node's statistics as atomics: a copy of each of the
-// node's fields that GetNodeStats reports and the scheduler's lock guards, and
+// node's fields that GetTargetStats reports and the scheduler's lock guards, and
 // the count of the node's rejections. A copy is stored with the lock held, where
 // the scheduler changes the field, and loaded without it.
 type nodeAtomicStats struct {
@@ -59,14 +59,14 @@ func (ns *nodeState) storeStats() {
 	ns.stats.inflight.Store(int64(ns.inflight))
 	ns.stats.queued.Store(int64(ns.queued))
 	ns.stats.flightBytes.Store(ns.flightBytes)
-	ns.stats.window.Store(math.Float64bits(ns.win.fraction()))
+	ns.stats.window.Store(math.Float64bits(ns.windowBytes.fraction()))
 	ns.stats.bufferSize.Store(math.Float64bits(ns.bufferFrac))
 	ns.stats.slowdown.Store(math.Float64bits(ns.slowdown))
 }
 
 // loadStats returns the node's statistics, each loaded from an atomic.
-func (ns *nodeState) loadStats() NodeStats {
-	return NodeStats{
+func (ns *nodeState) loadStats() BulkTargetStats {
+	return BulkTargetStats{
 		Name:             ns.name,
 		InFlightRequests: uint64(max(ns.stats.inflight.Load(), 0)),
 		InFlightBytes:    uint64(max(ns.stats.flightBytes.Load(), 0)),
@@ -80,7 +80,7 @@ func (ns *nodeState) loadStats() NodeStats {
 }
 
 // addNode adds a node the scheduler has just started using to the list
-// GetNodeStats reads. The list is replaced, never changed, so a reader holds a
+// GetTargetStats reads. The list is replaced, never changed, so a reader holds a
 // list no writer touches. It must be called with the scheduler's lock held.
 func (s *scheduler) addNode(ns *nodeState) {
 	var list []*nodeState
@@ -91,8 +91,8 @@ func (s *scheduler) addNode(ns *nodeState) {
 	s.nodeList.Store(&list)
 }
 
-// GetNodeStats loads the statistics of each node into dst; see [BulkIndexer].
-func (bi *bulkIndexer) GetNodeStats(dst []NodeStats) []NodeStats {
+// GetTargetStats loads the statistics of each node into dst; see [BulkIndexer].
+func (bi *bulkClient) GetTargetStats(dst []BulkTargetStats) []BulkTargetStats {
 	dst = dst[:0]
 	list := bi.sched.nodeList.Load()
 	if list == nil {

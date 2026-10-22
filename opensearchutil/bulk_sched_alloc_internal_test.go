@@ -24,8 +24,8 @@ import (
 // every node.
 func TestSchedulerPublishLoadAllocations(t *testing.T) {
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0", "n1", "n2")
-	bi := newClusterIndexer(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
-	s := bi.(*bulkIndexer).sched
+	bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
+	s := bi.(*bulkClient).sched
 
 	s.Lock()
 	for _, name := range []string{"n0", "n1", "n2"} {
@@ -35,13 +35,13 @@ func TestSchedulerPublishLoadAllocations(t *testing.T) {
 
 	publish := func() {
 		s.Lock()
-		s.publishLoad(flushSample{})
+		s.publishLoad(flushResult{})
 		s.Unlock()
 	}
 
 	// AllocsPerRun warms up publish once before it measures.
 	require.Zero(t, testing.AllocsPerRun(100, publish), "publishLoad allocates on the completion path")
 
-	require.EqualValues(t, 3, bi.Stats().NumNodes)
+	require.EqualValues(t, 3, bi.Stats().NumTargets)
 	require.NoError(t, bi.Close(t.Context()))
 }

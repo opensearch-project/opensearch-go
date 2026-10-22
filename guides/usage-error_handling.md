@@ -623,18 +623,19 @@ func bulkItemResult(item opensearchapi.BulkItem) *opensearchapi.BulkRespItem {
 }
 ```
 
-### Retrying after context deadline errors requires a server-side timeout
+### Retrying after a context deadline
 
-Retrying a bulk request after `context.DeadlineExceeded` is safe only when the original request included a server-side timeout (`BulkParams.Timeout`). Without one, the server likely continues processing the original request after the client gives up. Each retry can add another concurrent bulk operation targeting the same primary shards, potentially exhausting thread pools and triggering `es_rejected_execution_exception` across the cluster. See [Bulk: Why missing server-side timeouts can cause cascading overload](indexing-bulk.md#why-missing-server-side-timeouts-can-cause-cascading-overload) for the full failure sequence.
+A bulk request that ends with `context.DeadlineExceeded` has an unknown outcome. The server does not see the client give up: it goes on with the request, and some or all of the documents may be written. Resending the whole batch adds a second request for the same primary shards while the first may still be running, and repeated resends can fill their write queues until the cluster answers with `es_rejected_execution_exception` (HTTP 429). See [Bulk: How blind retries lead to overload](indexing-bulk.md#how-blind-retries-lead-to-overload) for the full sequence.
 
 If you ingest through `opensearchutil.BulkIndexer`, it can drive this loop for you: set a `RetryPolicy` and it resends the failed items, classifying each failure and refusing to send an item without a document id. See [Bulk Indexer](indexing-bulk_indexer.md#retrying-failed-items).
 
 When implementing retry logic for bulk operations yourself:
 
-- **Always set `BulkParams.Timeout`** shorter than the client-side context deadline. This ensures the server aborts incomplete shard operations before the client retries.
-- **Do not retry on `context.DeadlineExceeded` if no server-side timeout was set.** The original request is likely still running. Retrying compounds the problem.
-- **Retry only the failed items**, not the entire batch. Items that succeeded in the original request do not need to be resubmitted (resubmitting may cause version conflicts or duplicate documents depending on whether document IDs are set).
-- **Set client-assigned `_id` values on bulk items.** After a timeout or ambiguous failure, the client can query for expected document IDs to determine which items were persisted, turning a blind retry into a targeted one. See [Bulk: Use client-assigned document IDs for recoverability](indexing-bulk.md#use-client-assigned-document-ids-for-recoverability).
+- **Set `BulkParams.Timeout` shorter than the client-side context deadline.** The server-side timeout bounds how long each action waits on the cluster, for example for a shard whose primary is not active (the server's default is one minute). With it shorter, a stuck action comes back as a failed item (`unavailable_shards_exception`, status 503) before the client gives up, so the client knows exactly what to retry. It does not stop a write that has started.
+- **Set client-assigned `_id` values on bulk items.** They make a retry safe: a document that was written is replaced, not duplicated. After a timeout or other ambiguous failure, the client can also look up the IDs it sent to find which items were written, turning a blind retry into a targeted one. See [Bulk: Use client-assigned document IDs for recoverability](indexing-bulk.md#use-client-assigned-document-ids-for-recoverability).
+- **Without client-assigned IDs, do not resend after `context.DeadlineExceeded`.** The original request may have written the documents, and a resend writes them again under new IDs.
+- **Retry only the failed items**, not the entire batch. Items that succeeded do not need to be sent again (resending them may cause version conflicts or duplicate documents, depending on whether document IDs are set).
+- **Back off between retries**, and back off further on a 429, so that retries do not add to the load that caused them.
 
 ### 5. Monitor Partial Failure Rates
 

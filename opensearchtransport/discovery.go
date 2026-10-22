@@ -590,6 +590,7 @@ func storeThreadPoolSizes(conn *Connection, pools map[string]nodeInfoThreadPool)
 		}
 		if size > 0 {
 			conn.storeMaxCwnd(name, size)
+			conn.storeMaxQueue(name, tp.QueueSize)
 		}
 	}
 }

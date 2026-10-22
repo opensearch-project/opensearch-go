@@ -309,10 +309,7 @@ type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64,
 // shift to replica-hosting nodes.
 func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
 	return func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64 {
-		rtt, utilization, overloaded := connBaseScore(conn, poolName, poolInfoReady)
-		if overloaded {
-			return math.MaxFloat64
-		}
+		rtt, utilization := connBaseScore(conn, poolName, poolInfoReady)
 		cost := shardCost
 		if primaryPct > 0 {
 			writePC := conn.pools.getForScoring(poolWrite)
@@ -329,19 +326,16 @@ func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
 	}
 }
 
-// connBaseScore computes the common components of connection scoring:
-// RTT bucket and utilization ratio. Returns overloaded=true when the
-// target pool has been marked as overloaded (the caller should return
-// [math.MaxFloat64]).
-func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float64, float64, bool) {
-	if poolName != "" && conn.isPoolOverloaded(poolName) {
-		return 0, 0, true
-	}
+// connBaseScore computes the common components of connection scoring: the RTT
+// bucket and the utilization ratio. A pool that refused work is not excluded: a
+// 429 has already halved its cwnd, which doubles its utilization, and a request
+// that is retried skips the nodes it has tried (see routeAttempt).
+func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float64, float64) {
 	rtt := float64(conn.rttRing.medianBucket())
 	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
 	inFlight := float64(conn.loadInFlight(poolName))
 	utilization := (inFlight + 1.0) / cwnd
-	return rtt, utilization, false
+	return rtt, utilization
 }
 
 // calcConnDefaultScore scores a connection using the static shard cost
@@ -349,10 +343,7 @@ func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float
 // path used for write operations and as the fallback when no
 // [connScoreFunc] is configured (scoreFunc == nil in [connScoreSelect]).
 func calcConnDefaultScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
-	rtt, utilization, overloaded := connBaseScore(conn, poolName, poolInfoReady)
-	if overloaded {
-		return math.MaxFloat64
-	}
+	rtt, utilization := connBaseScore(conn, poolName, poolInfoReady)
 	return rtt * utilization * shardCost
 }
 

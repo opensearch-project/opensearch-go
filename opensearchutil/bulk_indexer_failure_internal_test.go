@@ -149,7 +149,7 @@ func (s *bulkSequence) requests() [][]string {
 }
 
 // withoutTransportRetry turns off the transport's own retry, which would
-// otherwise resend a bulk request that drew a 502, 503 or 504 before the indexer
+// otherwise resend a bulk request that drew a 502, 503 or 504 before the bulk client
 // ever saw the failure.
 func withoutTransportRetry(cfg *opensearchapi.Config) {
 	cfg.Client.DisableRetry = true
@@ -173,7 +173,7 @@ type failureCallback struct {
 // text of err. A refused request and one that never reached the cluster are the
 // same kind here, even though only one of them can have been partly applied.
 //
-// The transport's own retry is switched off so each outcome reaches the indexer
+// The transport's own retry is switched off so each outcome reaches the bulk client
 // as written; TestBulkIndexerTransportRetryIsBelowTheIndexer covers it.
 func TestBulkIndexerErrorKinds(t *testing.T) {
 	t.Parallel()
@@ -223,7 +223,7 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 			outcome:   outcomeExtraItem,
 			item:      BulkIndexerItem{Action: "index", DocumentID: "doc", Body: strings.NewReader(`{"a":1}`)},
 			want:      failureCallback{ID: "doc", HasErr: true, ErrPrefix: "flush: "},
-			wantErrIn: "bulk response has 2 items, indexer serialized 1",
+			wantErrIn: "bulk response has 2 items, bulk client serialized 1",
 			wantOnErr: 1,
 		},
 		{
@@ -231,7 +231,7 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 			outcome:   outcomeMissingItem,
 			item:      BulkIndexerItem{Action: "index", DocumentID: "doc", Body: strings.NewReader(`{"a":1}`)},
 			want:      failureCallback{ID: "doc", HasErr: true, ErrPrefix: "flush: "},
-			wantErrIn: "bulk response has 0 items, indexer serialized 1",
+			wantErrIn: "bulk response has 0 items, bulk client serialized 1",
 			wantOnErr: 1,
 		},
 		{
@@ -299,7 +299,7 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 // TestBulkIndexerRequestsAfterFailure pins what follows a bulk request that did
 // not go cleanly: nothing is retried, the failed batch is dropped from the
 // buffer, and items added afterwards go out in a request of their own and
-// succeed. The indexer carries no state from one flush to the next.
+// succeed. The bulk client carries no state from one flush to the next.
 func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 	t.Parallel()
 
@@ -409,7 +409,7 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 // goroutine that sends the buffer, before the flush that triggered them returns,
 // and with the scheduler's lock free. A callback that blocks therefore stalls its
 // buffer -- and any Flush or Close waiting on it, and the shard's next buffer --
-// but not the rest of the indexer.
+// but not the rest of the bulk client.
 func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 	t.Parallel()
 
@@ -450,7 +450,7 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 				NumWorkers: 1,
 				Client:     client,
 			})
-			sched := bi.(*bulkIndexer).sched
+			sched := bi.(*bulkClient).sched
 
 			// Only the goroutine sending the buffer appends, and the test reads
 			// after Flush has returned, so no lock of its own is needed.
@@ -482,10 +482,10 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 }
 
 // TestBulkIndexerTransportRetryIsBelowTheIndexer pins where the only retry in the
-// write path lives. The indexer never resends a batch, but the transport does by
+// write path lives. The bulk client never resends a batch, but the transport does by
 // default: a bulk request that draws a 502, 503 or 504 is sent again with the
-// same body, and the indexer sees the final answer as one request. A 429 is not
-// in the default retry set, so it reaches the indexer on the first attempt.
+// same body, and the bulk client sees the final answer as one request. A 429 is not
+// in the default retry set, so it reaches the bulk client on the first attempt.
 func TestBulkIndexerTransportRetryIsBelowTheIndexer(t *testing.T) {
 	t.Parallel()
 

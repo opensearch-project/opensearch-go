@@ -29,7 +29,7 @@ var retryOnce = RetryPolicyFunc(
 	})
 
 // TestBulkIndexerReleasesLentDocumentsAfterTheFinalAttempt: a document lent to
-// the indexer is still in use while a retry may send it again, so it is released
+// the bulk client is still in use while a retry may send it again, so it is released
 // once, after its last attempt, and not after the first.
 func TestBulkIndexerReleasesLentDocumentsAfterTheFinalAttempt(t *testing.T) {
 	t.Parallel()
@@ -56,7 +56,7 @@ func TestBulkIndexerReleasesLentDocumentsAfterTheFinalAttempt(t *testing.T) {
 		return reply(http.StatusCreated)(r, "")
 	}
 
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushInterval: time.Hour,
 		ShardRouter:   NoShardRouter,
 		RetryPolicy:   retryOnce,
@@ -109,9 +109,9 @@ func TestBulkIndexerRetriesKeepAShardsOrder(t *testing.T) {
 	}
 
 	one := docBytes("idx", "doc-a", 1)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushBytes:    int(one), // One document fills a buffer.
-		Sizing:        BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:        BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval: time.Hour,
 		RetryPolicy:   retryOnce,
 	})
@@ -130,9 +130,9 @@ func TestBulkIndexerRetriesKeepAShardsOrder(t *testing.T) {
 	require.Zero(t, server.overlaps(), "the shard never has two requests out")
 }
 
-// TestBulkIndexerCancelEndsBlockedAdds: an Add waiting for room when the indexer is
+// TestBulkIndexerCancelEndsBlockedAdds: an Add waiting for room when the bulk client is
 // canceled does not wait for the cluster. It returns nil and its item fails with
-// ErrIndexerCanceled, and a lent document is given back.
+// ErrBulkClientCanceled, and a lent document is given back.
 func TestBulkIndexerCancelEndsBlockedAdds(t *testing.T) {
 	t.Parallel()
 
@@ -151,14 +151,14 @@ func TestBulkIndexerCancelEndsBlockedAdds(t *testing.T) {
 			server := stalledServer()
 			held := docBytes("idx", "doc-0", 1)
 
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{
+			bi := newBulkClient(t, server, BulkIndexerConfig{
 				FlushBytes:     int(held),
-				Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+				Sizing:         BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 				FlushInterval:  time.Hour,
 				MaxMemoryBytes: 1, // Every item fills the job's memory alone.
 				ShardRouter:    NoShardRouter,
 			})
-			indexer := bi.(*bulkIndexer)
+			indexer := bi.(*bulkClient)
 
 			blocked := make(chan struct{}, 4)
 			relieve := indexer.budget.onBlock
@@ -195,7 +195,7 @@ func TestBulkIndexerCancelEndsBlockedAdds(t *testing.T) {
 			bi.Cancel()
 
 			require.NoError(t, receive(t, addErr), "a canceled Add reports through the item, not its return")
-			require.ErrorIs(t, receive(t, failure), ErrIndexerCanceled)
+			require.ErrorIs(t, receive(t, failure), ErrBulkClientCanceled)
 			if tt.lend {
 				require.EqualValues(t, 1, released.Load())
 			}

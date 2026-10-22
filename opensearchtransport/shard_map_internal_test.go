@@ -480,9 +480,14 @@ func TestConnectionWritePool(t *testing.T) {
 		want  PoolWindow
 	}{
 		{
-			name:  "before the node reports its pools",
+			name:  "before the node reports its pools, the initial window",
 			setup: func(*Connection) {},
-			want:  PoolWindow{Window: 1},
+			want:  PoolWindow{Window: defaultSyntheticCwndMultiplier * defaultServerCoreCount},
+		},
+		{
+			name:  "before the node reports its pools, four per allocated processor",
+			setup: func(conn *Connection) { conn.storeAllocatedProcessors(2) },
+			want:  PoolWindow{Window: defaultSyntheticCwndMultiplier * 2},
 		},
 		{
 			name: "after the node reports a window, requests in flight and an overloaded pool",

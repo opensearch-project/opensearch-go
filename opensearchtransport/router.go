@@ -968,7 +968,7 @@ func indexSlotCacheConfigFromRouter(cfg routerConfig) indexSlotCacheConfig {
 //     select the best connection for the target index
 //  3. RoundRobinPolicy fallback for unmatched requests
 //
-// See [guides/connection_scoring.md] for the full algorithm description.
+// See guides/transport-routing.md, section 4, for the scoring algorithm.
 func NewDefaultPolicy(opts ...RouterOption) (Policy, error) {
 	cfg, costCfg, err := buildStandaloneRouterConfig(opts)
 	if err != nil {
@@ -1009,8 +1009,8 @@ func NewDefaultPolicy(opts ...RouterOption) (Policy, error) {
 // role-based routing with per-index connection scoring, RTT-based AZ preference,
 // and self-stabilizing load distribution.
 //
-// See [NewDefaultPolicy] for the full routing chain and [guides/connection_scoring.md]
-// for the algorithm description.
+// See [NewDefaultPolicy] for the full routing chain, and
+// guides/transport-routing.md, section 4, for the scoring algorithm.
 func NewDefaultRouter(opts ...RouterOption) (Router, error) {
 	p, err := NewDefaultPolicy(opts...)
 	if err != nil {

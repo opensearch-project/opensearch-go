@@ -884,7 +884,7 @@ Routing a `GET /index/_doc/{id}` (or `_mget`) at a replica is a deliberate part 
 
 **Why document replication is safe.** OpenSearch's replication semantics differ from Dynamo-style quorum writes. The `wait_for_active_shards` parameter is a pre-flight availability gate -- it decides whether a write may _start_ -- not an ack-count threshold. Once the write proceeds, the primary forwards it to **every** replica in the in-sync set; the operation only returns to the client after each replica has either acknowledged or been ejected from the in-sync set (`failShardIfNeeded` in `ReplicationOperation`). Under document replication, every in-sync replica indexes the document into its own translog and version map. `GET _doc/{id}` and `_mget` are realtime APIs -- they consult the version map and translog directly, not the searcher -- so `refresh=false` does not affect their visibility. By the time the write returns 200, every replica that is still in the in-sync routing table has the doc and can serve a realtime GET for it. Replicas that failed to ack are no longer in-sync (and a recovering one is `INITIALIZING` with cost 16.0), so the router will not pick them for reads either.
 
-**Why segment replication is not.** Under segment replication only the primary indexes the document; replicas receive new data via segment file copies, which are tied to refresh. A realtime GET on a segrep replica reads from local segments that may not yet contain the write, so it can return the prior version (or `found:false` for a brand-new ID) until the next refresh-and-copy completes. The gap is bounded by the refresh interval plus segment-copy time, typically subsecond, but it is non-zero.
+**How segment replication differs.** Under segment replication only the primary indexes the document; replicas receive new data via segment file copies, which are tied to refresh, so a replica can hold the prior version (or none, for a brand-new ID) until the next refresh-and-copy completes. Since OpenSearch 2.10 the server covers this for realtime reads: a realtime `GET` or `_mget` with no `preference` on a segment-replication index runs on the primary, whichever node the client sent it to (`TransportGetAction.shouldForcePrimaryRouting`). The client's choice of node then changes only where the request is coordinated, and every realtime read of a hot document lands on the node holding its primary. `realtime=false` or any `preference` lifts the forcing, at the cost of reading the last refreshed state from any copy; see [Choosing which copy serves a read](indexing-document_lifecycle.md#choosing-which-copy-serves-a-read). Before 2.10, a realtime GET on a segment-replication replica could return the prior version for up to the refresh interval plus the segment-copy time.
 
 Replica states that the cost table already steers reads away from -- regardless of replication model:
 
@@ -1465,14 +1465,16 @@ Applications must always check these indicators. The Go client returns typed res
 
 ### Bulk Timeout Interaction
 
-Retrying bulk requests after `context.DeadlineExceeded` is safe **only** when the original request included a server-side timeout (`BulkParams.Timeout`). Without one, the server continues processing after the client gives up. Each retry adds concurrent bulk operations to the same primary shards, potentially exhausting thread pools cluster-wide.
+A bulk request that ends with `context.DeadlineExceeded` has an unknown outcome: the server does not see the client give up, and goes on with the request. Resending the whole batch adds concurrent bulk operations to the same primary shards, and repeated resends can fill their write queues cluster-wide. `BulkParams.Timeout` bounds only how long each action waits on the cluster (one minute by default); it does not stop a write that has started.
 
 Rules for safe bulk retry:
 
-1. Always set `BulkParams.Timeout` shorter than the client-side context deadline.
-2. Do not retry on `context.DeadlineExceeded` without a server-side timeout.
-3. Retry only failed items, not the entire batch.
-4. Use client-assigned `_id` values so you can query which items persisted before retrying.
+1. Set `BulkParams.Timeout` shorter than the client-side context deadline, so an action stuck waiting comes back as a failed item before the client gives up.
+2. Use client-assigned `_id` values, so a retry replaces rather than duplicates, and so you can look up which items were written before retrying.
+3. Without client-assigned IDs, do not resend after `context.DeadlineExceeded`.
+4. Retry only failed items, not the entire batch, and back off between retries.
+
+See [Bulk: Timeout configuration](indexing-bulk.md#timeout-configuration).
 
 ---
 

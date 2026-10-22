@@ -174,13 +174,13 @@ const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 // every buffer at FlushBytes. Case-insensitive; any other value is ignored.
 const BulkShard = "OPENSEARCH_GO_BULK_SHARD"
 
-// BulkNode overrides BulkSizing.Node for opensearchutil.BulkIndexer: "aimd" cuts a
-// node's window on a 429 and grows it back slowly, and "fixed" holds it where it
-// started. Case-insensitive; any other value is ignored.
+// BulkTarget overrides BulkSizing.Target for opensearchutil.BulkIndexer: "aimd"
+// shrinks a target node's window on a 429 and grows it back slowly, and "fixed"
+// holds it where it started. Case-insensitive; any other value is ignored.
 //
 // The two are independent. How each controller works is explained in
 // guides/indexing-bulk_indexer.md#sizing-batches.
-const BulkNode = "OPENSEARCH_GO_BULK_NODE"
+const BulkTarget = "OPENSEARCH_GO_BULK_TARGET"
 
 // BulkPIDKp, BulkPIDKi and BulkPIDKd override BulkSizing.PID's Kp, Ki and Kd, the
 // gains of the PID controller that sizes each shard's buffer. Each is

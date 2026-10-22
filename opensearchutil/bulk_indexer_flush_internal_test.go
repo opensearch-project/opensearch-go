@@ -24,7 +24,7 @@ import (
 // TestBulkIndexerFlushCompletesCallbacksBeforeReturning pins the guarantee a
 // caller commits an external position on: when Flush returns, every item it
 // covered has already had its OnSuccess or OnError called. Nothing closes the
-// indexer or waits between Flush and the check, so a callback that ran after
+// bulk client or waits between Flush and the check, so a callback that ran after
 // the drain was reported done would be counted short.
 func TestBulkIndexerFlushCompletesCallbacksBeforeReturning(t *testing.T) {
 	t.Parallel()

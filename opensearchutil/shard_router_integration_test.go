@@ -476,7 +476,7 @@ func TestBulkIndexerKeepsOrderWhenShardMapArrives_Integration(t *testing.T) {
 	bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 		Client:        client,
 		FlushBytes:    2000, // Small, so batches fill and are sent many times.
-		Sizing:        opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed, Node: opensearchutil.NodeFixed},
+		Sizing:        opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed, Target: opensearchutil.TargetFixed},
 		FlushInterval: time.Hour,
 	})
 	require.NoError(t, err)
@@ -534,7 +534,7 @@ func TestBulkIndexerKeepsOrderWhenShardMapArrives_Integration(t *testing.T) {
 }
 
 // TestBulkIndexerWithWrongShardMapStillIndexesEverything_Integration gives the
-// indexer a shard map that disagrees with the cluster, as a stale one would. The
+// bulk client a shard map that disagrees with the cluster, as a stale one would. The
 // server regroups every bulk by the shard it really maps each document to, so
 // every document must land, and the wrong guess costs efficiency and nothing else.
 func TestBulkIndexerWithWrongShardMapStillIndexesEverything_Integration(t *testing.T) {
@@ -635,7 +635,7 @@ func TestBulkIndexerSendsOneShardsBatchesToItsPrimary_Integration(t *testing.T) 
 		bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:        perIndex,
 			FlushBytes:    2000,
-			Sizing:        opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed, Node: opensearchutil.NodeFixed},
+			Sizing:        opensearchutil.BulkSizing{Shard: opensearchutil.ShardFixed, Target: opensearchutil.TargetFixed},
 			FlushInterval: time.Hour,
 		})
 		require.NoError(t, err)

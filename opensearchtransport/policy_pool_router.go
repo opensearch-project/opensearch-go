@@ -118,7 +118,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 
 		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil)
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
 		scores.Release()
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
@@ -178,7 +178,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), routeAttemptFrom(ctx))
 		scores.Release()
 		extraCost.Release()
 
@@ -240,7 +240,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests

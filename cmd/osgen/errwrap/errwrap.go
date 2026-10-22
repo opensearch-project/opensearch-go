@@ -5,8 +5,8 @@
 // compatible open source license.
 
 // Package errwrap is the cmd/osgen-side catalog of partial-failure
-// "wrapper schemas" (per the proposed x-error-responses extension --
-// see opensearch-api-specification/issue-x-partial-failure-mode.md).
+// "wrapper schemas", as proposed for the x-error-responses extension in
+// https://github.com/opensearch-project/opensearch-api-specification/issues/1136.
 //
 // Until the spec carries the extension natively, this package ships the
 // per-operation map cmd/osgen needs at codegen time. Wrapper names match

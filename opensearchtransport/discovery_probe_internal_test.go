@@ -30,7 +30,7 @@ func TestProbeUnprovenConnection(t *testing.T) {
 		// conn builds the connection to probe; seed and an already running
 		// check are set here.
 		conn func(u *url.URL) *Connection
-		// answers is whether the node answers its health check.
+		// answers is set when the node answers its health check.
 		answers      bool
 		wantProbed   bool
 		wantViable   bool

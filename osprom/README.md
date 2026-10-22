@@ -121,7 +121,7 @@ reg, err := osprom.New(promReg, ro)
 
 ## Bulk indexer metrics -- `NewBulkIndexerObserver`
 
-`opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the indexer calls it directly, so it is not wired into `New`. Create it, register its collectors, and set it as the indexer's `Observer`:
+`opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the bulk client calls it directly, so it is not wired into `New`. Create it, register its collectors, and set it as the bulk client's `Observer`:
 
 ```go
 bo := osprom.NewBulkIndexerObserver()
@@ -144,8 +144,8 @@ Labels are low-cardinality (`result`, `layer`, `kind`, `retrying`, `outcome`); n
 | `opensearch_client_bulk_request_size_bytes`       | Bulk request body size histogram.                                                                                              |
 | `opensearch_client_bulk_errors_total`             | Failed attempts by `layer` (`request` or `item`), `kind` (`rejected`, `unavailable`, `transport`, `permanent`) and `retrying`. |
 | `opensearch_client_bulk_retries_total`            | Items sent again after a failure, by `kind`.                                                                                   |
-| `opensearch_client_bulk_items_total`              | Items the indexer is done with, by `outcome` (`succeeded` or `failed`).                                                        |
-| `opensearch_client_bulk_item_size_bytes`          | Document size of each item the indexer is done with, in bytes, without the action line. Histogram of 100 B to 10 MiB.          |
+| `opensearch_client_bulk_items_total`              | Items the bulk client is done with, by `outcome` (`succeeded` or `failed`).                                                    |
+| `opensearch_client_bulk_item_size_bytes`          | Document size of each item the bulk client is done with, in bytes, without the action line. Histogram of 100 B to 10 MiB.      |
 
 ## Custom observers
 

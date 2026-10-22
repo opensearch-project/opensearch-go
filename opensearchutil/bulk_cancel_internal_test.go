@@ -168,7 +168,7 @@ func TestBulkIndexerCancelFailsUnsentItems(t *testing.T) {
 	require.Equal(t, int64(numItems+1), f.failed.Load(), "every item fails exactly once")
 	require.Zero(t, f.succeeded.Load())
 	for range numItems + 1 {
-		require.ErrorIs(t, <-f.errs, ErrIndexerCanceled)
+		require.ErrorIs(t, <-f.errs, ErrBulkClientCanceled)
 	}
 	require.Empty(t, seq.requests(), "nothing is sent after Cancel")
 }
@@ -235,7 +235,7 @@ func TestBulkIndexerConstructionContextEndedLeavesNoItemBehind(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, Context: ctx})
 	cancel()
-	<-bi.(*bulkIndexer).flusherDone
+	<-bi.(*bulkClient).flusherDone
 
 	f := newCallbackCounts(1)
 	require.NoError(t, bi.Add(t.Context(), f.item("a")))
@@ -304,7 +304,7 @@ func recordingItem(id string, calls *[]failureCall) BulkIndexerItem {
 }
 
 // TestWorkerFailCanceled: a canceled worker fails every buffered item with
-// ErrIndexerCanceled and sends nothing. An item with an OnError hears of it
+// ErrBulkClientCanceled and sends nothing. An item with an OnError hears of it
 // there; one without is reported through the returned error. The observer sees
 // OnItemDone for each item, but no failure event, since a cancel is not a failure.
 func TestWorkerFailCanceled(t *testing.T) {
@@ -326,15 +326,15 @@ func TestWorkerFailCanceled(t *testing.T) {
 
 		err := w.failCanceled(t.Context())
 
-		require.ErrorIs(t, err, ErrIndexerCanceled)
+		require.ErrorIs(t, err, ErrBulkClientCanceled)
 		require.ErrorIs(t, err, context.Canceled)
-		require.Equal(t, 2, strings.Count(err.Error(), ErrIndexerCanceled.Error()), "once for each item without an OnError")
+		require.Equal(t, 2, strings.Count(err.Error(), ErrBulkClientCanceled.Error()), "once for each item without an OnError")
 
 		require.Len(t, calls, 2)
 		for i, id := range []string{"a", "c"} {
 			require.Equal(t, id, calls[i].ID)
-			require.ErrorIs(t, calls[i].Err, ErrIndexerCanceled)
-			require.Equal(t, LayerIndexer, calls[i].Err.Layer)
+			require.ErrorIs(t, calls[i].Err, ErrBulkClientCanceled)
+			require.Equal(t, LayerClient, calls[i].Err.Layer)
 			require.Equal(t, KindCanceled, calls[i].Err.Kind)
 		}
 
@@ -378,7 +378,7 @@ func (o *cancelObserver) OnItemError(context.Context, BulkErrorEvent) { o.failur
 
 func (o *cancelObserver) OnItemDone(_ context.Context, ev BulkItemEvent) {
 	o.done.Add(1)
-	if ev.Failed && errors.Is(ev.Err, ErrIndexerCanceled) {
+	if ev.Failed && errors.Is(ev.Err, ErrBulkClientCanceled) {
 		o.canceled.Add(1)
 	}
 }
@@ -400,6 +400,6 @@ func TestBulkIndexerCancelIsNotReportedAsAnErrorKind(t *testing.T) {
 
 	require.Equal(t, int64(2), f.failed.Load())
 	require.Equal(t, int64(2), obs.done.Load(), "each item is done")
-	require.Equal(t, int64(2), obs.canceled.Load(), "with ErrIndexerCanceled")
+	require.Equal(t, int64(2), obs.canceled.Load(), "with ErrBulkClientCanceled")
 	require.Zero(t, obs.failures.Load(), "and none is a failure of any kind")
 }

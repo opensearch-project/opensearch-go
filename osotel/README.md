@@ -117,7 +117,7 @@ The Registry also records `opensearch.client.observer.dropped`, the count of req
 
 ## Bulk indexer metrics -- `NewBulkIndexerObserver`
 
-`opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the indexer calls it directly, so it is not wired into `New`. Create it, register its instruments with a meter, and set it as the indexer's `Observer`:
+`opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the bulk client calls it directly, so it is not wired into `New`. Create it, register its instruments with a meter, and set it as the bulk client's `Observer`:
 
 ```go
 bo := osotel.NewBulkIndexerObserver()
@@ -131,7 +131,7 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 })
 ```
 
-Each call is recorded on the context the indexer's flush runs on, so a tracing SDK can attach the flush's span to the measurement. Attributes are low-cardinality (`result`, `layer`, `kind`, `retrying`, `outcome`); none carries an index name or a document id.
+Each call is recorded on the context the bulk client's flush runs on, so a tracing SDK can attach the flush's span to the measurement. Attributes are low-cardinality (`result`, `layer`, `kind`, `retrying`, `outcome`); none carries an index name or a document id.
 
 | Instrument                                | Description                                                                                                                    |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -140,7 +140,7 @@ Each call is recorded on the context the indexer's flush runs on, so a tracing S
 | `opensearch.client.bulk.request.size`     | Bulk request body size histogram, in bytes.                                                                                    |
 | `opensearch.client.bulk.errors`           | Failed attempts by `layer` (`request` or `item`), `kind` (`rejected`, `unavailable`, `transport`, `permanent`) and `retrying`. |
 | `opensearch.client.bulk.retries`          | Items sent again after a failure, by `kind`.                                                                                   |
-| `opensearch.client.bulk.items`            | Items the indexer is done with, by `outcome` (`succeeded` or `failed`).                                                        |
+| `opensearch.client.bulk.items`            | Items the bulk client is done with, by `outcome` (`succeeded` or `failed`).                                                    |
 
 ## Custom observers
 

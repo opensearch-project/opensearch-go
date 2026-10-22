@@ -17,29 +17,9 @@ import (
 	"time"
 )
 
-// unreportedNodeWindow is how many bulk requests the indexer keeps in flight to a
-// node whose write pool window the transport has not reported, such as the node that
-// stands for the whole cluster when the indexer knows no shard map: NumWorkers when
-// the caller set it, and otherwise GOMAXPROCS. A smaller number caps a cluster of
-// many nodes at what one slow request at a time can carry.
-//
-// GOMAXPROCS and not runtime.NumCPU, because NumCPU is the machine's CPUs, or the
-// process's affinity mask, and ignores a container's CPU limit: a pod held to two
-// CPUs on a large host would keep dozens of requests out. GOMAXPROCS follows a
-// cgroup CPU quota by default since Go 1.25, when the program's go.mod says 1.25 or
-// later, and it follows the GOMAXPROCS variable and anything that sets it, such as
-// automaxprocs. It is read each time, so an indexer follows a limit that changes.
-func unreportedNodeWindow(numWorkers int) int {
-	if numWorkers > 0 {
-		return numWorkers
-	}
-
-	return runtime.GOMAXPROCS(0)
-}
-
 // idleShardIntervals is how many flush intervals a shard may sit with nothing
-// buffered and nothing in flight before the indexer forgets what it learned about
-// it. It bounds the memory the indexer spends on shards it has stopped writing to.
+// buffered and nothing in flight before the bulk client forgets what it learned about
+// it. It bounds the memory the bulk client spends on shards it has stopped writing to.
 const idleShardIntervals = 5
 
 // shardKey identifies a shard of an index, the unit whose documents are written
@@ -88,8 +68,9 @@ type buffer struct {
 
 	sealed     bool
 	dispatched bool
-	// sentAt is how many times the node's byte window had been cut when the buffer
-	// was sent, so that a rejection of a request sent before a cut is not cut again.
+	// sentAt is how many times the node's byte window had been shrunk when the buffer
+	// was sent, so that a rejection of a request sent before a shrink does not shrink
+	// the window again.
 	sentAt uint64
 	// ctx is the context the bulk request runs on.
 	ctx context.Context //nolint:containedctx // A buffer carries the context of the flush that sends it.
@@ -101,7 +82,7 @@ type buffer struct {
 	waiters int
 }
 
-// shardState is the indexer's view of one shard: the buffer being filled, how many
+// shardState is the bulk client's view of one shard: the buffer being filled, how many
 // buffers are waiting or out, and how large its buffers should be.
 type shardState struct {
 	key shardKey
@@ -114,16 +95,13 @@ type shardState struct {
 	// pending counts the shard's buffers that are sealed and not complete, and
 	// inflight those whose request is out. An ordered shard has at most one out.
 	pending, inflight int
-	// sizer decides how large the shard's buffers are. It is fed the time the
+	// controller decides how large the shard's buffers are. It is fed the time the
 	// shard's own requests took, which is why a request carries one shard.
-	sizer *sizer
+	controller *shardController
 	// idleSince is when the shard last had something buffered or in flight.
 	idleSince time.Time
 	// skipped marks the shard as passed over in the current dispatch pass.
 	skipped uint64
-	// waiting is whether the shard counts in the BlockedShards statistic; see
-	// trackBlocked.
-	waiting bool
 }
 
 // blocked reports whether a buffer sealed now would have to wait for an earlier
@@ -132,21 +110,28 @@ func (ss *shardState) blocked() bool {
 	return ss.ordered && ss.pending > 0
 }
 
-// trackBlocked keeps the BlockedShards statistic: the shards with a request out and
-// another buffer, open or sealed, waiting behind it. It runs wherever the answer can
-// change, so the count is kept without walking the shards: when a shard opens a
-// buffer, sends one, or has one answered. Sealing is not among them, as it only
-// moves a waiting buffer from open to sealed. It must be called with the
+// hasBlockedReqs reports whether the shard has a request in flight and more of its
+// documents waiting behind it: an open buffer, or a sealed buffer not yet sent. A
+// shard without ordering sends its buffers side by side, so none of them waits.
+func (ss *shardState) hasBlockedReqs() bool {
+	return ss.ordered && ss.inflight > 0 && (ss.open != nil || ss.pending > ss.inflight)
+}
+
+// trackBlocked keeps the BlockedShards gauge, the number of shards for which
+// hasBlockedReqs holds. GetStats reads the gauge without the scheduler's lock, so it
+// is adjusted as shards change rather than counted from them. Every change to a
+// shard that can change hasBlockedReqs calls trackBlocked with the value
+// hasBlockedReqs had before the change: when a shard opens a buffer, sends one, or
+// has one answered. Sealing is not among them: it moves a waiting buffer from open
+// to sealed, and hasBlockedReqs keeps its value. It must be called with the
 // scheduler's lock held.
-func (s *scheduler) trackBlocked(ss *shardState) {
-	waiting := ss.ordered && ss.inflight > 0 && (ss.open != nil || ss.pending > ss.inflight)
-	if waiting == ss.waiting {
-		return
-	}
-	ss.waiting = waiting
-	if waiting {
+func (s *scheduler) trackBlocked(ss *shardState, before bool) {
+	after := ss.hasBlockedReqs()
+	switch {
+	case after == before:
+	case after:
 		s.bi.stats.blockedShards.Add(1)
-	} else {
+	default:
 		s.bi.stats.blockedShards.Add(-1)
 	}
 }
@@ -157,7 +142,7 @@ func (s *scheduler) trackQueued() {
 	s.bi.stats.queuedBuffers.Store(int64(len(s.sealed)))
 }
 
-// nodeState is the indexer's view of one node: what is buffered for it and what is
+// nodeState is the bulk client's view of one node: what is buffered for it and what is
 // out to it, and how many bytes it may have out.
 type nodeState struct {
 	name string
@@ -168,7 +153,8 @@ type nodeState struct {
 	// requests out.
 	held atomic.Int64
 	// queued counts the node's sealed buffers not yet sent, and inflight its
-	// requests out. flightBytes is the size of those requests, which win bounds.
+	// requests out. flightBytes is the size of those requests, which windowBytes
+	// bounds.
 	queued, inflight int
 	flightBytes      int64
 	// bufferFrac and slowdown are smoothed readings of the node for the statistics:
@@ -180,32 +166,42 @@ type nodeState struct {
 	// time over what they would need. A shard is measured against the others'.
 	// Guarded by the scheduler's lock.
 	levels map[*shardState]float64
-	// win is how many bytes may be out to the node at once. It starts wide open and
-	// is cut by a 429; see byteWindow.
-	win *byteWindow
+	// windowBytes is how many bytes may be out to the node at once. It starts wide
+	// open and is shrunk by a 429; see byteWindow.
+	windowBytes *byteWindow
+	// nodeWriteSaturated is set when the target node is write-saturated as its
+	// previous flush ends. complete pins windowBytes' size only when the node becomes
+	// write-saturated (i.e. when the new flushResult's nodeWriteSaturated is set and
+	// this field is not). Guarded by the scheduler's lock.
+	nodeWriteSaturated bool
 	// rate keeps the best service rate the node has shown, which seeds the shards that
 	// start on it.
 	rate rateTracker
 	// sink serves documents that belong to no shard.
 	sink *shardState
-	// stats holds the node's statistics as atomics, for GetNodeStats to read.
+	// stats holds the node's statistics as atomics, for GetTargetStats to read.
 	stats nodeAtomicStats
 }
 
-// window is how many requests may be outstanding to the node: the window the
-// transport allows its write pool, unreported when it reports none, and a single
-// request while the pool rejects.
-func (ns *nodeState) window(unreported int) int {
+// windowReqs is how many requests the node's write pool has room for, as the
+// transport tracks it: the pool's window, maxReqs when the transport reports none,
+// and 1 while the node is reported refusing writes, never more than maxReqs. It
+// ranks nodes and does not cap requests. The transport updates it once per node
+// statistics poll, keeps it at or below the pool's thread count, and halves it when
+// the pool's queue reaches half its capacity or grows by more than the pool's
+// thread count between polls.
+// Requests to a node are capped by nodeReqLimit, and a 429 shrinks windowBytes.
+func (ns *nodeState) windowReqs(maxReqs int) int {
 	p := ns.node.pool()
 	n := p.Window
 	if n <= 0 {
-		n = unreported
+		n = maxReqs
 	}
 	if p.Overloaded {
 		n = 1
 	}
 
-	return n
+	return min(n, maxReqs)
 }
 
 // peerLevel is what the shard is measured against: the mean level of the node's
@@ -223,22 +219,24 @@ func (ns *nodeState) peerLevel(ss *shardState) float64 {
 		}
 	}
 	if others == 0 {
-		return ss.sizer.normS
+		return ss.controller.normS
 	}
 
 	return sum / float64(others)
 }
 
-// loaded reports whether the node shows load already: its write pool is rejecting,
-// or a 429 has cut its window and it has not grown back. A shard that starts on a
-// loaded node climbs to full size instead of starting there.
-func (ns *nodeState) loaded() bool {
-	return ns.node.pool().Overloaded || ns.win.fraction() < 1
+// overloaded reports whether the node is overloaded or still recovering from it: the
+// transport reports it refusing writes, or a 429 has shrunk windowBytes and it has not
+// grown back. A shard that starts on an overloaded node climbs to full size instead of
+// starting there.
+func (ns *nodeState) overloaded() bool {
+	return ns.node.writeSaturated() || ns.windowBytes.fraction() < 1
 }
 
-// hasRoom reports whether another request to the node would go out now.
-func (ns *nodeState) hasRoom(unreported int) bool {
-	return ns.inflight+ns.queued < ns.window(unreported)
+// windowHasReqCap reports whether the node's write pool has room for one more
+// request, with the window capped at maxReqs; see windowReqs.
+func (ns *nodeState) windowHasReqCap(maxReqs int) bool {
+	return ns.inflight+ns.queued < ns.windowReqs(maxReqs)
 }
 
 // scheduler owns every buffer from the moment its first document is added to the
@@ -249,7 +247,7 @@ func (ns *nodeState) hasRoom(unreported int) bool {
 //
 //   - the job's memory, a hard limit: when it is spent Add waits, and the fullest
 //     buffer is sent at once so that waiting does not last;
-//   - a node's window, which a 429 cuts: the bytes that may be out to the node at
+//   - a node's window, which a 429 shrinks: the bytes that may be out to the node at
 //     once. A sealed buffer that would take the node past it waits, and still counts
 //     against the job's memory;
 //   - a shard's buffer, which follows how fast the shard is served: a buffer that
@@ -265,12 +263,12 @@ func (ns *nodeState) hasRoom(unreported int) bool {
 type scheduler struct {
 	sync.Mutex
 
-	bi *bulkIndexer
+	bi *bulkClient
 
 	shards map[shardKey]*shardState
 	nodes  map[string]*nodeState
 	// nodeList is every node in nodes, in the order they were first used, for
-	// GetNodeStats to read without the lock.
+	// GetTargetStats to read without the lock.
 	nodeList atomic.Pointer[[]*nodeState]
 
 	// work is the workspace publishLoad reuses.
@@ -299,7 +297,7 @@ type scheduler struct {
 	closed, stopped bool
 }
 
-func newScheduler(bi *bulkIndexer) *scheduler {
+func newScheduler(bi *bulkClient) *scheduler {
 	return &scheduler{
 		bi:     bi,
 		shards: make(map[shardKey]*shardState),
@@ -322,15 +320,15 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 	}
 
 	ns := &nodeState{
-		name:  node.Name,
-		node:  node,
-		opens: make(map[*buffer]struct{}),
-		win:   newByteWindow(s.bi.window),
-		rate:  rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
+		name:        node.Name,
+		node:        node,
+		opens:       make(map[*buffer]struct{}),
+		windowBytes: newByteWindow(s.bi.window),
+		rate:        rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
 		bufferFrac: s.bi.sizing.start() / s.bi.sizing.max,
 	}
-	ns.sink = &shardState{key: unplacedKey(), sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
+	ns.sink = &shardState{key: unplacedKey(), controller: newShardController(s.bi.sizing), idleSince: s.bi.now()}
 	s.nodes[node.Name] = ns
 	ns.storeStats()
 	s.addNode(ns)
@@ -344,16 +342,26 @@ func (s *scheduler) shardFor(key shardKey) *shardState {
 		return ss
 	}
 
-	ss := &shardState{key: key, ordered: true, sizer: newSizer(s.bi.sizing), idleSince: s.bi.now()}
+	ss := &shardState{key: key, ordered: true, controller: newShardController(s.bi.sizing), idleSince: s.bi.now()}
 	s.shards[key] = ss
 
 	return ss
 }
 
-// unreportedWindow is the request window of a node whose transport reports none;
-// see unreportedNodeWindow.
-func (s *scheduler) unreportedWindow() int {
-	return unreportedNodeWindow(s.bi.config.NumWorkers)
+// nodeReqLimit is the most requests the bulk client keeps in flight to one node:
+// NumWorkers when the caller set it, and otherwise GOMAXPROCS. A smaller number
+// would cap a cluster of many nodes at what one slow request at a time can carry.
+//
+// GOMAXPROCS and not runtime.NumCPU, because GOMAXPROCS follows a container's CPU
+// limit and NumCPU does not: a pod held to two CPUs on a large host would keep
+// dozens of requests out. It is read each time, so a bulk client follows a limit
+// that changes.
+func (s *scheduler) nodeReqLimit() int {
+	if s.bi.config.NumWorkers > 0 {
+		return s.bi.config.NumWorkers
+	}
+
+	return runtime.GOMAXPROCS(0)
 }
 
 // sinkNode picks the node for documents that belong to no shard: it keeps filling
@@ -376,7 +384,7 @@ func (s *scheduler) sinkNode() *nodeState {
 	best := s.nodeFor(nodes[0])
 	for _, n := range nodes {
 		ns := s.nodeFor(n)
-		if ns.hasRoom(s.unreportedWindow()) {
+		if ns.windowHasReqCap(s.nodeReqLimit()) {
 			best = ns
 
 			break
@@ -420,9 +428,10 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 		}
 	}
 
+	blockedBefore := ss.hasBlockedReqs()
 	b := ss.open
 	if b == nil {
-		ss.sizer.begin(ns.loaded())
+		ss.controller.begin(ns.overloaded())
 		b = &buffer{shard: ss, node: ns, items: s.bi.getItems(), done: make(chan struct{})}
 		ss.open = b
 		ns.opens[b] = struct{}{}
@@ -432,7 +441,7 @@ func (s *scheduler) add(item BulkIndexerItem, size, reserved int64, key *shardKe
 	b.items = append(b.items, item)
 	s.bi.stats.itemBytes.Add(uint64(max(item.bodyBytes, 0)))
 	storeMax(&s.bi.stats.maxItemBytes, uint64(max(item.bodyBytes, 0)))
-	s.trackBlocked(ss)
+	s.trackBlocked(ss, blockedBefore)
 	if !ss.ordered && order != "" {
 		s.orderAfterEarlier(b, order)
 	}
@@ -493,7 +502,7 @@ func (s *scheduler) sealIfFull(b *buffer) {
 		return
 	}
 
-	sz := b.shard.sizer
+	sz := b.shard.controller
 
 	switch {
 	case b.bytes >= s.capped(sz.ceiling()):
@@ -541,7 +550,7 @@ func (s *scheduler) seal(b *buffer, trigger flushTrigger, ctx context.Context) {
 }
 
 // sealFullest seals the fullest open buffer that can go out at once: its shard has
-// no earlier buffer unfinished, and its node has fewer requests out than its window
+// no earlier buffer unfinished, and its node has fewer requests out than nodeReqLimit
 // and room for its bytes. This is stricter than pump's test on the shard, which only
 // waits for an earlier request to be out. Sealing a buffer that cannot go out frees
 // nothing, because it only queues until the requests ahead of it are answered, and
@@ -555,7 +564,7 @@ func (s *scheduler) sealFullest(trigger flushTrigger) {
 
 	for _, n := range s.nodes {
 		for b := range n.opens {
-			if b.shard.blocked() || n.inflight >= n.window(s.unreportedWindow()) || !n.win.allows(n.flightBytes, b.bytes) {
+			if b.shard.blocked() || n.inflight >= s.nodeReqLimit() || !n.windowBytes.allows(n.flightBytes, b.bytes) {
 				continue
 			}
 			if fullest == nil || b.bytes > fullest.bytes {
@@ -592,8 +601,8 @@ func (s *scheduler) pump() {
 	for _, b := range s.sealed {
 		ss, ns := b.shard, b.node
 
-		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= ns.window(s.unreportedWindow()) ||
-			!ns.win.allows(ns.flightBytes, b.bytes) {
+		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= s.nodeReqLimit() ||
+			!ns.windowBytes.allows(ns.flightBytes, b.bytes) {
 			ss.skipped = s.pass
 			remaining = append(remaining, b)
 
@@ -609,17 +618,18 @@ func (s *scheduler) pump() {
 		}
 		b.after = nil
 
+		blockedBefore := ss.hasBlockedReqs()
 		ns.queued--
 		ns.inflight++
 		ns.flightBytes += b.bytes
 		ns.storeStats()
-		b.sentAt = ns.win.cuts
+		b.sentAt = ns.windowBytes.shrinks
 		ss.inflight++
 		b.dispatched = true
 		b.dest = ns.node
 		s.bi.flushingBytes.Add(b.held)
 		s.bi.stats.inFlightRequests.Add(1)
-		s.trackBlocked(ss)
+		s.trackBlocked(ss, blockedBefore)
 
 		s.bi.wg.Add(1)
 		go s.bi.run(b)
@@ -634,49 +644,60 @@ func (s *scheduler) pump() {
 // teaches the shard and the node what the request showed, and sends whatever that
 // unblocks. The error is delivered to the Flush calls waiting for the buffer, or to
 // OnUnhandledError when there are none.
-func (s *scheduler) complete(b *buffer, sample flushSample, err error) {
+func (s *scheduler) complete(b *buffer, result flushResult, err error) {
 	s.Lock()
 
 	ss, ns := b.shard, b.node
+	blockedBefore := ss.hasBlockedReqs()
 	ss.inflight--
 	ss.pending--
 	ns.inflight--
 	s.bi.stats.inFlightRequests.Add(-1)
-	s.trackBlocked(ss)
+	s.trackBlocked(ss, blockedBefore)
 
 	// Two controllers, each told what it can use. The node's byte window is told only
 	// whether the node rejected the request, which is the one thing a 429 says: it is
-	// cut from the bytes that were out to the node when the rejection arrived, the
+	// shrink from the bytes that were out to the node when the rejection arrived, the
 	// rejected request's among them. The shard's controller is told how long the
 	// request took, but not for a request the node rejected, which was answered quickly
 	// because no work was done and would read as a fast flush, and not for one that
-	// carries no 429 but failed, which only cuts the buffer.
-	if sample.rejected {
-		ns.win.reject(ns.flightBytes, b.sentAt)
+	// carries no 429 but failed, which only shrinks the buffer.
+	//
+	// When nodeWriteSaturated changes from false to true, the byte window is pinned for
+	// pinFlushes results, as after a shrink, but not shrunk. While nodeWriteSaturated
+	// stays true the window grows as usual: the transport keeps it set until a node
+	// statistics poll finds no new refusals, which can be the whole time other clients
+	// are being refused, and a shrunken window would not grow back.
+	if result.nodeWriteSaturated && !ns.nodeWriteSaturated {
+		ns.windowBytes.pinWindowSize()
+	}
+	ns.nodeWriteSaturated = result.nodeWriteSaturated
+	if result.rejected {
+		ns.windowBytes.shrinkWindowSize(ns.flightBytes, b.sentAt)
 		ns.stats.rejections.Add(1)
 	} else {
-		ns.win.complete(b.bytes, sample.overloaded)
+		ns.windowBytes.growWindowSize(b.bytes)
 	}
 	ns.flightBytes -= b.bytes
 
 	// A shard's first flush is measured against the best the node has shown, which
 	// the node learns after this flush is folded in, so that a shard that starts while
 	// the node is degraded does not take that for the best it can do.
-	ss.sizer.seed(ns.rate.base)
-	ns.rate.learn(sample)
-	sample.peer = ns.peerLevel(ss)
-	if n, ok := ss.sizer.observe(sample); ok {
-		// The node's slowdown is the one the sizer measures: the flush's time on the
+	ss.controller.seed(ns.rate.base)
+	ns.rate.learn(result)
+	result.peer = ns.peerLevel(ss)
+	if n, ok := ss.controller.observe(result); ok {
+		// The node's slowdown is the one the shard controller measures: the flush's time on the
 		// node over the time a request of that size should take, fixed cost included.
 		ns.slowdown = smooth(ns.slowdown, math.Max(n-1, 0))
 		s.recordLevel(ss, ns)
 	}
-	if sample.tooLarge > 0 {
-		s.capRequests(sample.tooLarge)
+	if result.tooLarge > 0 {
+		s.capRequests(result.tooLarge)
 	}
-	ns.bufferFrac = smooth(ns.bufferFrac, ss.sizer.fraction())
+	ns.bufferFrac = smooth(ns.bufferFrac, ss.controller.fraction())
 	ns.storeStats()
-	s.publishLoad(sample)
+	s.publishLoad(result)
 	ss.idleSince = s.bi.now()
 
 	delete(s.live, b)
@@ -775,9 +796,9 @@ func (s *scheduler) relieve() {
 
 // drain seals every open buffer, as sent for trigger, and waits for every buffer
 // that exists to complete, running those not yet sent on run and waiting under wait. They are the
-// same context for a caller who asks to be waited on and may cut the work short, as
+// same context for a caller who asks to be waited on and may end the work early, as
 // Flush does; a caller who waits for work that is not only its own passes the
-// indexer's context as run, so that giving up on the wait does not fail what others
+// bulk client's context as run, so that giving up on the wait does not fail what others
 // added.
 //
 // With collect set it returns the errors of those buffers, joined, and they are
@@ -868,12 +889,12 @@ func (s *scheduler) recordLevel(ss *shardState, ns *nodeState) {
 	if ns.levels == nil {
 		ns.levels = map[*shardState]float64{}
 	}
-	ns.levels[ss] = ss.sizer.normS
+	ns.levels[ss] = ss.controller.normS
 	ss.levelNode = ns
 }
 
 // evictIdle forgets the shards that have had nothing buffered and nothing in
-// flight for a good while, with what was learned about them, so that an indexer
+// flight for a good while, with what was learned about them, so that a bulk client
 // that moves from index to index does not keep a record of every shard it has
 // ever written to.
 func (s *scheduler) evictIdle() {
@@ -898,28 +919,29 @@ func (s *scheduler) stop() {
 	s.Unlock()
 }
 
-// close ends the scheduler once the indexer has drained.
+// close ends the scheduler once the bulk client has drained.
 func (s *scheduler) close() {
 	s.Lock()
 	s.closed = true
 	s.Unlock()
 }
 
-// observeSample builds the controllers' input for a finished flush.
-func observeSample(node Node, bytes int64, latency time.Duration, w *worker) flushSample {
-	f := flushSample{
-		bytes:      bytes,
-		latency:    latency,
-		served:     w.served,
-		rejected:   w.throttled,
-		failed:     w.failed,
-		tooLarge:   w.tooLarge,
-		overloaded: node.pool().Overloaded,
+// makeFlushResult builds the result of a buffer's flush to node from what worker w
+// recorded over its attempts, bytes and latency among them.
+func makeFlushResult(node Node, bytes int64, latency time.Duration, w *worker) flushResult {
+	f := flushResult{
+		bytes:              bytes,
+		latency:            latency,
+		served:             w.served,
+		rejected:           w.throttled,
+		failed:             w.failed,
+		tooLarge:           w.tooLarge,
+		nodeWriteSaturated: node.writeSaturated(),
 	}
 
 	if node.Conn != nil {
 		if rtt := node.Conn.RTTMedian(); rtt > 0 {
-			f.distance = rtt
+			f.idleRTT = rtt
 		}
 	}
 
@@ -930,15 +952,15 @@ func observeSample(node Node, bytes int64, latency time.Duration, w *worker) flu
 // without a lock: a rejection is counted, and the spread of each reading across the
 // nodes is worked out again. It runs once per completed request, with the scheduler's
 // lock held.
-func (s *scheduler) publishLoad(sample flushSample) {
-	if sample.rejected {
+func (s *scheduler) publishLoad(result flushResult) {
+	if result.rejected {
 		s.bi.stats.numRejections.Add(1)
 	}
 
 	w := &s.work
 	w.window, w.buffer, w.slow, w.weight = w.window[:0], w.buffer[:0], w.slow[:0], w.weight[:0]
 	for _, ns := range s.nodes {
-		w.window = append(w.window, ns.win.fraction())
+		w.window = append(w.window, ns.windowBytes.fraction())
 		w.buffer = append(w.buffer, ns.bufferFrac)
 		w.slow = append(w.slow, ns.slowdown)
 		w.weight = append(w.weight, float64(ns.held.Load()))
@@ -967,7 +989,7 @@ type loadWork struct {
 func (s *scheduler) capRequests(refused int64) {
 	floor := s.bi.sizing.min
 	if s.bi.sizing.fixed {
-		// A fixed size is not cut.
+		// A fixed size is not shrunk.
 		floor = s.bi.sizing.max
 	}
 	limit := max(int64(float64(refused)*s.bi.sizing.backoff), int64(floor))

@@ -63,6 +63,14 @@ const (
 	// Version is the package version as a string.
 	Version                      = version.Client
 	defaultMaxRetries            = 6
+	defaultHealthCheckMaxRetries = 6
+
+	// defaultRetryBackoffBase is the default backoff's ceiling before the first
+	// retry; the ceiling doubles for each retry after it, and the delay is drawn
+	// uniformly from zero to the ceiling (full jitter). defaultRetryBudget bounds
+	// the delays of one request's retries together.
+	defaultRetryBackoffBase      = 100 * time.Millisecond
+	defaultRetryBudget           = 5 * time.Second
 	defaultHealthCheckTimeout    = 5 * time.Second
 	defaultRetryJitter           = 0.1
 	defaultMaxRetryClusterHealth = 4 * time.Hour
@@ -171,7 +179,15 @@ type Config struct {
 	// (net.Error.Timeout). Timeouts are not retried by default.
 	EnableRetryOnTimeout bool
 	MaxRetries           int
-	RetryBackoff         func(attempt int) time.Duration
+	// RetryBackoff returns the delay before retry attempt, counted from 1. When nil,
+	// the delay is drawn uniformly from zero to 100ms doubled for each retry after
+	// the first (exponential backoff with full jitter), so that clients refused
+	// together do not retry together.
+	RetryBackoff func(attempt int) time.Duration
+	// RetryBudget bounds the delays of one request's retries together: a retry
+	// whose delay would take the total past it is not made, and the last response
+	// or error is returned. Zero selects 5s; a negative value sets no bound.
+	RetryBudget time.Duration
 
 	// RequestTimeout sets an per-attempt timeout for each HTTP round-trip.
 	// When set, a context deadline is applied to each individual request attempt
@@ -520,6 +536,7 @@ type Transport struct {
 	enableRetryOnTimeout  bool
 	maxRetries            int
 	retryBackoff          func(attempt int) time.Duration
+	retryBudget           time.Duration // 0: unbounded
 	requestTimeout        time.Duration
 	discoverNodesInterval time.Duration
 	verifyDeadAfter       time.Duration
@@ -754,6 +771,17 @@ func New(cfg Config) (*Transport, error) {
 		cfg.MaxRetries = defaultMaxRetries
 	}
 
+	if cfg.RetryBackoff == nil {
+		cfg.RetryBackoff = jitteredRetryBackoff
+	}
+
+	switch {
+	case cfg.RetryBudget == 0:
+		cfg.RetryBudget = defaultRetryBudget
+	case cfg.RetryBudget < 0:
+		cfg.RetryBudget = 0
+	}
+
 	if cfg.DiscoveryHealthCheckRetries == 0 {
 		cfg.DiscoveryHealthCheckRetries = 3
 	}
@@ -800,7 +828,7 @@ func New(cfg Config) (*Transport, error) {
 
 	switch {
 	case cfg.HealthCheckMaxRetries == 0:
-		healthCheckMaxRetries = defaultMaxRetries
+		healthCheckMaxRetries = defaultHealthCheckMaxRetries
 	case cfg.HealthCheckMaxRetries < 0:
 		healthCheckMaxRetries = 0
 	default:
@@ -1092,6 +1120,7 @@ func New(cfg Config) (*Transport, error) {
 		enableRetryOnTimeout:  cfg.EnableRetryOnTimeout,
 		maxRetries:            cfg.MaxRetries,
 		retryBackoff:          cfg.RetryBackoff,
+		retryBudget:           cfg.RetryBudget,
 		requestTimeout:        requestTimeout,
 		discoverNodesInterval: discoverNodesInterval,
 		verifyDeadAfter:       verifyDeadAfter,
@@ -1669,6 +1698,14 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// req.Body open for whatever runs next to send or close.
 	var bodyOpen bool
 
+	// retryDelay is the total of the delays before this request's retries so far,
+	// which the retry budget bounds.
+	var retryDelay time.Duration
+
+	// attempts records the nodes this request failed on, for the router to route
+	// each retry around; see routeAttempt. Created at the first failure.
+	var attempts *routeAttempt
+
 	for i := 0; i <= tr.maxRetries; i++ {
 		// Retry from a copy, rebinding req so routing, the rest of the loop, and
 		// the seed fallback after it all work on this attempt's request. Clone
@@ -1685,7 +1722,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		// neither: nothing holds its request yet, and its path is still pristine,
 		// so a request that succeeds first time never pays for the clone.
 		if i > 0 {
-			req = req.Clone(req.Context())
+			ctx := req.Context()
+			if attempts != nil {
+				ctx = withRouteAttempt(ctx, attempts)
+			}
+			req = req.Clone(ctx)
 			restoreReqPath(req, origPath, origRawPath)
 		}
 
@@ -2021,6 +2062,25 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			break
 		}
 
+		if conn != nil {
+			if attempts == nil {
+				attempts = &routeAttempt{}
+			}
+			attempts.record(conn)
+		}
+
+		// The delay before the next attempt. A retry whose delay would take this
+		// request's delays past the retry budget is not made: the response or
+		// error just received goes to the caller, its body unread.
+		var delay time.Duration
+		if tr.retryBackoff != nil && i < tr.maxRetries {
+			delay = tr.retryBackoff(i + 1)
+			if tr.retryBudget > 0 && retryDelay+delay > tr.retryBudget {
+				break
+			}
+			retryDelay += delay
+		}
+
 		// Drain and close body when retrying after response
 		if shouldCloseBody && i < tr.maxRetries {
 			if res.Body != nil {
@@ -2030,10 +2090,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			}
 		}
 
-		// Delay the retry if a backoff function is configured
-		if tr.retryBackoff != nil && i < tr.maxRetries {
+		// Delay the retry by the backoff chosen above.
+		if delay > 0 {
 			var cancelled bool
-			timer := time.NewTimer(tr.retryBackoff(i + 1))
+			timer := time.NewTimer(delay)
 			select {
 			case <-req.Context().Done():
 				timer.Stop()
@@ -3394,7 +3454,7 @@ func (b *cancelOnCloseBody) Close() error {
 
 // closeRequestBody closes the body of a request that is returned without being
 // sent, as an [http.RoundTripper] does for a request it fails. A body that
-// lends memory, such as a bulk indexer's buffer, is released by its Close.
+// lends memory, such as a bulk client's buffer, is released by its Close.
 func closeRequestBody(req *http.Request) {
 	if req.Body != nil && req.Body != http.NoBody {
 		_ = req.Body.Close()

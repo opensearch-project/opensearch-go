@@ -59,7 +59,7 @@ func reply(status int) func(sentRequest, string) (int, string) {
 
 func lentDoc(seq int) []byte { return fmt.Appendf(nil, `{"seq":%d}`, seq) }
 
-// TestBulkIndexerZeroCopySendsTheSameRequest: a document lent to the indexer
+// TestBulkIndexerZeroCopySendsTheSameRequest: a document lent to the bulk client
 // arrives as the same request body a copied one does.
 func TestBulkIndexerZeroCopySendsTheSameRequest(t *testing.T) {
 	t.Parallel()
@@ -71,7 +71,7 @@ func TestBulkIndexerZeroCopySendsTheSameRequest(t *testing.T) {
 
 		cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(3)}, "n0")
 		server := newFakeServer(cluster)
-		bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Hour})
+		bi := newBulkClient(t, server, BulkIndexerConfig{FlushInterval: time.Hour})
 
 		for i := range docs {
 			item := BulkIndexerItem{Index: "idx", Action: actionIndex, DocumentID: fmt.Sprint("doc-", i)}
@@ -100,7 +100,7 @@ func TestBulkIndexerZeroCopySendsTheSameRequest(t *testing.T) {
 }
 
 // TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce: whatever the cluster
-// answers, every item the indexer took is given back once, and only after the
+// answers, every item the bulk client took is given back once, and only after the
 // request that carried it has ended and the callbacks have run.
 func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 	t.Parallel()
@@ -108,7 +108,7 @@ func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 	tests := []struct {
 		name   string
 		status int
-		// failed is whether the items end in OnError.
+		// failed is set when the items end in OnError.
 		failed bool
 	}{
 		{name: "created", status: http.StatusCreated},
@@ -128,7 +128,7 @@ func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 				server.respond = func(sentRequest, string) (int, string) { return tt.status, `{"error":"bad gateway"}` }
 			}
 
-			bi := newClusterIndexer(t, server, BulkIndexerConfig{FlushInterval: time.Hour, ShardRouter: NoShardRouter})
+			bi := newBulkClient(t, server, BulkIndexerConfig{FlushInterval: time.Hour, ShardRouter: NoShardRouter})
 
 			var (
 				log      lentLog
@@ -180,7 +180,7 @@ func TestBulkIndexerZeroCopyReleasesEachAcceptedItemOnce(t *testing.T) {
 	}
 }
 
-// TestBulkIndexerZeroCopyRefusedItemsAreNotReleased: an item the indexer did not
+// TestBulkIndexerZeroCopyRefusedItemsAreNotReleased: an item the bulk client did not
 // take is still the caller's.
 func TestBulkIndexerZeroCopyRefusedItemsAreNotReleased(t *testing.T) {
 	t.Parallel()
@@ -192,7 +192,7 @@ func TestBulkIndexerZeroCopyRefusedItemsAreNotReleased(t *testing.T) {
 		name string
 		ctx  context.Context //nolint:containedctx // The case's context.
 		item func(release func([]byte)) BulkIndexerZeroCopyItem
-		// closed closes the indexer first.
+		// closed closes the bulk client first.
 		closed  bool
 		wantErr error
 	}{
@@ -203,7 +203,7 @@ func TestBulkIndexerZeroCopyRefusedItemsAreNotReleased(t *testing.T) {
 				return BulkIndexerZeroCopyItem{BulkIndexerItem: BulkIndexerItem{Index: "idx", Action: actionIndex}, Data: lentDoc(1), Release: release}
 			},
 			closed:  true,
-			wantErr: ErrBulkIndexerClosed,
+			wantErr: ErrBulkClientClosed,
 		},
 		{
 			name: "the context has ended",
@@ -231,7 +231,7 @@ func TestBulkIndexerZeroCopyRefusedItemsAreNotReleased(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			bi := newClusterIndexer(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{ShardRouter: NoShardRouter})
+			bi := newBulkClient(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{ShardRouter: NoShardRouter})
 			if tt.closed {
 				require.NoError(t, bi.Close(t.Context()))
 			}
@@ -260,7 +260,7 @@ func TestBulkIndexerZeroCopyDoesNotCopyTheDocument(t *testing.T) {
 	chunks, pieces := newChunkPool(defaultChunkSize), newChunkPool(lentPieceBytes)
 
 	w := &worker{
-		bi: &bulkIndexer{
+		bi: &bulkClient{
 			metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 			metaPool:         sync.Pool{New: newMetaEncoder},
 		},
@@ -307,7 +307,7 @@ func TestBulkIndexerZeroCopyCountsWhatItHolds(t *testing.T) {
 	require.Equal(t, size+itemStructBytes+lentPieceBytes, itemHeldBytes(lent, size))
 }
 
-// onlyAdd hides everything an indexer offers beyond [BulkIndexer].
+// onlyAdd hides everything a bulk client offers beyond [BulkIndexer].
 type onlyAdd struct{ BulkIndexer }
 
 // TestAddZeroCopyCopiesForAnIndexerThatCannotLend: a custom BulkIndexer gets a copy
@@ -316,7 +316,7 @@ func TestAddZeroCopyCopiesForAnIndexerThatCannotLend(t *testing.T) {
 	t.Parallel()
 
 	server := newFakeServer(newFakeCluster(nil))
-	inner := newClusterIndexer(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter})
+	inner := newBulkClient(t, server, BulkIndexerConfig{ShardRouter: NoShardRouter})
 	bi := onlyAdd{inner}
 
 	data := lentDoc(7)
@@ -444,7 +444,7 @@ func TestBulkIndexerWaitsForTheTransportToFinishWithABody(t *testing.T) {
 
 			bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client, ShardRouter: NoShardRouter})
 			require.NoError(t, err)
-			indexer := bi.(*bulkIndexer)
+			indexer := bi.(*bulkClient)
 
 			var released atomic.Int64
 			require.NoError(t, AddZeroCopy(t.Context(), bi, BulkIndexerZeroCopyItem{

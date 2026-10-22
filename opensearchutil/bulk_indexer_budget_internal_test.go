@@ -23,7 +23,7 @@ import (
 )
 
 // stalledServer is a fake server that holds every request at a gate, over a
-// cluster with no nodes, so the indexer has one logical destination.
+// cluster with no nodes, so the bulk client has one logical destination.
 func stalledServer() *fakeServer {
 	server := newFakeServer(newFakeCluster(nil))
 	server.gate = make(chan struct{})
@@ -68,8 +68,8 @@ func TestBulkIndexerStalledRequestsBlockAdd(t *testing.T) {
 	cfg.NumWorkers = 8
 	cfg.MaxMemoryBytes = int(itemBytes) * limitItems
 	cfg.ShardRouter = NoShardRouter
-	built := newClusterIndexer(t, server, cfg)
-	indexer := built.(*bulkIndexer)
+	built := newBulkClient(t, server, cfg)
+	indexer := built.(*bulkClient)
 
 	indexer.budget.now = fakeClock(tick)
 	blocked := make(chan struct{}, totalItems)
@@ -155,8 +155,8 @@ func TestBulkIndexerReportsEachBlockedAdd(t *testing.T) {
 		defer mu.Unlock()
 		waited = append(waited, d)
 	}
-	bi := newClusterIndexer(t, server, cfg)
-	indexer := bi.(*bulkIndexer)
+	bi := newBulkClient(t, server, cfg)
+	indexer := bi.(*bulkClient)
 	indexer.budget.now = fakeClock(tick)
 
 	blocked := make(chan struct{}, totalItems)
@@ -210,10 +210,10 @@ func TestBulkIndexerSpentLimitSealsIdleBatches(t *testing.T) {
 	server := newFakeServer(cluster)
 
 	itemBytes := docBytes("idx", "doc-0000", 1000)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		NumWorkers:     2,
 		FlushBytes:     1 << 20,
-		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:         BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(itemBytes) * 10,
 	})
@@ -247,8 +247,8 @@ func TestBulkIndexerReusesChunksAcrossFlushes(t *testing.T) {
 	cfg := fixedBatches(docBytes("idx", "d0", 1), 1)
 	cfg.NumWorkers = 1
 	cfg.ShardRouter = NoShardRouter
-	bi := newClusterIndexer(t, server, cfg)
-	indexer := bi.(*bulkIndexer)
+	bi := newBulkClient(t, server, cfg)
+	indexer := bi.(*bulkClient)
 
 	const items = 200
 	for i := range items {
@@ -317,7 +317,7 @@ func TestBulkIndexerOversizeItemIsLetThrough(t *testing.T) {
 	t.Parallel()
 
 	server := newFakeServer(newFakeCluster(nil))
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{NumWorkers: 1, MaxMemoryBytes: 100, ShardRouter: NoShardRouter})
+	bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 1, MaxMemoryBytes: 100, ShardRouter: NoShardRouter})
 
 	big := fmt.Sprintf(`{"v":"%s"}`, strings.Repeat("x", 5000))
 	for i := range 3 {
@@ -337,8 +337,8 @@ func TestBulkIndexerOversizeItemIsLetThrough(t *testing.T) {
 func TestBulkIndexerDefaults(t *testing.T) {
 	t.Parallel()
 
-	bi := newClusterIndexer(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{ShardRouter: NoShardRouter})
-	cfg := bi.(*bulkIndexer).config
+	bi := newBulkClient(t, newFakeServer(newFakeCluster(nil)), BulkIndexerConfig{ShardRouter: NoShardRouter})
+	cfg := bi.(*bulkClient).config
 
 	require.Equal(t, DefaultMaxMemoryBytes, cfg.MaxMemoryBytes)
 	require.Equal(t, 5_000_000, cfg.FlushBytes)
@@ -367,13 +367,13 @@ func TestBulkIndexerPressureSealsOnlyWhatCanGoOut(t *testing.T) {
 
 	const perBatch = 8
 	itemBytes := docBytes("idx", "doc-0000", 1000)
-	bi := newClusterIndexer(t, server, BulkIndexerConfig{
+	bi := newBulkClient(t, server, BulkIndexerConfig{
 		FlushBytes:     int(itemBytes) * perBatch,
-		Sizing:         BulkSizing{Shard: ShardFixed, Node: NodeFixed},
+		Sizing:         BulkSizing{Shard: ShardFixed, Target: TargetFixed},
 		FlushInterval:  time.Hour,
 		MaxMemoryBytes: int(itemBytes) * 40,
 	})
-	indexer := bi.(*bulkIndexer)
+	indexer := bi.(*bulkClient)
 
 	var wg sync.WaitGroup
 	for p := range producers {

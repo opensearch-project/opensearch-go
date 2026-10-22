@@ -23,7 +23,7 @@ import (
 // Implementations must be safe for concurrent use: with more than one request out,
 // events arrive from several goroutines at once. Methods run on the goroutine
 // that sends the buffer, as the item callbacks do, so they must return quickly
-// and must not call back into the indexer ([BulkIndexer.Add], [BulkIndexer.Flush],
+// and must not call back into the bulk client ([BulkIndexer.Add], [BulkIndexer.Flush],
 // [BulkIndexer.Close]), which would stall the buffer they are called for. Events
 // are values and may be retained.
 type BulkIndexerObserver interface {
@@ -40,11 +40,11 @@ type BulkIndexerObserver interface {
 	// before any retry. It is called for an item the cluster rejected and for
 	// an item that was never sent, but not for one failed by [BulkIndexer.Cancel]
 	// or a Close that escalated: a cancellation is no failure of the work, and
-	// the item's [BulkIndexerObserver.OnItemDone] carries [ErrIndexerCanceled].
+	// the item's [BulkIndexerObserver.OnItemDone] carries [ErrBulkClientCanceled].
 	// The event's Err has the layer [LayerItem].
 	OnItemError(ctx context.Context, event BulkErrorEvent)
 
-	// OnItemDone is called once per item, when the indexer is done with it: it
+	// OnItemDone is called once per item, when the bulk client is done with it: it
 	// was accepted, or it failed and will not be retried. It fires at the same
 	// moment as the item's OnSuccess or OnError callback.
 	OnItemDone(ctx context.Context, event BulkItemEvent)
@@ -68,10 +68,10 @@ func (BaseBulkIndexerObserver) OnItemDone(context.Context, BulkItemEvent) {}
 
 // BulkRequestEvent describes one bulk request that has returned.
 type BulkRequestEvent struct {
-	// Index is the default index of the indexer, empty when items carry their own.
+	// Index is the default index of the bulk client, empty when items carry their own.
 	Index string
 
-	// Node is the name of the node the request was sent to, as [FlushNode] reports
+	// Node is the name of the node the request was sent to, as [FlushTarget] reports
 	// it. It is empty for a request the transport routed as it saw fit.
 	Node string
 
@@ -104,10 +104,10 @@ type BulkErrorEvent struct {
 	// it holds the response status, the item's response and the cause.
 	Err *BulkError
 
-	// Index is the default index of the indexer, empty when items carry their own.
+	// Index is the default index of the bulk client, empty when items carry their own.
 	Index string
 
-	// Node is the name of the node the failed work was bound for, as [FlushNode]
+	// Node is the name of the node the failed work was bound for, as [FlushTarget]
 	// reports it. It is empty for work with no node of its own: a request the
 	// transport routed as it saw fit, or an item refused before it was buffered.
 	Node string
@@ -134,10 +134,10 @@ type BulkErrorEvent struct {
 	Delay time.Duration
 }
 
-// BulkItemEvent describes an item the indexer is done with.
+// BulkItemEvent describes an item the bulk client is done with.
 type BulkItemEvent struct {
 	// Index is the index the item targeted, falling back to the default index
-	// of the indexer.
+	// of the bulk client.
 	Index string
 
 	// Action is the bulk action: index, create, update or delete.
@@ -149,7 +149,7 @@ type BulkItemEvent struct {
 	// Bytes is the size of the item's document, as [BulkIndexerItem].Body supplies
 	// it: the length of Body from its start, in bytes. It does not include the
 	// action and metadata line, the newline that ends the document, or the
-	// indexer's own bookkeeping for the item, so it is not the item's share of
+	// bulk client's own bookkeeping for the item, so it is not the item's share of
 	// [BulkRequestEvent].Bytes. It is 0 for an item with no Body, such as a delete.
 	// For an update it is the whole Body, normally the {"doc": ...} wrapper.
 	//
@@ -162,7 +162,7 @@ type BulkItemEvent struct {
 	Metadata any
 
 	// Node is the name of the node the item's last request was bound for, as
-	// [FlushNode] reports it. It is empty for an item with no node of its own: one
+	// [FlushTarget] reports it. It is empty for an item with no node of its own: one
 	// the transport routed as it saw fit, or one refused before it was buffered.
 	Node string
 
