@@ -48,10 +48,9 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 			t.Setenv(envvars.NodeStatsInterval, tt.statsInterval)
 
 			m := DefaultShardMap(shards)
-			var catShards []string
+			catShards := make([]string, shards)
 			for shard := range shards {
-				catShards = append(catShards,
-					fmt.Sprintf(`{"index":"alpha","shard":"%d","prirep":"p","state":"STARTED","node":"n0"}`, shard))
+				catShards[shard] = fmt.Sprintf(`{"index":"alpha","shard":"%d","prirep":"p","state":"STARTED","node":"n0"}`, shard)
 			}
 
 			// What the node answers, other than bulk requests. Its write pool has 8
