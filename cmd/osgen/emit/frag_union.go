@@ -282,6 +282,21 @@ func (u {{.Name}}) MarshalJSON() ([]byte, error) {
 	}
 	return build.NullJSON, nil
 }
+{{template "marshalTo" .}}
+{{- end}}
+{{- define "marshalTo"}}
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u {{.Name}}) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
 {{- end}}
 {{- range $t := .}}
 {{- if $t.Discriminator}}
@@ -555,6 +570,7 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 	}
 	return build.NullJSON, nil
 }
+{{template "marshalTo" $t}}
 {{- else if isTryEach $t.Kind}}
 {{- if $t.Comment}}
 {{comment $t.Comment}}

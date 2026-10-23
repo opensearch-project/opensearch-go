@@ -68,11 +68,13 @@ func (r DeleteByQueryReq) GetRequest(method string) (*http.Request, error) {
 
 	var bodyReader io.Reader
 	if r.Body != nil {
-		bodyData, err := json.Marshal(r.Body)
+		// Encoded into a pooled buffer, which Execute releases once the request
+		// has returned.
+		body, err := build.JSONBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		bodyReader = bytes.NewReader(bodyData)
+		bodyReader = body
 	} else if r.BodyReader != nil {
 		bodyReader = r.BodyReader
 	}
@@ -603,6 +605,19 @@ func (u DeleteByQueryRespBody) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u DeleteByQueryRespBody) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // DeleteByQueryBody is a typed component of the delete_by_query operation.

@@ -175,6 +175,36 @@ func NewTextDecoder(r io.Reader) *TextDecoder {
 	return jsontext.NewDecoder(r, numberOptions)
 }
 
+// TextEncoder is the copy's jsontext.Encoder, which the engine passes to a
+// MarshalJSONTo method.
+type TextEncoder = jsontext.Encoder
+
+// MarshalEncode writes v to enc with enc's options. Call it from a
+// MarshalJSONTo method. When v's type can hold an encoding/json.Number that
+// enc's options were not chosen for, it adds the options that encode one.
+func MarshalEncode(enc *TextEncoder, v any) error {
+	if needsNumber(reflect.TypeOf(v), true) {
+		return jsonv2.MarshalEncode(enc, v, numberOptions)
+	}
+
+	return jsonv2.MarshalEncode(enc, v)
+}
+
+// MarshalWrite writes v to w as encoding/json.Marshal encodes it, with no
+// trailing newline, without holding the encoding in a buffer of its own.
+func MarshalWrite(w io.Writer, v any) error {
+	if err := jsonv2.MarshalWrite(w, v, optionsFor(v, true)); err != nil {
+		return stdError(err, nil)
+	}
+
+	return nil
+}
+
+// WriteString writes s to enc as a JSON string.
+func WriteString(enc *TextEncoder, s string) error {
+	return enc.WriteToken(jsontext.String(s))
+}
+
 // Marshal is encoding/json.Marshal, run on the encoding/json/v2 engine.
 func Marshal(v any) ([]byte, error) {
 	b, err := jsonv2.Marshal(v, optionsFor(v, true))

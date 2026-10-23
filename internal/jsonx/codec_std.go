@@ -40,6 +40,31 @@ func NewTextDecoder(r io.Reader) *TextDecoder {
 	return jsontext.NewDecoder(r, json.DefaultOptionsV1())
 }
 
+// TextEncoder is the encoding/json/jsontext.Encoder the engine passes to a
+// MarshalJSONTo method.
+type TextEncoder = jsontext.Encoder
+
+// MarshalEncode writes v to enc with enc's options. Call it from a
+// MarshalJSONTo method.
+func MarshalEncode(enc *TextEncoder, v any) error {
+	return jsonv2.MarshalEncode(enc, v)
+}
+
+// MarshalWrite writes v to w as encoding/json.Marshal encodes it, with no
+// trailing newline, without holding the encoding in a buffer of its own.
+func MarshalWrite(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, v1Options)
+}
+
+// WriteString writes s to enc as a JSON string.
+func WriteString(enc *TextEncoder, s string) error {
+	return enc.WriteToken(jsontext.String(s))
+}
+
+// v1Options are encoding/json's semantics, for the encoding/json/v2 functions
+// that take options.
+var v1Options = json.DefaultOptionsV1()
+
 // Engine names the JSON engine jsonx runs on: the standard library's
 // encoding/json/v2.
 const Engine = "encoding/json/v2"

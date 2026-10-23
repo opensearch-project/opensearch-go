@@ -191,6 +191,19 @@ func (u StringOrStringArray) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u StringOrStringArray) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsMultiBucketAggregateBaseBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -366,6 +379,19 @@ func (u CommonAggregationsMultiBucketAggregateBaseBuckets) MarshalJSON() ([]byte
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsMultiBucketAggregateBaseBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsAdjacencyMatrixAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -545,6 +571,19 @@ func (u CommonAggregationsAdjacencyMatrixAggregateBuckets) MarshalJSON() ([]byte
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsAdjacencyMatrixAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsDateHistogramAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -720,6 +759,19 @@ func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSON() ([]byte, 
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // A field value.
@@ -935,6 +987,19 @@ func (u FieldValue) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u FieldValue) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -1112,6 +1177,19 @@ func (u CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Marsha
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -1293,6 +1371,19 @@ func (u CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) MarshalJSO
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsFiltersAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -1468,6 +1559,19 @@ func (u CommonAggregationsFiltersAggregateBuckets) MarshalJSON() ([]byte, error)
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsFiltersAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The lower-right corner coordinates.
@@ -1669,6 +1773,19 @@ func (u GeoLocation) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u GeoLocation) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // A geo-bounding box. It can be represented in the following ways:
@@ -1976,6 +2093,19 @@ func (u GeoBounds) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u GeoBounds) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsGeoHashGridAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -2151,6 +2281,19 @@ func (u CommonAggregationsGeoHashGridAggregateBuckets) MarshalJSON() ([]byte, er
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsGeoHashGridAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsGeoTileGridAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -2330,6 +2473,19 @@ func (u CommonAggregationsGeoTileGridAggregateBuckets) MarshalJSON() ([]byte, er
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsGeoTileGridAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsKeyedPercentilesValue is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -2507,6 +2663,19 @@ func (u CommonAggregationsKeyedPercentilesValue) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsKeyedPercentilesValue) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsPercentiles is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -2680,6 +2849,19 @@ func (u CommonAggregationsPercentiles) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsPercentiles) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsHistogramAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -2859,6 +3041,19 @@ func (u CommonAggregationsHistogramAggregateBuckets) MarshalJSON() ([]byte, erro
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsHistogramAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsIPRangeAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3034,6 +3229,19 @@ func (u CommonAggregationsIPRangeAggregateBuckets) MarshalJSON() ([]byte, error)
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsIPRangeAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsLongRareTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -3213,6 +3421,19 @@ func (u CommonAggregationsLongRareTermsAggregateBuckets) MarshalJSON() ([]byte, 
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsLongRareTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsLongTermsBucketKey is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3390,6 +3611,19 @@ func (u CommonAggregationsLongTermsBucketKey) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsLongTermsBucketKey) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsMultiTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3565,6 +3799,19 @@ func (u CommonAggregationsMultiTermsAggregateBuckets) MarshalJSON() ([]byte, err
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsMultiTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsSignificantLongTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -3746,6 +3993,19 @@ func (u CommonAggregationsSignificantLongTermsAggregateBuckets) MarshalJSON() ([
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsSignificantLongTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsSignificantStringTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3925,6 +4185,19 @@ func (u CommonAggregationsSignificantStringTermsAggregateBuckets) MarshalJSON() 
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsSignificantStringTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsStringRareTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -4102,6 +4375,19 @@ func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -4275,6 +4561,19 @@ func (u SearchHitMatchedQueries) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchHitMatchedQueries) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.
@@ -4452,6 +4751,19 @@ func (u SearchHitsMetadataTotal) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchHitsMetadataTotal) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsUnmappedRareTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -4627,6 +4939,19 @@ func (u CommonAggregationsUnmappedRareTermsAggregateBuckets) MarshalJSON() ([]by
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsUnmappedRareTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsUnmappedSignificantTermsAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
@@ -4808,6 +5133,19 @@ func (u CommonAggregationsUnmappedSignificantTermsAggregateBuckets) MarshalJSON(
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsUnmappedSignificantTermsAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsVariableWidthHistogramAggregateBuckets is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -4985,6 +5323,19 @@ func (u CommonAggregationsVariableWidthHistogramAggregateBuckets) MarshalJSON() 
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsVariableWidthHistogramAggregateBuckets) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsAggregate is a oneOf union whose branch the request selects.
@@ -8007,6 +8358,19 @@ func (u CommonAggregationsAggregate) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsAggregate) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Text or location that we want similar documents for or a lookup to a document's field for the text.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8180,6 +8544,19 @@ func (u SearchContext) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchContext) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchCompletionSuggestOptions is a oneOf union whose branches decode from different JSON tokens.
@@ -8357,6 +8734,19 @@ func (u SearchCompletionSuggestOptions) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchCompletionSuggestOptions) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // SearchSuggestCompletionOptions is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8530,6 +8920,19 @@ func (u SearchSuggestCompletionOptions) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchSuggestCompletionOptions) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchPhraseSuggestOptions is a oneOf union whose branches decode from different JSON tokens.
@@ -8707,6 +9110,19 @@ func (u SearchPhraseSuggestOptions) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchPhraseSuggestOptions) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // SearchTermSuggestOptions is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8880,6 +9296,19 @@ func (u SearchTermSuggestOptions) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchTermSuggestOptions) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchSuggest is a oneOf union whose branch the request selects.
@@ -9079,6 +9508,19 @@ func (u SearchSuggest) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchSuggest) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -9256,6 +9698,19 @@ func (u StringifiedEpochTimeUnitSeconds) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u StringifiedEpochTimeUnitSeconds) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
@@ -9437,6 +9892,19 @@ func (u StringifiedEpochTimeUnitMillis) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u StringifiedEpochTimeUnitMillis) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The clause (query) must appear in matching documents.
 // However, unlike `must`, the score of the query will be ignored.
 // The spec declares no discriminator, but each branch is a different JSON token
@@ -9611,6 +10079,19 @@ func (u CommonQueryDSLBoolQueryFilter) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLBoolQueryFilter) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The minimum number of terms that should match as an integer, percentage, or range.
@@ -9788,6 +10269,19 @@ func (u MinimumShouldMatch) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u MinimumShouldMatch) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The clause (query) must appear in matching documents and will contribute to the score.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -9961,6 +10455,19 @@ func (u CommonQueryDSLBoolQueryMust) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLBoolQueryMust) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The clause (query) must not appear in the matching documents.
@@ -10139,6 +10646,19 @@ func (u CommonQueryDSLBoolQueryMustNot) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLBoolQueryMustNot) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The clause (query) should appear in the matching document.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -10312,6 +10832,19 @@ func (u CommonQueryDSLBoolQueryShould) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLBoolQueryShould) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLCommonTermsQuery is a oneOf union whose branches decode from different JSON tokens.
@@ -10489,6 +11022,19 @@ func (u CommonQueryDSLCommonTermsQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLCommonTermsQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLDistanceFeatureQuery is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -10636,6 +11182,19 @@ func (u CommonQueryDSLDistanceFeatureQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLDistanceFeatureQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLSpanTermQuery is a oneOf union whose branches decode from different JSON tokens.
@@ -10811,6 +11370,19 @@ func (u CommonQueryDSLSpanTermQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLSpanTermQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLRandomScoreFunctionSeed is a oneOf union whose branches decode from different JSON tokens.
@@ -10990,6 +11562,19 @@ func (u CommonQueryDSLRandomScoreFunctionSeed) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLRandomScoreFunctionSeed) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // InlineScript is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -11165,6 +11750,19 @@ func (u InlineScript) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u InlineScript) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Script is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -11300,6 +11898,19 @@ func (u Script) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u Script) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLFuzzyQuery is a oneOf union whose branch the request selects.
@@ -11440,6 +12051,19 @@ func (u CommonQueryDSLFuzzyQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLFuzzyQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchSourceFilter is a oneOf union whose branches decode from different JSON tokens.
@@ -11617,6 +12241,19 @@ func (u SearchSourceFilter) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchSourceFilter) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -11790,6 +12427,19 @@ func (u SearchSourceConfig) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchSourceConfig) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The number of inner hits and their sort order.
@@ -11967,6 +12617,19 @@ func (u SearchFieldCollapseInnerHits) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchFieldCollapseInnerHits) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLFieldAndFormat is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -12142,6 +12805,19 @@ func (u CommonQueryDSLFieldAndFormat) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLFieldAndFormat) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // SearchHighlightFields is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -12315,6 +12991,19 @@ func (u SearchHighlightFields) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchHighlightFields) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SortCombinations is a oneOf union decoded by trying each branch in turn.
@@ -12518,6 +13207,19 @@ func (u SortCombinations) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SortCombinations) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Sort is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -12691,6 +13393,19 @@ func (u Sort) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u Sort) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLKNNQueryRescore is a oneOf union whose branches decode from different JSON tokens.
@@ -12868,6 +13583,19 @@ func (u CommonQueryDSLKNNQueryRescore) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLKNNQueryRescore) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLMatchQuery is a oneOf union whose branch the request selects.
 //
 // The spec declares no discriminator because the response payload carries no
@@ -13006,6 +13734,19 @@ func (u CommonQueryDSLMatchQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLMatchQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLMatchBoolPrefixQuery is a oneOf union whose branches decode from different JSON tokens.
@@ -13185,6 +13926,19 @@ func (u CommonQueryDSLMatchBoolPrefixQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLMatchBoolPrefixQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLMatchPhraseQuery is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -13358,6 +14112,19 @@ func (u CommonQueryDSLMatchPhraseQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLMatchPhraseQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLMatchPhrasePrefixQuery is a oneOf union whose branches decode from different JSON tokens.
@@ -13537,6 +14304,19 @@ func (u CommonQueryDSLMatchPhrasePrefixQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLMatchPhrasePrefixQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Text that we want similar documents for or a lookup to a document's field for the text.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -13710,6 +14490,19 @@ func (u CommonQueryDSLLike) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLLike) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Specifies free form text and/or a single or multiple documents for which you want to find similar documents.
@@ -13889,6 +14682,19 @@ func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Language value, such as `arabic` or `thai`. Defaults to `english`.
 // Each language value corresponds to a predefined list of stop words in Lucene. See Stop words by language for supported language values and their stop words.
 // Also accepts an array of stop words.
@@ -14064,6 +14870,19 @@ func (u CommonAnalysisStopWords) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisStopWords) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Used in combination with `like` to exclude documents that match a set of terms.
@@ -14243,6 +15062,19 @@ func (u CommonQueryDSLMoreLikeThisQueryUnlike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLMoreLikeThisQueryUnlike) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLPrefixQuery is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -14416,6 +15248,19 @@ func (u CommonQueryDSLPrefixQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLPrefixQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLNumberRangeQueryFrom is a oneOf union whose branches decode from different JSON tokens.
@@ -14595,6 +15440,19 @@ func (u CommonQueryDSLNumberRangeQueryFrom) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLNumberRangeQueryFrom) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLNumberRangeQueryTo is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -14770,6 +15628,19 @@ func (u CommonQueryDSLNumberRangeQueryTo) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLNumberRangeQueryTo) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLRangeQuery is a oneOf union whose branch the request selects.
 //
 // The spec declares no discriminator because the response payload carries no
@@ -14899,6 +15770,19 @@ func (u CommonQueryDSLRangeQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLRangeQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLRegexpQuery is a oneOf union whose branches decode from different JSON tokens.
@@ -15076,6 +15960,19 @@ func (u CommonQueryDSLRegexpQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLRegexpQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLTermQuery is a oneOf union whose branch the request selects.
 //
 // The spec declares no discriminator because the response payload carries no
@@ -15214,6 +16111,19 @@ func (u CommonQueryDSLTermQuery) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLTermQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonQueryDSLWildcardQuery is a oneOf union whose branches decode from different JSON tokens.
@@ -15391,6 +16301,19 @@ func (u CommonQueryDSLWildcardQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLWildcardQuery) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonMappingDynamic is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -15564,6 +16487,19 @@ func (u CommonMappingDynamic) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonMappingDynamic) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonMappingJoinPropertyRelationsValue is a oneOf union whose branches decode from different JSON tokens.
@@ -15743,6 +16679,19 @@ func (u CommonMappingJoinPropertyRelationsValue) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonMappingJoinPropertyRelationsValue) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonMappingSuggestContextPrecision is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -15918,6 +16867,19 @@ func (u CommonMappingSuggestContextPrecision) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonMappingSuggestContextPrecision) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // A two-dimensional Cartesian point specified by x and y coordinates. It can be represented in the following ways:
@@ -16137,6 +17099,19 @@ func (u XYLocation) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u XYLocation) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonMappingSemanticPropertyChunking is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -16312,6 +17287,19 @@ func (u CommonMappingSemanticPropertyChunking) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonMappingSemanticPropertyChunking) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonMappingProperty is a oneOf union whose branch the payload names itself.
@@ -18032,6 +19020,19 @@ func (u CommonMappingProperty) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonMappingProperty) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAnalysisAnalyzer is a oneOf union whose branch the payload names itself.
 //
 // The OpenAPI spec declares a discriminator on CommonAnalysisAnalyzer: the type
@@ -18735,6 +19736,19 @@ func (u CommonAnalysisAnalyzer) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisAnalyzer) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAnalysisCharFilterDefinition is a oneOf union whose branch the payload names itself.
 //
 // The OpenAPI spec declares a discriminator on CommonAnalysisCharFilterDefinition: the type
@@ -18993,6 +20007,19 @@ func (u CommonAnalysisCharFilterDefinition) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisCharFilterDefinition) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAnalysisCharFilter is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -19166,6 +20193,19 @@ func (u CommonAnalysisCharFilter) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisCharFilter) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAnalysisTokenFilterDefinition is a oneOf union whose branch the payload names itself.
@@ -21001,6 +22041,19 @@ func (u CommonAnalysisTokenFilterDefinition) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisTokenFilterDefinition) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAnalysisTokenFilter is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -21176,6 +22229,19 @@ func (u CommonAnalysisTokenFilter) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisTokenFilter) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAnalysisNormalizer is a oneOf union whose branch the payload names itself.
 //
 // The OpenAPI spec declares a discriminator on CommonAnalysisNormalizer: the type
@@ -21325,6 +22391,19 @@ func (u CommonAnalysisNormalizer) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisNormalizer) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAnalysisTokenizerDefinition is a oneOf union whose branch the payload names itself.
@@ -22005,6 +23084,19 @@ func (u CommonAnalysisTokenizerDefinition) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisTokenizerDefinition) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAnalysisTokenizer is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -22178,6 +23270,19 @@ func (u CommonAnalysisTokenizer) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAnalysisTokenizer) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The number of outstanding bytes that may be consumed by indexing requests. When this limit is reached or exceeded,
@@ -22359,6 +23464,19 @@ func (u IndicesIndexingPressureMemoryLimit) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u IndicesIndexingPressureMemoryLimit) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The policy configuration for segment merging.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -22532,6 +23650,19 @@ func (u IndicesIndexSettingsMergePolicy) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u IndicesIndexSettingsMergePolicy) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // IndicesIndexSegmentSortMissing is a oneOf union whose branches decode from different JSON tokens.
@@ -22709,6 +23840,19 @@ func (u IndicesIndexSegmentSortMissing) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u IndicesIndexSegmentSortMissing) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // IndicesIndexSegmentSortMode is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -22882,6 +24026,19 @@ func (u IndicesIndexSegmentSortMode) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u IndicesIndexSegmentSortMode) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // IndicesIndexSegmentSortOrder is a oneOf union whose branches decode from different JSON tokens.
@@ -23059,6 +24216,19 @@ func (u IndicesIndexSegmentSortOrder) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u IndicesIndexSegmentSortOrder) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // SegmentReplicationStats is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -23204,6 +24374,19 @@ func (u SegmentReplicationStats) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SegmentReplicationStats) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // BulkByScrollTaskStatusOrException is a oneOf union decoded in a single pass.
@@ -23398,6 +24581,19 @@ func (u BulkByScrollTaskStatusOrException) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u BulkByScrollTaskStatusOrException) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // BulkByScrollFailure is a oneOf union decoded in a single pass.
 // The spec declares no discriminator, but each branch requires a JSON key the
 // others lack, so one decode both populates the common branch and detects the
@@ -23586,6 +24782,19 @@ func (u BulkByScrollFailure) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u BulkByScrollFailure) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Task status information can vary wildly from task to task.
@@ -23789,6 +24998,19 @@ func (u TasksStatus) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u TasksStatus) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // TasksTaskInfos is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -23962,6 +25184,19 @@ func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u TasksTaskInfos) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
@@ -24143,6 +25378,19 @@ func (u StringifiedVersionNumber) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u StringifiedVersionNumber) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The number of hits matching the query. When `true`, the exact
 // number of hits is returned at the cost of some performance. When `false`, the
 // response does not include the total number of hits matching the query.
@@ -24321,6 +25569,19 @@ func (u SearchTrackHits) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchTrackHits) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The ISM template configuration.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -24494,6 +25755,19 @@ func (u ISMPolicyTemplate) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u ISMPolicyTemplate) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchResultJSONValueSuggestValueItemCompletionOptions is a oneOf union whose branches decode from different JSON tokens.
@@ -24673,6 +25947,19 @@ func (u SearchResultJSONValueSuggestValueItemCompletionOptions) MarshalJSON() ([
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchResultJSONValueSuggestValueItemCompletionOptions) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchResultJSONValueSuggestValueItem is a oneOf union whose branch the request selects.
@@ -24865,6 +26152,19 @@ func (u SearchResultJSONValueSuggestValueItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchResultJSONValueSuggestValueItem) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // MLExecuteAlgorithmResponse is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -25000,6 +26300,19 @@ func (u MLExecuteAlgorithmResponse) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u MLExecuteAlgorithmResponse) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // A comma-separated list of node IDs used to filter results. Supports [node filters](https://opensearch.org/docs/latest/api-reference/nodes-apis/index/#node-filters).
@@ -25177,6 +26490,19 @@ func (u NodeIDs) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NodeIDs) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The create time.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -25352,6 +26678,19 @@ func (u MLSourceCreateTime) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u MLSourceCreateTime) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // NeuralStatMetadataValue is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -25525,6 +26864,19 @@ func (u NeuralStatMetadataValue) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NeuralStatMetadataValue) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // NeuralTimestampedEventCounterStat is a oneOf union whose branches decode from different JSON tokens.
@@ -25704,6 +27056,19 @@ func (u NeuralTimestampedEventCounterStat) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NeuralTimestampedEventCounterStat) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // NeuralInfoStringStat is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -25877,6 +27242,19 @@ func (u NeuralInfoStringStat) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NeuralInfoStringStat) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // NeuralInfoCounterStat is a oneOf union whose branches decode from different JSON tokens.
@@ -26054,6 +27432,19 @@ func (u NeuralInfoCounterStat) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NeuralInfoCounterStat) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // NeuralStats is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -26189,6 +27580,19 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NeuralStats) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The cron schedule configuration for the rollup job.
@@ -26364,6 +27768,19 @@ func (u RollupsIntervalCron) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u RollupsIntervalCron) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchPipelinePhaseResultsProcessor is a oneOf union decoded in a single pass.
@@ -26556,6 +27973,19 @@ func (u SearchPipelinePhaseResultsProcessor) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchPipelinePhaseResultsProcessor) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchPipelineRequestProcessor is a oneOf union decoded in a single pass.
@@ -26911,6 +28341,19 @@ func (u SearchPipelineRequestProcessor) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchPipelineRequestProcessor) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // SearchPipelineRespProcessor is a oneOf union decoded in a single pass.
@@ -27488,6 +28931,19 @@ func (u SearchPipelineRespProcessor) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SearchPipelineRespProcessor) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Whether the PPL plugin is enabled.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -27661,6 +29117,19 @@ func (u SQLPPLEnabled) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SQLPPLEnabled) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The maximum result set size.
@@ -27838,6 +29307,19 @@ func (u SQLPluginsQuerySizeLimit) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SQLPluginsQuerySizeLimit) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Whether the SQL plugin is enabled.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -28011,6 +29493,19 @@ func (u SQLEnabled) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SQLEnabled) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // The threshold in milliseconds for logging slow queries.
@@ -28188,6 +29683,19 @@ func (u SQLSlowlog) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u SQLSlowlog) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The resource limits for query requests in the query group.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -28323,6 +29831,19 @@ func (u WLMQueryGroupRespResourceLimits) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u WLMQueryGroupRespResourceLimits) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Buckets path can be expressed in different ways, and an aggregation may accept some or all of these
@@ -28540,6 +30061,19 @@ func (u CommonAggregationsBucketsPath) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsBucketsPath) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // A date range limit, represented either as a DateMath expression or a number expressed
 // according to the target field's precision.
 // The spec declares no discriminator, but each branch is a different JSON token
@@ -28714,6 +30248,19 @@ func (u CommonAggregationsFieldDateMath) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsFieldDateMath) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsBucketsQueryContainer is a oneOf union whose branches decode from different JSON tokens.
@@ -28893,6 +30440,19 @@ func (u CommonAggregationsBucketsQueryContainer) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsBucketsQueryContainer) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Start of the range (inclusive).
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -29068,6 +30628,19 @@ func (u CommonAggregationsAggregationRangeFrom) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsAggregationRangeFrom) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // End of the range (exclusive).
@@ -29247,6 +30820,19 @@ func (u CommonAggregationsAggregationRangeTo) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsAggregationRangeTo) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The level of geohash precision, which can be expressed as a geohash length between 1 and 12 or as a distance measure, such as "1km" or "10m".
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -29420,6 +31006,19 @@ func (u GeoHashPrecision) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u GeoHashPrecision) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsMovingAverageAggregation is a oneOf union whose branch the payload names itself.
@@ -29680,6 +31279,19 @@ func (u CommonAggregationsMovingAverageAggregation) MarshalJSON() ([]byte, error
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsMovingAverageAggregation) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsTermsExclude is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -29853,6 +31465,19 @@ func (u CommonAggregationsTermsExclude) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsTermsExclude) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // CommonAggregationsTermsInclude is a oneOf union whose branches decode from different JSON tokens.
@@ -30068,6 +31693,19 @@ func (u CommonAggregationsTermsInclude) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsTermsInclude) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonAggregationsAggregateOrder is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -30243,6 +31881,19 @@ func (u CommonAggregationsAggregateOrder) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonAggregationsAggregateOrder) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // ScrollIDs is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -30416,6 +32067,19 @@ func (u ScrollIDs) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u ScrollIDs) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // GeoJSON `geoshape` types supported by OpenSearch.
@@ -30730,6 +32394,19 @@ func (u GeospatialGeoShapes) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u GeospatialGeoShapes) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // GeospatialGeometry is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
@@ -30865,6 +32542,19 @@ func (u GeospatialGeometry) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u GeospatialGeometry) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // WLMQueryGroupCreateResourceLimits is a oneOf union decoded by trying each branch in turn.
@@ -31004,4 +32694,17 @@ func (u WLMQueryGroupCreateResourceLimits) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u WLMQueryGroupCreateResourceLimits) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }

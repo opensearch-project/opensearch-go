@@ -15,7 +15,6 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
-	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -65,15 +64,13 @@ func (r CreateUserLegacyReq) GetRequest(method string) (*http.Request, error) {
 
 	var bodyReader io.Reader
 	if r.Body != nil {
-		// Body contains a credential field whose JSON tag (e.g. "password")
-		// matches gosec G117. The marshal here intentionally serializes the
-		// credential because the OpenSearch security API requires it on the
-		// wire; suppress the lint at the call site.
-		bodyData, err := json.Marshal(r.Body) //nolint:gosec // G117: legitimate credential field for security API
+		// Encoded into a pooled buffer, which Execute releases once the request
+		// has returned.
+		body, err := build.JSONBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		bodyReader = bytes.NewReader(bodyData)
+		bodyReader = body
 	} else if r.BodyReader != nil {
 		bodyReader = r.BodyReader
 	}

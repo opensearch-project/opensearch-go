@@ -1142,6 +1142,19 @@ func (u NodesInfoNodeSettingsHTTPType) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NodesInfoNodeSettingsHTTPType) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // The transport layer type configuration.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -1319,6 +1332,19 @@ func (u NodesInfoNodeSettingsTransportType) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NodesInfoNodeSettingsTransportType) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // Total heap allowed to be used to hold recently indexed documents before they must be written to disk. This size is a shared pool across all shards on this node, and is controlled by Indexing Buffer settings.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -1492,6 +1518,19 @@ func (u NodesInfoNodeTotalIndexingBuffer) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NodesInfoNodeTotalIndexingBuffer) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // NodesInfoNodeTotalIndexingBufferInBytes is a oneOf union whose branches decode from different JSON tokens.
@@ -1669,6 +1708,19 @@ func (u NodesInfoNodeTotalIndexingBufferInBytes) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NodesInfoNodeTotalIndexingBufferInBytes) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // Info returns information about nodes in the cluster.

@@ -402,6 +402,19 @@ func (u MSearchRespItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u MSearchRespItem) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // SearchShardFailures detects partial failures on a MSearchResp by
 // aggregating shard envelopes across union-typed sub-responses.
 func (r *MSearchResp) SearchShardFailures() *PartialSearchError {

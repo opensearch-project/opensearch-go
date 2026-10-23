@@ -185,6 +185,16 @@ func (s RestStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(name)
 }
 
+// MarshalJSONTo writes s to enc as its wire name, as MarshalJSON encodes it. The
+// JSON codec the client encodes with calls it in place of MarshalJSON.
+func (s RestStatus) MarshalJSONTo(enc *json.TextEncoder) error {
+	name, ok := restStatusNames[s]
+	if !ok {
+		return fmt.Errorf("invalid RestStatus value %d", int(s))
+	}
+	return json.WriteString(enc, name)
+}
+
 // UnmarshalJSON decodes a wire name into its const. An unrecognized value sets
 // s to RestStatusUnknown and returns an *UnknownRestStatusError carrying the
 // raw value; callers recover it via errors.As.

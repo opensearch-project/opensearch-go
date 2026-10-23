@@ -795,6 +795,9 @@ func Execute[T any](ctx context.Context, c *Client, method string, req Request, 
 	if err != nil {
 		return nil, err
 	}
+	// A body GetRequest encoded into a pooled buffer goes back to the pool once
+	// the request has returned and the transport has closed every reader of it.
+	defer bufbody.Release(httpReq.Body)
 
 	if ctx != nil {
 		httpReq = httpReq.WithContext(ctx)
