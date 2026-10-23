@@ -333,6 +333,47 @@ func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) UnmarshalJSON(data 
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v FlowFrameworkCommonResourcesCreated
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType
+		u.value = &v
+	case '[':
+		var v []FlowFrameworkCommonResourcesCreated
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("FlowFrameworkCommonSearchStateRespResourcesCreated: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u FlowFrameworkCommonSearchStateRespResourcesCreated) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)

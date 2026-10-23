@@ -8,14 +8,14 @@
 // and its generated code use, run on the encoding/json/v2 engine whatever the
 // toolchain.
 //
-// Where the toolchain builds encoding/json/v2, which Go 1.27 does by default
-// and Go 1.26 does with GOEXPERIMENT=jsonv2, encoding/json already runs on that
-// engine, and jsonx is encoding/json (codec_std.go). Elsewhere jsonx runs a
-// copy of the standard library's encoding/json/v2 from internal/third_party/
-// jsonv2 (codec_copy.go). On Go 1.26 without the experiment, the original
-// encoding/json engine makes about 2.7 times the allocations decoding an mget
-// response that the v2 engine does. Once the module requires a toolchain that
-// builds encoding/json/v2, codec_copy.go and the copy can be deleted.
+// Where the toolchain is Go 1.27 or later and builds encoding/json/v2, which it
+// does by default, encoding/json already runs on that engine, and jsonx is
+// encoding/json (codec_std.go). Elsewhere, Go 1.26 with or without
+// GOEXPERIMENT=jsonv2 included, jsonx runs a copy of the standard library's
+// encoding/json/v2 from internal/third_party/jsonv2 (codec_copy.go). On Go 1.26
+// without the experiment, the original encoding/json engine makes about 2.7
+// times the allocations decoding an mget response that the v2 engine does. Once
+// the module requires Go 1.27, codec_copy.go and the copy can be deleted.
 //
 // Every function has encoding/json's semantics, so what the client sends and
 // how it reads a response do not depend on the toolchain. Errors are

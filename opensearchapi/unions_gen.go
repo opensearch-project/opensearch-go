@@ -140,6 +140,47 @@ func (u *StringOrStringArray) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *StringOrStringArray) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = StringOrStringArrayUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringOrStringArrayStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringOrStringArrayArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("StringOrStringArray: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u StringOrStringArray) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -273,6 +314,47 @@ func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) UnmarshalJSON(data [
 	default:
 		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiBucketAggregateBaseBucketsMapType
+		u.value = &v
+	case '[':
+		var v []json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiBucketAggregateBaseBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -412,6 +494,47 @@ func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) UnmarshalJSON(data [
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsAdjacencyMatrixBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsAdjacencyMatrixAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsAdjacencyMatrixAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -545,6 +668,47 @@ func (u *CommonAggregationsDateHistogramAggregateBuckets) UnmarshalJSON(data []b
 	default:
 		return fmt.Errorf("CommonAggregationsDateHistogramAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsDateHistogramAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsDateHistogramAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsDateHistogramAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsDateHistogramBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsDateHistogramAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsDateHistogramAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -713,6 +877,54 @@ func (u *FieldValue) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *FieldValue) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = FieldValueUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = FieldValueBoolType
+		u.value = &v
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = FieldValueFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = FieldValueStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("FieldValue: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u FieldValue) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -848,6 +1060,47 @@ func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Unmar
 	default:
 		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsCompositeBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -989,6 +1242,47 @@ func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Unmarshal
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsRangeBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -1122,6 +1416,47 @@ func (u *CommonAggregationsFiltersAggregateBuckets) UnmarshalJSON(data []byte) e
 	default:
 		return fmt.Errorf("CommonAggregationsFiltersAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsFiltersAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsFiltersAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsFiltersAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsMultiBucketBase
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsFiltersAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsFiltersAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -1537,6 +1872,100 @@ func (u *GeoBounds) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *GeoBounds) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = GeoBoundsUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		CoordsGeoBounds
+		Disc0   json.RawMessage `json:"bottom_right"`
+		Disc1   json.RawMessage `json:"bottom_left"`
+		Disc2   json.RawMessage `json:"wkt"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v TopLeftBottomRightGeoBounds
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = GeoBoundsTlbrType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc1) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v TopRightBottomLeftGeoBounds
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = GeoBoundsTrblType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc2) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v WKTGeoBounds
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = GeoBoundsWKTType
+		u.value = &v
+		return nil
+	}
+	u.typ = GeoBoundsCoordsType
+	u.value = &m.CoordsGeoBounds
+	return nil
+}
+
 func (u GeoBounds) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -1670,6 +2099,47 @@ func (u *CommonAggregationsGeoHashGridAggregateBuckets) UnmarshalJSON(data []byt
 	default:
 		return fmt.Errorf("CommonAggregationsGeoHashGridAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsGeoHashGridAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsGeoHashGridAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsGeoHashGridBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsGeoHashGridAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsGeoHashGridAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -1809,6 +2279,47 @@ func (u *CommonAggregationsGeoTileGridAggregateBuckets) UnmarshalJSON(data []byt
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsGeoTileGridAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsGeoTileGridAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsGeoTileGridBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsGeoTileGridAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsGeoTileGridAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsGeoTileGridAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -1945,6 +2456,47 @@ func (u *CommonAggregationsKeyedPercentilesValue) UnmarshalJSON(data []byte) err
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsKeyedPercentilesValue) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsKeyedPercentilesValueUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsKeyedPercentilesValueFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsKeyedPercentilesValueStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsKeyedPercentilesValue: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsKeyedPercentilesValue) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -2076,6 +2628,47 @@ func (u *CommonAggregationsPercentiles) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonAggregationsPercentiles: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsPercentiles) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsPercentilesUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]CommonAggregationsKeyedPercentilesValue
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsPercentilesMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsArrayPercentilesItem
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsPercentilesArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsPercentiles: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -2215,6 +2808,47 @@ func (u *CommonAggregationsHistogramAggregateBuckets) UnmarshalJSON(data []byte)
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsHistogramAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsHistogramAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsHistogramAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsHistogramBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsHistogramAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsHistogramAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsHistogramAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -2348,6 +2982,47 @@ func (u *CommonAggregationsIPRangeAggregateBuckets) UnmarshalJSON(data []byte) e
 	default:
 		return fmt.Errorf("CommonAggregationsIPRangeAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsIPRangeAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsIPRangeAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsIPRangeAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsIPRangeBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsIPRangeAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsIPRangeAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -2487,6 +3162,47 @@ func (u *CommonAggregationsLongRareTermsAggregateBuckets) UnmarshalJSON(data []b
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsLongRareTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsLongRareTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsLongRareTermsBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsLongRareTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsLongRareTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsLongRareTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -2623,6 +3339,47 @@ func (u *CommonAggregationsLongTermsBucketKey) UnmarshalJSON(data []byte) error 
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsLongTermsBucketKey) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsLongTermsBucketKeyUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsLongTermsBucketKeyInt64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsLongTermsBucketKeyStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsLongTermsBucketKey: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsLongTermsBucketKey) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -2756,6 +3513,47 @@ func (u *CommonAggregationsMultiTermsAggregateBuckets) UnmarshalJSON(data []byte
 	default:
 		return fmt.Errorf("CommonAggregationsMultiTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsMultiTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsMultiTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsMultiTermsBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsMultiTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsMultiTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -2897,6 +3695,47 @@ func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) UnmarshalJSON(d
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsSignificantLongTermsBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsSignificantLongTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsSignificantLongTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -3032,6 +3871,47 @@ func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) UnmarshalJSON
 	default:
 		return fmt.Errorf("CommonAggregationsSignificantStringTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsSignificantStringTermsBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsSignificantStringTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -3171,6 +4051,47 @@ func (u *CommonAggregationsStringRareTermsAggregateBuckets) UnmarshalJSON(data [
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsStringRareTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsStringRareTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsStringRareTermsBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsStringRareTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsStringRareTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -3302,6 +4223,47 @@ func (u *SearchHitMatchedQueries) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SearchHitMatchedQueries: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchHitMatchedQueries) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchHitMatchedQueriesUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchHitMatchedQueriesArrayType
+		u.value = &v
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchHitMatchedQueriesMapType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchHitMatchedQueries: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -3439,6 +4401,47 @@ func (u *SearchHitsMetadataTotal) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchHitsMetadataTotal) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchHitsMetadataTotalUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchTotalHits
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchHitsMetadataTotalTotalHitsType
+		u.value = &v
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchHitsMetadataTotalInt64Type
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchHitsMetadataTotal: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchHitsMetadataTotal) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -3572,6 +4575,47 @@ func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) UnmarshalJSON(data
 	default:
 		return fmt.Errorf("CommonAggregationsUnmappedRareTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []Void
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsUnmappedRareTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -3713,6 +4757,47 @@ func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) UnmarshalJS
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []Void
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsUnmappedSignificantTermsAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsUnmappedSignificantTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -3848,6 +4933,47 @@ func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) UnmarshalJSON
 	default:
 		return fmt.Errorf("CommonAggregationsVariableWidthHistogramAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsMapType
+		u.value = &v
+	case '[':
+		var v []CommonAggregationsVariableWidthHistogramBucket
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsVariableWidthHistogramAggregateBuckets: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -7005,6 +8131,47 @@ func (u *SearchContext) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchContext) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchContextUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchContextStringType
+		u.value = &v
+	case '{':
+		var v GeoLocation
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchContextLocationType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchContext: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchContext) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -7136,6 +8303,47 @@ func (u *SearchCompletionSuggestOptions) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SearchCompletionSuggestOptions: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchCompletionSuggestOptions) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchCompletionSuggestOptionsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchCompletionSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchCompletionSuggestOptionsTextType
+		u.value = &v
+	case '[':
+		var v []SearchCompletionSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchCompletionSuggestOptionsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchCompletionSuggestOptions: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -7273,6 +8481,47 @@ func (u *SearchSuggestCompletionOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchSuggestCompletionOptions) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchSuggestCompletionOptionsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchCompletionSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSuggestCompletionOptionsTextType
+		u.value = &v
+	case '[':
+		var v []SearchCompletionSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSuggestCompletionOptionsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchSuggestCompletionOptions: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchSuggestCompletionOptions) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -7407,6 +8656,47 @@ func (u *SearchPhraseSuggestOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchPhraseSuggestOptions) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchPhraseSuggestOptionsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchPhraseSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPhraseSuggestOptionsPhraseSuggestOptionType
+		u.value = &v
+	case '[':
+		var v []SearchPhraseSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPhraseSuggestOptionsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchPhraseSuggestOptions: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchPhraseSuggestOptions) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -7538,6 +8828,47 @@ func (u *SearchTermSuggestOptions) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SearchTermSuggestOptions: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchTermSuggestOptions) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchTermSuggestOptionsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchTermSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchTermSuggestOptionsTermSuggestOptionType
+		u.value = &v
+	case '[':
+		var v []SearchTermSuggestOption
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchTermSuggestOptionsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchTermSuggestOptions: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -7876,6 +9207,47 @@ func (u *StringifiedEpochTimeUnitSeconds) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *StringifiedEpochTimeUnitSeconds) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = StringifiedEpochTimeUnitSecondsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringifiedEpochTimeUnitSecondsInt64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringifiedEpochTimeUnitSecondsStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("StringifiedEpochTimeUnitSeconds: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u StringifiedEpochTimeUnitSeconds) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -8014,6 +9386,47 @@ func (u *StringifiedEpochTimeUnitMillis) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *StringifiedEpochTimeUnitMillis) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = StringifiedEpochTimeUnitMillisUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringifiedEpochTimeUnitMillisInt64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringifiedEpochTimeUnitMillisStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("StringifiedEpochTimeUnitMillis: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u StringifiedEpochTimeUnitMillis) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -8146,6 +9559,47 @@ func (u *CommonQueryDSLBoolQueryFilter) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLBoolQueryFilter: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLBoolQueryFilter) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryFilterUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryFilterQueryContainerType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryFilterArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLBoolQueryFilter: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -8283,6 +9737,47 @@ func (u *MinimumShouldMatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *MinimumShouldMatch) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = MinimumShouldMatchUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = MinimumShouldMatchIntType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = MinimumShouldMatchStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("MinimumShouldMatch: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u MinimumShouldMatch) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -8414,6 +9909,47 @@ func (u *CommonQueryDSLBoolQueryMust) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLBoolQueryMust: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLBoolQueryMust) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryMustUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryMustQueryContainerType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryMustArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLBoolQueryMust: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -8552,6 +10088,47 @@ func (u *CommonQueryDSLBoolQueryMustNot) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLBoolQueryMustNot) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryMustNotUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryMustNotQueryContainerType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryMustNotArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLBoolQueryMustNot: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLBoolQueryMustNot) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -8686,6 +10263,47 @@ func (u *CommonQueryDSLBoolQueryShould) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLBoolQueryShould) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryShouldUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryShouldQueryContainerType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLBoolQueryShouldArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLBoolQueryShould: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLBoolQueryShould) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -8817,6 +10435,47 @@ func (u *CommonQueryDSLCommonTermsQuery) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLCommonTermsQuery: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLCommonTermsQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLCommonTermsQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLCommonTermsQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLCommonTermsQueryQuery
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLCommonTermsQueryQueryType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLCommonTermsQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -9103,6 +10762,47 @@ func (u *CommonQueryDSLSpanTermQuery) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLSpanTermQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLSpanTermQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLSpanTermQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLSpanTermQueryValue
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLSpanTermQueryValueType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLSpanTermQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLSpanTermQuery) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -9239,6 +10939,47 @@ func (u *CommonQueryDSLRandomScoreFunctionSeed) UnmarshalJSON(data []byte) error
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLRandomScoreFunctionSeed) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLRandomScoreFunctionSeedUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLRandomScoreFunctionSeedInt64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLRandomScoreFunctionSeedStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLRandomScoreFunctionSeed: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLRandomScoreFunctionSeed) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -9370,6 +11111,47 @@ func (u *InlineScript) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("InlineScript: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *InlineScript) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = InlineScriptUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = InlineScriptStringType
+		u.value = &v
+	case '{':
+		var v InlineScriptSource
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = InlineScriptSourceType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("InlineScript: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -9784,6 +11566,47 @@ func (u *SearchSourceFilter) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchSourceFilter) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchSourceFilterUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSourceFilterStringType
+		u.value = &v
+	case '{':
+		var v SearchSourceFilterExcludesIncludes
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSourceFilterExcludesIncludesType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchSourceFilter: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchSourceFilter) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -9915,6 +11738,47 @@ func (u *SearchSourceConfig) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SearchSourceConfig: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchSourceConfig) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchSourceConfigUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSourceConfigBoolType
+		u.value = &v
+	case '{':
+		var v SearchSourceFilter
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSourceConfigFilterType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchSourceConfig: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -10052,6 +11916,47 @@ func (u *SearchFieldCollapseInnerHits) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchFieldCollapseInnerHits) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchFieldCollapseInnerHitsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchInnerHits
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchFieldCollapseInnerHitsInnerHitsType
+		u.value = &v
+	case '[':
+		var v []SearchInnerHits
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchFieldCollapseInnerHitsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchFieldCollapseInnerHits: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchFieldCollapseInnerHits) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -10186,6 +12091,47 @@ func (u *CommonQueryDSLFieldAndFormat) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLFieldAndFormat) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLFieldAndFormatUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLFieldAndFormatStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLFieldAndFormatField
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLFieldAndFormatFieldType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLFieldAndFormat: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLFieldAndFormat) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -10317,6 +12263,47 @@ func (u *SearchHighlightFields) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SearchHighlightFields: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchHighlightFields) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchHighlightFieldsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchHighlightFieldsMapType
+		u.value = &v
+	case '[':
+		var v []map[string]SearchHighlightField
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchHighlightFieldsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchHighlightFields: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -10655,6 +12642,47 @@ func (u *Sort) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *Sort) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SortUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SortCombinations
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SortSortCombinationsType
+		u.value = &v
+	case '[':
+		var v []SortCombinations
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SortArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("Sort: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u Sort) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -10786,6 +12814,47 @@ func (u *CommonQueryDSLKNNQueryRescore) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLKNNQueryRescore: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLKNNQueryRescore) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLKNNQueryRescoreUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLKNNQueryRescoreBoolType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLRescoreContext
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLKNNQueryRescoreContextType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLKNNQueryRescore: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -11065,6 +13134,47 @@ func (u *CommonQueryDSLMatchBoolPrefixQuery) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLMatchBoolPrefixQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLMatchBoolPrefixQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchBoolPrefixQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLMatchBoolPrefixQueryQuery
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchBoolPrefixQueryQueryType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLMatchBoolPrefixQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLMatchBoolPrefixQuery) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -11196,6 +13306,47 @@ func (u *CommonQueryDSLMatchPhraseQuery) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLMatchPhraseQuery: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLMatchPhraseQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLMatchPhraseQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhraseQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLMatchPhraseQueryQuery
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhraseQueryQueryType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLMatchPhraseQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -11335,6 +13486,47 @@ func (u *CommonQueryDSLMatchPhrasePrefixQuery) UnmarshalJSON(data []byte) error 
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLMatchPhrasePrefixQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhrasePrefixQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLMatchPhrasePrefixQueryQuery
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhrasePrefixQueryQueryType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLMatchPhrasePrefixQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLMatchPhrasePrefixQuery) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -11466,6 +13658,47 @@ func (u *CommonQueryDSLLike) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLLike: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLLike) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLLikeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLLikeStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLLikeDocument
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLLikeLikeDocumentType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLLike: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -11605,6 +13838,47 @@ func (u *CommonQueryDSLMoreLikeThisQueryLike) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLMoreLikeThisQueryLike) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryLikeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v CommonQueryDSLLike
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMoreLikeThisQueryLikeLikeType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLLike
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMoreLikeThisQueryLikeArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLMoreLikeThisQueryLike: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -11738,6 +14012,47 @@ func (u *CommonAnalysisStopWords) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonAnalysisStopWords: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAnalysisStopWords) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAnalysisStopWordsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisStopWordsStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisStopWordsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAnalysisStopWords: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -11877,6 +14192,47 @@ func (u *CommonQueryDSLMoreLikeThisQueryUnlike) UnmarshalJSON(data []byte) error
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlike) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v CommonQueryDSLLike
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeLikeType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLLike
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLMoreLikeThisQueryUnlike: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLMoreLikeThisQueryUnlike) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -12008,6 +14364,47 @@ func (u *CommonQueryDSLPrefixQuery) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLPrefixQuery: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLPrefixQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLPrefixQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLPrefixQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLPrefixQueryValue
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLPrefixQueryValueType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLPrefixQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -12147,6 +14544,47 @@ func (u *CommonQueryDSLNumberRangeQueryFrom) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLNumberRangeQueryFrom) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLNumberRangeQueryFromUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLNumberRangeQueryFromFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLNumberRangeQueryFromStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLNumberRangeQueryFrom: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLNumberRangeQueryFrom) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -12278,6 +14716,47 @@ func (u *CommonQueryDSLNumberRangeQueryTo) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLNumberRangeQueryTo: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLNumberRangeQueryTo) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLNumberRangeQueryToUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLNumberRangeQueryToFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLNumberRangeQueryToStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLNumberRangeQueryTo: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -12543,6 +15022,47 @@ func (u *CommonQueryDSLRegexpQuery) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonQueryDSLRegexpQuery: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLRegexpQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLRegexpQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLRegexpQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLRegexpQueryValue
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLRegexpQueryValueType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLRegexpQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -12820,6 +15340,47 @@ func (u *CommonQueryDSLWildcardQuery) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLWildcardQuery) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLWildcardQueryUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLWildcardQueryStringType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLWildcardQueryObject1
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLWildcardQueryObject1Type
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLWildcardQuery: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonQueryDSLWildcardQuery) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -12951,6 +15512,47 @@ func (u *CommonMappingDynamic) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonMappingDynamic: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonMappingDynamic) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonMappingDynamicUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingDynamicStringType
+		u.value = &v
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingDynamicBoolType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonMappingDynamic: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -13090,6 +15692,47 @@ func (u *CommonMappingJoinPropertyRelationsValue) UnmarshalJSON(data []byte) err
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonMappingJoinPropertyRelationsValue) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonMappingJoinPropertyRelationsValueUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingJoinPropertyRelationsValueStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingJoinPropertyRelationsValueArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonMappingJoinPropertyRelationsValue: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonMappingJoinPropertyRelationsValue) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -13223,6 +15866,47 @@ func (u *CommonMappingSuggestContextPrecision) UnmarshalJSON(data []byte) error 
 	default:
 		return fmt.Errorf("CommonMappingSuggestContextPrecision: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonMappingSuggestContextPrecision) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonMappingSuggestContextPrecisionUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingSuggestContextPrecisionFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingSuggestContextPrecisionStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonMappingSuggestContextPrecision: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -13395,6 +16079,54 @@ func (u *XYLocation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *XYLocation) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = XYLocationUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v XYCartesianCoordinates
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = XYLocationCartesianType
+		u.value = &v
+	case '[':
+		var v []float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = XYLocationArrayType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = XYLocationStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("XYLocation: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u XYLocation) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -13528,6 +16260,47 @@ func (u *CommonMappingSemanticPropertyChunking) UnmarshalJSON(data []byte) error
 	default:
 		return fmt.Errorf("CommonMappingSemanticPropertyChunking: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonMappingSemanticPropertyChunking) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonMappingSemanticPropertyChunkingUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingSemanticPropertyChunkingBoolType
+		u.value = &v
+	case '[':
+		var v []CommonMappingSemanticChunkingStrategy
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonMappingSemanticPropertyChunkingArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonMappingSemanticPropertyChunking: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -16344,6 +19117,47 @@ func (u *CommonAnalysisCharFilter) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAnalysisCharFilter) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAnalysisCharFilterUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisCharFilterStringType
+		u.value = &v
+	case '{':
+		var v CommonAnalysisCharFilterDefinition
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisCharFilterCharFilterDefinitionType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAnalysisCharFilter: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAnalysisCharFilter) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -18311,6 +21125,47 @@ func (u *CommonAnalysisTokenFilter) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAnalysisTokenFilter) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAnalysisTokenFilterUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisTokenFilterStringType
+		u.value = &v
+	case '{':
+		var v CommonAnalysisTokenFilterDefinition
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisTokenFilterTokenFilterDefinitionType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAnalysisTokenFilter: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAnalysisTokenFilter) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -19274,6 +22129,47 @@ func (u *CommonAnalysisTokenizer) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAnalysisTokenizer) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAnalysisTokenizerUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisTokenizerStringType
+		u.value = &v
+	case '{':
+		var v CommonAnalysisTokenizerDefinition
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAnalysisTokenizerTokenizerDefinitionType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAnalysisTokenizer: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAnalysisTokenizer) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -19412,6 +22308,47 @@ func (u *IndicesIndexingPressureMemoryLimit) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesIndexingPressureMemoryLimit) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesIndexingPressureMemoryLimitUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexingPressureMemoryLimitStringType
+		u.value = &v
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexingPressureMemoryLimitInt64Type
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesIndexingPressureMemoryLimit: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u IndicesIndexingPressureMemoryLimit) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -19543,6 +22480,47 @@ func (u *IndicesIndexSettingsMergePolicy) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("IndicesIndexSettingsMergePolicy: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesIndexSettingsMergePolicy) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesIndexSettingsMergePolicyUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSettingsMergePolicyStringType
+		u.value = &v
+	case '{':
+		var v IndicesIndexSettingsMergeTieredPolicy
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSettingsMergePolicyTieredPolicyConfigType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesIndexSettingsMergePolicy: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -19680,6 +22658,47 @@ func (u *IndicesIndexSegmentSortMissing) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesIndexSegmentSortMissing) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesIndexSegmentSortMissingUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSegmentSortMissingStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSegmentSortMissingArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesIndexSegmentSortMissing: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u IndicesIndexSegmentSortMissing) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -19814,6 +22833,47 @@ func (u *IndicesIndexSegmentSortMode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesIndexSegmentSortMode) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesIndexSegmentSortModeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSegmentSortModeStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSegmentSortModeArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesIndexSegmentSortMode: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u IndicesIndexSegmentSortMode) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -19945,6 +23005,47 @@ func (u *IndicesIndexSegmentSortOrder) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("IndicesIndexSegmentSortOrder: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesIndexSegmentSortOrder) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesIndexSegmentSortOrderUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSegmentSortOrderStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesIndexSegmentSortOrderArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesIndexSegmentSortOrder: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -20235,6 +23336,58 @@ func (u *BulkByScrollTaskStatusOrException) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *BulkByScrollTaskStatusOrException) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = BulkByScrollTaskStatusOrExceptionUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		BulkByScrollTaskStatus
+		Disc0   json.RawMessage `json:"type"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v ErrorCause
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = BulkByScrollTaskStatusOrExceptionExceptionType
+		u.value = &v
+		return nil
+	}
+	u.typ = BulkByScrollTaskStatusOrExceptionBulkByScrollTaskStatusType
+	u.value = &m.BulkByScrollTaskStatus
+	return nil
+}
+
 func (u BulkByScrollTaskStatusOrException) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -20362,6 +23515,58 @@ func (u *BulkByScrollFailure) UnmarshalJSON(data []byte) error {
 	if len(m.Disc0) > 0 {
 		var v ScrollableHitSourceSearchFailure
 		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = BulkByScrollFailureScrollableHitSourceSearchFailureType
+		u.value = &v
+		return nil
+	}
+	u.typ = BulkByScrollFailureBulkItemRespFailureType
+	u.value = &m.BulkItemRespFailure
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *BulkByScrollFailure) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = BulkByScrollFailureUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		BulkItemRespFailure
+		Disc0   json.RawMessage `json:"reason"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v ScrollableHitSourceSearchFailure
+		if err := json.Unmarshal(src, &v); err != nil {
 			return err
 		}
 		u.typ = BulkByScrollFailureScrollableHitSourceSearchFailureType
@@ -20708,6 +23913,47 @@ func (u *TasksTaskInfos) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *TasksTaskInfos) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = TasksTaskInfosUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '[':
+		var v []TasksTaskInfo
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = TasksTaskInfosArrayType
+		u.value = &v
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = TasksTaskInfosMapType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("TasksTaskInfos: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -20843,6 +24089,47 @@ func (u *StringifiedVersionNumber) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("StringifiedVersionNumber: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *StringifiedVersionNumber) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = StringifiedVersionNumberUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringifiedVersionNumberInt64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = StringifiedVersionNumberStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("StringifiedVersionNumber: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -20983,6 +24270,47 @@ func (u *SearchTrackHits) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchTrackHits) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchTrackHitsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchTrackHitsBoolType
+		u.value = &v
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchTrackHitsIntType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchTrackHits: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SearchTrackHits) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -21114,6 +24442,47 @@ func (u *ISMPolicyTemplate) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("ISMPolicyTemplate: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *ISMPolicyTemplate) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = ISMPolicyTemplateUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v ISMTemplate
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = ISMPolicyTemplateISMTemplateType
+		u.value = &v
+	case '[':
+		var v []ISMTemplate
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = ISMPolicyTemplateArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("ISMPolicyTemplate: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -21252,6 +24621,47 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSON(d
 	default:
 		return fmt.Errorf("SearchResultJSONValueSuggestValueItemCompletionOptions: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v SearchResultJSONValueSuggestValueItemCompletionOptionsSource
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
+		u.value = &v
+	case '[':
+		var v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SearchResultJSONValueSuggestValueItemCompletionOptions: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -21716,6 +25126,47 @@ func (u *NodeIDs) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *NodeIDs) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = NodeIDsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NodeIDsStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NodeIDsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("NodeIDs: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u NodeIDs) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -21850,6 +25301,47 @@ func (u *MLSourceCreateTime) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *MLSourceCreateTime) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = MLSourceCreateTimeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = MLSourceCreateTimeStringType
+		u.value = &v
+	case '0':
+		var v int64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = MLSourceCreateTimeInt64Type
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("MLSourceCreateTime: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u MLSourceCreateTime) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -21981,6 +25473,47 @@ func (u *NeuralStatMetadataValue) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("NeuralStatMetadataValue: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *NeuralStatMetadataValue) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = NeuralStatMetadataValueUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralStatMetadataValueIntType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralStatMetadataValueStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("NeuralStatMetadataValue: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -22120,6 +25653,47 @@ func (u *NeuralTimestampedEventCounterStat) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *NeuralTimestampedEventCounterStat) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = NeuralTimestampedEventCounterStatUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralTimestampedEventCounterStatIntType
+		u.value = &v
+	case '{':
+		var v NeuralTimestampedEventCounterStatStatType
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralTimestampedEventCounterStatStatTypeType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("NeuralTimestampedEventCounterStat: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u NeuralTimestampedEventCounterStat) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -22254,6 +25828,47 @@ func (u *NeuralInfoStringStat) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *NeuralInfoStringStat) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = NeuralInfoStringStatUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoStringStatStringType
+		u.value = &v
+	case '{':
+		var v NeuralInfoStringStatStatType
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoStringStatStatTypeType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("NeuralInfoStringStat: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u NeuralInfoStringStat) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -22385,6 +26000,47 @@ func (u *NeuralInfoCounterStat) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("NeuralInfoCounterStat: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *NeuralInfoCounterStat) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = NeuralInfoCounterStatUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoCounterStatIntType
+		u.value = &v
+	case '{':
+		var v NeuralInfoCounterStatStatType
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoCounterStatStatTypeType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("NeuralInfoCounterStat: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -22659,6 +26315,47 @@ func (u *RollupsIntervalCron) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *RollupsIntervalCron) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = RollupsIntervalCronUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '[':
+		var v []RollupsCron
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = RollupsIntervalCronArrayType
+		u.value = &v
+	case '{':
+		var v RollupsCron
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = RollupsIntervalCronCronType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("RollupsIntervalCron: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u RollupsIntervalCron) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -22788,6 +26485,58 @@ func (u *SearchPipelinePhaseResultsProcessor) UnmarshalJSON(data []byte) error {
 	if len(m.Disc0) > 0 {
 		var v SearchPipelinePhaseResultsProcessorScoreRankerProcessor
 		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelinePhaseResultsProcessorScoreRankerProcessorType
+		u.value = &v
+		return nil
+	}
+	u.typ = SearchPipelinePhaseResultsProcessorNormalizationProcessorType
+	u.value = &m.SearchPipelinePhaseResultsProcessorNormalizationProcessor
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchPipelinePhaseResultsProcessor) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchPipelinePhaseResultsProcessorUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		SearchPipelinePhaseResultsProcessorNormalizationProcessor
+		Disc0   json.RawMessage `json:"score-ranker-processor"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelinePhaseResultsProcessorScoreRankerProcessor
+		if err := json.Unmarshal(src, &v); err != nil {
 			return err
 		}
 		u.typ = SearchPipelinePhaseResultsProcessorScoreRankerProcessorType
@@ -23028,6 +26777,121 @@ func (u *SearchPipelineRequestProcessor) UnmarshalJSON(data []byte) error {
 	if len(m.Disc3) > 0 {
 		var v SearchPipelineRequestProcessorOversample
 		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRequestProcessorOversampleType
+		u.value = &v
+		return nil
+	}
+	u.typ = SearchPipelineRequestProcessorAgenticQueryTranslatorType
+	u.value = &m.SearchPipelineRequestProcessorAgenticQueryTranslator
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchPipelineRequestProcessor) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchPipelineRequestProcessorUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		SearchPipelineRequestProcessorAgenticQueryTranslator
+		Disc0   json.RawMessage `json:"filter_query"`
+		Disc1   json.RawMessage `json:"neural_query_enricher"`
+		Disc2   json.RawMessage `json:"script"`
+		Disc3   json.RawMessage `json:"oversample"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRequestProcessorFilterQuery
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRequestProcessorFilterQueryType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc1) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRequestProcessorNeuralQueryEnricher
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRequestProcessorNeuralQueryEnricherType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc2) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRequestProcessorScript
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRequestProcessorScriptType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc3) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRequestProcessorOversample
+		if err := json.Unmarshal(src, &v); err != nil {
 			return err
 		}
 		u.typ = SearchPipelineRequestProcessorOversampleType
@@ -23415,6 +27279,205 @@ func (u *SearchPipelineRespProcessor) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SearchPipelineRespProcessor) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SearchPipelineRespProcessorUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		SearchPipelineRespProcessorAgenticContext
+		Disc0   json.RawMessage `json:"personalize_search_ranking"`
+		Disc1   json.RawMessage `json:"retrieval_augmented_generation"`
+		Disc2   json.RawMessage `json:"rename_field"`
+		Disc3   json.RawMessage `json:"rerank"`
+		Disc4   json.RawMessage `json:"collapse"`
+		Disc5   json.RawMessage `json:"truncate_hits"`
+		Disc6   json.RawMessage `json:"sort"`
+		Disc7   json.RawMessage `json:"split"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorPersonalizeSearchRanking
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorPersonalizeSearchRankingType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc1) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorRetrievalAugmentedGeneration
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorRetrievalAugmentedGenerationType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc2) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorRenameField
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorRenameFieldType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc3) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorRerank
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorRerankType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc4) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorCollapse
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorCollapseType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc5) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorTruncateHits
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorTruncateHitsType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc6) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorSort
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorSortType
+		u.value = &v
+		return nil
+	}
+	if len(m.Disc7) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v SearchPipelineRespProcessorSplit
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = SearchPipelineRespProcessorSplitType
+		u.value = &v
+		return nil
+	}
+	u.typ = SearchPipelineRespProcessorAgenticContextType
+	u.value = &m.SearchPipelineRespProcessorAgenticContext
+	return nil
+}
+
 func (u SearchPipelineRespProcessor) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -23546,6 +27609,47 @@ func (u *SQLPPLEnabled) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SQLPPLEnabled: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SQLPPLEnabled) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SQLPPLEnabledUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLPPLEnabledBoolType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLPPLEnabledStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SQLPPLEnabled: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -23683,6 +27787,47 @@ func (u *SQLPluginsQuerySizeLimit) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SQLPluginsQuerySizeLimit) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SQLPluginsQuerySizeLimitUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLPluginsQuerySizeLimitStringType
+		u.value = &v
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLPluginsQuerySizeLimitIntType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SQLPluginsQuerySizeLimit: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SQLPluginsQuerySizeLimit) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -23817,6 +27962,47 @@ func (u *SQLEnabled) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SQLEnabled) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SQLEnabledUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case 't', 'f':
+		var v bool
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLEnabledBoolType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLEnabledStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SQLEnabled: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u SQLEnabled) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -23948,6 +28134,47 @@ func (u *SQLSlowlog) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("SQLSlowlog: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *SQLSlowlog) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = SQLSlowlogUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLSlowlogIntType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = SQLSlowlogStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("SQLSlowlog: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -24255,6 +28482,54 @@ func (u *CommonAggregationsBucketsPath) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsBucketsPath) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsBucketsPathUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsPathStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsPathArrayType
+		u.value = &v
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsPathMapType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsBucketsPath: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsBucketsPath) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -24387,6 +28662,47 @@ func (u *CommonAggregationsFieldDateMath) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("CommonAggregationsFieldDateMath: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsFieldDateMath) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsFieldDateMathUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsFieldDateMathStringType
+		u.value = &v
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsFieldDateMathFloat64Type
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsFieldDateMath: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -24526,6 +28842,47 @@ func (u *CommonAggregationsBucketsQueryContainer) UnmarshalJSON(data []byte) err
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsBucketsQueryContainer) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsBucketsQueryContainerUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsQueryContainerMapType
+		u.value = &v
+	case '[':
+		var v []CommonQueryDSLQueryContainer
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsBucketsQueryContainerArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsBucketsQueryContainer: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsBucketsQueryContainer) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -24659,6 +29016,47 @@ func (u *CommonAggregationsAggregationRangeFrom) UnmarshalJSON(data []byte) erro
 	default:
 		return fmt.Errorf("CommonAggregationsAggregationRangeFrom: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsAggregationRangeFrom) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsAggregationRangeFromUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeFromFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeFromStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsAggregationRangeFrom: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -24798,6 +29196,47 @@ func (u *CommonAggregationsAggregationRangeTo) UnmarshalJSON(data []byte) error 
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsAggregationRangeTo) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsAggregationRangeToUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeToFloat64Type
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregationRangeToStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsAggregationRangeTo: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsAggregationRangeTo) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -24929,6 +29368,47 @@ func (u *GeoHashPrecision) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("GeoHashPrecision: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *GeoHashPrecision) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = GeoHashPrecisionUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v int
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = GeoHashPrecisionIntType
+		u.value = &v
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = GeoHashPrecisionStringType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("GeoHashPrecision: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 
@@ -25324,6 +29804,47 @@ func (u *CommonAggregationsTermsExclude) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsTermsExclude) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsTermsExcludeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsExcludeStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsExcludeArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsTermsExclude: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsTermsExclude) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -25489,6 +30010,54 @@ func (u *CommonAggregationsTermsInclude) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsTermsInclude) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsTermsIncludeUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsIncludeStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsIncludeArrayType
+		u.value = &v
+	case '{':
+		var v CommonAggregationsTermsPartition
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsTermsIncludePartitionType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsTermsInclude: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsTermsInclude) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -25623,6 +30192,47 @@ func (u *CommonAggregationsAggregateOrder) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonAggregationsAggregateOrder) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonAggregationsAggregateOrderUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '{':
+		var v map[string]json.RawMessage
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregateOrderMapType
+		u.value = &v
+	case '[':
+		var v []map[string]string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonAggregationsAggregateOrderArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonAggregationsAggregateOrder: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u CommonAggregationsAggregateOrder) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -25754,6 +30364,47 @@ func (u *ScrollIDs) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("ScrollIDs: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *ScrollIDs) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = ScrollIDsUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = ScrollIDsStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = ScrollIDsArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("ScrollIDs: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 

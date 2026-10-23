@@ -39,19 +39,19 @@ jobs:
           flags: unit
         if: matrix.os == 'ubuntu-latest'
 
-  jsonv2:
-    # internal/jsonx is the standard library's encoding/json where the toolchain
-    # builds encoding/json/v2, and the copy in internal/third_party/jsonv2
-    # elsewhere. The test job runs the go.mod toolchain without the experiment,
-    # so this job builds and tests the other file.
-    name: "Tests (GOEXPERIMENT=jsonv2)"
+  go127:
+    # internal/jsonx is the standard library's encoding/json on Go 1.27, which
+    # builds encoding/json/v2, and the copy in internal/third_party/jsonv2 on the
+    # go.mod toolchain. The test job runs the go.mod toolchain, so this job
+    # builds and tests the other file.
+    name: "Tests (Go 1.27)"
     runs-on: ubuntu-latest
     env:
-      GOEXPERIMENT: jsonv2
+      GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with: { go-version-file: 'go.mod' }
+        with: { go-version: '1.27.x' }
       - run: go version
       - run: make workspace
         # See the test job.

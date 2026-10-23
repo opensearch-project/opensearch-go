@@ -353,6 +353,47 @@ func (u *IndicesUpdateAliasesAddActionAliases) UnmarshalJSON(data []byte) error 
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesUpdateAliasesAddActionAliases) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesUpdateAliasesAddActionAliasesUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesAddActionAliasesStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesAddActionAliasesArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesUpdateAliasesAddActionAliases: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
 func (u IndicesUpdateAliasesAddActionAliases) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -486,6 +527,47 @@ func (u *IndicesUpdateAliasesRemoveActionAliases) UnmarshalJSON(data []byte) err
 	default:
 		return fmt.Errorf("IndicesUpdateAliasesRemoveActionAliases: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *IndicesUpdateAliasesRemoveActionAliases) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = IndicesUpdateAliasesRemoveActionAliasesUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '"':
+		var v string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesRemoveActionAliasesStringType
+		u.value = &v
+	case '[':
+		var v []string
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesRemoveActionAliasesArrayType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("IndicesUpdateAliasesRemoveActionAliases: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 

@@ -338,6 +338,58 @@ func (u *MGetRespItem) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *MGetRespItem) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = MGetRespItemUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		GetResult
+		Disc0   json.RawMessage `json:"error"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v MGetMultiGetError
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = MGetRespItemMultiGetErrorType
+		u.value = &v
+		return nil
+	}
+	u.typ = MGetRespItemGetResultType
+	u.value = &m.GetResult
+	return nil
+}
+
 func (u MGetRespItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
