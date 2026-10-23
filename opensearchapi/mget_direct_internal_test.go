@@ -149,9 +149,34 @@ func (f *mgetFake) indexOf(req MGetReq, op MGetOperation) string {
 	return req.Index
 }
 
+// decodeBody returns req with the pooled body the driver sent decoded into
+// req.Body, as a node would decode it.
+func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
+	body, ok := req.BodyReader.(*mgetBody)
+	if !ok {
+		f.t.Errorf("the driver sent a %T body, not its pooled mget body", req.BodyReader)
+
+		return req
+	}
+
+	var decoded MGetBody
+	if err := json.Unmarshal(body.Bytes(), &decoded); err != nil {
+		f.t.Errorf("the driver sent a body that is not an mget: %v: %s", err, body.Bytes())
+	}
+	req.Body = &decoded
+
+	return req
+}
+
 // send implements mgetSender for the nodes of the fake cluster. A node answers
 // only documents whose shard it holds a copy of.
 func (f *mgetFake) send(_ context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
+	req = f.decodeBody(req)
+	if body, ok := req.BodyReader.(*mgetBody); ok {
+		// The transport closes a request body once it has sent it.
+		defer body.Close()
+	}
+
 	ids := make([]string, len(req.Body.Docs))
 	for i, op := range req.Body.Docs {
 		ids[i] = op.ID

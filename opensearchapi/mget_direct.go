@@ -140,8 +140,6 @@ type mgetCall struct {
 	// preference and [1] with preference=_local. They are set once per call and
 	// shared, read-only, by its sub-requests.
 	params [2]MGetParams
-	// indexes is the concrete index each document was looked up in, or "".
-	indexes []string
 
 	jobs []mgetJob
 	// unrouted are the positions route could not send to a node. They are
@@ -185,14 +183,12 @@ func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
 		return nil, errMGetReshaped
 	}
 
-	n := len(req.Body.Docs)
 	call := &mgetCall{
 		d:        d,
 		c:        c,
 		req:      req,
 		realtime: req.Params == nil || req.Params.Realtime == nil || *req.Params.Realtime,
-		indexes:  make([]string, n),
-		docs:     make([]MGetRespItem, n),
+		docs:     make([]MGetRespItem, len(req.Body.Docs)),
 	}
 	if req.Params != nil {
 		call.routing = strings.Join(req.Params.Routing, ",")
@@ -228,32 +224,45 @@ func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJ
 		node  string
 		local bool
 	}
-
-	var (
-		unrouted []int
-		order    []groupKey
-		groups   = make(map[groupKey]*mgetJob)
-		planned  = make(map[string]int)
-	)
-
-	targets := mgetTargetPool.Get()
-	defer mgetTargetPool.Put(targets)
+	// group is the documents bound for one node with one preference. start is
+	// where its positions begin in the shared slots array, and n how many there are.
+	type group struct {
+		node     *opensearchtransport.Connection
+		local    bool
+		start, n int
+	}
 
 	count := len(positions)
 	if positions == nil {
 		count = len(call.req.Body.Docs)
 	}
-	for i := range count {
-		pos := i
-		if positions != nil {
-			pos = positions[i]
+	at := func(i int) int {
+		if positions == nil {
+			return i
 		}
 
+		return positions[i]
+	}
+
+	var (
+		unrouted []int
+		groups   []group
+		index    = make(map[groupKey]int)
+		planned  = make(map[string]int)
+		// assigned is the group of the i-th position, or -1 when it is not routed.
+		// Each document's node depends on the documents routed before it, so the
+		// groups' sizes are known only after the pass that assigns them.
+		assigned = make([]int32, count)
+	)
+
+	targets := mgetTargetPool.Get()
+	defer mgetTargetPool.Put(targets)
+
+	for i := range count {
+		pos := at(i)
+		assigned[i] = -1
+
 		op := call.req.Body.Docs[pos]
-		index := call.req.Index
-		if op.Index != nil && *op.Index != "" {
-			index = *op.Index
-		}
 		key := op.ID
 		switch {
 		case op.Routing != nil && *op.Routing != "":
@@ -262,12 +271,12 @@ func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJ
 			key = call.routing
 		}
 
-		if index == "" || op.ID == "" || call.d.lookup.LookupShard(index, key, targets) != nil {
+		idx := call.indexOf(pos)
+		if idx == "" || op.ID == "" || call.d.lookup.LookupShard(idx, key, targets) != nil {
 			unrouted = append(unrouted, pos)
 
 			continue
 		}
-		call.indexes[pos] = index
 
 		sn, err := call.findShardNode(*targets, avoid, planned)
 		if err != nil {
@@ -278,21 +287,40 @@ func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJ
 		planned[sn.node.Name]++
 
 		gk := groupKey{node: sn.node.Name, local: sn.local}
-		j, found := groups[gk]
+		g, found := index[gk]
 		if !found {
-			j = &mgetJob{node: sn.node, local: sn.local, attempt: attempt}
-			groups[gk] = j
-			order = append(order, gk)
+			g = len(groups)
+			index[gk] = g
+			groups = append(groups, group{node: sn.node, local: sn.local})
 		}
-		j.slots = append(j.slots, pos)
+		groups[g].n++
+		assigned[i] = int32(g) //nolint:gosec // There are no more groups than nodes.
 	}
 
-	var jobs []mgetJob
-	for _, gk := range order {
-		j := groups[gk]
-		for start := 0; start < len(j.slots); start += call.d.maxDocs {
-			end := min(start+call.d.maxDocs, len(j.slots))
-			jobs = append(jobs, mgetJob{node: j.node, local: j.local, attempt: attempt, slots: j.slots[start:end:end]})
+	// Lay every group's positions out in one array, and cut each into jobs of at
+	// most maxDocs.
+	routed, numJobs := 0, 0
+	for g := range groups {
+		groups[g].start = routed
+		routed += groups[g].n
+		numJobs += (groups[g].n + call.d.maxDocs - 1) / call.d.maxDocs
+	}
+	slots := make([]int, routed)
+	filled := make([]int, len(groups))
+	for i, g := range assigned {
+		if g < 0 {
+			continue
+		}
+		slots[groups[g].start+filled[g]] = at(i)
+		filled[g]++
+	}
+
+	jobs := make([]mgetJob, 0, numJobs)
+	for _, grp := range groups {
+		mine := slots[grp.start : grp.start+grp.n]
+		for start := 0; start < len(mine); start += call.d.maxDocs {
+			end := min(start+call.d.maxDocs, len(mine))
+			jobs = append(jobs, mgetJob{node: grp.node, local: grp.local, attempt: attempt, slots: mine[start:end:end]})
 		}
 	}
 
@@ -438,11 +466,14 @@ func (call *mgetCall) coordinate(ctx context.Context, slots []int) {
 }
 
 // subRequest builds the request for the documents at slots, with the caller's
-// parameters. local adds preference=_local.
-func (call *mgetCall) subRequest(slots []int, local bool) MGetReq {
-	ops := make([]MGetOperation, len(slots))
-	for i, pos := range slots {
-		ops[i] = call.req.Body.Docs[pos]
+// parameters; local adds preference=_local. Its body is encoded into a pooled
+// buffer, and the caller releases the returned body once the request has
+// returned. An error is from encoding a document, which the generated request
+// would have hit as well.
+func (call *mgetCall) subRequest(slots []int, local bool) (MGetReq, *mgetBody, error) {
+	body, err := encodeMGetBody(call.req.Body.Docs, slots)
+	if err != nil {
+		return MGetReq{}, nil, err
 	}
 
 	params := &call.params[0]
@@ -450,16 +481,25 @@ func (call *mgetCall) subRequest(slots []int, local bool) MGetReq {
 		params = &call.params[1]
 	}
 
-	return MGetReq{Index: call.req.Index, Body: &MGetBody{Docs: ops}, Header: call.req.Header, Params: params}
+	return MGetReq{Index: call.req.Index, BodyReader: body, Header: call.req.Header, Params: params}, body, nil
 }
 
 // sendJob sends a job to its node once the node's window has room, injects the
 // node's response, and sends again any documents that need another request.
 func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
-	sub := call.subRequest(j.slots, j.local)
-
 	reservation, err := call.d.windows.Acquire(ctx, scheduler.NodeName(j.node.Name), int64(len(j.slots)))
 	if err != nil {
+		return
+	}
+
+	// Encoded once admitted, so that a job waiting for room holds no buffer.
+	sub, body, err := call.subRequest(j.slots, j.local)
+	if err != nil {
+		call.d.windows.Release(reservation, scheduler.OutcomeUnknown, false)
+		// The cluster's answer to the whole mget, encoded as the generated
+		// request encodes it, is what the caller would have got.
+		call.resendWhole()
+
 		return
 	}
 
@@ -473,6 +513,7 @@ func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 
 	sent := time.Now()
 	resp, err := call.d.send(ctx, call.c, j.node, sub)
+	body.release()
 	event := MGetRequestEvent{
 		Node:       j.node.Name,
 		Attempt:    j.attempt,
@@ -580,7 +621,12 @@ func (call *mgetCall) injectResponse(
 // sendCoordinated asks a coordinating node for the documents at slots, and
 // places its answer.
 func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
-	sub := call.subRequest(slots, false)
+	sub, body, err := call.subRequest(slots, false)
+	if err != nil {
+		call.resendWhole()
+
+		return
+	}
 
 	call.mu.Lock()
 	call.mu.stats.Requests++
@@ -588,6 +634,7 @@ func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
 
 	sent := time.Now()
 	resp, err := call.c.Doc.MGet(WithMGetDriver(ctx, MGetDriverCoordinator), sub)
+	body.release()
 	event := MGetRequestEvent{Docs: len(slots), Duration: time.Since(sent), StatusCode: mgetStatus(resp), Err: err}
 	if call.d.observer != nil {
 		defer call.d.observer.OnMGetRequest(ctx, event)
@@ -678,17 +725,18 @@ func (call *mgetCall) fail(slots []int, err error) {
 	call.mu.Unlock()
 
 	for _, pos := range slots {
-		op := call.req.Body.Docs[pos]
-		index := call.indexes[pos]
-		switch {
-		case index != "":
-		case op.Index != nil:
-			index = *op.Index
-		default:
-			index = call.req.Index
-		}
-		call.docs[pos] = mgetFailureItem(index, op.ID, err)
+		call.docs[pos] = mgetFailureItem(call.indexOf(pos), call.req.Body.Docs[pos].ID, err)
 	}
+}
+
+// indexOf returns the index the document at pos names: its own _index, or else
+// the request's.
+func (call *mgetCall) indexOf(pos int) string {
+	if op := call.req.Body.Docs[pos]; op.Index != nil && *op.Index != "" {
+		return *op.Index
+	}
+
+	return call.req.Index
 }
 
 // mgetFailureItem is the answer for a document whose every request failed, in
@@ -739,7 +787,7 @@ func (call *mgetCall) merge(header http.Header) *MGetResp {
 			// A position nothing answered: every path places or fails each one,
 			// so this is a defect, answered as a failed document rather than a
 			// malformed body.
-			call.docs[i] = mgetFailureItem(call.indexes[i], call.req.Body.Docs[i].ID, errors.New("mget: document was not answered"))
+			call.docs[i] = mgetFailureItem(call.indexOf(i), call.req.Body.Docs[i].ID, errors.New("mget: document was not answered"))
 		}
 		size += len(call.docs[i].raw) + 1
 	}
