@@ -38,11 +38,10 @@ const (
 	// answers are put back together in the order the documents were asked for,
 	// so the caller gets the response the cluster would have given.
 	//
-	// A document the client cannot resolve to a node -- one in an index whose
-	// shard map is not known yet, named through an alias or a data stream, or
-	// with no _index -- is fetched through a coordinating node in a request of
-	// its own. So is
-	// every document of an mget the client cannot split as the cluster would:
+	// A document the client cannot route to a node -- one in an index whose shard
+	// map is not known yet, named through an alias or a data stream, or with no
+	// _index -- is fetched through a coordinating node in a request of its own. So
+	// is every document of an mget the client cannot split as the cluster would:
 	// one with a preference, a filter_path, a format or a source parameter, a raw
 	// BodyReader, or ids in place of docs.
 	MGetDriverDirect
@@ -196,7 +195,7 @@ func (d *mgetDriver) selected(ctx context.Context) MGetDriver {
 
 // interceptMGet is the hook DocumentClient.MGet calls first. It answers the
 // call itself, and reports true, when the direct driver is selected and can
-// resolve at least one of the documents to a node; otherwise it reports false
+// route at least one of the documents to a node; otherwise it reports false
 // and the mget goes to the cluster as one request.
 func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, bool, error) {
 	d := c.ext.mget

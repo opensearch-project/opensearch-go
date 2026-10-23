@@ -90,7 +90,7 @@ type MGetDoneEvent struct {
 	Retries int
 
 	// CoordinatorDocs is the number of documents answered through a coordinating
-	// node: those the client could not resolve to a node, and those that ran out
+	// node: those the client could not route to a node, and those that ran out
 	// of direct attempts.
 	CoordinatorDocs int
 
