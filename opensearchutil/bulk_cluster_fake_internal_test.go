@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -205,6 +206,13 @@ type fakeServer struct {
 	// yields makes each request give up the processor this many times while it is
 	// in flight, so overlapping requests overlap.
 	yields int
+	// holdUntil, when above 0, holds every bulk request until that many are in
+	// flight together, then lets them all through; see holdForPeak.
+	holdUntil int
+	// reached is closed once holdUntil requests have been in flight together,
+	// or once holdTimeout has passed without that.
+	reached     chan struct{}
+	reachedOnce sync.Once
 	// respond, when set, supplies the response; the default is an empty success.
 	respond func(req sentRequest, body string) (status int, resp string)
 	// advance, when set, is called with each request as it is served, before it
@@ -222,10 +230,36 @@ type fakeServer struct {
 }
 
 func newFakeServer(cluster *fakeCluster) *fakeServer {
-	s := &fakeServer{cluster: cluster}
+	s := &fakeServer{cluster: cluster, reached: make(chan struct{})}
 	s.mu.busy = map[shardKey]int{}
 
 	return s
+}
+
+// holdTimeout bounds how long holdForPeak waits for the peak. A client that
+// never sends holdUntil requests at once is let through after it, so the test
+// fails on the peak it measured rather than hanging.
+const holdTimeout = 10 * time.Second
+
+// holdForPeak holds a request until holdUntil requests are in flight together.
+// The first time that happens every held request goes on, and none is held
+// again, so the client's own limit is all that bounds the requests after it.
+func (s *fakeServer) holdForPeak(inflight int) {
+	if s.holdUntil <= 0 {
+		return
+	}
+	if inflight >= s.holdUntil {
+		s.reachedOnce.Do(func() { close(s.reached) })
+	}
+
+	timer := time.NewTimer(holdTimeout)
+	defer timer.Stop()
+
+	select {
+	case <-s.reached:
+	case <-timer.C:
+		s.reachedOnce.Do(func() { close(s.reached) })
+	}
 }
 
 func (s *fakeServer) roundTrip(req *http.Request) (*http.Response, error) {
@@ -259,9 +293,11 @@ func (s *fakeServer) roundTrip(req *http.Request) (*http.Response, error) {
 	}
 	s.mu.inflight++
 	s.mu.maxInflight = max(s.mu.maxInflight, s.mu.inflight)
+	inflight := s.mu.inflight
 	s.mu.sent = append(s.mu.sent, sent)
 	s.mu.Unlock()
 
+	s.holdForPeak(inflight)
 	if s.entered != nil {
 		s.entered <- sent.node
 	}

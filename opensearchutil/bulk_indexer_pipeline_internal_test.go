@@ -636,7 +636,7 @@ func TestBulkIndexerNumWorkersCapsRequests(t *testing.T) {
 			cluster := newFakeCluster(map[string]ShardMap{"alpha": DefaultShardMap(8)}, "n0", "n1")
 			cluster.setWindow(8, false)
 			server := newFakeServer(cluster)
-			server.yields = 100
+			server.holdUntil = tt.wantMax
 
 			cfg := fixedBatches(docBytes("alpha", "doc-00", 1000), 2)
 			cfg.NumWorkers = tt.numWorkers
