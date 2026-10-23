@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -40,7 +41,7 @@ type mgetFakeIndex struct {
 // map, nodes that answer from the shards they hold, and a coordinating node
 // behind a real HTTP server.
 type mgetFake struct {
-	t       *testing.T
+	t       testing.TB
 	indexes map[string]mgetFakeIndex
 	conns   map[string]*opensearchtransport.Connection
 
@@ -65,12 +66,12 @@ type mgetFakeSent struct {
 	ids        []string
 }
 
-func newMGetFake(t *testing.T) *mgetFake {
-	t.Helper()
+func newMGetFake(tb testing.TB) *mgetFake {
+	tb.Helper()
 
 	copies := [][]string{{"n0", "n1"}, {"n1", "n2"}, {"n2", "n0"}}
 	f := &mgetFake{
-		t: t,
+		t: tb,
 		indexes: map[string]mgetFakeIndex{
 			"idx": {shards: 3, replication: opensearchtransport.ReplicationDocument, copies: copies},
 			"seg": {shards: 3, replication: opensearchtransport.ReplicationSegment, copies: copies},
@@ -91,7 +92,8 @@ func (f *mgetFake) shardOf(index, key string) int {
 	return k % f.indexes[index].shards
 }
 
-// LookupShard implements shardLookup.
+// LookupShard implements shardLookup. Like the transport's, it reuses the
+// ShardTargets already in dst.
 func (f *mgetFake) LookupShard(index, key string, dst *[]*opensearchtransport.ShardTarget) error {
 	*dst = (*dst)[:0]
 
@@ -102,13 +104,13 @@ func (f *mgetFake) LookupShard(index, key string, dst *[]*opensearchtransport.Sh
 
 	shard := f.shardOf(index, key)
 	for i, name := range idx.copies[shard] {
-		*dst = append(*dst, &opensearchtransport.ShardTarget{
+		*slicepool.Append(dst) = opensearchtransport.ShardTarget{
 			Shard:       shard,
 			Node:        f.conns[name],
 			Primary:     i == 0,
 			Replication: idx.replication,
 			Generation:  1,
-		})
+		}
 	}
 
 	return nil
@@ -123,8 +125,8 @@ func mgetFailed(index, id, typ string) string {
 		index, id, typ, typ)
 }
 
-func mgetResponse(t *testing.T, status int, docs []string) (*MGetResp, error) {
-	t.Helper()
+func mgetResponse(tb testing.TB, status int, docs []string) (*MGetResp, error) {
+	tb.Helper()
 
 	body := []byte(`{"docs":[` + strings.Join(docs, ",") + `]}`)
 	if status != http.StatusOK {
@@ -134,7 +136,7 @@ func mgetResponse(t *testing.T, status int, docs []string) (*MGetResp, error) {
 	if status != http.StatusOK {
 		return resp, fmt.Errorf("status: %d", status)
 	}
-	require.NoError(t, json.Unmarshal(body, resp))
+	require.NoError(tb, json.Unmarshal(body, resp))
 
 	return resp, nil
 }
