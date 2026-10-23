@@ -22,9 +22,9 @@ import (
 )
 
 // TestBulkIndexerTransportDoesNotCapRequests runs the bulk client over the real
-// transport, which finds the node and the index's shard map as it does against
-// a cluster, and checks that the transport does not hold the bulk client below
-// NumWorkers requests to the node.
+// transport, which finds the node, the index's shard map and the node's write
+// pool as it does against a cluster, and checks that what the transport makes of
+// the pool does not hold the bulk client below NumWorkers requests to the node.
 func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 	t.Parallel()
 
@@ -40,7 +40,8 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 			fmt.Sprintf(`{"index":"alpha","shard":"%d","prirep":"p","state":"STARTED","node":"n0"}`, shard))
 	}
 
-	// What the node answers, other than bulk requests.
+	// What the node answers, other than bulk requests. Its write pool has 8
+	// threads.
 	responses := map[string]string{
 		"/": `{"name":"n0","cluster_name":"test","version":{"number":"3.0.0","distribution":"opensearch"}}`,
 		"/_nodes/http": `{"nodes":{"n0":{"name":"n0","roles":["data","ingest","cluster_manager"],` +
@@ -49,6 +50,8 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 		"/_cat/shards":     "[" + strings.Join(catShards, ",") + "]",
 		"/_cluster/state/metadata/alpha": fmt.Sprintf(`{"metadata":{"indices":{"alpha":{"routing_num_shards":%d,`+
 			`"settings":{"index":{"number_of_shards":"%d"}}}}}}`, m.RoutingNumShards, m.PrimaryShards),
+		"/_nodes/_local/http,os,thread_pool": `{"nodes":{"n0":{"os":{"allocated_processors":8},` +
+			`"thread_pool":{"write":{"type":"fixed","size":8,"queue_size":10000}}}}}`,
 	}
 
 	server := newFakeServer(newFakeCluster(map[string]ShardMap{"alpha": m}, "n0"))
