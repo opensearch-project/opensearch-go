@@ -4,9 +4,10 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-// Package scratch holds reusable slices of pointers, so a hot path that fills
-// one per call allocates neither the slice nor its elements.
-package scratch
+// Package slicepool pools slices of pointers and the elements they point to, so
+// a hot path that fills one per call allocates neither the slice nor its
+// elements.
+package slicepool
 
 import "sync"
 
@@ -14,9 +15,11 @@ import "sync"
 // primary and a few replicas.
 const poolCap = 4
 
-// Next extends *dst by one element and returns it, reusing the pointer already
-// in the backing array when there is one.
-func Next[T any](dst *[]*T) *T {
+// Append extends *dst by one element and returns it. When the backing array
+// already holds an element in that slot, from an earlier use of the slice, that
+// element is returned as it is, contents and all, so the caller must set every
+// field it reads.
+func Append[T any](dst *[]*T) *T {
 	n := len(*dst)
 	if n < cap(*dst) {
 		*dst = (*dst)[:n+1]
@@ -38,8 +41,8 @@ type Pool[T any] struct {
 	p sync.Pool
 }
 
-// Get returns an empty slice whose backing array may hold elements to reuse
-// through [Next].
+// Get returns an empty slice whose backing array may hold elements for
+// [Append] to reuse.
 func (p *Pool[T]) Get() *[]*T {
 	if s, ok := p.p.Get().(*[]*T); ok {
 		return s

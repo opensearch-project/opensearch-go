@@ -13,7 +13,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 )
 
 // ShardMap is the routing half of an index's shard map: the two numbers that
@@ -141,7 +141,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 	shard := shardForRouting(key, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
 	nodes := sm.Shards[shard]
 
-	primary := scratch.Next(dst)
+	primary := slicepool.Append(dst)
 	*primary = ShardTarget{Shard: shard, Primary: true, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
 
 	if nodes == nil {
@@ -160,7 +160,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 			continue
 		}
 
-		replica := scratch.Next(dst)
+		replica := slicepool.Append(dst)
 		*replica = ShardTarget{Shard: shard, Node: conn, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
 	}
 

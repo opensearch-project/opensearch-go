@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -77,7 +77,7 @@ func (c *fakeCluster) LookupShard(index, key string, dst *[]*ShardTarget) error 
 	}
 
 	shard := m.Shard(key)
-	target := scratch.Next(dst)
+	target := slicepool.Append(dst)
 	*target = ShardTarget{Shard: shard, Primary: true, Generation: c.mu.generation[index]}
 	if name := c.mu.place(index, shard); name != "" {
 		target.Node = Node{Name: name, Pool: c.poolOf(name)}

@@ -10,7 +10,7 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
@@ -155,16 +155,16 @@ func (r StaticShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) e
 		return ErrShardMapUnknown
 	}
 
-	*scratch.Next(dst) = ShardTarget{Shard: m.Shard(key), Primary: true}
+	*slicepool.Append(dst) = ShardTarget{Shard: m.Shard(key), Primary: true}
 
 	return nil
 }
 
-// shardTargetPool holds scratch slices for LookupShard, so a lookup on the hot
+// shardTargetPool holds reusable slices for LookupShard, so a lookup on the hot
 // path allocates neither the slice nor its ShardTargets.
 //
 //nolint:gochecknoglobals // A pool is process-wide by design.
-var shardTargetPool scratch.Pool[ShardTarget]
+var shardTargetPool slicepool.Pool[ShardTarget]
 
 // WriteNodes implements [ShardRouter]; a static router knows no nodes.
 func (StaticShardRouter) WriteNodes() []Node { return nil }
@@ -308,7 +308,7 @@ func (r clientShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) e
 	}
 
 	for _, target := range *copies {
-		out := scratch.Next(dst)
+		out := slicepool.Append(dst)
 		*out = ShardTarget{Shard: target.Shard, Primary: target.Primary, Generation: target.Generation}
 		if target.Node != nil {
 			out.Node = nodeOf(target.Node)
@@ -319,7 +319,7 @@ func (r clientShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) e
 }
 
 //nolint:gochecknoglobals // A pool is process-wide by design.
-var transportTargetPool scratch.Pool[opensearchtransport.ShardTarget]
+var transportTargetPool slicepool.Pool[opensearchtransport.ShardTarget]
 
 // WriteNodes implements [ShardRouter].
 func (r clientShardRouter) WriteNodes() []Node {

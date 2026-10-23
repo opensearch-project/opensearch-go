@@ -19,7 +19,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
-	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -92,7 +92,7 @@ type mgetEngine struct {
 }
 
 //nolint:gochecknoglobals // A pool is process-wide by design.
-var mgetTargetPool scratch.Pool[opensearchtransport.ShardTarget]
+var mgetTargetPool slicepool.Pool[opensearchtransport.ShardTarget]
 
 // mgetBatch is documents bound for one node in one request.
 type mgetBatch struct {
