@@ -164,8 +164,12 @@ func (nw *NodeWindows) Release(r Reservation, outcome Outcome, saturated bool) {
 	}
 	t.inFlight -= r.units
 
-	close(t.wake)
-	t.wake = make(chan struct{})
+	// A waiter registers itself and takes t.wake under the same lock, so with no
+	// waiters there is nobody to wake and the channel can stay as it is.
+	if t.waiters > 0 {
+		close(t.wake)
+		t.wake = make(chan struct{})
+	}
 }
 
 // NodeStats is a snapshot of what NodeWindows has inferred about one node.

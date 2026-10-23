@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -137,6 +136,10 @@ type mgetCall struct {
 	realtime bool
 	// routing is the request's default routing, applied to documents with none.
 	routing string
+	// params holds the caller's parameters for every sub-request: [0] without a
+	// preference and [1] with preference=_local. They are set once per call and
+	// shared, read-only, by its sub-requests.
+	params [2]MGetParams
 	// indexes is the concrete index each document was looked up in, or "".
 	indexes []string
 
@@ -193,13 +196,13 @@ func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
 	}
 	if req.Params != nil {
 		call.routing = strings.Join(req.Params.Routing, ",")
+		call.params[0] = *req.Params
 	}
+	call.params[0].Preference = ""
+	call.params[1] = call.params[0]
+	call.params[1].Preference = mgetPreferenceLocal
 
-	positions := make([]int, n)
-	for i := range positions {
-		positions[i] = i
-	}
-	call.jobs, call.unrouted = call.route(positions, 1, "")
+	call.jobs, call.unrouted = call.route(nil, 1, "")
 	if len(call.jobs) == 0 {
 		return nil, errMGetNoneRouted
 	}
@@ -216,10 +219,10 @@ func mgetReshapesResponse(p DebugParams) bool {
 }
 
 // route groups the documents at positions by the node each is sent to, into jobs
-// of at most maxDocs documents, for the given attempt. It returns the jobs, and
-// the positions it could not route to a node, which are fetched through a
-// coordinating node instead. avoid names a node to skip when a document's shard
-// has a copy on another node.
+// of at most maxDocs documents, for the given attempt. A nil positions routes
+// every document of the request. It returns the jobs, and the positions it could
+// not route to a node, which are fetched through a coordinating node instead.
+// avoid names a node to skip when a document's shard has a copy on another node.
 func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJob, []int) {
 	type groupKey struct {
 		node  string
@@ -236,7 +239,16 @@ func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJ
 	targets := mgetTargetPool.Get()
 	defer mgetTargetPool.Put(targets)
 
-	for _, pos := range positions {
+	count := len(positions)
+	if positions == nil {
+		count = len(call.req.Body.Docs)
+	}
+	for i := range count {
+		pos := i
+		if positions != nil {
+			pos = positions[i]
+		}
+
 		op := call.req.Body.Docs[pos]
 		index := call.req.Index
 		if op.Index != nil && *op.Index != "" {
@@ -426,30 +438,25 @@ func (call *mgetCall) coordinate(ctx context.Context, slots []int) {
 }
 
 // subRequest builds the request for the documents at slots, with the caller's
-// parameters and the given preference.
-func (call *mgetCall) subRequest(slots []int, preference string) MGetReq {
+// parameters. local adds preference=_local.
+func (call *mgetCall) subRequest(slots []int, local bool) MGetReq {
 	ops := make([]MGetOperation, len(slots))
 	for i, pos := range slots {
 		ops[i] = call.req.Body.Docs[pos]
 	}
 
-	var params MGetParams
-	if call.req.Params != nil {
-		params = *call.req.Params
+	params := &call.params[0]
+	if local {
+		params = &call.params[1]
 	}
-	params.Preference = preference
 
-	return MGetReq{Index: call.req.Index, Body: &MGetBody{Docs: ops}, Header: call.req.Header, Params: &params}
+	return MGetReq{Index: call.req.Index, Body: &MGetBody{Docs: ops}, Header: call.req.Header, Params: params}
 }
 
 // sendJob sends a job to its node once the node's window has room, injects the
 // node's response, and sends again any documents that need another request.
 func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
-	preference := ""
-	if j.local {
-		preference = mgetPreferenceLocal
-	}
-	sub := call.subRequest(j.slots, preference)
+	sub := call.subRequest(j.slots, j.local)
 
 	reservation, err := call.d.windows.Acquire(ctx, scheduler.NodeName(j.node.Name), int64(len(j.slots)))
 	if err != nil {
@@ -573,7 +580,7 @@ func (call *mgetCall) injectResponse(
 // sendCoordinated asks a coordinating node for the documents at slots, and
 // places its answer.
 func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
-	sub := call.subRequest(slots, "")
+	sub := call.subRequest(slots, false)
 
 	call.mu.Lock()
 	call.mu.stats.Requests++
@@ -636,7 +643,8 @@ func (call *mgetCall) answered(resp *MGetResp, n int) {
 
 	call.mu.answered += n
 	if call.mu.header == nil && resp != nil && resp.response != nil {
-		call.mu.header = resp.response.Header.Clone()
+		// The sub-response is not used again, so its header can be shared.
+		call.mu.header = resp.response.Header
 	}
 }
 
@@ -707,35 +715,35 @@ func mgetFailureItem(index, id string, err error) MGetRespItem {
 // holding each document's answer as its node sent it, which each document's
 // RawJSON then points into.
 func (call *mgetCall) merge(header http.Header) *MGetResp {
-	size := len(`{"docs":[]}`)
-	for i := range call.docs {
-		size += len(call.docs[i].raw) + 1
-	}
+	const open, closing = `{"docs":[`, `]}`
 
-	var buf bytes.Buffer
-	buf.Grow(size)
-	buf.WriteString(`{"docs":[`)
-
-	spans := make([][2]int, len(call.docs))
+	size := len(open) + len(closing)
 	for i := range call.docs {
-		if i > 0 {
-			buf.WriteByte(',')
-		}
 		if len(call.docs[i].raw) == 0 {
 			// A position nothing answered: every path places or fails each one,
 			// so this is a defect, answered as a failed document rather than a
 			// malformed body.
 			call.docs[i] = mgetFailureItem(call.indexes[i], call.req.Body.Docs[i].ID, errors.New("mget: document was not answered"))
 		}
-		spans[i][0] = buf.Len()
-		buf.Write(call.docs[i].raw)
-		spans[i][1] = buf.Len()
+		size += len(call.docs[i].raw) + 1
 	}
-	buf.WriteString(`]}`)
 
-	body := buf.Bytes()
+	body := make([]byte, 0, size)
+	body = append(body, open...)
 	for i := range call.docs {
-		call.docs[i].raw = body[spans[i][0]:spans[i][1]:spans[i][1]]
+		if i > 0 {
+			body = append(body, ',')
+		}
+		body = append(body, call.docs[i].raw...)
+	}
+	body = append(body, closing...)
+
+	// Point each document's raw JSON into body, from the lengths just written.
+	off := len(open)
+	for i := range call.docs {
+		end := off + len(call.docs[i].raw)
+		call.docs[i].raw = body[off:end:end]
+		off = end + 1
 	}
 
 	return &MGetResp{Docs: call.docs, response: opensearch.NewBufferedResponse(http.StatusOK, body, header)}
