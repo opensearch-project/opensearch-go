@@ -23,7 +23,8 @@ import (
 
 // TestBulkIndexerTransportDoesNotCapRequests runs the bulk client over the real
 // transport, which finds the node and the index's shard map as it does against
-// a cluster.
+// a cluster, and checks that the transport does not hold the bulk client below
+// NumWorkers requests to the node.
 func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 	t.Parallel()
 
@@ -51,6 +52,8 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 	}
 
 	server := newFakeServer(newFakeCluster(map[string]ShardMap{"alpha": m}, "n0"))
+	server.gate = make(chan struct{})
+	server.entered = make(chan string, shards)
 
 	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
 		body, ok := responses[req.URL.Path]
@@ -99,10 +102,16 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 	for shard := range shards {
 		addDoc(t, bi, "alpha", ids[shard], 1000+shard)
 	}
+
+	// The server holds every request, so these are out at once.
+	for range numWorkers {
+		require.Equal(t, "n0", receive(t, server.entered))
+	}
+	require.EqualValues(t, numWorkers, bi.Stats().InFlightRequests)
+
+	close(server.gate)
 	require.NoError(t, bi.Close(t.Context()))
 
-	for _, req := range server.requests() {
-		require.Equal(t, "n0", req.node)
-	}
+	require.Equal(t, numWorkers, server.maxInflight(), "never more than NumWorkers")
 	require.EqualValues(t, shards, bi.Stats().NumFlushed)
 }
