@@ -137,15 +137,24 @@ func mgetAllocRequest(keys int) MGetReq {
 // fetching it, under a bound: the bound is the score to beat, and a change that
 // allocates more fails here. Lower a bound when a change lowers the count.
 //
-// The bounds, mgetMaxAllocs, depend on which engine runs encoding/json, so
-// there is one table for each, chosen by the goexperiment.jsonv2 build
-// constraint. Allocations per key are a bound divided by keys. The
-// coordinator's per-key cost is decoding each answer, which every mode pays;
-// what the direct modes add on top is a fixed cost per mget and a cost per node
-// request.
+// Allocations per key are a bound divided by keys. The coordinator's per-key
+// cost is decoding each answer, which every mode pays; what the direct modes
+// add on top is a fixed cost per mget and a cost per node request. One table
+// holds for every toolchain, because internal/jsonx runs the encoding/json/v2
+// engine on each; on Go 1.26 the original encoding/json engine made about 11
+// allocations per key here.
 //
 //nolint:paralleltest // testing.AllocsPerRun panics in a parallel test.
 func TestMGetAllocations(t *testing.T) {
+	// maxAllocs is the most allocations one mget of keys documents may make, by
+	// mode and keys: what was measured, plus 1% or 2, whichever is more, for
+	// sync.Pool entries a garbage collection drops during the run.
+	maxAllocs := map[string]map[int]float64{
+		"coordinator":         {1: 28, 10: 72, 100: 444, 1000: 4092},
+		"direct/fewest-nodes": {1: 48, 10: 123, 100: 504, 1000: 4215},
+		"direct/least-loaded": {1: 48, 10: 153, 100: 547, 1000: 4213},
+	}
+
 	for _, mode := range mgetAllocModes {
 		for _, keys := range []int{1, 10, 100, 1000} {
 			t.Run(fmt.Sprintf("%s/keys=%d", mode.name, keys), func(t *testing.T) {
@@ -163,7 +172,7 @@ func TestMGetAllocations(t *testing.T) {
 				if raceEnabled {
 					t.Skip("the race detector allocates on its own")
 				}
-				require.LessOrEqual(t, got, mgetMaxAllocs[mode.name][keys], "allocations of one mget")
+				require.LessOrEqual(t, got, maxAllocs[mode.name][keys], "allocations of one mget")
 			})
 		}
 	}

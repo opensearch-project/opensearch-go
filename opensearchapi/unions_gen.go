@@ -10,10 +10,10 @@ package opensearchapi
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // StringOrStringArray is a oneOf union whose branches decode from different JSON tokens.

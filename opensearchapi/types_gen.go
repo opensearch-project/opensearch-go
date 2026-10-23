@@ -9,7 +9,7 @@
 package opensearchapi
 
 import (
-	"encoding/json"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 type ClusterStatistics struct {

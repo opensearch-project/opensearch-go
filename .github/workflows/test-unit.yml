@@ -39,6 +39,25 @@ jobs:
           flags: unit
         if: matrix.os == 'ubuntu-latest'
 
+  jsonv2:
+    # internal/jsonx is the standard library's encoding/json where the toolchain
+    # builds encoding/json/v2, and go-json-experiment/json elsewhere. The test
+    # job runs the go.mod toolchain without the experiment, so this job builds
+    # and tests the other file.
+    name: "Tests (GOEXPERIMENT=jsonv2)"
+    runs-on: ubuntu-latest
+    env:
+      GOEXPERIMENT: jsonv2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: 'go.mod' }
+      - run: go version
+      - run: make workspace
+        # See the test job.
+        if: contains(github.event.pull_request.labels.*.name, 'pending-next-release')
+      - run: make test-unit race=true
+
   bench:
     name: Benchmarks
     runs-on: ubuntu-latest

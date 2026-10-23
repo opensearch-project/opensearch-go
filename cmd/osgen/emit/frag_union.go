@@ -38,7 +38,7 @@ func (f *UnionFragment) Imports() []Import {
 		return nil
 	}
 	imps := []Import{
-		{Path: "encoding/json"},
+		jsonImport,
 		{Path: LocalModule + "/internal/build"},
 	}
 	var needBytes, needFmt bool

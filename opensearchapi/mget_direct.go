@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	"github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"

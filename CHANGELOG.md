@@ -38,12 +38,16 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Add `github.com/go-json-experiment/json` v0.0.0-20260820222146-c27c302e5fc3, the `encoding/json/v2` engine for toolchains that do not build `encoding/json/v2`. Where they do, it is an alias of the standard library. ([#NNNN](https://github.com/opensearch-project/opensearch-go/pull/NNNN))
 - Bump golangci-lint from v2.14.0 to v2.15.0 ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
 
 ### Changed
 
 - Read the direct mget driver's documents from as few nodes as hold their shards by default, rather than from the least loaded copy of each shard. Set `MGetConfig.FanOut` to `MGetFanOutLeastLoaded` for the previous behavior. ([#1240](https://github.com/opensearch-project/opensearch-go/pull/1240))
 - Document the requests each mget driver sends, with sequence diagrams on `opensearchapi.MGetDriver` that set the coordinator's per-shard fan-out beside the direct driver's per-node fan-out, and a table of each driver's client requests, node-to-node requests, get thread pool tasks and hops. ([#1240](https://github.com/opensearch-project/opensearch-go/pull/1240))
+- Decode and encode every request and response on the `encoding/json/v2` engine on every supported toolchain. Where the toolchain builds `encoding/json/v2` (Go 1.27, or Go 1.26 with `GOEXPERIMENT=jsonv2`), the client uses `encoding/json`, which already runs on it; on Go 1.26 without the experiment, it runs the same engine from `github.com/go-json-experiment/json`, the code `encoding/json/v2` is cut from, in place of the original `encoding/json` engine. Decoding a 1000-document mget response there makes 4,051 allocations where it made 11,057. The semantics are `encoding/json`'s, and errors are `encoding/json`'s types. On Go 1.26 without the experiment, three details change: a Go string holding invalid UTF-8 is written with U+FFFD as the character rather than as a `\u` escape, as Go 1.27's `encoding/json` does; a few failures `encoding/json` reported with an untyped error, such as a `,string` field holding an unquoted value, are reported as `*json.UnmarshalTypeError`; and a `*json.MarshalerError` may name the pointer type of the value whose method failed. ([#NNNN](https://github.com/opensearch-project/opensearch-go/pull/NNNN))
+- Read the direct mget driver's documents from as few nodes as hold their shards by default, rather than from the least loaded copy of each shard. Set `MGetConfig.FanOut` to `MGetFanOutLeastLoaded` for the previous behavior. ([#NNNN](https://github.com/opensearch-project/opensearch-go/pull/NNNN))
+- Document the requests each mget driver sends, with sequence diagrams on `opensearchapi.MGetDriver` that set the coordinator's per-shard fan-out beside the direct driver's per-node fan-out, and a table of each driver's client requests, node-to-node requests, get thread pool tasks and hops. ([#NNNN](https://github.com/opensearch-project/opensearch-go/pull/NNNN))
 
 ## [5.1.2]
 

@@ -136,7 +136,7 @@ func TestReqFragment_Imports(t *testing.T) {
 			}
 			require.Equal(t, tt.wantIO, paths["io"], "io import mismatch")
 			require.Equal(t, tt.wantBytes, paths["bytes"], "bytes import mismatch")
-			require.Equal(t, tt.wantJSON, paths["encoding/json"], "encoding/json import mismatch")
+			require.Equal(t, tt.wantJSON, paths[emit.JSONImportPath], "JSON codec import mismatch")
 		})
 	}
 }

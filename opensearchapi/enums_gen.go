@@ -9,9 +9,10 @@
 package opensearchapi
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // The HTTP status of the response, as a RestStatus enum name (e.g. "OK", "CREATED").

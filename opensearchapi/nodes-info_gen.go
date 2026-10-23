@@ -11,7 +11,6 @@ package opensearchapi
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )

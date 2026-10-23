@@ -33,7 +33,7 @@ func (f *EnumFragment) Imports() []Import {
 		return nil
 	}
 	return []Import{
-		{Path: "encoding/json"},
+		jsonImport,
 		{Path: "fmt"},
 	}
 }

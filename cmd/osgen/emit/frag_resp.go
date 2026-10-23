@@ -42,9 +42,9 @@ func (f *RespFragment) Imports() []Import {
 		imps = append(imps, Import{Path: LocalModule + "/internal/build"})
 	}
 
-	// Non-struct shapes always need encoding/json for custom marshal/unmarshal.
+	// Non-struct shapes always need the JSON codec for custom marshal/unmarshal.
 	if f.Op.RespShape != ir.RespShapeStruct {
-		imps = append(imps, Import{Path: "encoding/json"})
+		imps = append(imps, jsonImport)
 		if f.Op.IsPlugin && f.Op.RespElemType != nil && f.Op.RespElemType.Scope == ir.ScopeShared {
 			imps = append(imps, Import{Path: f.Registry.CoreImport})
 		}
@@ -52,7 +52,7 @@ func (f *RespFragment) Imports() []Import {
 	}
 
 	if f.hasJSONRaw() {
-		imps = append(imps, Import{Path: "encoding/json"})
+		imps = append(imps, jsonImport)
 	}
 	if f.Op.IsPlugin && f.hasCrossPackageTypes() {
 		imps = append(imps, Import{Path: f.Registry.CoreImport})

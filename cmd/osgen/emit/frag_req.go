@@ -32,7 +32,7 @@ func (f *ReqFragment) Imports() []Import {
 	if f.Op.HasTypedBody {
 		imps = append(imps,
 			Import{Path: "bytes"},
-			Import{Path: "encoding/json"},
+			jsonImport,
 			Import{Path: "io"},
 		)
 		if f.Op.IsPlugin && f.Registry != nil && f.Op.RequestBody != nil &&

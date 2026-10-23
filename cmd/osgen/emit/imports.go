@@ -22,6 +22,15 @@ type Import struct {
 	Alias string
 }
 
+// JSONImportPath is the JSON codec generated code uses. internal/jsonx has the
+// names of encoding/json the generated code calls, run on the encoding/json/v2
+// engine whatever the toolchain, and generated files import it as json, so the
+// code reads as if it used encoding/json.
+const JSONImportPath = LocalModule + "/internal/jsonx"
+
+//nolint:gochecknoglobals // A fixed value, shared by every fragment.
+var jsonImport = Import{Path: JSONImportPath, Alias: "json"}
+
 // importSet accumulates unique imports and produces a sorted, grouped list.
 type importSet struct {
 	entries map[string]string // path -> alias

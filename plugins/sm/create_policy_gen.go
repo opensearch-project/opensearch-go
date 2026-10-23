@@ -10,12 +10,12 @@ package sm
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
