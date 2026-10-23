@@ -225,7 +225,12 @@ func (f *mgetFake) serveCoordinator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body MGetBody
-	raw, _ := io.ReadAll(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		// The driver canceled the request while sending it, as it does to every
+		// request of an mget it resends whole; there is nothing to answer.
+		return
+	}
 	if err := json.Unmarshal(raw, &body); err != nil {
 		f.t.Errorf("coordinator got a body it cannot decode: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -347,29 +352,120 @@ func via(t *testing.T, item MGetRespItem) string {
 func TestMGetDirectSplitsByNodeAndKeepsOrder(t *testing.T) {
 	t.Parallel()
 
-	f := newMGetFake(t)
-	c := f.client(MGetConfig{})
-
-	ops := mgetDocs("idx", "d0", "d1", "d2", "d3", "d4", "d5", "d6")
-	resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}})
-	require.NoError(t, err)
-	requireAnswers(t, ops, resp)
-
-	sent := f.sent()
-	require.NotEmpty(t, sent)
-	nodes := map[string]struct{}{}
-	var total int
-	for _, s := range sent {
-		require.Equal(t, mgetPreferenceLocal, s.preference, "a document-replicated read answers from the node's own copy")
-		nodes[s.node] = struct{}{}
-		total += len(s.ids)
+	// Every node of the fake holds copies of two of its three shards.
+	tests := []struct {
+		name      string
+		fanOut    MGetFanOut
+		wantNodes []string
+	}{
+		{
+			name:   "fewest nodes covers the shards with two nodes, the first by name taking two shards",
+			fanOut: MGetFanOutFewestNodes, wantNodes: []string{"n0", "n1"},
+		},
+		{name: "least loaded fans out over every node", fanOut: MGetFanOutLeastLoaded, wantNodes: []string{"n0", "n1", "n2"}},
 	}
-	require.Len(t, nodes, 3, "the documents fan out over every node")
-	require.Equal(t, len(ops), total, "each document is asked for once")
-	require.Empty(t, f.coordinatorRequests(), "no coordinating node is needed")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	for i := range resp.Docs {
-		require.NotEqual(t, "coordinator", via(t, resp.Docs[i]))
+			f := newMGetFake(t)
+			c := f.client(MGetConfig{FanOut: tt.fanOut})
+
+			ops := mgetDocs("idx", "d0", "d1", "d2", "d3", "d4", "d5", "d6")
+			resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}})
+			require.NoError(t, err)
+			requireAnswers(t, ops, resp)
+
+			sent := f.sent()
+			require.NotEmpty(t, sent)
+			var nodes []string
+			var total int
+			for _, s := range sent {
+				require.Equal(t, mgetPreferenceLocal, s.preference, "a document-replicated read answers from the node's own copy")
+				if !slices.Contains(nodes, s.node) {
+					nodes = append(nodes, s.node)
+				}
+				total += len(s.ids)
+			}
+			slices.Sort(nodes)
+			require.Equal(t, tt.wantNodes, nodes)
+			require.Len(t, sent, len(tt.wantNodes), "one request per node")
+			require.Equal(t, len(ops), total, "each document is asked for once")
+			require.Empty(t, f.coordinatorRequests(), "no coordinating node is needed")
+
+			for i := range resp.Docs {
+				require.NotEqual(t, "coordinator", via(t, resp.Docs[i]))
+			}
+		})
+	}
+}
+
+func TestMGetDirectFewestNodesCover(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// saturated names the nodes whose get thread pool is rejecting work.
+		saturated []string
+		ops       []MGetOperation
+		realtime  bool
+		wantNodes []string
+	}{
+		{
+			name:      "one shard is read from one node",
+			ops:       mgetDocs("idx", "d0", "d3", "d6", "d9"),
+			wantNodes: []string{"n0"},
+		},
+		{
+			name:      "a saturated node is left out while its shards have other copies",
+			saturated: []string{"n0"},
+			ops:       mgetDocs("idx", "d0", "d1", "d2"),
+			wantNodes: []string{"n1", "n2"},
+		},
+		{
+			name:      "a shard whose every copy is saturated is still read",
+			saturated: []string{"n0", "n1", "n2"},
+			ops:       mgetDocs("idx", "d0", "d1", "d2"),
+			wantNodes: []string{"n0", "n1"},
+		},
+		{
+			name: "two indexes share the nodes they are read from",
+			ops: append(mgetDocs("idx", "d0", "d1", "d2"),
+				MGetOperation{ID: "e0", Index: new("seg")}, MGetOperation{ID: "e2", Index: new("seg")}),
+			wantNodes: []string{"n0", "n1"},
+		},
+		{
+			// Shard 1 of idx has copies on n1 and n2, and the tie would go to n1, but
+			// the realtime read of seg's shard 2 already sends to its primary, n2.
+			name:      "a node a primary read reaches takes the shards it holds",
+			ops:       []MGetOperation{{ID: "d1", Index: new("idx")}, {ID: "e2", Index: new("seg")}},
+			realtime:  true,
+			wantNodes: []string{"n2"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			f := newMGetFake(t)
+			c := f.client(MGetConfig{FanOut: MGetFanOutFewestNodes})
+			c.ext.mget.saturated = func(conn *opensearchtransport.Connection) bool {
+				return slices.Contains(tt.saturated, conn.Name)
+			}
+
+			resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: tt.ops}, Params: &MGetParams{Realtime: new(tt.realtime)}})
+			require.NoError(t, err)
+			requireAnswers(t, tt.ops, resp)
+
+			var nodes []string
+			for _, s := range f.sent() {
+				if !slices.Contains(nodes, s.node) {
+					nodes = append(nodes, s.node)
+				}
+			}
+			slices.Sort(nodes)
+			require.Equal(t, tt.wantNodes, nodes)
+		})
 	}
 }
 
@@ -536,7 +632,7 @@ func TestMGetDriverWriteSaysWhyItCannotSplit(t *testing.T) {
 			f := newMGetFake(t)
 			c := f.client(MGetConfig{})
 
-			_, err := c.ext.mget.write(c, tt.req)
+			_, err := c.ext.mget.write(c, tt.req, c.ext.mget.fanOut)
 			require.ErrorIs(t, err, tt.want)
 			require.ErrorIs(t, err, errMGetNotSplittable)
 		})
@@ -881,7 +977,8 @@ func TestMGetDirectObserverReportsTheFanOut(t *testing.T) {
 
 	done := obs.done()
 	require.Len(t, done, 1)
-	require.Equal(t, MGetDoneEvent{Docs: 6, Nodes: 3, Requests: 6}, MGetDoneEvent{
+	// The fake's three shards are covered by two nodes.
+	require.Equal(t, MGetDoneEvent{Docs: 6, Nodes: 2, Requests: 6}, MGetDoneEvent{
 		Docs: done[0].Docs, Nodes: done[0].Nodes, Requests: done[0].Requests,
 		Retries: done[0].Retries, CoordinatorDocs: done[0].CoordinatorDocs,
 	})
@@ -968,6 +1065,138 @@ func TestParseMGetDriver(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
 			if tt.want != MGetDriverDefault {
+				require.Equal(t, strings.ToLower(strings.TrimSpace(tt.in)), got.String())
+			}
+		})
+	}
+}
+
+// mgetCoverTargets returns the copies of shard s, laid out round-robin over
+// conns.
+func mgetCoverTargets(conns []*opensearchtransport.Connection, s, copies int) []*opensearchtransport.ShardTarget {
+	targets := make([]*opensearchtransport.ShardTarget, copies)
+	for j := range targets {
+		targets[j] = &opensearchtransport.ShardTarget{Shard: s, Node: conns[(s+j)%len(conns)], Primary: j == 0}
+	}
+
+	return targets
+}
+
+//nolint:paralleltest // testing.AllocsPerRun panics in a parallel test.
+func TestMGetCoverReuseDoesNotAllocate(t *testing.T) {
+	const nodes, shards, docs = 30, 90, 300
+	conns := make([]*opensearchtransport.Connection, nodes)
+	for i := range conns {
+		conns[i] = &opensearchtransport.Connection{Name: fmt.Sprintf("n%02d", i)}
+	}
+	targets := make([][]*opensearchtransport.ShardTarget, shards)
+	for s := range targets {
+		targets[s] = mgetCoverTargets(conns, s, 2)
+	}
+	windows := newMGetDriver(MGetConfig{}, nil).windows
+	notSaturated := func(*opensearchtransport.Connection) bool { return false }
+	picks := make([]shardNode, docs)
+
+	c := newMGetCover()
+	run := func() {
+		c.prepare(docs)
+		for i := range docs {
+			if i%50 == 0 {
+				c.contacted(conns[i%nodes].Name)
+			}
+			require.True(t, c.add(i, "idx", targets[i%shards], "", notSaturated))
+		}
+		c.assign(windows, picks)
+		c.recycle()
+	}
+	run()
+
+	require.Zero(t, testing.AllocsPerRun(20, run), "a recycled cover reuses everything it grew")
+	for i := range picks {
+		require.NotNil(t, picks[i].node, "position %d", i)
+	}
+}
+
+func TestMGetCoverRecycleDropsWhatOutgrewItsBounds(t *testing.T) {
+	t.Parallel()
+
+	conns := make([]*opensearchtransport.Connection, mgetCoverMaxNodes+1)
+	for i := range conns {
+		conns[i] = &opensearchtransport.Connection{Name: strconv.Itoa(i)}
+	}
+	notSaturated := func(*opensearchtransport.Connection) bool { return false }
+
+	c := newMGetCover()
+	c.prepare(len(conns))
+	for i := range conns {
+		require.True(t, c.add(i, "idx", mgetCoverTargets(conns, i, 1), "", notSaturated))
+	}
+	c.assign(newMGetDriver(MGetConfig{}, nil).windows, make([]shardNode, len(conns)))
+	c.recycle()
+
+	require.Empty(t, c.nodes)
+	require.Empty(t, c.index)
+	require.Empty(t, c.spare, "the nodes of a cover that outgrew its bounds are not kept")
+	for _, shard := range c.shards[:cap(c.shards)] {
+		require.Nil(t, shard.chosen, "a recycled cover keeps no connection alive")
+	}
+}
+
+func TestMGetFanOutSelection(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		config MGetFanOut
+		ctx    MGetFanOut
+		want   MGetFanOut
+	}{
+		{name: "the release default", want: MGetFanOutFewestNodes},
+		{name: "the config", config: MGetFanOutLeastLoaded, want: MGetFanOutLeastLoaded},
+		{name: "a context override", config: MGetFanOutLeastLoaded, ctx: MGetFanOutFewestNodes, want: MGetFanOutFewestNodes},
+		{name: "a default context keeps the config", config: MGetFanOutLeastLoaded, ctx: MGetFanOutDefault, want: MGetFanOutLeastLoaded},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := newMGetDriver(MGetConfig{FanOut: tt.config}, nil)
+			ctx := t.Context()
+			if tt.ctx != MGetFanOutDefault {
+				ctx = WithMGetFanOut(ctx, tt.ctx)
+			}
+			require.Equal(t, tt.want, d.selectedFanOut(ctx))
+		})
+	}
+}
+
+func TestParseMGetFanOut(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in      string
+		want    MGetFanOut
+		wantErr bool
+	}{
+		{in: "", want: MGetFanOutDefault},
+		{in: "fewest-nodes", want: MGetFanOutFewestNodes},
+		{in: " Fewest-Nodes ", want: MGetFanOutFewestNodes},
+		{in: "LEAST-LOADED", want: MGetFanOutLeastLoaded},
+		{in: "random", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := ParseMGetFanOut(tt.in)
+			if tt.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+			if tt.want != MGetFanOutDefault {
 				require.Equal(t, strings.ToLower(strings.TrimSpace(tt.in)), got.String())
 			}
 		})
