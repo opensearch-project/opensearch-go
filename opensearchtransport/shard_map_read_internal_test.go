@@ -27,20 +27,27 @@ func TestGetRoutingMetaReadsTheReplicationType(t *testing.T) {
 	tests := []struct {
 		name     string
 		settings string
-		wantSeg  bool
+		want     ReplicationType
 	}{
 		{
 			name:     "segment replication",
 			settings: `{"index":{"number_of_shards":"5","replication":{"type":"SEGMENT"}}}`,
-			wantSeg:  true,
+			want:     ReplicationSegment,
+		},
+		{
+			name:     "segment replication in lower case",
+			settings: `{"index":{"number_of_shards":"5","replication":{"type":"segment"}}}`,
+			want:     ReplicationSegment,
 		},
 		{
 			name:     "document replication",
 			settings: `{"index":{"number_of_shards":"5","replication":{"type":"DOCUMENT"}}}`,
+			want:     ReplicationDocument,
 		},
 		{
 			name:     "no replication setting reads as document, as the server does",
 			settings: `{"index":{"number_of_shards":"5"}}`,
+			want:     ReplicationDocument,
 		},
 	}
 	for _, tt := range tests {
@@ -67,20 +74,20 @@ func TestGetRoutingMetaReadsTheReplicationType(t *testing.T) {
 			meta, err := tr.getRoutingMeta(t.Context(), []string{"idx"})
 			require.NoError(t, err)
 			require.Contains(t, query, "settings.index.replication.type", "the filter must ask for the setting")
-			require.Equal(t, indexRoutingMeta{RoutingNumShards: 640, NumberOfShards: 5, SegmentReplication: tt.wantSeg}, meta["idx"])
+			require.Equal(t, indexRoutingMeta{RoutingNumShards: 640, NumberOfShards: 5, Replication: tt.want}, meta["idx"])
 		})
 	}
 }
 
-func TestSegmentReplicationReachesEveryShardCopy(t *testing.T) {
+func TestReplicationTypeReachesEveryShardCopy(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		seg  bool
+		name        string
+		replication ReplicationType
 	}{
-		{name: "segment replication", seg: true},
-		{name: "document replication", seg: false},
+		{name: "segment replication", replication: ReplicationSegment},
+		{name: "document replication", replication: ReplicationDocument},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -94,7 +101,7 @@ func TestSegmentReplicationReachesEveryShardCopy(t *testing.T) {
 			placement := &indexShardPlacement{
 				NumberOfPrimaryShards: m.PrimaryShards,
 				RoutingNumShards:      m.RoutingNumShards,
-				SegmentReplication:    tt.seg,
+				Replication:           tt.replication,
 				ShardToNodes:          map[int]*shardNodes{m.Shard("doc-1"): {Primary: "p", Replicas: []string{"r1", "r2"}}},
 			}
 
@@ -105,8 +112,29 @@ func TestSegmentReplicationReachesEveryShardCopy(t *testing.T) {
 			require.NoError(t, tr.LookupShard("idx", "doc-1", &targets))
 			require.Len(t, targets, 3)
 			for _, target := range targets {
-				require.Equal(t, tt.seg, target.SegmentReplication, "copy on %s", target.Node.Name)
+				require.Equal(t, tt.replication, target.Replication, "copy on %s", target.Node.Name)
 			}
+		})
+	}
+}
+
+func TestReplicationTypeString(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in   ReplicationType
+		want string
+	}{
+		{in: ReplicationUnknown, want: "UNKNOWN"},
+		{in: ReplicationDocument, want: "DOCUMENT"},
+		{in: ReplicationSegment, want: "SEGMENT"},
+		{in: ReplicationType(9), want: "ReplicationType(9)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, tt.in.String())
 		})
 	}
 }

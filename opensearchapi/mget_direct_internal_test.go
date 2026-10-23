@@ -31,9 +31,9 @@ import (
 // mgetFakeIndex is an index of the fake cluster: shard s of a document whose key
 // ends in digit k is k mod shards, and its copies are on copies[s], primary first.
 type mgetFakeIndex struct {
-	shards int
-	seg    bool
-	copies [][]string
+	shards      int
+	replication opensearchtransport.ReplicationType
+	copies      [][]string
 }
 
 // mgetFake is a cluster the direct engine talks to without a transport: a shard
@@ -68,11 +68,13 @@ type mgetFakeSent struct {
 func newMGetFake(t *testing.T) *mgetFake {
 	t.Helper()
 
+	copies := [][]string{{"n0", "n1"}, {"n1", "n2"}, {"n2", "n0"}}
 	f := &mgetFake{
 		t: t,
 		indexes: map[string]mgetFakeIndex{
-			"idx": {shards: 3, copies: [][]string{{"n0", "n1"}, {"n1", "n2"}, {"n2", "n0"}}},
-			"seg": {shards: 3, seg: true, copies: [][]string{{"n0", "n1"}, {"n1", "n2"}, {"n2", "n0"}}},
+			"idx": {shards: 3, replication: opensearchtransport.ReplicationDocument, copies: copies},
+			"seg": {shards: 3, replication: opensearchtransport.ReplicationSegment, copies: copies},
+			"unk": {shards: 3, replication: opensearchtransport.ReplicationUnknown, copies: copies},
 		},
 		conns: map[string]*opensearchtransport.Connection{
 			"n0": {Name: "n0"}, "n1": {Name: "n1"}, "n2": {Name: "n2"},
@@ -101,11 +103,11 @@ func (f *mgetFake) LookupShard(index, key string, dst *[]*opensearchtransport.Sh
 	shard := f.shardOf(index, key)
 	for i, name := range idx.copies[shard] {
 		*dst = append(*dst, &opensearchtransport.ShardTarget{
-			Shard:              shard,
-			Node:               f.conns[name],
-			Primary:            i == 0,
-			SegmentReplication: idx.seg,
-			Generation:         1,
+			Shard:       shard,
+			Node:        f.conns[name],
+			Primary:     i == 0,
+			Replication: idx.replication,
+			Generation:  1,
 		})
 	}
 
@@ -344,19 +346,22 @@ func TestMGetDirectSplitsByNodeAndKeepsOrder(t *testing.T) {
 	}
 }
 
-func TestMGetDirectSegmentReplication(t *testing.T) {
+func TestMGetDirectReplicationType(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name     string
+		index    string
 		realtime *bool
 		// wantPrimary is set when every document must go to its primary, with no
 		// preference.
 		wantPrimary bool
 	}{
-		{name: "a realtime read goes to the primary", wantPrimary: true},
-		{name: "an explicit realtime read goes to the primary", realtime: new(true), wantPrimary: true},
-		{name: "a near-realtime read may go to a replica", realtime: new(false)},
+		{name: "a realtime segment-replicated read goes to the primary", index: "seg", wantPrimary: true},
+		{name: "an explicit realtime read goes to the primary", index: "seg", realtime: new(true), wantPrimary: true},
+		{name: "a near-realtime segment-replicated read may go to a replica", index: "seg", realtime: new(false)},
+		{name: "an unknown replication type is read as segment replication", index: "unk", wantPrimary: true},
+		{name: "a realtime document-replicated read may go to a replica", index: "idx"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -365,13 +370,15 @@ func TestMGetDirectSegmentReplication(t *testing.T) {
 			f := newMGetFake(t)
 			c := f.client(MGetConfig{})
 
-			ops := mgetDocs("seg", "d0", "d1", "d2")
+			ops := mgetDocs(tt.index, "d0", "d1", "d2")
 			_, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}, Params: &MGetParams{Realtime: tt.realtime}})
 			require.NoError(t, err)
 
-			for _, s := range f.sent() {
+			sent := f.sent()
+			require.NotEmpty(t, sent)
+			for _, s := range sent {
 				for _, id := range s.ids {
-					primary := f.indexes["seg"].copies[f.shardOf("seg", id)][0]
+					primary := f.indexes[tt.index].copies[f.shardOf(tt.index, id)][0]
 					if tt.wantPrimary {
 						require.Equal(t, primary, s.node, "document %s", id)
 						require.Empty(t, s.preference, "the node routes to the primary itself")

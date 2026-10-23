@@ -271,7 +271,9 @@ func (call *mgetCall) choose(
 		return nil, false, false
 	}
 
-	if call.realtime && targets[0].SegmentReplication {
+	// A replication type not known to be document replication is treated as
+	// segment replication, whose replicas can trail the primary.
+	if call.realtime && targets[0].Replication != opensearchtransport.ReplicationDocument {
 		primary := targets[0]
 		if !primary.Primary || primary.Node == nil {
 			return nil, false, false

@@ -10,6 +10,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"slices"
 
@@ -73,6 +74,37 @@ func (tr *Transport) ShardMap(index string) (ShardMap, bool) {
 	return ShardMap{RoutingNumShards: sm.RoutingNumShards, PrimaryShards: sm.NumberOfPrimaryShards}, true
 }
 
+// ReplicationType is how an index's replicas are kept up to date: its
+// index.replication.type setting.
+type ReplicationType uint8
+
+const (
+	// ReplicationUnknown is the zero ReplicationType: the setting has not been
+	// read.
+	ReplicationUnknown ReplicationType = iota
+	// ReplicationDocument replicas apply each write themselves, so a realtime
+	// read sees the latest write on any copy.
+	ReplicationDocument
+	// ReplicationSegment replicas copy the primary's segments, so a replica can
+	// trail the primary: a realtime read that must see the latest write goes to
+	// the primary.
+	ReplicationSegment
+)
+
+// String returns the type as index.replication.type spells it, or "UNKNOWN".
+func (t ReplicationType) String() string {
+	switch t {
+	case ReplicationDocument:
+		return replicationTypeDocument
+	case ReplicationSegment:
+		return replicationTypeSegment
+	case ReplicationUnknown:
+		return "UNKNOWN"
+	default:
+		return fmt.Sprintf("ReplicationType(%d)", uint8(t))
+	}
+}
+
 // ShardTarget is one copy of the shard a document with a given key lives on.
 type ShardTarget struct {
 	// Shard is the shard number.
@@ -83,10 +115,8 @@ type ShardTarget struct {
 	Node *Connection
 	// Primary reports that this copy is the shard's primary.
 	Primary bool
-	// SegmentReplication reports that the index uses segment replication, so a
-	// replica can trail the primary: a realtime read that must see the latest
-	// write goes to the primary.
-	SegmentReplication bool
+	// Replication is how the index's replicas are kept up to date.
+	Replication ReplicationType
 	// Generation identifies the shard geometry Shard was computed with: the primary
 	// shard count and the routing factor. It changes when the index's geometry does,
 	// as when the index is recreated, split or shrunk, and not when a shard moves
@@ -142,7 +172,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 	nodes := sm.Shards[shard]
 
 	primary := slicepool.Append(dst)
-	*primary = ShardTarget{Shard: shard, Primary: true, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
+	*primary = ShardTarget{Shard: shard, Primary: true, Replication: sm.Replication, Generation: sm.Generation}
 
 	if nodes == nil {
 		return nil
@@ -161,7 +191,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 		}
 
 		replica := slicepool.Append(dst)
-		*replica = ShardTarget{Shard: shard, Node: conn, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
+		*replica = ShardTarget{Shard: shard, Node: conn, Replication: sm.Replication, Generation: sm.Generation}
 	}
 
 	return nil

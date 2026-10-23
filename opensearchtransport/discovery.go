@@ -1903,9 +1903,9 @@ type indexShardPlacement struct {
 	// fetched from _cluster/state/metadata. Zero until populated.
 	RoutingNumShards int
 
-	// SegmentReplication reports that the index's index.replication.type is
-	// SEGMENT, fetched with RoutingNumShards.
-	SegmentReplication bool
+	// Replication is the index's index.replication.type, fetched with
+	// RoutingNumShards.
+	Replication ReplicationType
 
 	// ShardToNodes maps shard number -> the nodes hosting that shard.
 	// Used by murmur3 shard-exact routing to resolve the target shard
@@ -2138,7 +2138,7 @@ func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement m
 
 		// Already cached -- carry forward into the placement data.
 		shardPlacement[indexName].RoutingNumShards = sm.RoutingNumShards
-		shardPlacement[indexName].SegmentReplication = sm.SegmentReplication
+		shardPlacement[indexName].Replication = sm.Replication
 		if sm.NumberOfPrimaryShards > 0 {
 			shardPlacement[indexName].NumberOfPrimaryShards = sm.NumberOfPrimaryShards
 		}
@@ -2160,7 +2160,7 @@ func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement m
 	for indexName, meta := range rns {
 		if placement, ok := shardPlacement[indexName]; ok {
 			placement.RoutingNumShards = meta.RoutingNumShards
-			placement.SegmentReplication = meta.SegmentReplication
+			placement.Replication = meta.Replication
 			// Use the authoritative number_of_shards from index metadata
 			// rather than the _cat/shards-derived count, which can be
 			// transiently wrong when shards are RELOCATING.
@@ -2175,15 +2175,28 @@ func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement m
 // fetched from _cluster/state/metadata. These values are immutable for the
 // lifetime of an index and are needed by murmur3 shard-exact routing.
 type indexRoutingMeta struct {
-	RoutingNumShards   int  // Hash modulus (e.g. 640 for a 5-shard index)
-	NumberOfShards     int  // Configured number_of_shards from index settings
-	SegmentReplication bool // index.replication.type is SEGMENT
+	RoutingNumShards int             // Hash modulus (e.g. 640 for a 5-shard index)
+	NumberOfShards   int             // Configured number_of_shards from index settings
+	Replication      ReplicationType // index.replication.type
 }
 
-// replicationTypeSegment is the index.replication.type value for segment
-// replication. Any other value, and an absent setting, is document replication,
-// as the server reads it (Metadata.isSegmentReplicationEnabled).
-const replicationTypeSegment = "SEGMENT"
+// index.replication.type values, as the server spells them.
+const (
+	replicationTypeDocument = "DOCUMENT"
+	replicationTypeSegment  = "SEGMENT"
+)
+
+// parseReplicationType reads an index.replication.type setting as the server
+// does (Metadata.isSegmentReplicationEnabled): SEGMENT, in any case, is segment
+// replication, and any other value, an absent setting among them, is document
+// replication.
+func parseReplicationType(s string) ReplicationType {
+	if strings.EqualFold(s, replicationTypeSegment) {
+		return ReplicationSegment
+	}
+
+	return ReplicationDocument
+}
 
 // getRoutingMeta fetches routing metadata (routing_num_shards and
 // number_of_shards) for the given indexes from _cluster/state/metadata.
@@ -2270,8 +2283,8 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 	for name, meta := range clusterState.Metadata.Indices {
 		if meta.RoutingNumShards > 0 {
 			rm := indexRoutingMeta{
-				RoutingNumShards:   meta.RoutingNumShards,
-				SegmentReplication: strings.EqualFold(meta.Settings.Index.Replication.Type, replicationTypeSegment),
+				RoutingNumShards: meta.RoutingNumShards,
+				Replication:      parseReplicationType(meta.Settings.Index.Replication.Type),
 			}
 			if n, err := strconv.Atoi(meta.Settings.Index.NumberOfShards); err == nil && n > 0 {
 				rm.NumberOfShards = n
