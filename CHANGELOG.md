@@ -6,6 +6,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add a test that runs the bulk indexer over the real transport against a fake node, and checks that the transport's view of the node's write pool does not hold the indexer below `NumWorkers` requests to the node, before any statistics poll and after a poll of a node that rejected writes before the client started. ([#1237](https://github.com/opensearch-project/opensearch-go/pull/1237))
+
 ### Changed
 
 ### Deprecated
