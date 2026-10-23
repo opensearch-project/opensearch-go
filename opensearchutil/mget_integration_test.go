@@ -17,7 +17,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
@@ -45,12 +44,10 @@ func (c *mgetDoneCounter) count() int {
 	return c.mu.done
 }
 
-func TestMGetUsesTheDirectEngine_Integration(t *testing.T) {
-	t.Setenv(envvars.MGet, "coordinator")
-
+func TestMGetUsesTheDirectDriver_Integration(t *testing.T) {
 	counter := &mgetDoneCounter{}
 	cfg := testutil.ClientConfig(t)
-	cfg.MGet.Engine = opensearchapi.MGetEngineCoordinator
+	cfg.MGet.Driver = opensearchapi.MGetDriverCoordinator
 	cfg.MGet.Observer = counter
 	client, err := opensearchapi.NewClient(*cfg)
 	require.NoError(t, err)
@@ -73,13 +70,15 @@ func TestMGetUsesTheDirectEngine_Integration(t *testing.T) {
 	}
 	req := opensearchapi.MGetReq{Body: &opensearchapi.MGetBody{Docs: ops}}
 
-	_, err = client.Doc.MGet(ctx, req)
+	// The call selects the coordinator itself, so OPENSEARCH_GO_MGET, which
+	// overrides the client's configuration, cannot send it direct.
+	_, err = client.Doc.MGet(opensearchapi.WithMGetDriver(ctx, opensearchapi.MGetDriverCoordinator), req)
 	require.NoError(t, err)
-	require.Zero(t, counter.count(), "the client is configured for the coordinator engine")
+	require.Zero(t, counter.count(), "a coordinator call never reaches the direct driver")
 
 	resp, err := opensearchutil.MGet(ctx, client, req)
 	require.NoError(t, err)
-	require.Equal(t, 1, counter.count(), "opensearchutil.MGet answers through the direct engine")
+	require.Equal(t, 1, counter.count(), "opensearchutil.MGet answers through the direct driver")
 	require.Len(t, resp.Docs, indexed)
 	for i, item := range resp.Docs {
 		doc, err := item.GetResult()

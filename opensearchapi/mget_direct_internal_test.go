@@ -36,7 +36,7 @@ type mgetFakeIndex struct {
 	copies      [][]string
 }
 
-// mgetFake is a cluster the direct engine talks to without a transport: a shard
+// mgetFake is a cluster the direct driver talks to without a transport: a shard
 // map, nodes that answer from the shards they hold, and a coordinating node
 // behind a real HTTP server.
 type mgetFake struct {
@@ -159,7 +159,7 @@ func (f *mgetFake) send(_ context.Context, _ *Client, node *opensearchtransport.
 			key = *op.Routing
 		}
 		if !slices.Contains(f.indexes[index].copies[f.shardOf(index, key)], node.Name) {
-			// The engine's goroutines send, so report without FailNow.
+			// The driver's goroutines send, so report without FailNow.
 			f.t.Errorf("document %s/%s sent to %s, which holds no copy of its shard", index, op.ID, node.Name)
 		}
 	}
@@ -236,7 +236,7 @@ func (f *mgetFake) serveCoordinator(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(`{"docs":[` + strings.Join(docs, ",") + `]}`))
 }
 
-// client returns a client whose MGet uses the direct engine over the fake.
+// client returns a client whose MGet uses the direct driver over the fake.
 func (f *mgetFake) client(cfg MGetConfig) *Client {
 	f.t.Helper()
 
@@ -247,13 +247,13 @@ func (f *mgetFake) client(cfg MGetConfig) *Client {
 	require.NoError(f.t, err)
 	f.t.Cleanup(func() { _ = c.Close() })
 
-	cfg.Engine = MGetEngineDirect
-	e := newMGetEngine(cfg, nil)
-	e.engine = MGetEngineDirect
-	e.lookup = f
-	e.send = f.send
-	e.saturated = func(*opensearchtransport.Connection) bool { return false }
-	c.mget = e
+	cfg.Driver = MGetDriverDirect
+	d := newMGetDriver(cfg, nil)
+	d.driver = MGetDriverDirect
+	d.lookup = f
+	d.send = f.send
+	d.saturated = func(*opensearchtransport.Connection) bool { return false }
+	c.ext.mget = d
 
 	return c
 }
@@ -477,6 +477,45 @@ func TestMGetDirectLeavesRequestsItCannotSplitToTheCluster(t *testing.T) {
 	}
 }
 
+func TestMGetDriverWriteSaysWhyItCannotSplit(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		req  MGetReq
+		want error
+	}{
+		{name: "a raw body", req: MGetReq{Index: "idx", BodyReader: strings.NewReader(`{}`)}, want: errMGetNoDocs},
+		{name: "ids in place of docs", req: MGetReq{Index: "idx", Body: &MGetBody{IDs: new("d0")}}, want: errMGetNoDocs},
+		{
+			name: "a preference",
+			req:  MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "d0")}, Params: &MGetParams{Preference: "_primary"}},
+			want: errMGetPreference,
+		},
+		{
+			name: "a filter_path",
+			req: MGetReq{
+				Body:   &MGetBody{Docs: mgetDocs("idx", "d0")},
+				Params: &MGetParams{DebugParams: DebugParams{FilterPath: []string{"docs._source"}}},
+			},
+			want: errMGetReshaped,
+		},
+		{name: "nothing resolves", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("unknown", "d0")}}, want: errMGetNoneResolved},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			f := newMGetFake(t)
+			c := f.client(MGetConfig{})
+
+			_, err := c.ext.mget.write(c, tt.req)
+			require.ErrorIs(t, err, tt.want)
+			require.ErrorIs(t, err, errMGetNotSplittable)
+		})
+	}
+}
+
 func TestMGetDirectRetries(t *testing.T) {
 	t.Parallel()
 
@@ -588,7 +627,7 @@ func TestMGetDirectShrinksARejectingNodesWindow(t *testing.T) {
 	_, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "d0", "d1", "d2")}})
 	require.NoError(t, err)
 
-	st, ok := c.mget.windows.Stats("n1")
+	st, ok := c.ext.mget.windows.Stats("n1")
 	require.True(t, ok)
 	require.Less(t, st.SizeRatio, 1.0, "the node that answered 429 has its window shrunk")
 }
@@ -674,7 +713,7 @@ func TestMGetDirectFailsDocumentsNoRequestCouldFetch(t *testing.T) {
 
 			// d1's shard 1 is on n1 and n2; d0's shard 0 is on n0 and n1.
 			ops := mgetDocs("idx", "d0", "d1")
-			c.mget.observer = obs
+			c.ext.mget.observer = obs
 			resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}})
 			if tt.wantErr {
 				require.Error(t, err)
@@ -789,53 +828,53 @@ func TestMGetDirectStopsWhenTheCallIsCanceled(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
-func TestMGetEngineSelection(t *testing.T) {
+func TestMGetDriverSelection(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name   string
-		config MGetEngine
-		ctx    MGetEngine
-		want   MGetEngine
+		config MGetDriver
+		ctx    MGetDriver
+		want   MGetDriver
 	}{
-		{name: "the release default", want: defaultMGetEngine},
-		{name: "the config", config: MGetEngineDirect, want: MGetEngineDirect},
-		{name: "a context override", config: MGetEngineDirect, ctx: MGetEngineCoordinator, want: MGetEngineCoordinator},
-		{name: "a default context keeps the config", config: MGetEngineDirect, ctx: MGetEngineDefault, want: MGetEngineDirect},
+		{name: "the release default", want: defaultMGetDriver},
+		{name: "the config", config: MGetDriverDirect, want: MGetDriverDirect},
+		{name: "a context override", config: MGetDriverDirect, ctx: MGetDriverCoordinator, want: MGetDriverCoordinator},
+		{name: "a default context keeps the config", config: MGetDriverDirect, ctx: MGetDriverDefault, want: MGetDriverDirect},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			e := newMGetEngine(MGetConfig{Engine: tt.config}, nil)
+			d := newMGetDriver(MGetConfig{Driver: tt.config}, nil)
 			ctx := t.Context()
-			if tt.ctx != MGetEngineDefault {
-				ctx = WithMGetEngine(ctx, tt.ctx)
+			if tt.ctx != MGetDriverDefault {
+				ctx = WithMGetDriver(ctx, tt.ctx)
 			}
-			require.Equal(t, tt.want, e.selected(ctx))
+			require.Equal(t, tt.want, d.selected(ctx))
 		})
 	}
 }
 
-func TestParseMGetEngine(t *testing.T) {
+func TestParseMGetDriver(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		in      string
-		want    MGetEngine
+		want    MGetDriver
 		wantErr bool
 	}{
-		{in: "", want: MGetEngineDefault},
-		{in: "direct", want: MGetEngineDirect},
-		{in: " Direct ", want: MGetEngineDirect},
-		{in: "COORDINATOR", want: MGetEngineCoordinator},
+		{in: "", want: MGetDriverDefault},
+		{in: "direct", want: MGetDriverDirect},
+		{in: " Direct ", want: MGetDriverDirect},
+		{in: "COORDINATOR", want: MGetDriverCoordinator},
 		{in: "shard", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := ParseMGetEngine(tt.in)
+			got, err := ParseMGetDriver(tt.in)
 			if tt.wantErr {
 				require.Error(t, err)
 
@@ -843,7 +882,7 @@ func TestParseMGetEngine(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
-			if tt.want != MGetEngineDefault {
+			if tt.want != MGetDriverDefault {
 				require.Equal(t, strings.ToLower(strings.TrimSpace(tt.in)), got.String())
 			}
 		})

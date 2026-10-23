@@ -12,5 +12,5 @@ import "time"
 // search_after page for c's scans, so retry tests don't wait seconds. It is
 // compiled only into this package's tests.
 func SetSearchAfterRetryBackoff(c *Client, d time.Duration) {
-	c.searchAfterRetryBackoff = d
+	c.ext.searchAfterRetryBackoff = d
 }

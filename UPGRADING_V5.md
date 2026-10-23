@@ -872,25 +872,3 @@ opensearch_client_bulk_errors_total{layer="indexer"}
 # After
 opensearch_client_bulk_errors_total{layer="client"}
 ```
-
-## `LookupShard` returns every shard copy in 5.1.3
-
-`opensearchtransport.Transport.LookupShard` and the `opensearchutil.ShardRouter` interface change from `LookupShard(index, routing string) (ShardTarget, bool)` to `LookupShard(index, key string, dst *[]*ShardTarget) error`. The lookup fills `dst` with every copy of the shard, the primary first, and returns `ErrShardMapUnknown` where it used to return `false`. `key` is the routing value, or the document ID when there is none.
-
-```go
-// Before
-target, ok := tr.LookupShard(index, routing)
-if !ok {
-	return
-}
-use(target.Node)
-
-// After
-var targets []*opensearchtransport.ShardTarget // reuse it across calls, e.g. from a sync.Pool
-if err := tr.LookupShard(index, routing, &targets); err != nil {
-	return
-}
-use(targets[0].Node) // the primary; targets[1:] are the replicas on ready nodes
-```
-
-A custom `ShardRouter` implements the new signature: reset `*dst` to length zero, refill it with the primary first, reuse the `ShardTarget`s already in its backing array, and return `ErrShardMapUnknown` for an index it doesn't know.

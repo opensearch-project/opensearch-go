@@ -79,7 +79,7 @@ type Config struct {
 	Errors *errmask.ErrorMask
 
 	// MGet selects and tunes how [DocumentClient.MGet] fetches documents; see
-	// [MGetConfig]. The zero value uses this release's default engine.
+	// [MGetConfig]. The zero value uses this release's default driver.
 	MGet MGetConfig
 }
 
@@ -107,7 +107,7 @@ func buildClient(config Config) (*Client, error) {
 	}
 
 	client := clientInit(rootClient, resolveErrorMask(config))
-	client.mget = newMGetEngine(config.MGet, rootClient)
+	client.ext.mget = newMGetDriver(config.MGet, rootClient)
 
 	return client, nil
 }
@@ -135,9 +135,21 @@ func NewDefaultClient() (*Client, error) {
 	}
 
 	client := clientInit(root, resolveErrorMask(Config{}))
-	client.mget = newMGetEngine(MGetConfig{}, root)
+	client.ext.mget = newMGetDriver(MGetConfig{}, root)
 
 	return client, nil
+}
+
+// clientExt is the state a Client carries for its hand-written methods. The
+// generated Client holds it as one field, so the generator knows nothing of
+// what it contains.
+type clientExt struct {
+	// searchAfterRetryBackoff overrides the search_after retry backoff for this
+	// client; zero means the default. Only tests set it.
+	searchAfterRetryBackoff time.Duration
+	// mget is the driver DocumentClient.MGet tries first; nil sends every mget
+	// through one coordinating node, as the cluster routes it.
+	mget *mgetDriver
 }
 
 // errMaskWidth is the storage type backing a Client's live error mask.
@@ -214,7 +226,7 @@ func (e *ErrorMaskConflictError) Error() string {
 // field to their constructors.
 func (c *Client) Clone() *Client {
 	clone := clientInit(c.Client, c.errorMask())
-	clone.mget = c.mget
+	clone.ext = c.ext
 
 	return clone
 }

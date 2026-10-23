@@ -47,7 +47,7 @@ func (r *mgetDoneRecorder) last(t *testing.T) opensearchapi.MGetDoneEvent {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	require.NotEmpty(t, r.done, "the direct engine answered no mget")
+	require.NotEmpty(t, r.done, "the direct driver answered no mget")
 
 	return r.done[len(r.done)-1]
 }
@@ -164,9 +164,9 @@ func TestMGetDirectAnswersAsTheCoordinatorDoes(t *testing.T) {
 			spread := awaitPlacement(t, ctx, client, index, keys)
 
 			req := opensearchapi.MGetReq{Body: &opensearchapi.MGetBody{Docs: ops}}
-			want, err := client.Doc.MGet(opensearchapi.WithMGetEngine(ctx, opensearchapi.MGetEngineCoordinator), req)
+			want, err := client.Doc.MGet(opensearchapi.WithMGetDriver(ctx, opensearchapi.MGetDriverCoordinator), req)
 			require.NoError(t, err)
-			got, err := client.Doc.MGet(opensearchapi.WithMGetEngine(ctx, opensearchapi.MGetEngineDirect), req)
+			got, err := client.Doc.MGet(opensearchapi.WithMGetDriver(ctx, opensearchapi.MGetDriverDirect), req)
 			require.NoError(t, err)
 
 			require.Equal(t, want.Inspect().Response.StatusCode, got.Inspect().Response.StatusCode)

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// MGetObserver receives notifications about the requests the direct mget engine
+// MGetObserver receives notifications about the requests the direct mget driver
 // sends, for statistics and metrics: how widely each mget fans out across the
 // nodes and how often a node's documents are sent again. Set it as
 // [MGetConfig].Observer.
@@ -21,12 +21,12 @@ import (
 // since the goroutine that calls them is the one fetching the documents.
 // Events are values and may be retained.
 type MGetObserver interface {
-	// OnMGetRequest is called after each request the engine sends returns,
+	// OnMGetRequest is called after each request the driver sends returns,
 	// whether it failed or not: each request to a node, each retry, and each
 	// request sent through a coordinating node.
 	OnMGetRequest(ctx context.Context, event MGetRequestEvent)
 
-	// OnMGetDone is called once per mget the engine answers, when it returns.
+	// OnMGetDone is called once per mget the driver answers, when it returns.
 	OnMGetDone(ctx context.Context, event MGetDoneEvent)
 }
 
@@ -40,7 +40,7 @@ func (BaseMGetObserver) OnMGetRequest(context.Context, MGetRequestEvent) {}
 // OnMGetDone implements MGetObserver (no-op).
 func (BaseMGetObserver) OnMGetDone(context.Context, MGetDoneEvent) {}
 
-// MGetRequestEvent describes one request the direct mget engine sent.
+// MGetRequestEvent describes one request the direct mget driver sent.
 type MGetRequestEvent struct {
 	// Node is the name of the node the request was sent to. It is empty for a
 	// request sent through a coordinating node, which the transport routed.
@@ -72,7 +72,7 @@ type MGetRequestEvent struct {
 	RetryDocs int
 }
 
-// MGetDoneEvent describes an mget the direct engine has answered.
+// MGetDoneEvent describes an mget the direct driver has answered.
 type MGetDoneEvent struct {
 	// Docs is the number of documents the mget asked for.
 	Docs int
@@ -94,12 +94,12 @@ type MGetDoneEvent struct {
 	// attempts.
 	CoordinatorDocs int
 
-	// FailedDocs is the number of documents the engine itself answered with an
+	// FailedDocs is the number of documents the driver itself answered with an
 	// error, because no request for them could be completed.
 	FailedDocs int
 
 	// Resent reports that a node refused a request in a way the cluster would
-	// have refused the whole mget, so the engine sent the whole mget through a
+	// have refused the whole mget, so the driver sent the whole mget through a
 	// coordinating node and returned its answer.
 	Resent bool
 

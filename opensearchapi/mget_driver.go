@@ -8,6 +8,7 @@ package opensearchapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -18,21 +19,21 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
-// MGetEngine selects how [DocumentClient.MGet] fetches its documents.
-type MGetEngine uint8
+// MGetDriver selects how [DocumentClient.MGet] fetches its documents.
+type MGetDriver uint8
 
 const (
-	// MGetEngineDefault leaves the choice to the OPENSEARCH_GO_MGET environment
+	// MGetDriverDefault leaves the choice to the OPENSEARCH_GO_MGET environment
 	// variable and, when that is not set, to this release's default,
-	// MGetEngineCoordinator.
-	MGetEngineDefault MGetEngine = iota
+	// MGetDriverCoordinator.
+	MGetDriverDefault MGetDriver = iota
 
-	// MGetEngineCoordinator sends each mget as one request. The node that
+	// MGetDriverCoordinator sends each mget as one request. The node that
 	// receives it splits the documents by shard, fetches each shard's from a
 	// node that holds it, and answers for all of them.
-	MGetEngineCoordinator
+	MGetDriverCoordinator
 
-	// MGetEngineDirect splits each mget by shard in the client, using the shard
+	// MGetDriverDirect splits each mget by shard in the client, using the shard
 	// map the transport keeps, and sends each node only the documents it holds,
 	// as concurrent requests the node answers from its own shard copies. The
 	// answers are put back together in the order the documents were asked for,
@@ -44,64 +45,64 @@ const (
 	// every document of an mget the client cannot split as the cluster would:
 	// one with a preference, a filter_path, a format or a source parameter, a raw
 	// BodyReader, or ids in place of docs.
-	MGetEngineDirect
+	MGetDriverDirect
 )
 
-// defaultMGetEngine is the engine MGetEngineDefault resolves to when
+// defaultMGetDriver is the driver MGetDriverDefault resolves to when
 // OPENSEARCH_GO_MGET is not set.
-const defaultMGetEngine = MGetEngineCoordinator
+const defaultMGetDriver = MGetDriverCoordinator
 
-// String returns the engine as OPENSEARCH_GO_MGET spells it.
-func (e MGetEngine) String() string {
-	switch e {
-	case MGetEngineDefault:
+// String returns the driver as OPENSEARCH_GO_MGET spells it.
+func (d MGetDriver) String() string {
+	switch d {
+	case MGetDriverDefault:
 		return "default"
-	case MGetEngineCoordinator:
+	case MGetDriverCoordinator:
 		return "coordinator"
-	case MGetEngineDirect:
+	case MGetDriverDirect:
 		return "direct"
 	default:
-		return fmt.Sprintf("MGetEngine(%d)", uint8(e))
+		return fmt.Sprintf("MGetDriver(%d)", uint8(d))
 	}
 }
 
-// ParseMGetEngine parses an engine as OPENSEARCH_GO_MGET spells it: "direct"
-// or "coordinator", in any case. The empty string is MGetEngineDefault.
-func ParseMGetEngine(s string) (MGetEngine, error) {
+// ParseMGetDriver parses a driver as OPENSEARCH_GO_MGET spells it: "direct"
+// or "coordinator", in any case. The empty string is MGetDriverDefault.
+func ParseMGetDriver(s string) (MGetDriver, error) {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "":
-		return MGetEngineDefault, nil
+		return MGetDriverDefault, nil
 	case "coordinator":
-		return MGetEngineCoordinator, nil
+		return MGetDriverCoordinator, nil
 	case "direct":
-		return MGetEngineDirect, nil
+		return MGetDriverDirect, nil
 	default:
-		return MGetEngineDefault, fmt.Errorf("unknown mget engine %q, want direct or coordinator", s)
+		return MGetDriverDefault, fmt.Errorf("unknown mget driver %q, want direct or coordinator", s)
 	}
 }
 
 // MGetConfig configures how [DocumentClient.MGet] fetches documents. Set it as
 // [Config].MGet.
 type MGetConfig struct {
-	// Engine selects the engine. OPENSEARCH_GO_MGET overrides it, and
-	// [WithMGetEngine] overrides both for one call.
-	Engine MGetEngine
+	// Driver selects the driver. OPENSEARCH_GO_MGET overrides it, and
+	// [WithMGetDriver] overrides both for one call.
+	Driver MGetDriver
 
-	// Observer, when set, is told about every request MGetEngineDirect sends and
+	// Observer, when set, is told about every request MGetDriverDirect sends and
 	// about each mget it completes.
 	Observer MGetObserver
 
-	// MaxDocsPerRequest is the most documents MGetEngineDirect puts in one
+	// MaxDocsPerRequest is the most documents MGetDriverDirect puts in one
 	// request to a node; a node's share of a larger mget goes as several
 	// requests. 0 means 500.
 	MaxDocsPerRequest int
 
-	// MaxAttempts is how many requests MGetEngineDirect sends a document in
+	// MaxAttempts is how many requests MGetDriverDirect sends a document in
 	// directly when a node rejects it, fails, or answers that the shard is not
 	// available, before it asks a coordinating node for it instead. 0 means 3.
 	MaxAttempts int
 
-	// MaxInFlightDocsPerNode bounds the documents MGetEngineDirect has
+	// MaxInFlightDocsPerNode bounds the documents MGetDriverDirect has
 	// outstanding to one node at once, across every mget the client sends. A
 	// node that rejects requests has the bound halved, and it grows back as the
 	// node keeps up. 0 means 8 times MaxDocsPerRequest.
@@ -115,36 +116,36 @@ const (
 	mgetWindowBackoff          = 0.5
 )
 
-// mgetEngineKey is the context key for [WithMGetEngine].
-type mgetEngineKey struct{}
+// mgetDriverKey is the context key for [WithMGetDriver].
+type mgetDriverKey struct{}
 
-// WithMGetEngine returns a context that has [DocumentClient.MGet] use engine for
+// WithMGetDriver returns a context that has [DocumentClient.MGet] use driver for
 // calls made with it, whatever the client's configuration and
-// OPENSEARCH_GO_MGET say. MGetEngineDefault leaves the client's choice in
+// OPENSEARCH_GO_MGET say. MGetDriverDefault leaves the client's choice in
 // place.
-func WithMGetEngine(ctx context.Context, engine MGetEngine) context.Context {
-	return context.WithValue(ctx, mgetEngineKey{}, engine)
+func WithMGetDriver(ctx context.Context, driver MGetDriver) context.Context {
+	return context.WithValue(ctx, mgetDriverKey{}, driver)
 }
 
-// shardLookup is what the direct engine needs of a transport;
+// shardLookup is what the direct driver needs of a transport;
 // [opensearchtransport.Transport] provides it.
 type shardLookup interface {
 	LookupShard(index, key string, dst *[]*opensearchtransport.ShardTarget) error
 }
 
-// newMGetEngine builds the engine a client's MGet tries first. It is built even
-// when the coordinator engine is selected, so that WithMGetEngine can choose
-// the direct one for a call; it fetches nothing directly when the transport
-// keeps no shard map.
-func newMGetEngine(cfg MGetConfig, root *opensearch.Client) *mgetEngine {
-	engine := cfg.Engine
+// newMGetDriver builds the driver a client's MGet tries first. It is built even
+// when the coordinator driver is selected, so that WithMGetDriver can choose the
+// direct one for a call; it fetches nothing directly when the transport keeps
+// no shard map.
+func newMGetDriver(cfg MGetConfig, root *opensearch.Client) *mgetDriver {
+	driver := cfg.Driver
 	if v, ok := os.LookupEnv(envvars.MGet); ok {
-		if parsed, err := ParseMGetEngine(v); err == nil && parsed != MGetEngineDefault {
-			engine = parsed
+		if parsed, err := ParseMGetDriver(v); err == nil && parsed != MGetDriverDefault {
+			driver = parsed
 		}
 	}
-	if engine == MGetEngineDefault {
-		engine = defaultMGetEngine
+	if driver == MGetDriverDefault {
+		driver = defaultMGetDriver
 	}
 
 	maxDocs := cfg.MaxDocsPerRequest
@@ -160,8 +161,8 @@ func newMGetEngine(cfg MGetConfig, root *opensearch.Client) *mgetEngine {
 		inFlight = defaultMGetInFlightPerDocs * maxDocs
 	}
 
-	e := &mgetEngine{
-		engine:      engine,
+	d := &mgetDriver{
+		driver:      driver,
 		observer:    cfg.Observer,
 		maxDocs:     maxDocs,
 		maxAttempts: attempts,
@@ -177,38 +178,40 @@ func newMGetEngine(cfg MGetConfig, root *opensearch.Client) *mgetEngine {
 	}
 	if root != nil {
 		if lookup, ok := root.Transport.(shardLookup); ok {
-			e.lookup = lookup
+			d.lookup = lookup
 		}
 	}
 
-	return e
+	return d
 }
 
-// selected returns the engine a call made with ctx uses.
-func (e *mgetEngine) selected(ctx context.Context) MGetEngine {
-	if v, ok := ctx.Value(mgetEngineKey{}).(MGetEngine); ok && v != MGetEngineDefault {
+// selected returns the driver a call made with ctx uses.
+func (d *mgetDriver) selected(ctx context.Context) MGetDriver {
+	if v, ok := ctx.Value(mgetDriverKey{}).(MGetDriver); ok && v != MGetDriverDefault {
 		return v
 	}
 
-	return e.engine
+	return d.driver
 }
 
 // interceptMGet is the hook DocumentClient.MGet calls first. It answers the
-// call itself, and reports true, when the direct engine is selected and can
+// call itself, and reports true, when the direct driver is selected and can
 // place at least one of the documents; otherwise it reports false and the
 // mget goes to the cluster as one request.
 func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, bool, error) {
-	e := c.mget
-	if e == nil || e.lookup == nil || e.selected(ctx) != MGetEngineDirect {
+	d := c.ext.mget
+	if d == nil || d.lookup == nil || d.selected(ctx) != MGetDriverDirect {
 		return nil, false, nil
 	}
 
-	call, ok := e.plan(c, req)
-	if !ok {
+	call, err := d.write(c, req)
+	if errors.Is(err, errMGetNotSplittable) {
+		// write says why the mget cannot be split; it goes to the cluster as one
+		// request, which is not a failure of the call.
 		return nil, false, nil
 	}
 
-	resp, err := call.run(ctx)
+	resp, err := call.flush(ctx)
 
 	return resp, true, err
 }
