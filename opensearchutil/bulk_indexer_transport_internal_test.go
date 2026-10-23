@@ -26,6 +26,7 @@ import (
 // transport, which finds the node, the index's shard map and the node's write
 // pool as it does against a cluster, and checks that what the transport makes of
 // the pool does not hold the bulk client below NumWorkers requests to the node.
+// TestBulkIndexerPoolWindowDoesNotCapRequests sets the pool's window by hand.
 func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralleltest // Sets an environment variable.
 	const (
 		shards     = 8
