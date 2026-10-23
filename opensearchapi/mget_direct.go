@@ -48,8 +48,8 @@ var (
 	errMGetNoDocs        = fmt.Errorf("%w: it has no docs, a raw BodyReader, or ids in place of docs", errMGetNotSplittable)
 	errMGetPreference    = fmt.Errorf("%w: it has a preference", errMGetNotSplittable)
 	errMGetReshaped      = fmt.Errorf("%w: filter_path, format or source reshapes it", errMGetNotSplittable)
-	errMGetNoneResolved  = fmt.Errorf("%w: no document resolves to a node", errMGetNotSplittable)
-	errNoUsableShardCopy = errors.New("no copy of the shard is on a usable node")
+	errMGetNoneRouted    = fmt.Errorf("%w: no document routes to a node", errMGetNotSplittable)
+	errNoUsableShardNode = errors.New("no copy of the shard is on a usable node")
 )
 
 // mgetRetryableTypes are the per-document error types that say the document's
@@ -107,21 +107,23 @@ type mgetDriver struct {
 //nolint:gochecknoglobals // A pool is process-wide by design.
 var mgetTargetPool slicepool.Pool[opensearchtransport.ShardTarget]
 
-// mgetBatch is documents bound for one node in one request.
-type mgetBatch struct {
+// mgetJob is one request to one node: the documents it asks the node for.
+type mgetJob struct {
 	node *opensearchtransport.Connection
-	// local sends preference=_local. Without it the node routes each document
-	// as the coordinator would, which sends a segment-replicated index's
-	// realtime read to the primary.
+	// local sends preference=_local, so the node answers from its own shard
+	// copies. Without it the node routes each document as a coordinator would,
+	// which sends a realtime read of a segment-replicated index to the primary.
 	local bool
-	// slots are the positions of the documents in the caller's request.
-	slots   []int
+	// slots are the positions of the job's documents in the caller's request.
+	slots []int
+	// attempt is 1 for a document's first request, and counts up on each retry.
 	attempt int
 }
 
-// mgetCopy is the shard copy selectCopy chose for a document: the node to send
-// it to, and whether the request carries preference=_local.
-type mgetCopy struct {
+// shardNode is the node findShardNode picked for a document, among the nodes
+// that hold a copy of its shard, and whether the request to it carries
+// preference=_local.
+type shardNode struct {
 	node  *opensearchtransport.Connection
 	local bool
 }
@@ -138,10 +140,10 @@ type mgetCall struct {
 	// indexes is the concrete index each document was looked up in, or "".
 	indexes []string
 
-	batches []mgetBatch
-	// unresolved are the positions resolve could not put on a node, fetched
-	// through a coordinating node.
-	unresolved []int
+	jobs []mgetJob
+	// unrouted are the positions route could not send to a node. They are
+	// fetched through a coordinating node.
+	unrouted []int
 
 	// docs are the answers, one per position. A position is written by the one
 	// goroutine that holds it at that moment, so it needs no lock.
@@ -165,10 +167,11 @@ type mgetCall struct {
 	}
 }
 
-// write takes req's documents and resolves each to the node to send it to,
-// ready for flush. It returns an error wrapping errMGetNotSplittable, saying
-// why, when req is not one the client can split as the cluster would, or when no
-// document resolves to a node; the mget then goes to the cluster as it is.
+// write takes req's documents and routes each to the node to send it to, ready
+// for flush. When req is not one the client can split the way the cluster would,
+// or no document routes to a node, it returns an error that wraps
+// errMGetNotSplittable and says why, and the mget goes to the cluster as one
+// request.
 func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
 	switch {
 	case req.BodyReader != nil || req.Body == nil || req.Body.IDs != nil || len(req.Body.Docs) == 0:
@@ -196,9 +199,9 @@ func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
 	for i := range positions {
 		positions[i] = i
 	}
-	call.batches, call.unresolved = call.resolve(positions, 1, "")
-	if len(call.batches) == 0 {
-		return nil, errMGetNoneResolved
+	call.jobs, call.unrouted = call.route(positions, 1, "")
+	if len(call.jobs) == 0 {
+		return nil, errMGetNoneRouted
 	}
 
 	return call, nil
@@ -212,22 +215,22 @@ func mgetReshapesResponse(p DebugParams) bool {
 	return len(p.FilterPath) > 0 || p.Format != "" || p.Source != ""
 }
 
-// resolve groups the documents at positions by the node to send each to, in
-// batches of at most maxDocs, for the given attempt. Positions it cannot
-// resolve to a node are returned separately, to be fetched through a
-// coordinating node. avoid names a node to pass over when a document has
-// another copy to go to.
-func (call *mgetCall) resolve(positions []int, attempt int, avoid string) ([]mgetBatch, []int) {
+// route groups the documents at positions by the node each is sent to, into jobs
+// of at most maxDocs documents, for the given attempt. It returns the jobs, and
+// the positions it could not route to a node, which are fetched through a
+// coordinating node instead. avoid names a node to skip when a document's shard
+// has a copy on another node.
+func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJob, []int) {
 	type groupKey struct {
 		node  string
 		local bool
 	}
 
 	var (
-		unresolved []int
-		order      []groupKey
-		groups     = make(map[groupKey]*mgetBatch)
-		planned    = make(map[string]int)
+		unrouted []int
+		order    []groupKey
+		groups   = make(map[groupKey]*mgetJob)
+		planned  = make(map[string]int)
 	)
 
 	targets := mgetTargetPool.Get()
@@ -248,53 +251,56 @@ func (call *mgetCall) resolve(positions []int, attempt int, avoid string) ([]mge
 		}
 
 		if index == "" || op.ID == "" || call.d.lookup.LookupShard(index, key, targets) != nil {
-			unresolved = append(unresolved, pos)
+			unrouted = append(unrouted, pos)
 
 			continue
 		}
 		call.indexes[pos] = index
 
-		shardCopy, err := call.selectCopy(*targets, avoid, planned)
+		sn, err := call.findShardNode(*targets, avoid, planned)
 		if err != nil {
-			unresolved = append(unresolved, pos)
+			unrouted = append(unrouted, pos)
 
 			continue
 		}
-		planned[shardCopy.node.Name]++
+		planned[sn.node.Name]++
 
-		gk := groupKey{node: shardCopy.node.Name, local: shardCopy.local}
-		b, found := groups[gk]
+		gk := groupKey{node: sn.node.Name, local: sn.local}
+		j, found := groups[gk]
 		if !found {
-			b = &mgetBatch{node: shardCopy.node, local: shardCopy.local, attempt: attempt}
-			groups[gk] = b
+			j = &mgetJob{node: sn.node, local: sn.local, attempt: attempt}
+			groups[gk] = j
 			order = append(order, gk)
 		}
-		b.slots = append(b.slots, pos)
+		j.slots = append(j.slots, pos)
 	}
 
-	var batches []mgetBatch
+	var jobs []mgetJob
 	for _, gk := range order {
-		b := groups[gk]
-		for start := 0; start < len(b.slots); start += call.d.maxDocs {
-			end := min(start+call.d.maxDocs, len(b.slots))
-			batches = append(batches, mgetBatch{node: b.node, local: b.local, attempt: attempt, slots: b.slots[start:end:end]})
+		j := groups[gk]
+		for start := 0; start < len(j.slots); start += call.d.maxDocs {
+			end := min(start+call.d.maxDocs, len(j.slots))
+			jobs = append(jobs, mgetJob{node: j.node, local: j.local, attempt: attempt, slots: j.slots[start:end:end]})
 		}
 	}
 
-	return batches, unresolved
+	return jobs, unrouted
 }
 
-// selectCopy picks the shard copy a document is read from. A realtime read of
-// an index not known to use document replication goes to the primary with no
-// preference, so the node itself sends it to the primary as the cluster would.
-// Otherwise it goes to the copy whose node has the fewest documents outstanding,
-// counting those resolved in this pass, preferring a replica on a tie. It
-// returns errNoUsableShardCopy when no copy is on a usable node.
-func (call *mgetCall) selectCopy(
+// findShardNode picks, among the nodes that hold a copy of a document's shard,
+// the node to read the document from.
+//
+// A realtime read of an index not known to use document replication goes to the
+// primary's node with no preference, so the node itself sends the read to the
+// primary, as a coordinator would. Any other read goes to the node with the
+// fewest documents in flight, counting the documents already routed in this
+// pass, and a replica wins a tie. It returns errNoUsableShardNode when no copy
+// is on a usable node.
+func (call *mgetCall) findShardNode(
 	targets []*opensearchtransport.ShardTarget, avoid string, planned map[string]int,
-) (mgetCopy, error) {
+) (shardNode, error) {
 	if len(targets) == 0 {
-		return mgetCopy{}, errNoUsableShardCopy
+		return shardNode{}, errNoUsableShardNode
 	}
 
 	// A replication type not known to be document replication is treated as
@@ -302,10 +308,10 @@ func (call *mgetCall) selectCopy(
 	if call.realtime && targets[0].Replication != opensearchtransport.ReplicationDocument {
 		primary := targets[0]
 		if !primary.Primary || primary.Node == nil {
-			return mgetCopy{}, errNoUsableShardCopy
+			return shardNode{}, errNoUsableShardNode
 		}
 
-		return mgetCopy{node: primary.Node}, nil
+		return shardNode{node: primary.Node}, nil
 	}
 
 	var (
@@ -335,10 +341,10 @@ func (call *mgetCall) selectCopy(
 		best, bestLoad = target, load
 	}
 	if best == nil {
-		return mgetCopy{}, errNoUsableShardCopy
+		return shardNode{}, errNoUsableShardNode
 	}
 
-	return mgetCopy{node: best.Node, local: true}, nil
+	return shardNode{node: best.Node, local: true}, nil
 }
 
 // flush sends the written requests, waits for them, and returns the answer.
@@ -351,11 +357,11 @@ func (call *mgetCall) flush(parent context.Context) (*MGetResp, error) {
 	call.mu.nodes = make(map[string]struct{})
 	call.mu.stats.Docs = len(call.docs)
 
-	if len(call.unresolved) > 0 {
-		call.coordinate(ctx, call.unresolved)
+	if len(call.unrouted) > 0 {
+		call.coordinate(ctx, call.unrouted)
 	}
-	for _, b := range call.batches {
-		call.dispatch(ctx, b)
+	for _, j := range call.jobs {
+		call.dispatch(ctx, j)
 	}
 	call.wg.Wait()
 
@@ -404,9 +410,9 @@ func (call *mgetCall) finish(parent context.Context) (*MGetResp, error) {
 	return call.merge(header), nil
 }
 
-// dispatch sends a batch on its own goroutine.
-func (call *mgetCall) dispatch(ctx context.Context, b mgetBatch) {
-	call.wg.Go(func() { call.sendBatch(ctx, b) })
+// dispatch sends a job on its own goroutine.
+func (call *mgetCall) dispatch(ctx context.Context, j mgetJob) {
+	call.wg.Go(func() { call.sendJob(ctx, j) })
 }
 
 // coordinate fetches the documents at slots through a coordinating node, on its
@@ -436,39 +442,40 @@ func (call *mgetCall) subRequest(slots []int, preference string) MGetReq {
 	return MGetReq{Index: call.req.Index, Body: &MGetBody{Docs: ops}, Header: call.req.Header, Params: &params}
 }
 
-// sendBatch sends one batch to its node and deals with the answer.
-func (call *mgetCall) sendBatch(ctx context.Context, b mgetBatch) {
+// sendJob sends a job to its node once the node's window has room, injects the
+// node's response, and sends again any documents that need another request.
+func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 	preference := ""
-	if b.local {
+	if j.local {
 		preference = mgetPreferenceLocal
 	}
-	sub := call.subRequest(b.slots, preference)
+	sub := call.subRequest(j.slots, preference)
 
-	reservation, err := call.d.windows.Acquire(ctx, scheduler.NodeName(b.node.Name), int64(len(b.slots)))
+	reservation, err := call.d.windows.Acquire(ctx, scheduler.NodeName(j.node.Name), int64(len(j.slots)))
 	if err != nil {
 		return
 	}
 
 	call.mu.Lock()
-	call.mu.nodes[b.node.Name] = struct{}{}
+	call.mu.nodes[j.node.Name] = struct{}{}
 	call.mu.stats.Requests++
-	if b.attempt > 1 {
+	if j.attempt > 1 {
 		call.mu.stats.Retries++
 	}
 	call.mu.Unlock()
 
 	sent := time.Now()
-	resp, err := call.d.send(ctx, call.c, b.node, sub)
+	resp, err := call.d.send(ctx, call.c, j.node, sub)
 	event := MGetRequestEvent{
-		Node:       b.node.Name,
-		Attempt:    b.attempt,
-		Docs:       len(b.slots),
+		Node:       j.node.Name,
+		Attempt:    j.attempt,
+		Docs:       len(j.slots),
 		Duration:   time.Since(sent),
 		StatusCode: mgetStatus(resp),
 	}
 
-	outcome, retry, fallback := call.answer(ctx, b, resp, err, &event)
-	call.d.windows.Release(reservation, outcome, call.d.saturated(b.node))
+	outcome, retry, fallback := call.injectResponse(ctx, j, resp, err, &event)
+	call.d.windows.Release(reservation, outcome, call.d.saturated(j.node))
 
 	event.Err = err
 	event.RetryDocs = len(retry) + len(fallback)
@@ -482,29 +489,34 @@ func (call *mgetCall) sendBatch(ctx context.Context, b mgetBatch) {
 	if len(retry) == 0 {
 		return
 	}
-	if b.attempt >= call.d.maxAttempts {
+	if j.attempt >= call.d.maxAttempts {
 		call.coordinate(ctx, retry)
 
 		return
 	}
-	if !mgetWait(ctx, b.attempt) {
+	if !mgetWait(ctx, j.attempt) {
 		return
 	}
 
-	batches, unresolved := call.resolve(retry, b.attempt+1, b.node.Name)
-	if len(unresolved) > 0 {
-		call.coordinate(ctx, unresolved)
+	jobs, unrouted := call.route(retry, j.attempt+1, j.node.Name)
+	if len(unrouted) > 0 {
+		call.coordinate(ctx, unrouted)
 	}
-	for _, next := range batches {
+	for _, next := range jobs {
 		call.dispatch(ctx, next)
 	}
 }
 
-// answer places what a node's answer settles, and returns how the node fared,
-// the documents to ask the nodes for again, and those to ask a coordinating node
-// for.
-func (call *mgetCall) answer(
-	ctx context.Context, b mgetBatch, resp *MGetResp, err error, event *MGetRequestEvent,
+// injectResponse copies each document's answer from a node's response into
+// that document's slot in the merged mget response. It returns the outcome to
+// record in the node's window, the documents to send to a node again, and the
+// documents to send to a coordinating node instead.
+//
+// A document whose answer says its shard copy could not respond is left out and
+// returned for another request. A response that cannot be matched to the job's
+// documents injects nothing and sends them all to a coordinating node.
+func (call *mgetCall) injectResponse(
+	ctx context.Context, j mgetJob, resp *MGetResp, err error, event *MGetRequestEvent,
 ) (scheduler.Outcome, []int, []int) {
 	if err != nil {
 		switch status := mgetStatus(resp); {
@@ -513,11 +525,11 @@ func (call *mgetCall) answer(
 		case status == http.StatusTooManyRequests:
 			event.Rejected = true
 
-			return scheduler.OutcomeRejected, b.slots, nil
+			return scheduler.OutcomeRejected, j.slots, nil
 		case status == 0 || status >= http.StatusInternalServerError:
 			call.recordErr(resp, err)
 
-			return scheduler.OutcomeFailed, b.slots, nil
+			return scheduler.OutcomeFailed, j.slots, nil
 		default:
 			// The cluster would refuse the whole mget the same way. Ask it for the
 			// whole mget, and return what it says.
@@ -527,13 +539,13 @@ func (call *mgetCall) answer(
 		}
 	}
 
-	if !mgetAnswerMatches(resp, call.req.Body.Docs, b.slots) {
-		return scheduler.OutcomeFailed, nil, b.slots
+	if !mgetAnswerMatches(resp, call.req.Body.Docs, j.slots) {
+		return scheduler.OutcomeFailed, nil, j.slots
 	}
 
 	outcome := scheduler.OutcomeAccepted
 	var retry []int
-	for i, pos := range b.slots {
+	for i, pos := range j.slots {
 		item := resp.Docs[i]
 		if failure, ferr := item.MultiGetError(); ferr == nil {
 			_, rejected := mgetRejectedTypes[failure.Error.Type]
@@ -553,7 +565,7 @@ func (call *mgetCall) answer(
 		}
 		call.docs[pos] = item
 	}
-	call.answered(resp, len(b.slots)-len(retry))
+	call.answered(resp, len(j.slots)-len(retry))
 
 	return outcome, retry, nil
 }

@@ -502,7 +502,7 @@ func TestMGetDriverWriteSaysWhyItCannotSplit(t *testing.T) {
 			},
 			want: errMGetReshaped,
 		},
-		{name: "nothing resolves", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("unknown", "d0")}}, want: errMGetNoneResolved},
+		{name: "nothing routes", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("unknown", "d0")}}, want: errMGetNoneRouted},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
