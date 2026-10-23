@@ -185,7 +185,7 @@ func TestBulkIndexerByteWindowStart(t *testing.T) {
 
 			require.InDelta(t, tt.wantCeiling, bi.window.Start, 0, "it starts wide open")
 			require.InDelta(t, tt.wantCeiling, bi.window.Ceiling, 0)
-			require.Equal(t, tt.wantFixed, bi.window.Fixed)
+			require.Equal(t, tt.wantFixed, bi.window.Floor >= bi.window.Ceiling, "a fixed window's floor is its ceiling")
 		})
 	}
 }
@@ -218,7 +218,7 @@ func TestBulkSizingControllersAreIndependent(t *testing.T) {
 			t.Cleanup(func() { _ = bi.Close(t.Context()) })
 
 			require.Equal(t, tt.wantShardFixed, bi.sizing.fixed, "shard buffers fixed")
-			require.Equal(t, tt.wantTargetFixed, bi.window.Fixed, "node window fixed")
+			require.Equal(t, tt.wantTargetFixed, bi.window.Floor >= bi.window.Ceiling, "node window fixed")
 
 			// A 429 shrinks the window unless the window is fixed, whatever the shards do.
 			w := sched.NewWindow(bi.window)

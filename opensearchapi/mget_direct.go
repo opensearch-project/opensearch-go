@@ -85,7 +85,7 @@ type mgetEngine struct {
 	lookup      shardLookup
 	send        mgetSender
 	saturated   func(*opensearchtransport.Connection) bool
-	admission   *scheduler.Admission
+	windows     *scheduler.NodeWindows
 	observer    MGetObserver
 	maxDocs     int
 	maxAttempts int
@@ -293,7 +293,7 @@ func (call *mgetCall) choose(
 		}
 
 		load := int64(planned[target.Node.Name])
-		if st, ok := call.e.admission.State(target.Node.Name); ok {
+		if st, ok := call.e.windows.Stats(scheduler.NodeName(target.Node.Name)); ok {
 			load += st.Outstanding
 		}
 
@@ -416,7 +416,7 @@ func (call *mgetCall) sendBatch(ctx context.Context, b mgetBatch) {
 	}
 	sub := call.subRequest(b.slots, preference)
 
-	ticket, err := call.e.admission.Acquire(ctx, b.node.Name, int64(len(b.slots)))
+	reservation, err := call.e.windows.Acquire(ctx, scheduler.NodeName(b.node.Name), int64(len(b.slots)))
 	if err != nil {
 		return
 	}
@@ -440,7 +440,7 @@ func (call *mgetCall) sendBatch(ctx context.Context, b mgetBatch) {
 	}
 
 	outcome, retry, fallback := call.answer(ctx, b, resp, err, &event)
-	call.e.admission.Release(ticket, outcome, call.e.saturated(b.node))
+	call.e.windows.Release(reservation, outcome, call.e.saturated(b.node))
 
 	event.Err = err
 	event.RetryDocs = len(retry) + len(fallback)
@@ -481,29 +481,29 @@ func (call *mgetCall) answer(
 	if err != nil {
 		switch status := mgetStatus(resp); {
 		case ctx.Err() != nil:
-			return scheduler.Failed, nil, nil
+			return scheduler.OutcomeFailed, nil, nil
 		case status == http.StatusTooManyRequests:
 			event.Rejected = true
 
-			return scheduler.Rejected, b.slots, nil
+			return scheduler.OutcomeRejected, b.slots, nil
 		case status == 0 || status >= http.StatusInternalServerError:
 			call.recordErr(resp, err)
 
-			return scheduler.Failed, b.slots, nil
+			return scheduler.OutcomeFailed, b.slots, nil
 		default:
 			// The cluster would refuse the whole mget the same way. Ask it for the
 			// whole mget, and return what it says.
 			call.resendWhole()
 
-			return scheduler.Failed, nil, nil
+			return scheduler.OutcomeFailed, nil, nil
 		}
 	}
 
 	if !mgetAnswerMatches(resp, call.req.Body.Docs, b.slots) {
-		return scheduler.Failed, nil, b.slots
+		return scheduler.OutcomeFailed, nil, b.slots
 	}
 
-	outcome := scheduler.Accepted
+	outcome := scheduler.OutcomeAccepted
 	var retry []int
 	for i, pos := range b.slots {
 		item := resp.Docs[i]
@@ -512,7 +512,7 @@ func (call *mgetCall) answer(
 			_, retryable := mgetRetryableTypes[failure.Error.Type]
 			switch {
 			case rejected:
-				outcome = scheduler.Rejected
+				outcome = scheduler.OutcomeRejected
 				event.Rejected = true
 				retry = append(retry, pos)
 

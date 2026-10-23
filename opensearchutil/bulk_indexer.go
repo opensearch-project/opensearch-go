@@ -980,11 +980,14 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		Floor:   float64(cfg.FlushBytes),
 		Unit:    float64(cfg.FlushBytes),
 		Backoff: sizing.backoff,
-		Fixed:   sizing.targetFixed,
 	}
 	if cfg.TargetBytes > 0 {
 		window.Ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))
 		window.Start = window.Ceiling
+	}
+	if sizing.targetFixed {
+		// A window whose floor is its ceiling holds where it starts.
+		window.Floor = window.Ceiling
 	}
 
 	bi := bulkClient{

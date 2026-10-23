@@ -18,15 +18,14 @@ type WindowConfig struct {
 	// Start is the window a node begins with, and Ceiling the most it grows to.
 	Start, Ceiling float64
 	// Floor is the least it falls to: one full request, so that a node can always
-	// be sent something.
+	// be sent something. A Floor at or above Ceiling fixes the window at Ceiling,
+	// whatever the node does.
 	Floor float64
 	// Unit is the additive step: the window grows by about this much for each
 	// window's worth of units the node completes. It is the largest request.
 	Unit float64
 	// Backoff is the factor Shrink multiplies the window by.
 	Backoff float64
-	// Fixed holds the window where it started, whatever the node does.
-	Fixed bool
 }
 
 // Window is how many units a sender may have outstanding to one node: in
@@ -37,8 +36,9 @@ type WindowConfig struct {
 //     units that were outstanding when the 429 arrived. Shrinking from the units in
 //     flight, and not from the window, makes the first 429 count: a window that
 //     starts far above what is ever outstanding would not change at half of
-//     itself. A 429 to a request sent before the last shrink belongs to the
-//     overload that shrink already answered, and does not shrink the window again.
+//     itself. A 429 to a request sent before the last reduction belongs to the
+//     overload that reduction already answered, and does not shrink the window
+//     again.
 //   - Grow raises it by one unit for each window's worth of units in requests the
 //     node accepts, so a window that was shrunk recovers slowly, and one that was
 //     not barely moves.
@@ -52,9 +52,9 @@ type WindowConfig struct {
 type Window struct {
 	cfg  WindowConfig
 	size float64
-	// shrinks counts the times Shrink has reduced the window. A request records
+	// reductions counts the times Shrink has reduced the window. A request records
 	// the count when it is sent.
-	shrinks uint64
+	reductions uint64
 	// pinned is how many more accepted requests Grow must count before it raises
 	// the window again.
 	pinned int
@@ -68,30 +68,36 @@ func NewWindow(cfg WindowConfig) *Window {
 	return &Window{cfg: cfg, size: math.Min(math.Max(cfg.Start, cfg.Floor), cfg.Ceiling)}
 }
 
-// Allows reports whether a request of size units may be sent to a node that has
-// outstanding units in flight.
-func (w *Window) Allows(outstanding, size int64) bool {
+// fixed reports whether the window cannot move: its floor is its ceiling.
+func (w *Window) fixed() bool {
+	return w.cfg.Floor >= w.cfg.Ceiling
+}
+
+// CanWrite reports whether a request of size units may be sent to a node that
+// has outstanding units in flight. It reserves nothing.
+func (w *Window) CanWrite(outstanding, size int64) bool {
 	return outstanding == 0 || float64(outstanding+size) <= w.size
 }
 
 // Shrink halves the window for a 429 that arrived with outstanding units in
-// flight, the refused request's among them, and pins it. sentAt is [Window.Shrinks]
-// when the refused request was sent; a request sent before the last shrink does
-// not shrink the window again. It reports whether it reduced the window.
-func (w *Window) Shrink(outstanding int64, sentAt uint64) bool {
-	if w.cfg.Fixed {
+// flight, the refused request's among them, and pins it. reductionsAtSend is
+// [Window.NumReductions] when the refused request was sent; a request sent
+// before the last reduction does not shrink the window again. It reports
+// whether it reduced the window.
+func (w *Window) Shrink(outstanding int64, reductionsAtSend uint64) bool {
+	if w.fixed() {
 		return false
 	}
 
 	w.pinned = PinCompletions
 
-	if sentAt != w.shrinks {
-		// Sent before the last shrink: the same overload, already answered.
+	if reductionsAtSend != w.reductions {
+		// Sent before the last reduction: the same overload, already answered.
 		return false
 	}
 
 	w.size = math.Max(w.cfg.Floor, w.cfg.Backoff*math.Min(w.size, float64(outstanding)))
-	w.shrinks++
+	w.reductions++
 
 	return true
 }
@@ -100,7 +106,7 @@ func (w *Window) Shrink(outstanding int64, sentAt uint64) bool {
 // requests, or leaves a longer pin in place. It does not shrink the window, and a
 // 429 during the pin still does.
 func (w *Window) Pin() {
-	if w.cfg.Fixed {
+	if w.fixed() {
 		return
 	}
 
@@ -111,7 +117,7 @@ func (w *Window) Pin() {
 // the window is pinned it counts the pin down by one; otherwise it raises the
 // window by Unit × units / size, up to the ceiling.
 func (w *Window) Grow(units int64) {
-	if w.cfg.Fixed {
+	if w.fixed() {
 		return
 	}
 
@@ -127,12 +133,15 @@ func (w *Window) Grow(units int64) {
 // Size is the window, in units.
 func (w *Window) Size() float64 { return w.size }
 
-// Shrinks is the number of times Shrink has reduced the window. A sender records
-// it when it sends a request and passes it to Shrink if the request is refused.
-func (w *Window) Shrinks() uint64 { return w.shrinks }
+// NumReductions is the number of times Shrink has reduced the window. A sender
+// records it when it sends a request and passes it to Shrink if the request is
+// refused.
+func (w *Window) NumReductions() uint64 { return w.reductions }
 
-// Fraction is the window as a part of the most it grows to.
-func (w *Window) Fraction() float64 {
+// SizeRatio returns the window's size divided by its ceiling: 1 when the window
+// is fully open, and less after a reduction. It is 0 for a window with no
+// ceiling.
+func (w *Window) SizeRatio() float64 {
 	if w.cfg.Ceiling <= 0 {
 		return 0
 	}

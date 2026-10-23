@@ -6,8 +6,8 @@
 
 // Package scheduler holds the per-node congestion control shared by the clients
 // that send work straight to the nodes that hold it: the bulk client in
-// opensearchutil and the direct mget engine in opensearchapi. A [Window] bounds
+// opensearchutil and the direct mget driver in opensearchapi. A [Window] bounds
 // how much work may be outstanding to one node and answers a 429 the way TCP
-// answers a lost packet; an [Admission] keeps one window per node and makes a
+// answers a lost packet; [NodeWindows] keeps one window per node and makes a
 // sender wait for room.
 package scheduler

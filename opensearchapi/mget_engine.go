@@ -165,7 +165,7 @@ func newMGetEngine(cfg MGetConfig, root *opensearch.Client) *mgetEngine {
 		observer:    cfg.Observer,
 		maxDocs:     maxDocs,
 		maxAttempts: attempts,
-		admission: scheduler.NewAdmission(scheduler.WindowConfig{
+		windows: scheduler.NewNodeWindows(scheduler.WindowConfig{
 			Start:   float64(inFlight),
 			Ceiling: float64(inFlight),
 			Floor:   float64(maxDocs),

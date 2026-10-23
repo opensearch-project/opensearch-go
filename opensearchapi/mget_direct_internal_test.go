@@ -581,9 +581,9 @@ func TestMGetDirectShrinksARejectingNodesWindow(t *testing.T) {
 	_, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "d0", "d1", "d2")}})
 	require.NoError(t, err)
 
-	st, ok := c.mget.admission.State("n1")
+	st, ok := c.mget.windows.Stats("n1")
 	require.True(t, ok)
-	require.Less(t, st.Fraction, 1.0, "the node that answered 429 has its window shrunk")
+	require.Less(t, st.SizeRatio, 1.0, "the node that answered 429 has its window shrunk")
 }
 
 func TestMGetDirectPassesServerErrorsThrough(t *testing.T) {

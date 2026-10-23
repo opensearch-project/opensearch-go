@@ -14,12 +14,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// admissionConfig is a window of 100 units that starts full, with requests of 10.
-func admissionConfig() WindowConfig {
+// nodeWindowsConfig is a window of 100 units that starts full, with requests of 10.
+func nodeWindowsConfig() WindowConfig {
 	return WindowConfig{Start: 100, Ceiling: 100, Floor: 10, Unit: 10, Backoff: 0.5}
 }
 
-func TestAdmissionAcquire(t *testing.T) {
+func TestNodeWindowsAcquire(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -41,9 +41,9 @@ func TestAdmissionAcquire(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			a := NewAdmission(admissionConfig())
+			nw := NewNodeWindows(nodeWindowsConfig())
 			for _, units := range tt.held {
-				_, err := a.Acquire(t.Context(), "a", units)
+				_, err := nw.Acquire(t.Context(), "a", units)
 				require.NoError(t, err)
 			}
 
@@ -54,11 +54,11 @@ func TestAdmissionAcquire(t *testing.T) {
 				cancel()
 			}
 
-			_, err := a.Acquire(ctx, "a", tt.units)
+			_, err := nw.Acquire(ctx, "a", tt.units)
 			if !tt.wantAdmitted {
 				require.ErrorIs(t, err, context.Canceled)
 
-				st, ok := a.State("a")
+				st, ok := nw.Stats("a")
 				require.True(t, ok)
 				require.Zero(t, st.Waiters, "a cancelled wait leaves no waiter behind")
 
@@ -69,36 +69,36 @@ func TestAdmissionAcquire(t *testing.T) {
 	}
 }
 
-func TestAdmissionKeepsNodesApart(t *testing.T) {
+func TestNodeWindowsKeepsNodesApart(t *testing.T) {
 	t.Parallel()
 
-	a := NewAdmission(admissionConfig())
-	_, err := a.Acquire(t.Context(), "a", 100)
+	nw := NewNodeWindows(nodeWindowsConfig())
+	_, err := nw.Acquire(t.Context(), "a", 100)
 	require.NoError(t, err)
 
-	_, err = a.Acquire(t.Context(), "b", 100)
+	_, err = nw.Acquire(t.Context(), "b", 100)
 	require.NoError(t, err, "a full node does not hold up another")
 }
 
-func TestAdmissionReleaseWakesAWaiter(t *testing.T) {
+func TestNodeWindowsReleaseWakesAWaiter(t *testing.T) {
 	t.Parallel()
 
-	a := NewAdmission(admissionConfig())
-	held, err := a.Acquire(t.Context(), "a", 100)
+	nw := NewNodeWindows(nodeWindowsConfig())
+	held, err := nw.Acquire(t.Context(), "a", 100)
 	require.NoError(t, err)
 
 	admitted := make(chan error, 1)
 	go func() {
-		_, err := a.Acquire(t.Context(), "a", 10)
+		_, err := nw.Acquire(t.Context(), "a", 10)
 		admitted <- err
 	}()
 
 	require.Eventually(t, func() bool {
-		st, _ := a.State("a")
+		st, _ := nw.Stats("a")
 		return st.Waiters == 1
 	}, 5*time.Second, time.Millisecond, "the second request waits for room")
 
-	a.Release(held, Accepted, false)
+	nw.Release(held, OutcomeAccepted, false)
 
 	select {
 	case err := <-admitted:
@@ -107,89 +107,93 @@ func TestAdmissionReleaseWakesAWaiter(t *testing.T) {
 		require.FailNow(t, "the waiter was not admitted after the release")
 	}
 
-	st, ok := a.State("a")
+	st, ok := nw.Stats("a")
 	require.True(t, ok)
-	require.Equal(t, NodeState{Window: 100, Fraction: 1, Outstanding: 10}, st)
+	require.Equal(t, NodeStats{Window: 100, SizeRatio: 1, Outstanding: 10}, st)
 }
 
-func TestAdmissionRelease(t *testing.T) {
+func TestNodeWindowsRelease(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
 		// held are the units admitted to node "a"; the first is released.
-		held          []int64
-		outcome       Outcome
-		saturated     bool
-		wantWindow    float64
-		wantPinned    bool
-		wantOutstding int64
+		held            []int64
+		outcome         Outcome
+		saturated       bool
+		wantWindow      float64
+		wantPinned      bool
+		wantOutstanding int64
 	}{
 		{
 			name: "an accepted request leaves a full window full", held: []int64{10},
-			outcome: Accepted, wantWindow: 100,
+			outcome: OutcomeAccepted, wantWindow: 100,
 		},
 		{
 			name: "a rejected request shrinks from what was out, its own units among them", held: []int64{40, 20},
-			outcome: Rejected, wantWindow: 30, wantPinned: true, wantOutstding: 20,
+			outcome: OutcomeRejected, wantWindow: 30, wantPinned: true, wantOutstanding: 20,
 		},
 		{
 			name: "a failed request leaves the window alone", held: []int64{40, 20},
-			outcome: Failed, wantWindow: 100, wantOutstding: 20,
+			outcome: OutcomeFailed, wantWindow: 100, wantOutstanding: 20,
+		},
+		{
+			name: "an unknown outcome leaves the window alone", held: []int64{40, 20},
+			outcome: OutcomeUnknown, wantWindow: 100, wantOutstanding: 20,
 		},
 		{
 			name: "a node that becomes saturated is pinned but not shrunk", held: []int64{10},
-			outcome: Accepted, saturated: true, wantWindow: 100, wantPinned: true,
+			outcome: OutcomeAccepted, saturated: true, wantWindow: 100, wantPinned: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			a := NewAdmission(admissionConfig())
-			tickets := make([]Ticket, len(tt.held))
+			nw := NewNodeWindows(nodeWindowsConfig())
+			reservations := make([]Reservation, len(tt.held))
 			for i, units := range tt.held {
 				var err error
-				tickets[i], err = a.Acquire(t.Context(), "a", units)
+				reservations[i], err = nw.Acquire(t.Context(), "a", units)
 				require.NoError(t, err)
 			}
 
-			a.Release(tickets[0], tt.outcome, tt.saturated)
+			nw.Release(reservations[0], tt.outcome, tt.saturated)
 
-			st, ok := a.State("a")
+			st, ok := nw.Stats("a")
 			require.True(t, ok)
 			require.InDelta(t, tt.wantWindow, st.Window, 1e-9)
-			require.Equal(t, tt.wantOutstding, st.Outstanding)
-			require.Equal(t, tt.wantPinned, a.mu.nodes["a"].window.pinned > 0)
+			require.Equal(t, tt.wantOutstanding, st.Outstanding)
+			require.Equal(t, tt.wantPinned, nw.mu.targets["a"].window.pinned > 0)
 		})
 	}
 }
 
-func TestAdmissionPinsOnceWhenANodeStaysSaturated(t *testing.T) {
+func TestNodeWindowsPinsOnceWhenANodeStaysSaturated(t *testing.T) {
 	t.Parallel()
 
-	a := NewAdmission(admissionConfig())
+	nw := NewNodeWindows(nodeWindowsConfig())
 	release := func(saturated bool) {
 		t.Helper()
 
-		ticket, err := a.Acquire(t.Context(), "a", 10)
+		r, err := nw.Acquire(t.Context(), "a", 10)
 		require.NoError(t, err)
-		a.Release(ticket, Accepted, saturated)
+		nw.Release(r, OutcomeAccepted, saturated)
 	}
 
 	release(true)
-	require.Equal(t, PinCompletions-1, a.mu.nodes["a"].window.pinned, "the pin starts on the first saturated release")
+	require.Equal(t, PinCompletions-1, nw.mu.targets["a"].window.pinned, "the pin starts on the first saturated release")
 
 	release(true)
-	require.Equal(t, PinCompletions-2, a.mu.nodes["a"].window.pinned, "a node that stays saturated is not pinned again")
+	require.Equal(t, PinCompletions-2, nw.mu.targets["a"].window.pinned, "a node that stays saturated is not pinned again")
 }
 
-func TestAdmissionReleaseOfZeroTicket(t *testing.T) {
+func TestNodeWindowsReleaseOfZeroReservation(t *testing.T) {
 	t.Parallel()
 
-	a := NewAdmission(admissionConfig())
-	a.Release(Ticket{}, Rejected, true)
+	nw := NewNodeWindows(nodeWindowsConfig())
+	nw.Release(Reservation{}, OutcomeRejected, true)
 
-	_, ok := a.State("a")
+	_, ok := nw.Stats("a")
 	require.False(t, ok)
 }

@@ -17,6 +17,15 @@ func testWindowConfig() WindowConfig {
 	return WindowConfig{Start: 1000, Ceiling: 1000, Floor: 20, Unit: 10, Backoff: 0.5}
 }
 
+// startAt starts cfg's window at size and, when fixed, holds it there by making
+// size its floor and its ceiling.
+func startAt(cfg *WindowConfig, size float64, fixed bool) {
+	cfg.Start = size
+	if fixed {
+		cfg.Floor, cfg.Ceiling = size, size
+	}
+}
+
 func TestWindowStart(t *testing.T) {
 	t.Parallel()
 
@@ -66,7 +75,7 @@ func TestWindowAllows(t *testing.T) {
 			cfg.Floor = 1
 			w := NewWindow(cfg)
 
-			require.Equal(t, tt.wantAllowed, w.Allows(tt.outstanding, tt.request))
+			require.Equal(t, tt.wantAllowed, w.CanWrite(tt.outstanding, tt.request))
 		})
 	}
 }
@@ -75,14 +84,14 @@ func TestWindowShrink(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		size          float64
-		outstanding   int64
-		fixed         bool
-		sentAtShrinks func(w *Window) uint64
-		wantSize      float64
-		wantShrink    bool
-		wantPin       bool
+		name             string
+		size             float64
+		outstanding      int64
+		fixed            bool
+		reductionsAtSend func(w *Window) uint64
+		wantSize         float64
+		wantShrink       bool
+		wantPin          bool
 	}{
 		{
 			name: "half of what was out, when that is less than the window", size: 1000, outstanding: 300,
@@ -98,8 +107,8 @@ func TestWindowShrink(t *testing.T) {
 		},
 		{
 			name: "a rejection of a request sent before the last cut is the same event", size: 1000, outstanding: 300,
-			sentAtShrinks: func(w *Window) uint64 { return w.shrinks - 1 },
-			wantSize:      1000, wantShrink: false, wantPin: true,
+			reductionsAtSend: func(w *Window) uint64 { return w.reductions - 1 },
+			wantSize:         1000, wantShrink: false, wantPin: true,
 		},
 		{name: "a fixed window is not cut", size: 1000, outstanding: 300, fixed: true, wantSize: 1000},
 	}
@@ -108,15 +117,15 @@ func TestWindowShrink(t *testing.T) {
 			t.Parallel()
 
 			cfg := testWindowConfig()
-			cfg.Start, cfg.Fixed = tt.size, tt.fixed
+			startAt(&cfg, tt.size, tt.fixed)
 			w := NewWindow(cfg)
-			w.shrinks = 1 // Some reduction has happened, so there is a before.
+			w.reductions = 1 // Some reduction has happened, so there is a before.
 
-			sentAt := w.Shrinks()
-			if tt.sentAtShrinks != nil {
-				sentAt = tt.sentAtShrinks(w)
+			atSend := w.NumReductions()
+			if tt.reductionsAtSend != nil {
+				atSend = tt.reductionsAtSend(w)
 			}
-			shrunk := w.Shrink(tt.outstanding, sentAt)
+			shrunk := w.Shrink(tt.outstanding, atSend)
 
 			require.Equal(t, tt.wantShrink, shrunk)
 			require.InDelta(t, tt.wantSize, w.Size(), 1e-9)
@@ -148,7 +157,7 @@ func TestWindowGrow(t *testing.T) {
 			t.Parallel()
 
 			cfg := testWindowConfig()
-			cfg.Start, cfg.Fixed = tt.size, tt.fixed
+			startAt(&cfg, tt.size, tt.fixed)
 			w := NewWindow(cfg)
 			w.pinned = tt.pinned
 
@@ -178,7 +187,7 @@ func TestWindowPin(t *testing.T) {
 			t.Parallel()
 
 			cfg := testWindowConfig()
-			cfg.Start, cfg.Fixed = 100, tt.fixed
+			startAt(&cfg, 100, tt.fixed)
 			w := NewWindow(cfg)
 			w.pinned = tt.pinned
 
@@ -199,7 +208,7 @@ func TestWindowRecoversSlowly(t *testing.T) {
 	cfg.Start = 1000
 	w := NewWindow(cfg)
 
-	w.Shrink(400, w.Shrinks())
+	w.Shrink(400, w.NumReductions())
 	shrunkSize := w.Size()
 	require.InDelta(t, 200, shrunkSize, 1e-9)
 
@@ -216,7 +225,7 @@ func TestWindowRecoversSlowly(t *testing.T) {
 	require.Less(t, w.Size(), 1000.0)
 }
 
-func TestWindowFraction(t *testing.T) {
+func TestWindowSizeRatio(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -235,7 +244,7 @@ func TestWindowFraction(t *testing.T) {
 			cfg := testWindowConfig()
 			tt.cfg(&cfg)
 
-			require.InDelta(t, tt.want, NewWindow(cfg).Fraction(), 1e-9)
+			require.InDelta(t, tt.want, NewWindow(cfg).SizeRatio(), 1e-9)
 		})
 	}
 }
