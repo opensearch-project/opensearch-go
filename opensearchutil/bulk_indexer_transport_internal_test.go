@@ -30,6 +30,7 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 	const (
 		shards     = 8
 		numWorkers = 4
+		statsPath  = "/_nodes/_local/stats/jvm,breaker,thread_pool"
 	)
 
 	tests := []struct {
@@ -39,6 +40,7 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 		statsInterval string
 	}{
 		{name: "before any statistics poll", statsInterval: "-1"},
+		{name: "after a poll of a node that rejected writes before the client started", statsInterval: "10ms"},
 	}
 
 	for _, tt := range tests {
@@ -53,7 +55,8 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 			}
 
 			// What the node answers, other than bulk requests. Its write pool has 8
-			// threads.
+			// threads and has rejected 144 tasks since it started, all before this
+			// client.
 			responses := map[string]string{
 				"/": `{"name":"n0","cluster_name":"test","version":{"number":"3.0.0","distribution":"opensearch"}}`,
 				"/_nodes/http": `{"nodes":{"n0":{"name":"n0","roles":["data","ingest","cluster_manager"],` +
@@ -64,16 +67,29 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 					`"settings":{"index":{"number_of_shards":"%d"}}}}}}`, m.RoutingNumShards, m.PrimaryShards),
 				"/_nodes/_local/http,os,thread_pool": `{"nodes":{"n0":{"os":{"allocated_processors":8},` +
 					`"thread_pool":{"write":{"type":"fixed","size":8,"queue_size":10000}}}}}`,
+				statsPath: `{"nodes":{"n0":{"jvm":{"mem":{"heap_used_percent":10}},"breakers":{},` +
+					`"thread_pool":{"write":{"threads":8,"queue":0,"active":0,"rejected":144,"completed":100000}}}}}`,
 			}
 
 			server := newFakeServer(newFakeCluster(map[string]ShardMap{"alpha": m}, "n0"))
 			server.gate = make(chan struct{})
 			server.entered = make(chan string, shards)
 
+			// The second statistics poll waits here, so the test sees the pool after
+			// the first poll and before any other.
+			secondPoll, resume := make(chan struct{}), make(chan struct{})
+			polls := 0
+
 			client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
 				body, ok := responses[req.URL.Path]
 				if !ok {
 					return server.roundTrip(req)
+				}
+				if req.URL.Path == statsPath {
+					if polls++; polls == 2 {
+						close(secondPoll)
+						<-resume
+					}
 				}
 
 				return &http.Response{
@@ -98,6 +114,14 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 
 				return false
 			}, 10*time.Second, 10*time.Millisecond, "the transport never placed the index's shards")
+
+			if tt.statsInterval != "-1" {
+				<-secondPoll
+				defer close(resume)
+			}
+			for _, n := range router.WriteNodes() {
+				require.False(t, n.writeSaturated(), "%s reported refusing writes", n.Name)
+			}
 
 			// One document for each shard, each filling its buffer.
 			ids := map[int]string{}
