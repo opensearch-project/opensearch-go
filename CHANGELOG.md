@@ -6,11 +6,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Add a direct driver for `DocumentClient.MGet`. It splits each mget by shard in the client, using the shard map the transport keeps, sends each node only the documents it holds as concurrent requests answered from the node's own shard copies (`preference=_local`), and puts the answers back together in the order they were asked for, so the response, its raw body included, is the one the cluster's coordinator would have given. A realtime read of a segment-replicated index, or of an index whose replication type the client has not read yet, goes to the primary. Each node's requests are bounded by a window that halves on a 429 or a rejected execution and grows back as the node keeps up. A document the client cannot route to a node, such as one named through an alias or in an index whose shard map is not known yet, goes through a coordinating node, as does every document of an mget with a `preference`, a `filter_path`, a `format` or a `source` parameter, a raw `BodyReader`, or `ids`; a document whose shard copy cannot answer is retried, then asked for through a coordinating node. Select it with `Config.MGet.Driver`, the `OPENSEARCH_GO_MGET=direct|coordinator` environment variable, or per call with `WithMGetDriver`. The default is `coordinator`, which sends each mget as one request as before. `MGetConfig.Observer` reports each request's node, attempt and outcome, and each mget's fan-out, retries and coordinator fallbacks. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
-- Add `opensearchutil.MGet`, which fetches an mget's documents with the direct driver, whatever the client's configuration and `OPENSEARCH_GO_MGET` select. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
-- Add `opensearch.NewBufferedResponse`, which builds a `Response` that holds its body in memory as one returned by `Client.Do` does, so `RawBody` returns it. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
-- Add `opensearchtransport.WithReadNode`, which sends a get or mget request to a chosen node and accounts it to the node's get thread pool, and `Connection.GetPool`, which reports that pool's window. `ShardTarget` gains `Replication`, a `ReplicationType` (`ReplicationDocument` or `ReplicationSegment`, with `ReplicationUnknown` as the zero value) read from each index's `index.replication.type`, which discovery now fetches with `routing_num_shards`. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
-
 ### Changed
 
 ### Deprecated
@@ -19,9 +14,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- Fix the transport reading a node's thread pool counters as new on its first statistics poll. The counters count from the node's start, so a node that had rejected writes at any time before the client connected was marked overloaded and had its pool window halved, and a queue or wait time already there read as congestion. The first poll of a pool now records the counters as a baseline and changes nothing, as the cluster-wide search window already did for a node it had not seen. ([#1235](https://github.com/opensearch-project/opensearch-go/pull/1235))
-
 ### Security
+
+### Dependencies
+
+## [5.1.3]
+
+### Added
+
+- Add a direct driver for `DocumentClient.MGet`. It splits each mget by shard in the client, using the shard map the transport keeps, sends each node only the documents it holds as concurrent requests answered from the node's own shard copies (`preference=_local`), and puts the answers back together in the order they were asked for, so the response, its raw body included, is the one the cluster's coordinator would have given. A realtime read of a segment-replicated index, or of an index whose replication type the client has not read yet, goes to the primary. Each node's requests are bounded by a window that halves on a 429 or a rejected execution and grows back as the node keeps up. A document the client cannot route to a node, such as one named through an alias or in an index whose shard map is not known yet, goes through a coordinating node, as does every document of an mget with a `preference`, a `filter_path`, a `format` or a `source` parameter, a raw `BodyReader`, or `ids`; a document whose shard copy cannot answer is retried, then asked for through a coordinating node. Select it with `Config.MGet.Driver`, the `OPENSEARCH_GO_MGET=direct|coordinator` environment variable, or per call with `WithMGetDriver`. The default is `coordinator`, which sends each mget as one request as before. `MGetConfig.Observer` reports each request's node, attempt and outcome, and each mget's fan-out, retries and coordinator fallbacks. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
+- Add `opensearchutil.MGet`, which fetches an mget's documents with the direct driver, whatever the client's configuration and `OPENSEARCH_GO_MGET` select. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
+- Add `opensearch.NewBufferedResponse`, which builds a `Response` that holds its body in memory as one returned by `Client.Do` does, so `RawBody` returns it. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
+- Add `opensearchtransport.WithReadNode`, which sends a get or mget request to a chosen node and accounts it to the node's get thread pool, and `Connection.GetPool`, which reports that pool's window. `ShardTarget` gains `Replication`, a `ReplicationType` (`ReplicationDocument` or `ReplicationSegment`, with `ReplicationUnknown` as the zero value) read from each index's `index.replication.type`, which discovery now fetches with `routing_num_shards`. ([#1236](https://github.com/opensearch-project/opensearch-go/pull/1236))
+
+### Fixed
+
+- Fix the transport reading a node's thread pool counters as new on its first statistics poll. The counters count from the node's start, so a node that had rejected writes at any time before the client connected was marked overloaded and had its pool window halved, and a queue or wait time already there read as congestion. The first poll of a pool now records the counters as a baseline and changes nothing, as the cluster-wide search window already did for a node it had not seen. ([#1235](https://github.com/opensearch-project/opensearch-go/pull/1235))
 
 ### Dependencies
 
@@ -698,7 +706,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.2...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.3...HEAD
+[5.1.3]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.2...v5.1.3
 [5.1.2]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.3...v5.1.0
