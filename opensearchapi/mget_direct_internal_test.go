@@ -629,7 +629,7 @@ func TestMGetDirectShrinksARejectingNodesWindow(t *testing.T) {
 
 	st, ok := c.ext.mget.windows.Stats("n1")
 	require.True(t, ok)
-	require.Less(t, st.SizeRatio, 1.0, "the node that answered 429 has its window shrunk")
+	require.Less(t, st.Window, 8.0, "the node that answered 429 has its window shrunk below MaxInFlightDocsPerNode")
 }
 
 func TestMGetDirectPassesServerErrorsThrough(t *testing.T) {

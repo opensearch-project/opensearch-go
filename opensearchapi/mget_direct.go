@@ -322,7 +322,7 @@ func (call *mgetCall) selectCopy(
 
 		load := int64(planned[target.Node.Name])
 		if st, ok := call.d.windows.Stats(scheduler.NodeName(target.Node.Name)); ok {
-			load += st.Outstanding
+			load += st.InFlight
 		}
 
 		switch {

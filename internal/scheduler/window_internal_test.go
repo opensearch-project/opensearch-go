@@ -14,7 +14,7 @@ import (
 
 // testWindowConfig is a window of up to 1000 units, one request of 10, backing off by half.
 func testWindowConfig() WindowConfig {
-	return WindowConfig{Start: 1000, Ceiling: 1000, Floor: 20, Unit: 10, Backoff: 0.5}
+	return WindowConfig{Start: 1000, Ceiling: 1000, Floor: 20, Increment: 10, Backoff: 0.5}
 }
 
 // startAt starts cfg's window at size and, when fixed, holds it there by making
@@ -221,7 +221,7 @@ func TestWindowRecoversSlowly(t *testing.T) {
 	for range 4 {
 		w.Grow(50)
 	}
-	require.InDelta(t, shrunkSize+cfg.Unit, w.Size(), 0.5, "a window's worth of traffic buys about one unit back")
+	require.InDelta(t, shrunkSize+cfg.Increment, w.Size(), 0.5, "a window's worth of traffic grows it by about one increment")
 	require.Less(t, w.Size(), 1000.0)
 }
 

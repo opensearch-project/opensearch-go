@@ -975,11 +975,11 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	// caller capped it with TargetBytes. Rejections teach it where the server's limit is.
 	sizing := cfg.Sizing.resolve(cfg.FlushBytes)
 	window := sched.WindowConfig{
-		Start:   float64(cfg.MaxMemoryBytes),
-		Ceiling: float64(cfg.MaxMemoryBytes),
-		Floor:   float64(cfg.FlushBytes),
-		Unit:    float64(cfg.FlushBytes),
-		Backoff: sizing.backoff,
+		Start:     float64(cfg.MaxMemoryBytes),
+		Ceiling:   float64(cfg.MaxMemoryBytes),
+		Floor:     float64(cfg.FlushBytes),
+		Increment: float64(cfg.FlushBytes),
+		Backoff:   sizing.backoff,
 	}
 	if cfg.TargetBytes > 0 {
 		window.Ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))

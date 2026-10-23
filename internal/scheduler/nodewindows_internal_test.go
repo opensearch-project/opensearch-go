@@ -16,7 +16,7 @@ import (
 
 // nodeWindowsConfig is a window of 100 units that starts full, with requests of 10.
 func nodeWindowsConfig() WindowConfig {
-	return WindowConfig{Start: 100, Ceiling: 100, Floor: 10, Unit: 10, Backoff: 0.5}
+	return WindowConfig{Start: 100, Ceiling: 100, Floor: 10, Increment: 10, Backoff: 0.5}
 }
 
 func TestNodeWindowsAcquire(t *testing.T) {
@@ -109,7 +109,7 @@ func TestNodeWindowsReleaseWakesAWaiter(t *testing.T) {
 
 	st, ok := nw.Stats("a")
 	require.True(t, ok)
-	require.Equal(t, NodeStats{Window: 100, SizeRatio: 1, Outstanding: 10}, st)
+	require.Equal(t, NodeStats{Window: 100, InFlight: 10}, st)
 }
 
 func TestNodeWindowsRelease(t *testing.T) {
@@ -118,12 +118,12 @@ func TestNodeWindowsRelease(t *testing.T) {
 	tests := []struct {
 		name string
 		// held are the units admitted to node "a"; the first is released.
-		held            []int64
-		outcome         Outcome
-		saturated       bool
-		wantWindow      float64
-		wantPinned      bool
-		wantOutstanding int64
+		held         []int64
+		outcome      Outcome
+		saturated    bool
+		wantWindow   float64
+		wantPinned   bool
+		wantInFlight int64
 	}{
 		{
 			name: "an accepted request leaves a full window full", held: []int64{10},
@@ -131,15 +131,15 @@ func TestNodeWindowsRelease(t *testing.T) {
 		},
 		{
 			name: "a rejected request shrinks from what was out, its own units among them", held: []int64{40, 20},
-			outcome: OutcomeRejected, wantWindow: 30, wantPinned: true, wantOutstanding: 20,
+			outcome: OutcomeRejected, wantWindow: 30, wantPinned: true, wantInFlight: 20,
 		},
 		{
 			name: "a failed request leaves the window alone", held: []int64{40, 20},
-			outcome: OutcomeFailed, wantWindow: 100, wantOutstanding: 20,
+			outcome: OutcomeFailed, wantWindow: 100, wantInFlight: 20,
 		},
 		{
 			name: "an unknown outcome leaves the window alone", held: []int64{40, 20},
-			outcome: OutcomeUnknown, wantWindow: 100, wantOutstanding: 20,
+			outcome: OutcomeUnknown, wantWindow: 100, wantInFlight: 20,
 		},
 		{
 			name: "a node that becomes saturated is pinned but not shrunk", held: []int64{10},
@@ -163,7 +163,7 @@ func TestNodeWindowsRelease(t *testing.T) {
 			st, ok := nw.Stats("a")
 			require.True(t, ok)
 			require.InDelta(t, tt.wantWindow, st.Window, 1e-9)
-			require.Equal(t, tt.wantOutstanding, st.Outstanding)
+			require.Equal(t, tt.wantInFlight, st.InFlight)
 			require.Equal(t, tt.wantPinned, nw.mu.targets["a"].window.pinned > 0)
 		})
 	}

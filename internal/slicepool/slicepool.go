@@ -11,9 +11,9 @@ package slicepool
 
 import "sync"
 
-// poolCap is the capacity of a slice a [Pool] makes, enough for a shard's
-// primary and a few replicas.
-const poolCap = 4
+// poolCap is the capacity of a slice a [Pool] makes: room for a shard's primary
+// and many replicas before the slice has to grow.
+const poolCap = 16
 
 // Append extends *dst by one element and returns it. When the backing array
 // already holds an element in that slot, from an earlier use of the slice, that
