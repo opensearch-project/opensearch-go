@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -405,6 +406,11 @@ func TestBulkIndexerRequestsAfterFailure(t *testing.T) {
 	}
 }
 
+// callbackLockWait is how long TestBulkIndexerCallbacksRunOnWorker waits to take
+// the scheduler's lock from inside a callback. A goroutine of the client's own
+// holds it for far less; only a lock held across the callback lasts longer.
+const callbackLockWait = 5 * time.Second
+
 // TestBulkIndexerCallbacksRunOnWorker pins that item callbacks run on the
 // goroutine that sends the buffer, before the flush that triggered them returns,
 // and with the scheduler's lock free. A callback that blocks therefore stalls its
@@ -456,13 +462,24 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 			// after Flush has returned, so no lock of its own is needed.
 			var calls []string
 			// record fails the test when the scheduler's lock was held while the
-			// callback ran, which would stall every Add behind a slow callback;
-			// TryLock only succeeds on a lock nobody holds.
+			// callback ran, which would stall every Add behind a slow callback.
+			// Another goroutine takes the lock: one of the client's own goroutines
+			// holds it only briefly, but a lock held by the callback's caller
+			// cannot be taken until the callback returns, so the wait times out.
 			record := func(name string) {
-				if !sched.TryLock() {
+				acquired := make(chan struct{})
+				go func() {
+					sched.Lock()
+					sched.Unlock() //nolint:staticcheck // SA2001: taking the lock is the test.
+					close(acquired)
+				}()
+
+				timer := time.NewTimer(callbackLockWait)
+				defer timer.Stop()
+				select {
+				case <-acquired:
+				case <-timer.C:
 					t.Errorf("%q ran with the scheduler lock held", name)
-				} else {
-					sched.Unlock()
 				}
 				calls = append(calls, name)
 			}

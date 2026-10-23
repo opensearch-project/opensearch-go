@@ -636,6 +636,10 @@ func TestBulkIndexerNumWorkersCapsRequests(t *testing.T) {
 			cluster := newFakeCluster(map[string]ShardMap{"alpha": DefaultShardMap(8)}, "n0", "n1")
 			cluster.setWindow(8, false)
 			server := newFakeServer(cluster)
+			// The hold makes the peak NumWorkers allows certain to be reached; the
+			// yields keep each request in flight long enough that one past the cap
+			// would overlap it and raise the peak.
+			server.holdUntil = tt.wantMax
 			server.yields = 100
 
 			cfg := fixedBatches(docBytes("alpha", "doc-00", 1000), 2)

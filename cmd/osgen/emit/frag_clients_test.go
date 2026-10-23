@@ -38,7 +38,10 @@ func TestClientsFragment_Body(t *testing.T) {
 		{name: "Client struct", want: "type Client struct"},
 		{name: "Client field", want: "Client *opensearch.Client"},
 		{name: "errors mask field", want: "errors *errMaskWidth"},
-		{name: "search_after retry backoff field", want: "searchAfterRetryBackoff time.Duration"},
+		{name: "hand-written state field", want: "ext clientExt"},
+		{name: "unexported fields after the exported ones", want: "Indices IndicesClient\n\terrors *errMaskWidth"},
+		{name: "no hand-written field of its own", want: "searchAfterRetryBackoff", absent: true},
+		{name: "no mget field of its own", want: "mget", absent: true},
 		{name: "top-level Cat", want: "Cat CatClient"},
 		{name: "top-level Indices", want: "Indices IndicesClient"},
 		{name: "clientInit", want: "func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client"},
@@ -138,7 +141,7 @@ func TestClientsFragment_Imports(t *testing.T) {
 	}}
 
 	imps := frag.Imports()
-	require.Len(t, imps, 4)
+	require.Len(t, imps, 3)
 }
 
 func TestNewClientsFile_Render(t *testing.T) {

@@ -28,7 +28,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
-          version: v2.14.0
+          version: v2.15.0
           # No --fix: the runner's tree is thrown away, so a fix applied here
           # reaches nobody and the finding neither fails the build nor lands in
           # the repository. Report instead, and let the developer run the fixer.
@@ -85,7 +85,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
-          version: v2.14.0
+          version: v2.15.0
           working-directory: ${{ matrix.module }}
           # No --fix; see the root lint job above.
           args: --build-tags "integration core plugins plugin_security plugin_index_management multinode"

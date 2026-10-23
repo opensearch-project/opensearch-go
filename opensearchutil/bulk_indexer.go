@@ -43,6 +43,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
@@ -789,7 +790,7 @@ type bulkClient struct {
 	// sizing sizes a shard's buffers, and window is what each node's byte window
 	// starts from.
 	sizing resolvedSizing
-	window windowConfig
+	window sched.WindowConfig
 	// slots, when the config caps NumWorkers, holds a token for each request that
 	// is out.
 	slots chan struct{}
@@ -973,17 +974,20 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	// A node's byte window starts wide open, at the whole job's memory, unless the
 	// caller capped it with TargetBytes. Rejections teach it where the server's limit is.
 	sizing := cfg.Sizing.resolve(cfg.FlushBytes)
-	window := windowConfig{
-		start:   float64(cfg.MaxMemoryBytes),
-		ceiling: float64(cfg.MaxMemoryBytes),
-		floor:   float64(cfg.FlushBytes),
-		unit:    float64(cfg.FlushBytes),
-		backoff: sizing.backoff,
-		fixed:   sizing.targetFixed,
+	window := sched.WindowConfig{
+		Start:     float64(cfg.MaxMemoryBytes),
+		Ceiling:   float64(cfg.MaxMemoryBytes),
+		Floor:     float64(cfg.FlushBytes),
+		Increment: float64(cfg.FlushBytes),
+		Backoff:   sizing.backoff,
 	}
 	if cfg.TargetBytes > 0 {
-		window.ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))
-		window.start = window.ceiling
+		window.Ceiling = float64(min(cfg.TargetBytes, cfg.MaxMemoryBytes))
+		window.Start = window.Ceiling
+	}
+	if sizing.targetFixed {
+		// A window whose floor is its ceiling holds where it starts.
+		window.Floor = window.Ceiling
 	}
 
 	bi := bulkClient{
@@ -1289,24 +1293,13 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 		return nil, Node{}, 0, nil
 	}
 
-	target, ok := bi.router.LookupShard(index, routing)
-	if !ok {
-		// Load first: this runs for every item of an index still waiting for its
-		// shard map, and a sync.Map store is a write.
-		if _, marked := bi.placement.unplaced.Load(index); !marked {
-			bi.placement.unplaced.Store(index, struct{}{})
-		}
-		// A shard map that was known and is gone is unknown again, and the next
-		// answer will need the same drain. The documents of its shards, which the
-		// unordered buffers this item now joins do not wait for, are dealt with first.
-		if _, known := bi.shardMapGeneration(index); known {
-			if err := bi.placementChanged(ctx, index, 0, true); err != nil {
-				return nil, Node{}, 0, err
-			}
-		}
+	targets := shardTargetPool.Get()
+	defer shardTargetPool.Put(targets)
 
-		return nil, Node{}, 0, nil
+	if err := bi.router.LookupShard(index, routing, targets); err != nil || len(*targets) == 0 {
+		return nil, Node{}, 0, bi.unplaceable(ctx, index)
 	}
+	target := *(*targets)[0]
 
 	placed, known := bi.shardMapGeneration(index)
 	switch {
@@ -1323,6 +1316,24 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 	}
 
 	return &shardKey{index: index, shard: target.Shard}, target.Node, placed, nil
+}
+
+// unplaceable records that index has no shard map, for an item place could not
+// tie to a shard.
+func (bi *bulkClient) unplaceable(ctx context.Context, index string) error {
+	// Load first: this runs for every item of an index still waiting for its
+	// shard map, and a sync.Map store is a write.
+	if _, marked := bi.placement.unplaced.Load(index); !marked {
+		bi.placement.unplaced.Store(index, struct{}{})
+	}
+	// A shard map that was known and is gone is unknown again, and the next
+	// answer will need the same drain. The documents of its shards, which the
+	// unordered buffers this item now joins do not wait for, are dealt with first.
+	if _, known := bi.shardMapGeneration(index); known {
+		return bi.placementChanged(ctx, index, 0, true)
+	}
+
+	return nil
 }
 
 // validShardPlacement reports whether an item that place put on a shard of index,
@@ -2116,7 +2127,7 @@ func isTransportFailure(err error) bool {
 		return false
 	}
 
-	_, partial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+	_, partial := errors.AsType[*opensearchapi.PartialBulkError](err)
 
 	return !partial
 }
@@ -2392,7 +2403,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 			StatusCode: batchStatus(blk),
 		}
 		// A *PartialBulkError means the cluster answered, so the request did not fail.
-		_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+		_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err)
 		if err != nil && !isPartial {
 			ev.Err = err
 		}
@@ -2418,7 +2429,7 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 func (w *worker) processBulkResp(
 	ctx context.Context, blk *opensearchapi.BulkResp, err error, attempt int,
 ) (retryBatch, error) {
-	_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+	_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err)
 	if err != nil && !isPartial {
 		wrapped := fmt.Errorf("flush: %w", err)
 		status := batchStatus(blk)

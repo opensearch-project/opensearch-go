@@ -1738,14 +1738,14 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			adaptiveShards  int
 		)
 
-		if pinned := pinnedWriteNode(req.Context()); pinned != nil && i == 0 {
+		if pinned, pinnedPool := pinnedRequestNode(req.Context()); pinned != nil && i == 0 {
 			// The caller chose the node: skip the router, keep everything else. The
-			// request is accounted to the node's write pool only when the node has
-			// one tracked, as the router would, so a transport that tracks no pools
-			// does not start retrying a 429 on another node because of a pin.
+			// request is accounted to the pin's pool only when the node has it
+			// tracked, as the router would, so a transport that tracks no pools does
+			// not start retrying a 429 on another node because of a pin.
 			conn = pinned
-			if tr.router != nil && conn.pools.get(poolWrite) != nil {
-				poolName = poolWrite
+			if tr.router != nil && conn.pools.get(pinnedPool) != nil {
+				poolName = pinnedPool
 			}
 		} else if tr.router != nil {
 			var hop NextHop

@@ -430,6 +430,16 @@ var compatForwarders = map[string][]compatForwarder{
 	"update":       {{ReceiverType: "Client", MethodName: "Update"}},
 }
 
+// interceptors maps an operation group to the hand-written *Client method its
+// dispatch tries before sending the request; see ir.Operation.Interceptor. mget
+// is intercepted so that its documents can be fetched from the nodes that hold
+// them instead of through one coordinating node.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var interceptors = map[string]string{
+	"mget": "interceptMGet",
+}
+
 // compatForwardersFor builds the dispatchRoutes for a group's compatibility
 // forwarders, each pointing at the canonical primary route. The Forward
 // expression is relative to the forwarder's own receiver: a top-level forwarder

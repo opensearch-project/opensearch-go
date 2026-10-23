@@ -36,8 +36,8 @@ const defaultSearchAfterRetryBackoff = 3 * time.Second
 // client's searchAfterRetryBackoff override when set, else
 // [defaultSearchAfterRetryBackoff].
 func (c *Client) retryBackoff() time.Duration {
-	if c.searchAfterRetryBackoff > 0 {
-		return c.searchAfterRetryBackoff
+	if c.ext.searchAfterRetryBackoff > 0 {
+		return c.ext.searchAfterRetryBackoff
 	}
 	return defaultSearchAfterRetryBackoff
 }

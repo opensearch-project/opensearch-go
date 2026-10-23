@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -184,9 +185,17 @@ func BenchmarkMultiServerPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := createMultiServerPool(conns)
+		// Each goroutine of a parallel run fails a connection of its own, and the
+		// b.N ramp-up runs each sub-benchmark several times. A shared pool would
+		// run out of live connections, so every run starts from a fresh pool with
+		// a connection for each goroutine of the widest run.
+		failConns := make([]*Connection, max(len(conns), 100*runtime.GOMAXPROCS(0)))
+		for i := range failConns {
+			failConns[i] = &Connection{URL: &url.URL{Scheme: "http", Host: fmt.Sprintf("foo%d", i)}}
+		}
 
 		b.Run("Single     ", func(b *testing.B) {
+			pool := createMultiServerPool(failConns)
 			c, err := pool.Next()
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
@@ -200,6 +209,8 @@ func BenchmarkMultiServerPool(b *testing.B) {
 		})
 
 		b.Run("Parallel (10)", func(b *testing.B) {
+			pool := createMultiServerPool(failConns)
+			b.ResetTimer()
 			b.SetParallelism(10)
 			b.RunParallel(func(pb *testing.PB) {
 				c, err := pool.Next()
@@ -216,6 +227,8 @@ func BenchmarkMultiServerPool(b *testing.B) {
 		})
 
 		b.Run("Parallel (100)", func(b *testing.B) {
+			pool := createMultiServerPool(failConns)
+			b.ResetTimer()
 			b.SetParallelism(100)
 			b.RunParallel(func(pb *testing.PB) {
 				c, err := pool.Next()

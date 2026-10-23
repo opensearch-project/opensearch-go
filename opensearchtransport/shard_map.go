@@ -10,8 +10,11 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"slices"
+
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 )
 
 // ShardMap is the routing half of an index's shard map: the two numbers that
@@ -71,14 +74,49 @@ func (tr *Transport) ShardMap(index string) (ShardMap, bool) {
 	return ShardMap{RoutingNumShards: sm.RoutingNumShards, PrimaryShards: sm.NumberOfPrimaryShards}, true
 }
 
-// ShardTarget is where a document with a given routing value lives.
+// ReplicationType is how an index's replicas are kept up to date: its
+// index.replication.type setting.
+type ReplicationType uint8
+
+const (
+	// ReplicationUnknown is the zero ReplicationType: the setting has not been
+	// read.
+	ReplicationUnknown ReplicationType = iota
+	// ReplicationDocument replicas apply each write themselves, so a realtime
+	// read sees the latest write on any copy.
+	ReplicationDocument
+	// ReplicationSegment replicas copy the primary's segments, so a replica can
+	// trail the primary: a realtime read that must see the latest write goes to
+	// the primary.
+	ReplicationSegment
+)
+
+// String returns the type as index.replication.type spells it, or "UNKNOWN".
+func (t ReplicationType) String() string {
+	switch t {
+	case ReplicationDocument:
+		return replicationTypeDocument
+	case ReplicationSegment:
+		return replicationTypeSegment
+	case ReplicationUnknown:
+		return "UNKNOWN"
+	default:
+		return fmt.Sprintf("ReplicationType(%d)", uint8(t))
+	}
+}
+
+// ShardTarget is one copy of the shard a document with a given key lives on.
 type ShardTarget struct {
 	// Shard is the shard number.
 	Shard int
-	// Node is a node that hosts the shard's primary and is ready to take a
+	// Node is a node that hosts this copy of the shard and is ready to take a
 	// request, or nil when the placement is not known or the node is not usable.
 	// Send to it with [WithWriteNode]; nil leaves the choice to the router.
 	Node *Connection
+	// Primary reports that this copy is the shard's primary.
+	Primary bool
+	// Replication is how the index's replicas are kept up to date.
+	Replication ReplicationType
 	// Generation identifies the shard geometry Shard was computed with: the primary
 	// shard count and the routing factor. It changes when the index's geometry does,
 	// as when the index is recreated, split or shrunk, and not when a shard moves
@@ -86,34 +124,77 @@ type ShardTarget struct {
 	Generation uint64
 }
 
-// LookupShard maps a routing value in index to its shard and, when the transport
-// knows where the shard's primary is, to the node hosting it. It returns false
-// when the index's shard map is not known; see [Transport.ShardMap].
+// ErrShardMapUnknown is returned by [Transport.LookupShard] when the index's
+// shard map is not known yet; see [Transport.ShardMap].
+var ErrShardMapUnknown = errors.New("the shard map of the index is not known")
+
+// LookupShard maps key in index to its shard and fills *dst with the shard's
+// copies: the primary first, then each replica whose node is ready to take a
+// request. The primary is always listed, with a nil Node when the transport does
+// not know where it is or the node is not usable; a replica on a node that is not
+// usable is left out.
 //
-// The node is looked up in the transport's current placement on every call, so
-// a shard that has moved is found where it is now. A caller that holds on to the
+// key is what the server hashes to pick the shard: the document's routing value
+// when it has one, otherwise its ID.
+//
+// *dst is reset to length zero and refilled. The ShardTargets it points to are
+// reused when its backing array already holds some, so a caller that keeps and
+// reuses the slice, as from a sync.Pool, makes the lookup allocate nothing once
+// the slice has grown to the largest number of copies. The pointers are only
+// valid until the caller next passes *dst to LookupShard; copy a ShardTarget to
+// keep it.
+//
+// It returns [ErrShardMapUnknown] when the index's shard map is not known yet
+// (see [Transport.ShardMap]), and the reason from [Transport.ShardMapUnavailable]
+// when the transport can never answer. *dst is empty on an error.
+//
+// Nodes are looked up in the transport's current placement on every call, so a
+// shard that has moved is found where it is now. A caller that holds on to the
 // result decides for itself how long to trust it.
-func (tr *Transport) LookupShard(index, routing string) (ShardTarget, bool) {
+func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
 	cache := tr.shardMapCache()
 	if cache == nil {
-		return ShardTarget{}, false
+		if err := tr.ShardMapUnavailable(); err != nil {
+			return err
+		}
+
+		return ErrShardMapUnknown
 	}
 
 	sm := cache.register(index).shardMap.Load()
 	if sm == nil || sm.RoutingNumShards <= 0 || sm.NumberOfPrimaryShards <= 0 {
-		return ShardTarget{}, false
+		return ErrShardMapUnknown
 	}
 
-	shard := shardForRouting(routing, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
-	target := ShardTarget{Shard: shard, Generation: sm.Generation}
+	shard := shardForRouting(key, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+	nodes := sm.Shards[shard]
 
-	if nodes := sm.Shards[shard]; nodes != nil && nodes.Primary != "" {
+	primary := slicepool.Append(dst)
+	*primary = ShardTarget{Shard: shard, Primary: true, Replication: sm.Replication, Generation: sm.Generation}
+
+	if nodes == nil {
+		return nil
+	}
+
+	if nodes.Primary != "" {
 		if conn := tr.readyConnectionByName(nodes.Primary); conn != nil && !conn.needsCatUpdate() {
-			target.Node = conn
+			primary.Node = conn
 		}
 	}
 
-	return target, true
+	for _, name := range nodes.Replicas {
+		conn := tr.readyConnectionByName(name)
+		if conn == nil || conn.needsCatUpdate() {
+			continue
+		}
+
+		replica := slicepool.Append(dst)
+		*replica = ShardTarget{Shard: shard, Node: conn, Replication: sm.Replication, Generation: sm.Generation}
+	}
+
+	return nil
 }
 
 // connectionNamer is implemented by the built-in connection pools.
@@ -269,23 +350,40 @@ type PoolWindow struct {
 // transport's initial window, as the routers use: four requests per allocated
 // processor.
 func (conn *Connection) WritePool() PoolWindow {
+	return conn.poolWindow(poolWrite)
+}
+
+// GetPool returns the node's get thread pool window, which serves get and mget
+// requests, in the same terms as [Connection.WritePool].
+func (conn *Connection) GetPool() PoolWindow {
+	return conn.poolWindow(poolGet)
+}
+
+func (conn *Connection) poolWindow(name string) PoolWindow {
 	var maxWindow int
-	if pc := conn.pools.get(poolWrite); pc != nil {
+	if pc := conn.pools.get(name); pc != nil {
 		pc.mu.Lock()
 		maxWindow = int(pc.mu.maxCwnd)
 		pc.mu.Unlock()
 	}
 
 	return PoolWindow{
-		Window:     int(conn.loadCwnd(poolWrite, maxWindow > 0)),
+		Window:     int(conn.loadCwnd(name, maxWindow > 0)),
 		MaxWindow:  maxWindow,
-		InFlight:   int(conn.loadInFlight(poolWrite)),
-		Overloaded: conn.isPoolOverloaded(poolWrite),
+		InFlight:   int(conn.loadInFlight(name)),
+		Overloaded: conn.isPoolOverloaded(name),
 	}
 }
 
-// writeNodeKey is the context key for [WithWriteNode].
-type writeNodeKey struct{}
+// pinnedNodeKey is the context key for [WithWriteNode] and [WithReadNode].
+type pinnedNodeKey struct{}
+
+// pinnedNode is a node a context asks for and the thread pool the request is
+// accounted to.
+type pinnedNode struct {
+	conn *Connection
+	pool string
+}
 
 // WithWriteNode returns a context that sends a write request to conn, a node
 // from [Transport.LookupShard] or [Transport.WriteNodes], in place of the node
@@ -297,15 +395,23 @@ type writeNodeKey struct{}
 // not one to go back to. The transport still retries, marks nodes dead and
 // updates its windows as for any request.
 func WithWriteNode(ctx context.Context, conn *Connection) context.Context {
-	return context.WithValue(ctx, writeNodeKey{}, conn)
+	return context.WithValue(ctx, pinnedNodeKey{}, pinnedNode{conn: conn, pool: poolWrite})
 }
 
-// pinnedWriteNode returns the node a context asks for, if it is usable.
-func pinnedWriteNode(ctx context.Context) *Connection {
-	conn, _ := ctx.Value(writeNodeKey{}).(*Connection)
-	if conn == nil || !conn.isReady() || !conn.availableForRouting() {
-		return nil
+// WithReadNode is [WithWriteNode] for a get or mget request: it sends the
+// request to conn, a node from [Transport.LookupShard], and accounts it to the
+// node's get pool. The same preference rules apply.
+func WithReadNode(ctx context.Context, conn *Connection) context.Context {
+	return context.WithValue(ctx, pinnedNodeKey{}, pinnedNode{conn: conn, pool: poolGet})
+}
+
+// pinnedRequestNode returns the node a context asks for, if it is usable, and
+// the pool to account the request to.
+func pinnedRequestNode(ctx context.Context) (*Connection, string) {
+	pin, _ := ctx.Value(pinnedNodeKey{}).(pinnedNode)
+	if pin.conn == nil || !pin.conn.isReady() || !pin.conn.availableForRouting() {
+		return nil, ""
 	}
 
-	return conn
+	return pin.conn, pin.pool
 }

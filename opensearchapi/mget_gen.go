@@ -393,6 +393,9 @@ type MGetOperation struct {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
 func (c DocumentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
+	if resp, handled, err := c.apiClient.interceptMGet(ctx, req); handled {
+		return resp, err
+	}
 	var (
 		data MGetResp
 		err  error

@@ -82,7 +82,7 @@ func TestBulkIndexerPlaceUsesTheServersRoutingOrder(t *testing.T) {
 				return
 			}
 
-			want, ok := cluster.LookupShard("alpha", tt.wantRouting)
+			want, ok := lookupOne(cluster, "alpha", tt.wantRouting)
 			require.True(t, ok)
 			require.NotNil(t, key)
 			require.Equal(t, shardKey{index: "alpha", shard: want.Shard}, *key)

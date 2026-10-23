@@ -15,6 +15,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 )
 
 // idleShardIntervals is how many flush intervals a shard may sit with nothing
@@ -68,10 +70,10 @@ type buffer struct {
 
 	sealed     bool
 	dispatched bool
-	// sentAt is how many times the node's byte window had been shrunk when the buffer
-	// was sent, so that a rejection of a request sent before a shrink does not shrink
+	// reductionsAtSend is the node's byte window's NumReductions when the buffer was
+	// sent, so that a rejection of a request sent before a reduction does not shrink
 	// the window again.
-	sentAt uint64
+	reductionsAtSend uint64
 	// ctx is the context the bulk request runs on.
 	ctx context.Context //nolint:containedctx // A buffer carries the context of the flush that sends it.
 
@@ -167,8 +169,8 @@ type nodeState struct {
 	// Guarded by the scheduler's lock.
 	levels map[*shardState]float64
 	// windowBytes is how many bytes may be out to the node at once. It starts wide
-	// open and is shrunk by a 429; see byteWindow.
-	windowBytes *byteWindow
+	// open and is shrunk by a 429; see sched.Window.
+	windowBytes *sched.Window
 	// nodeWriteSaturated is set when the target node is write-saturated as its
 	// previous flush ends. complete pins windowBytes' size only when the node becomes
 	// write-saturated (i.e. when the new flushResult's nodeWriteSaturated is set and
@@ -230,7 +232,7 @@ func (ns *nodeState) peerLevel(ss *shardState) float64 {
 // grown back. A shard that starts on an overloaded node climbs to full size instead of
 // starting there.
 func (ns *nodeState) overloaded() bool {
-	return ns.node.writeSaturated() || ns.windowBytes.fraction() < 1
+	return ns.node.writeSaturated() || ns.windowBytes.SizeRatio() < 1
 }
 
 // windowHasReqCap reports whether the node's write pool has room for one more
@@ -323,7 +325,7 @@ func (s *scheduler) nodeFor(node Node) *nodeState {
 		name:        node.Name,
 		node:        node,
 		opens:       make(map[*buffer]struct{}),
-		windowBytes: newByteWindow(s.bi.window),
+		windowBytes: sched.NewWindow(s.bi.window),
 		rate:        rateTracker{floor: float64(s.bi.config.FlushBytes) * sizingMinSampleFraction},
 
 		bufferFrac: s.bi.sizing.start() / s.bi.sizing.max,
@@ -564,7 +566,7 @@ func (s *scheduler) sealFullest(trigger flushTrigger) {
 
 	for _, n := range s.nodes {
 		for b := range n.opens {
-			if b.shard.blocked() || n.inflight >= s.nodeReqLimit() || !n.windowBytes.allows(n.flightBytes, b.bytes) {
+			if b.shard.blocked() || n.inflight >= s.nodeReqLimit() || !n.windowBytes.CanWrite(n.flightBytes, b.bytes) {
 				continue
 			}
 			if fullest == nil || b.bytes > fullest.bytes {
@@ -602,7 +604,7 @@ func (s *scheduler) pump() {
 		ss, ns := b.shard, b.node
 
 		if ss.skipped == s.pass || (ss.ordered && ss.inflight > 0) || ns.inflight >= s.nodeReqLimit() ||
-			!ns.windowBytes.allows(ns.flightBytes, b.bytes) {
+			!ns.windowBytes.CanWrite(ns.flightBytes, b.bytes) {
 			ss.skipped = s.pass
 			remaining = append(remaining, b)
 
@@ -623,7 +625,7 @@ func (s *scheduler) pump() {
 		ns.inflight++
 		ns.flightBytes += b.bytes
 		ns.storeStats()
-		b.sentAt = ns.windowBytes.shrinks
+		b.reductionsAtSend = ns.windowBytes.NumReductions()
 		ss.inflight++
 		b.dispatched = true
 		b.dest = ns.node
@@ -669,14 +671,14 @@ func (s *scheduler) complete(b *buffer, result flushResult, err error) {
 	// statistics poll finds no new refusals, which can be the whole time other clients
 	// are being refused, and a shrunken window would not grow back.
 	if result.nodeWriteSaturated && !ns.nodeWriteSaturated {
-		ns.windowBytes.pinWindowSize()
+		ns.windowBytes.Pin()
 	}
 	ns.nodeWriteSaturated = result.nodeWriteSaturated
 	if result.rejected {
-		ns.windowBytes.shrinkWindowSize(ns.flightBytes, b.sentAt)
+		ns.windowBytes.Shrink(ns.flightBytes, b.reductionsAtSend)
 		ns.stats.rejections.Add(1)
 	} else {
-		ns.windowBytes.growWindowSize(b.bytes)
+		ns.windowBytes.Grow(b.bytes)
 	}
 	ns.flightBytes -= b.bytes
 
@@ -960,7 +962,7 @@ func (s *scheduler) publishLoad(result flushResult) {
 	w := &s.work
 	w.window, w.buffer, w.slow, w.weight = w.window[:0], w.buffer[:0], w.slow[:0], w.weight[:0]
 	for _, ns := range s.nodes {
-		w.window = append(w.window, ns.windowBytes.fraction())
+		w.window = append(w.window, ns.windowBytes.SizeRatio())
 		w.buffer = append(w.buffer, ns.bufferFrac)
 		w.slow = append(w.slow, ns.slowdown)
 		w.weight = append(w.weight, float64(ns.held.Load()))

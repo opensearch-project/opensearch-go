@@ -112,7 +112,7 @@ func classifyItemFailure(info opensearchapi.BulkRespItem) ErrorKind {
 // the response rather than from err, which carries no status for an error body
 // the client could not parse.
 func classifyBatchFailure(status int, err error) ErrorKind {
-	if _, ok := errors.AsType[*bulkResponseMismatchError](err); ok { //nolint:errcheck // discarded result is the matched error
+	if _, ok := errors.AsType[*bulkResponseMismatchError](err); ok {
 		return KindPermanent
 	}
 

@@ -47,7 +47,7 @@ func (bi *bulkClient) windowOf(name string) (int64, bool) {
 		return 0, false
 	}
 
-	return int64(ns.windowBytes.size), true
+	return int64(ns.windowBytes.Size()), true
 }
 
 // waitIdle blocks until every batch that has been sealed has completed, so the
@@ -167,7 +167,7 @@ func (h *sizingHarness) idsFor(shard, n int) []string {
 	var ids []string
 	for i := 0; len(ids) < n; i++ {
 		id := fmt.Sprintf("doc-%04d", i)
-		target, ok := cluster.LookupShard("idx", id)
+		target, ok := lookupOne(cluster, "idx", id)
 		require.True(h.t, ok)
 		if target.Shard == shard {
 			ids = append(ids, id)
@@ -277,14 +277,14 @@ func TestBulkIndexerByteWindowShrinksOnARejection(t *testing.T) {
 	require.Greater(t, sizes[len(sizes)-1], sizes[0])
 
 	windowBefore, shardBefore := h.window("n0"), h.shardTarget("n0")
-	require.GreaterOrEqual(t, windowBefore, int64(bi.window.start), "a healthy node does not shrink the window")
+	require.GreaterOrEqual(t, windowBefore, int64(bi.window.Start), "a healthy node does not shrink the window")
 
 	reject.Store(true)
 	h.round("n0")
 	reject.Store(false)
 
 	windowAfter, shardAfter := h.window("n0"), h.shardTarget("n0")
-	require.Equal(t, int64(bi.window.floor), windowAfter,
+	require.Equal(t, int64(bi.window.Floor), windowAfter,
 		"the window falls to half of the one request that was out, which is under the floor of one full buffer, "+
 			"where half of the window would be %d", windowBefore/2)
 	require.GreaterOrEqual(t, shardAfter, shardBefore, "and the shard's buffer is left alone")
@@ -462,8 +462,8 @@ func TestBulkIndexerSizesEachNodeOnItsOwn(t *testing.T) {
 	}
 
 	bi := h.bi.(*bulkClient)
-	require.Equal(t, int64(bi.window.floor), h.window("n0"), "the node that keeps rejecting is allowed the least")
-	require.GreaterOrEqual(t, h.window("n1"), int64(bi.window.start), "the other node is not held back by it")
+	require.Equal(t, int64(bi.window.Floor), h.window("n0"), "the node that keeps rejecting is allowed the least")
+	require.GreaterOrEqual(t, h.window("n1"), int64(bi.window.Start), "the other node is not held back by it")
 	require.Greater(t, h.shardTarget("n1"), int64(bi.sizing.initial))
 }
 
@@ -518,7 +518,7 @@ func TestBulkIndexerDocumentRejectionsSayNothingAboutTheNode(t *testing.T) {
 			} else {
 				require.Equal(t, sizes[0], sizes[len(sizes)-1], "nothing was indexed, so the buffers are not moved: %v", sizes)
 			}
-			require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkClient).window.start))
+			require.GreaterOrEqual(t, h.window("n0"), int64(h.bi.(*bulkClient).window.Start))
 		})
 	}
 }

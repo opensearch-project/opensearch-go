@@ -61,6 +61,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		ResponseRef:       op.ResponseRef,
 		ErrorWrappers:     resolveErrorWrappers(op),
 		ErrorTypes:        op.ErrorTypes,
+		Interceptor:       interceptors[op.Group],
 	}
 
 	// Plugin operations dispatch through their own flat client method; its

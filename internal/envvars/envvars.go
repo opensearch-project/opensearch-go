@@ -169,6 +169,12 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // OPENSEARCH_GO_DEBUG=true.
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 
+// MGet overrides opensearchapi.MGetConfig.Driver: "direct" splits each mget by
+// shard in the client and sends each node only the documents it holds, and
+// "coordinator" sends each mget as one request for the cluster to split.
+// Case-insensitive; any other value is ignored.
+const MGet = "OPENSEARCH_GO_MGET"
+
 // BulkShard overrides BulkSizing.Shard for opensearchutil.BulkIndexer: "pid"
 // sizes each shard's buffer with the PID controller on latency, and "fixed" sends
 // every buffer at FlushBytes. Case-insensitive; any other value is ignored.

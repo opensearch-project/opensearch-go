@@ -869,6 +869,11 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		req = &{{$op.TypePrefix}}Req{}
 	}
 {{end}}
+{{- if and $op.Interceptor (not $op.IsNoBody)}}
+	if resp, handled, err := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Interceptor}}(ctx, req); handled {
+		return resp, err
+	}
+{{- end}}
 {{- if $op.IsNoBody}}
 	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
 {{- else}}

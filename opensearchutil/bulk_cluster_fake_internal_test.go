@@ -17,9 +17,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -62,23 +64,38 @@ func newFakeCluster(maps map[string]ShardMap, nodeNames ...string) *fakeCluster 
 	return c
 }
 
-func (c *fakeCluster) LookupShard(index, routing string) (ShardTarget, bool) {
+func (c *fakeCluster) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	*dst = (*dst)[:0]
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.mu.lookups++
 	m, ok := c.mu.maps[index]
 	if _, unknown := c.mu.unknown[index]; !ok || unknown {
-		return ShardTarget{}, false
+		return ErrShardMapUnknown
 	}
 
-	shard := m.Shard(routing)
-	target := ShardTarget{Shard: shard, Generation: c.mu.generation[index]}
+	shard := m.Shard(key)
+	target := slicepool.Append(dst)
+	*target = ShardTarget{Shard: shard, Primary: true, Generation: c.mu.generation[index]}
 	if name := c.mu.place(index, shard); name != "" {
 		target.Node = Node{Name: name, Pool: c.poolOf(name)}
 	}
 
-	return target, true
+	return nil
+}
+
+// lookupOne returns the first copy of the shard key lives on, and whether router knows it.
+func lookupOne(router ShardRouter, index, key string) (ShardTarget, bool) {
+	targets := shardTargetPool.Get()
+	defer shardTargetPool.Put(targets)
+
+	if err := router.LookupShard(index, key, targets); err != nil || len(*targets) == 0 {
+		return ShardTarget{}, false
+	}
+
+	return *(*targets)[0], true
 }
 
 func (c *fakeCluster) WriteNodes() []Node {
@@ -189,6 +206,13 @@ type fakeServer struct {
 	// yields makes each request give up the processor this many times while it is
 	// in flight, so overlapping requests overlap.
 	yields int
+	// holdUntil, when above 0, holds every bulk request until that many are in
+	// flight together, then lets them all through; see holdForPeak.
+	holdUntil int
+	// reached is closed once holdUntil requests have been in flight together, or
+	// once holdTimeout has passed without that; release closes it, at most once.
+	reached chan struct{}
+	release func()
 	// respond, when set, supplies the response; the default is an empty success.
 	respond func(req sentRequest, body string) (status int, resp string)
 	// advance, when set, is called with each request as it is served, before it
@@ -206,10 +230,37 @@ type fakeServer struct {
 }
 
 func newFakeServer(cluster *fakeCluster) *fakeServer {
-	s := &fakeServer{cluster: cluster}
+	s := &fakeServer{cluster: cluster, reached: make(chan struct{})}
+	s.release = sync.OnceFunc(func() { close(s.reached) })
 	s.mu.busy = map[shardKey]int{}
 
 	return s
+}
+
+// holdTimeout bounds how long holdForPeak waits for the peak. A client that
+// never sends holdUntil requests at once is let through after it, so the test
+// fails on the peak it measured rather than hanging.
+const holdTimeout = 10 * time.Second
+
+// holdForPeak holds a request until holdUntil requests are in flight together.
+// The first time that happens every held request goes on, and none is held
+// again, so the client's own limit is all that bounds the requests after it.
+func (s *fakeServer) holdForPeak(inflight int) {
+	if s.holdUntil <= 0 {
+		return
+	}
+	if inflight >= s.holdUntil {
+		s.release()
+	}
+
+	timer := time.NewTimer(holdTimeout)
+	defer timer.Stop()
+
+	select {
+	case <-s.reached:
+	case <-timer.C:
+		s.release()
+	}
 }
 
 func (s *fakeServer) roundTrip(req *http.Request) (*http.Response, error) {
@@ -243,9 +294,11 @@ func (s *fakeServer) roundTrip(req *http.Request) (*http.Response, error) {
 	}
 	s.mu.inflight++
 	s.mu.maxInflight = max(s.mu.maxInflight, s.mu.inflight)
+	inflight := s.mu.inflight
 	s.mu.sent = append(s.mu.sent, sent)
 	s.mu.Unlock()
 
+	s.holdForPeak(inflight)
 	if s.entered != nil {
 		s.entered <- sent.node
 	}

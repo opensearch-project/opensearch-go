@@ -41,7 +41,6 @@ type PartialBulkError struct {
 	SucceededCount int
 }
 
-//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
 var _ PartialFailureError = (*PartialBulkError)(nil)
 
 func (e *PartialBulkError) Error() string {
@@ -65,7 +64,6 @@ type PartialSearchError struct {
 	Failures     []ShardSearchFailure
 }
 
-//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
 var _ PartialFailureError = (*PartialSearchError)(nil)
 
 func (e *PartialSearchError) Error() string {
@@ -89,7 +87,6 @@ type PartialPITDeleteError struct {
 	SucceededCount int
 }
 
-//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
 var _ PartialFailureError = (*PartialPITDeleteError)(nil)
 
 func (e *PartialPITDeleteError) Error() string {
@@ -129,7 +126,6 @@ type MultiSearchItemError struct {
 	SucceededCount int
 }
 
-//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
 var _ PartialFailureError = (*MultiSearchItemError)(nil)
 
 func (e *MultiSearchItemError) Error() string {
@@ -182,7 +178,6 @@ func (e *MSearchErrors) Unwrap() []error { return e.errs }
 // IsPartial implements [PartialFailureError].
 func (e *MSearchErrors) IsPartial() bool { return true }
 
-//nolint:errcheck // false positive on error-embedding interface assertion
 var _ PartialFailureError = (*MSearchErrors)(nil)
 
 // MSearchTemplateErrors aggregates partial-failure sub-errors from an
@@ -200,7 +195,6 @@ func (e *MSearchTemplateErrors) Unwrap() []error { return e.errs }
 // IsPartial implements [PartialFailureError].
 func (e *MSearchTemplateErrors) IsPartial() bool { return true }
 
-//nolint:errcheck // false positive on error-embedding interface assertion
 var _ PartialFailureError = (*MSearchTemplateErrors)(nil)
 
 // formatPerOpErrors renders a stable, deterministic error string for a
@@ -310,7 +304,6 @@ type ShardFailureError struct {
 	TotalShards  int
 }
 
-//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
 var _ PartialFailureError = (*ShardFailureError)(nil)
 
 func (e *ShardFailureError) Error() string {
@@ -369,7 +362,7 @@ func (e *UnionBranchError) Unwrap() error { return e.Err }
 
 // IsPartialFailure reports whether err is a partial failure.
 func IsPartialFailure(err error) bool {
-	_, ok := errors.AsType[PartialFailureError](err) //nolint:errcheck // discarded result is the matched error
+	_, ok := errors.AsType[PartialFailureError](err)
 	return ok
 }
 

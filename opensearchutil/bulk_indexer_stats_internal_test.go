@@ -346,8 +346,16 @@ type fakeTransportRouter struct {
 	unavailable error
 }
 
-func (f fakeTransportRouter) LookupShard(string, string) (opensearchtransport.ShardTarget, bool) {
-	return f.target, f.found
+func (f fakeTransportRouter) LookupShard(_, _ string, dst *[]*opensearchtransport.ShardTarget) error {
+	*dst = (*dst)[:0]
+	if !f.found {
+		return opensearchtransport.ErrShardMapUnknown
+	}
+
+	target := f.target
+	*dst = append(*dst, &target)
+
+	return nil
 }
 
 func (f fakeTransportRouter) WriteNodes() []*opensearchtransport.Connection { return f.nodes }
@@ -367,7 +375,7 @@ func TestClientShardRouterAdapter(t *testing.T) {
 			found:  true,
 		}}
 
-		got, ok := r.LookupShard("idx", "doc")
+		got, ok := lookupOne(r, "idx", "doc")
 		require.True(t, ok)
 		require.Equal(t, 3, got.Shard)
 		require.Equal(t, "n1", got.Node.Name)
@@ -382,7 +390,7 @@ func TestClientShardRouterAdapter(t *testing.T) {
 			found:  true,
 		}}
 
-		got, ok := r.LookupShard("idx", "doc")
+		got, ok := lookupOne(r, "idx", "doc")
 		require.True(t, ok)
 		require.EqualValues(t, 7, got.Generation)
 	})
@@ -392,7 +400,7 @@ func TestClientShardRouterAdapter(t *testing.T) {
 
 		r := clientShardRouter{tr: fakeTransportRouter{target: opensearchtransport.ShardTarget{Shard: 3}, found: true}}
 
-		got, ok := r.LookupShard("idx", "doc")
+		got, ok := lookupOne(r, "idx", "doc")
 		require.True(t, ok)
 		require.Equal(t, 3, got.Shard)
 		require.Empty(t, got.Node.Name)
@@ -402,7 +410,7 @@ func TestClientShardRouterAdapter(t *testing.T) {
 	t.Run("an unknown index is not found", func(t *testing.T) {
 		t.Parallel()
 
-		_, ok := clientShardRouter{tr: fakeTransportRouter{}}.LookupShard("idx", "doc")
+		_, ok := lookupOne(clientShardRouter{tr: fakeTransportRouter{}}, "idx", "doc")
 		require.False(t, ok)
 	})
 

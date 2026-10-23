@@ -35,7 +35,6 @@ func (f *ClientsFragment) Imports() []Import {
 		{Path: "github.com/opensearch-project/opensearch-go/v5"},
 		{Path: "github.com/opensearch-project/opensearch-go/v5/internal/apiutil"},
 		{Path: "github.com/opensearch-project/opensearch-go/v5/errmask"},
-		{Path: "time"},
 	}
 }
 
@@ -135,10 +134,6 @@ var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sent
 // Client represents the opensearchapi Client summarizing all API calls.
 type Client struct {
 	Client *opensearch.Client
-	errors *errMaskWidth
-	// searchAfterRetryBackoff overrides the search_after retry backoff for
-	// this client; zero means the default. Only tests set it.
-	searchAfterRetryBackoff time.Duration
 {{- range .TopLevel}}
 	{{- $typeName := .TypeName}}
 	{{.FieldName}} {{.TypeName}}
@@ -146,6 +141,9 @@ type Client struct {
 	{{.}} {{$typeName}}
 {{- end}}
 {{- end}}
+	errors *errMaskWidth
+	// ext holds the client's hand-written state; see clientExt.
+	ext clientExt
 }
 
 // clientInit initializes a Client with all sub-clients.

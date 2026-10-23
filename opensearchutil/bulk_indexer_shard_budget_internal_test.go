@@ -26,7 +26,7 @@ func idsOnShards(t *testing.T, cluster *fakeCluster, index string, n int, want f
 	ids := make([]string, 0, n)
 	for i := 0; len(ids) < n; i++ {
 		id := fmt.Sprintf("doc-%06d", i)
-		target, ok := cluster.LookupShard(index, id)
+		target, ok := lookupOne(cluster, index, id)
 		require.True(t, ok)
 		if want(target.Shard) {
 			ids = append(ids, id)

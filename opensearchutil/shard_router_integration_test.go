@@ -129,7 +129,7 @@ func awaitShardTarget(
 
 	var got opensearchutil.ShardTarget
 	err := transporttestutil.PollUntil(t, ctx, 100*time.Millisecond, 100, 0.1, func() (bool, error) {
-		target, known := router.LookupShard(index, routing)
+		target, known := lookupOne(router, index, routing)
 		if known && target.Node.Name != "" {
 			got = target
 			return true, nil
@@ -198,18 +198,18 @@ func primaryNodeOf(
 	require.NoError(t, err)
 	require.Len(t, res.Shards, 1)
 
-	for _, copy := range res.Shards[0] {
-		if !copy.Primary {
+	for _, shardCopy := range res.Shards[0] {
+		if !shardCopy.Primary {
 			continue
 		}
 
-		require.NotNil(t, copy.Node)
-		node := *copy.Node
+		require.NotNil(t, shardCopy.Node)
+		node := *shardCopy.Node
 		if attrs, ok := res.Nodes[node]; ok {
 			node = attrs.Name
 		}
 
-		return copy.Shard, node
+		return shardCopy.Shard, node
 	}
 
 	t.Fatalf("no primary for routing %q in %q", routing, index)
@@ -237,7 +237,7 @@ func TestShardRouterPlacesDocumentsOnTheirPrimary_Integration(t *testing.T) {
 	for i := range 60 {
 		routing := "doc-" + strconv.Itoa(i)
 
-		target, ok := router.LookupShard(index, routing)
+		target, ok := lookupOne(router, index, routing)
 		require.True(t, ok)
 		require.NotEmpty(t, target.Node.Name, "placement of %q is unknown", routing)
 
@@ -314,7 +314,7 @@ func TestShardRouterClusterWinsAfterSplit_Integration(t *testing.T) {
 	)
 
 	// Until the transport has the shard map the chain falls back to the derivation.
-	before, ok := chain.LookupShard(target, routing)
+	before, ok := lookupOne(chain, target, routing)
 	require.True(t, ok)
 	if before.Shard != derived.Shard(routing) {
 		require.Equal(t, want.Shard(routing), before.Shard, "discovery had already run")
@@ -322,7 +322,7 @@ func TestShardRouterClusterWinsAfterSplit_Integration(t *testing.T) {
 
 	awaitShardTarget(t, ctx, client, target, routing)
 
-	after, ok := chain.LookupShard(target, routing)
+	after, ok := lookupOne(chain, target, routing)
 	require.True(t, ok)
 	require.Equal(t, want.Shard(routing), after.Shard, "the cluster's shard map must win over the derivation")
 	wantShard, _ := primaryNodeOf(t, ctx, client, target, routing)
@@ -398,7 +398,7 @@ func TestBulkIndexerSendsEachBatchToItsPrimary_Integration(t *testing.T) {
 			Index: index, Action: "index", DocumentID: docID, Body: seqBody(i),
 		}))
 
-		target, ok := router.LookupShard(index, docID)
+		target, ok := lookupOne(router, index, docID)
 		require.True(t, ok)
 		require.NotNil(t, target.Node.Conn)
 		hostOf[target.Node.Name] = target.Node.Conn.URL.Host
@@ -470,7 +470,7 @@ func TestBulkIndexerKeepsOrderWhenShardMapArrives_Integration(t *testing.T) {
 
 	router := opensearchutil.ClientShardRouter(client)
 	require.NotNil(t, router, "the default client's transport must offer a shard router")
-	_, known := router.LookupShard(index, "x")
+	_, known := lookupOne(router, index, "x")
 	require.False(t, known, "the index must be unknown to the transport when the writes start")
 
 	bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
@@ -499,7 +499,7 @@ func TestBulkIndexerKeepsOrderWhenShardMapArrives_Integration(t *testing.T) {
 	}
 
 	require.NoError(t, client.Client.DiscoverNodes(ctx)) // The transport fetches the index's shard map.
-	_, known = router.LookupShard(index, "x")
+	_, known = lookupOne(router, index, "x")
 	require.True(t, known, "discovery must have fetched the shard map")
 
 	for range rounds / 2 {

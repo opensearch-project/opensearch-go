@@ -160,6 +160,10 @@ type indexShardMap struct {
 	// mergeShardMap, which reports it as unversioned.
 	Generation uint64
 
+	// Replication is the index's index.replication.type. It is fetched with
+	// RoutingNumShards and, like it, cannot change while the index exists.
+	Replication ReplicationType
+
 	// Shards maps shard number -> nodes hosting that shard.
 	Shards map[int]*shardNodes
 }
@@ -475,6 +479,7 @@ func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
 			NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
 			RoutingNumShards:      placement.RoutingNumShards,
 			Generation:            geometryGeneration(old, placement),
+			Replication:           placement.Replication,
 			Shards:                merged,
 		}) {
 			return

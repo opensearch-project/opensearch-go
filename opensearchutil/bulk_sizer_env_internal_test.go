@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 )
 
 // These tests set environment variables, so none of them runs in parallel.
@@ -182,9 +183,9 @@ func TestBulkIndexerByteWindowStart(t *testing.T) {
 				NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, TargetBytes: tt.nodeBytes, FlushInterval: time.Hour,
 			}).(*bulkClient)
 
-			require.InDelta(t, tt.wantCeiling, bi.window.start, 0, "it starts wide open")
-			require.InDelta(t, tt.wantCeiling, bi.window.ceiling, 0)
-			require.Equal(t, tt.wantFixed, bi.window.fixed)
+			require.InDelta(t, tt.wantCeiling, bi.window.Start, 0, "it starts wide open")
+			require.InDelta(t, tt.wantCeiling, bi.window.Ceiling, 0)
+			require.Equal(t, tt.wantFixed, bi.window.Floor >= bi.window.Ceiling, "a fixed window's floor is its ceiling")
 		})
 	}
 }
@@ -217,11 +218,11 @@ func TestBulkSizingControllersAreIndependent(t *testing.T) {
 			t.Cleanup(func() { _ = bi.Close(t.Context()) })
 
 			require.Equal(t, tt.wantShardFixed, bi.sizing.fixed, "shard buffers fixed")
-			require.Equal(t, tt.wantTargetFixed, bi.window.fixed, "node window fixed")
+			require.Equal(t, tt.wantTargetFixed, bi.window.Floor >= bi.window.Ceiling, "node window fixed")
 
 			// A 429 shrinks the window unless the window is fixed, whatever the shards do.
-			w := newByteWindow(bi.window)
-			require.Equal(t, !tt.wantTargetFixed, w.shrinkWindowSize(int64(bi.window.start), 0))
+			w := sched.NewWindow(bi.window)
+			require.Equal(t, !tt.wantTargetFixed, w.Shrink(int64(bi.window.Start), 0))
 		})
 	}
 }

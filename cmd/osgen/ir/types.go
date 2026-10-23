@@ -115,6 +115,16 @@ type Operation struct {
 	// emit.DispatchFragment.
 	ErrorTypes []ErrorType
 
+	// Interceptor names a hand-written method on *Client that the dispatch
+	// calls before it sends the request:
+	//
+	//	func (c *Client) <Interceptor>(ctx context.Context, req <Prefix>Req) (*<Prefix>Resp, bool, error)
+	//
+	// When it reports true the dispatch returns its response and error; when
+	// it reports false the dispatch sends the request as usual. Empty for every
+	// operation not listed in cmd/osgen's interceptors table.
+	Interceptor string
+
 	// Routing (computed during parse from group name).
 	Package    string
 	ImportPath string

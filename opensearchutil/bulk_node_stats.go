@@ -59,7 +59,7 @@ func (ns *nodeState) storeStats() {
 	ns.stats.inflight.Store(int64(ns.inflight))
 	ns.stats.queued.Store(int64(ns.queued))
 	ns.stats.flightBytes.Store(ns.flightBytes)
-	ns.stats.window.Store(math.Float64bits(ns.windowBytes.fraction()))
+	ns.stats.window.Store(math.Float64bits(ns.windowBytes.SizeRatio()))
 	ns.stats.bufferSize.Store(math.Float64bits(ns.bufferFrac))
 	ns.stats.slowdown.Store(math.Float64bits(ns.slowdown))
 }
