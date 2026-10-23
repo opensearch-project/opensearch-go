@@ -714,6 +714,22 @@ func mgetFailureItem(index, id string, err error) MGetRespItem {
 // response: the documents in the order they were asked for, and one raw body
 // holding each document's answer as its node sent it, which each document's
 // RawJSON then points into.
+//
+// merge joins bytes rather than encoding them, and that is safe only because
+// every byte it appends is one of three things:
+//
+//   - the constants {"docs":[ , and ]};
+//   - a document's raw JSON from a node's response. The generated decoder runs
+//     json.Unmarshal over the whole response, which validates all of it before
+//     decoding, and hands each document exactly one complete JSON value from it;
+//   - a failure item that mgetFailureItem built with json.Marshal.
+//
+// A complete JSON value cannot end the array early, so the result is valid
+// JSON. Keep it so: anything else appended here must come from json.Marshal or
+// from a buffer json.Unmarshal has validated. encoding/json's own Marshal is not
+// used because it compacts each json.RawMessage and escapes <, > and & in it,
+// which would change the bytes the cluster sent. TestMGetDirectMergeKeepsNodeBytes
+// checks the invariant with hostile document content.
 func (call *mgetCall) merge(header http.Header) *MGetResp {
 	const open, closing = `{"docs":[`, `]}`
 

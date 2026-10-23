@@ -634,6 +634,63 @@ func TestMGetDirectShrinksARejectingNodesWindow(t *testing.T) {
 	require.Less(t, st.Window, 8.0, "the node that answered 429 has its window shrunk below MaxInFlightDocsPerNode")
 }
 
+// TestMGetDirectMergeKeepsNodeBytes sends documents whose content would break a
+// naive join: strings holding "]}" and quotes, an _id with brackets in it, HTML
+// that encoding/json.Marshal would escape, the line and paragraph separators,
+// escaped surrogate pairs, a node's own error item, and pretty-printed
+// whitespace. The merged body must be valid JSON, be exactly the nodes' bytes in
+// request order, and give each document its node's bytes untouched.
+func TestMGetDirectMergeKeepsNodeBytes(t *testing.T) {
+	t.Parallel()
+
+	ids := []string{"d0", "d1", "d2", "d3", "d4", `q"]}5`}
+	// escapedSmiley is U+1F600 and U+00E9 as JSON escapes: a surrogate pair and a
+	// single escape, spelled out so the source shows the backslashes.
+	escapedSmiley := `\` + `ud83d` + `\` + `ude00 ` + `\` + `u00e9`
+	// d1's "sep" holds the characters U+2028 and U+2029 themselves, which JSON
+	// allows unescaped in a string and JavaScript does not.
+	want := map[string]string{
+		"d0": `{"_index":"idx","_id":"d0","_version":1,"found":true,"_source":{"s":"\"]},{\"_id\":\"x\"}]}"}}`,
+		"d1": `{"_index":"idx","_id":"d1","_version":1,"found":true,"_source":{"html":"<script>a && b</script>","sep":"` +
+			"  " + `"}}`,
+		"d2": "{ \"_index\" : \"idx\",\n  \"_id\" : \"d2\",\n  \"found\" : true,\n  \"_source\" : { \"k\" : [ 1, 2 ] }\n}",
+		"d3": `{"_index":"idx","_id":"d3","_version":1,"found":true,"_source":{"escaped":"` + escapedSmiley + `","raw":"` +
+			string(rune(0x1F600)) + " " + string(rune(0xE9)) + `"}}`,
+		"d4":    `{"_index":"idx","_id":"d4","error":{"root_cause":[{"type":"x","reason":"\"]}"}],"type":"x","reason":"\"]}"}}`,
+		`q"]}5`: `{"_index":"idx","_id":"q\"]}5","_version":1,"found":false}`,
+	}
+
+	f := newMGetFake(t)
+	f.node = func(_ string, _ int, req MGetReq) (int, []string) {
+		docs := make([]string, len(req.Body.Docs))
+		for i, op := range req.Body.Docs {
+			docs[i] = want[op.ID]
+		}
+
+		return http.StatusOK, docs
+	}
+	c := f.client(MGetConfig{})
+
+	ops := mgetDocs("idx", ids...)
+	resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}})
+	require.NoError(t, err)
+
+	body := resp.Inspect().Response.RawBody()
+	require.True(t, json.Valid(body), "the merged body is valid JSON: %s", body)
+
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = want[id]
+	}
+	require.Equal(t, `{"docs":[`+strings.Join(parts, ",")+`]}`, string(body), "the body is the nodes' bytes, in request order")
+
+	require.Len(t, resp.Docs, len(ids))
+	for i, id := range ids {
+		require.Equal(t, want[id], string(resp.Docs[i].RawJSON()), "document %q keeps its node's bytes", id)
+		require.Equal(t, id, mgetItemID(&resp.Docs[i]), "position %d", i)
+	}
+}
+
 func TestMGetDirectPassesServerErrorsThrough(t *testing.T) {
 	t.Parallel()
 
