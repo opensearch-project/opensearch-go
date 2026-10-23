@@ -9,8 +9,8 @@ package opensearchutil
 import (
 	"math"
 	"math/bits"
-	"sync"
 
+	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
@@ -155,50 +155,16 @@ func (r StaticShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) e
 		return ErrShardMapUnknown
 	}
 
-	*nextShardTarget(dst) = ShardTarget{Shard: m.Shard(key), Primary: true}
+	*scratch.Next(dst) = ShardTarget{Shard: m.Shard(key), Primary: true}
 
 	return nil
-}
-
-// nextShardTarget extends *dst by one element and returns it, reusing the
-// pointer already in the backing array when there is one.
-func nextShardTarget(dst *[]*ShardTarget) *ShardTarget {
-	n := len(*dst)
-	if n < cap(*dst) {
-		*dst = (*dst)[:n+1]
-		if (*dst)[n] == nil {
-			(*dst)[n] = new(ShardTarget)
-		}
-
-		return (*dst)[n]
-	}
-
-	t := new(ShardTarget)
-	*dst = append(*dst, t)
-
-	return t
 }
 
 // shardTargetPool holds scratch slices for LookupShard, so a lookup on the hot
 // path allocates neither the slice nor its ShardTargets.
 //
 //nolint:gochecknoglobals // A pool is process-wide by design.
-var shardTargetPool = sync.Pool{New: func() any {
-	s := make([]*ShardTarget, 0, 4)
-
-	return &s
-}}
-
-func getShardTargets() *[]*ShardTarget {
-	s, _ := shardTargetPool.Get().(*[]*ShardTarget)
-
-	return s
-}
-
-func putShardTargets(s *[]*ShardTarget) {
-	*s = (*s)[:0]
-	shardTargetPool.Put(s)
-}
+var shardTargetPool scratch.Pool[ShardTarget]
 
 // WriteNodes implements [ShardRouter]; a static router knows no nodes.
 func (StaticShardRouter) WriteNodes() []Node { return nil }
@@ -334,18 +300,15 @@ func nodeOf(conn *opensearchtransport.Connection) Node {
 func (r clientShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
 	*dst = (*dst)[:0]
 
-	scratch, _ := transportTargetPool.Get().(*[]*opensearchtransport.ShardTarget)
-	defer func() {
-		*scratch = (*scratch)[:0]
-		transportTargetPool.Put(scratch)
-	}()
+	copies := transportTargetPool.Get()
+	defer transportTargetPool.Put(copies)
 
-	if err := r.tr.LookupShard(index, key, scratch); err != nil {
+	if err := r.tr.LookupShard(index, key, copies); err != nil {
 		return err
 	}
 
-	for _, target := range *scratch {
-		out := nextShardTarget(dst)
+	for _, target := range *copies {
+		out := scratch.Next(dst)
 		*out = ShardTarget{Shard: target.Shard, Primary: target.Primary, Generation: target.Generation}
 		if target.Node != nil {
 			out.Node = nodeOf(target.Node)
@@ -356,11 +319,7 @@ func (r clientShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) e
 }
 
 //nolint:gochecknoglobals // A pool is process-wide by design.
-var transportTargetPool = sync.Pool{New: func() any {
-	s := make([]*opensearchtransport.ShardTarget, 0, 4)
-
-	return &s
-}}
+var transportTargetPool scratch.Pool[opensearchtransport.ShardTarget]
 
 // WriteNodes implements [ShardRouter].
 func (r clientShardRouter) WriteNodes() []Node {

@@ -160,7 +160,7 @@ func TestAdmissionRelease(t *testing.T) {
 			require.True(t, ok)
 			require.InDelta(t, tt.wantWindow, st.Window, 1e-9)
 			require.Equal(t, tt.wantOutstding, st.Outstanding)
-			require.Equal(t, tt.wantPinned, a.nodes["a"].window.pinned > 0)
+			require.Equal(t, tt.wantPinned, a.mu.nodes["a"].window.pinned > 0)
 		})
 	}
 }
@@ -178,10 +178,10 @@ func TestAdmissionPinsOnceWhenANodeStaysSaturated(t *testing.T) {
 	}
 
 	release(true)
-	require.Equal(t, PinCompletions-1, a.nodes["a"].window.pinned, "the pin starts on the first saturated release")
+	require.Equal(t, PinCompletions-1, a.mu.nodes["a"].window.pinned, "the pin starts on the first saturated release")
 
 	release(true)
-	require.Equal(t, PinCompletions-2, a.nodes["a"].window.pinned, "a node that stays saturated is not pinned again")
+	require.Equal(t, PinCompletions-2, a.mu.nodes["a"].window.pinned, "a node that stays saturated is not pinned again")
 }
 
 func TestAdmissionReleaseOfZeroTicket(t *testing.T) {

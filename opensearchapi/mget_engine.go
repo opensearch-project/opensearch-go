@@ -42,7 +42,8 @@ const (
 	// not known yet, named through an alias or a data stream, or with no _index
 	// -- is fetched through a coordinating node in a request of its own. So is
 	// every document of an mget the client cannot split as the cluster would:
-	// one with a preference, a raw BodyReader, or ids in place of docs.
+	// one with a preference, a filter_path, a format or a source parameter, a raw
+	// BodyReader, or ids in place of docs.
 	MGetEngineDirect
 )
 

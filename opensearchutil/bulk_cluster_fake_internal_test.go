@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -75,7 +76,7 @@ func (c *fakeCluster) LookupShard(index, key string, dst *[]*ShardTarget) error 
 	}
 
 	shard := m.Shard(key)
-	target := nextShardTarget(dst)
+	target := scratch.Next(dst)
 	*target = ShardTarget{Shard: shard, Primary: true, Generation: c.mu.generation[index]}
 	if name := c.mu.place(index, shard); name != "" {
 		target.Node = Node{Name: name, Pool: c.poolOf(name)}
@@ -86,8 +87,8 @@ func (c *fakeCluster) LookupShard(index, key string, dst *[]*ShardTarget) error 
 
 // lookupOne returns the first copy of the shard key lives on, and whether router knows it.
 func lookupOne(router ShardRouter, index, key string) (ShardTarget, bool) {
-	targets := getShardTargets()
-	defer putShardTargets(targets)
+	targets := shardTargetPool.Get()
+	defer shardTargetPool.Put(targets)
 
 	if err := router.LookupShard(index, key, targets); err != nil || len(*targets) == 0 {
 		return ShardTarget{}, false

@@ -1290,8 +1290,8 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 		return nil, Node{}, 0, nil
 	}
 
-	targets := getShardTargets()
-	defer putShardTargets(targets)
+	targets := shardTargetPool.Get()
+	defer shardTargetPool.Put(targets)
 
 	if err := bi.router.LookupShard(index, routing, targets); err != nil || len(*targets) == 0 {
 		return nil, Node{}, 0, bi.unplaceable(ctx, index)

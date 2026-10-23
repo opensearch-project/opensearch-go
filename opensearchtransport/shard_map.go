@@ -12,6 +12,8 @@ import (
 	"errors"
 	"math"
 	"slices"
+
+	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
 )
 
 // ShardMap is the routing half of an index's shard map: the two numbers that
@@ -139,7 +141,7 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 	shard := shardForRouting(key, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
 	nodes := sm.Shards[shard]
 
-	primary := nextShardTarget(dst)
+	primary := scratch.Next(dst)
 	*primary = ShardTarget{Shard: shard, Primary: true, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
 
 	if nodes == nil {
@@ -158,30 +160,11 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 			continue
 		}
 
-		replica := nextShardTarget(dst)
+		replica := scratch.Next(dst)
 		*replica = ShardTarget{Shard: shard, Node: conn, SegmentReplication: sm.SegmentReplication, Generation: sm.Generation}
 	}
 
 	return nil
-}
-
-// nextShardTarget extends *dst by one element and returns it, reusing the
-// pointer already in the backing array when there is one.
-func nextShardTarget(dst *[]*ShardTarget) *ShardTarget {
-	n := len(*dst)
-	if n < cap(*dst) {
-		*dst = (*dst)[:n+1]
-		if (*dst)[n] == nil {
-			(*dst)[n] = new(ShardTarget)
-		}
-
-		return (*dst)[n]
-	}
-
-	t := new(ShardTarget)
-	*dst = append(*dst, t)
-
-	return t
 }
 
 // connectionNamer is implemented by the built-in connection pools.

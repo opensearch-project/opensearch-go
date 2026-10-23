@@ -328,11 +328,11 @@ func TestMGetDirectSplitsByNodeAndKeepsOrder(t *testing.T) {
 
 	sent := f.sent()
 	require.NotEmpty(t, sent)
-	nodes := map[string]bool{}
+	nodes := map[string]struct{}{}
 	var total int
 	for _, s := range sent {
 		require.Equal(t, mgetPreferenceLocal, s.preference, "a document-replicated read answers from the node's own copy")
-		nodes[s.node] = true
+		nodes[s.node] = struct{}{}
 		total += len(s.ids)
 	}
 	require.Len(t, nodes, 3, "the documents fan out over every node")
@@ -425,6 +425,27 @@ func TestMGetDirectLeavesRequestsItCannotSplitToTheCluster(t *testing.T) {
 		{name: "a raw body", req: MGetReq{Index: "idx", BodyReader: strings.NewReader(`{"docs":[{"_id":"d0"}]}`)}},
 		{name: "ids in place of docs", req: MGetReq{Index: "idx", Body: &MGetBody{IDs: new("d0")}}},
 		{name: "nothing it can place", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("unknown", "d0", "d1")}}},
+		{
+			name: "a filter_path",
+			req: MGetReq{
+				Body:   &MGetBody{Docs: mgetDocs("idx", "d0", "d1")},
+				Params: &MGetParams{DebugParams: DebugParams{FilterPath: []string{"docs._source"}}},
+			},
+		},
+		{
+			name: "a source parameter",
+			req: MGetReq{
+				Body:   &MGetBody{Docs: mgetDocs("idx", "d0", "d1")},
+				Params: &MGetParams{DebugParams: DebugParams{Source: `{"docs":[{"_index":"idx","_id":"d0"}]}`}},
+			},
+		},
+		{
+			name: "a format",
+			req: MGetReq{
+				Body:   &MGetBody{Docs: mgetDocs("idx", "d0", "d1")},
+				Params: &MGetParams{DebugParams: DebugParams{Format: "yaml"}},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -650,6 +671,8 @@ func TestMGetDirectFailsDocumentsNoRequestCouldFetch(t *testing.T) {
 			resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}})
 			if tt.wantErr {
 				require.Error(t, err)
+				require.NotNil(t, resp.Inspect().Response, "the failed response is returned, as the coordinator path returns it")
+				require.Equal(t, http.StatusServiceUnavailable, resp.Inspect().Response.StatusCode)
 
 				return
 			}
@@ -684,6 +707,35 @@ func TestMGetDirectRefetchesAnAnswerItCannotPlace(t *testing.T) {
 	for i := range resp.Docs {
 		require.Equal(t, "coordinator", via(t, resp.Docs[i]))
 	}
+}
+
+func TestMGetDirectResendsWhenACoordinatorAnswerCannotBePlaced(t *testing.T) {
+	t.Parallel()
+
+	ops := mgetDocs("idx", "d0", "d1", "d2", "d3")
+	f := newMGetFake(t)
+	f.node = func(_ string, _ int, req MGetReq) (int, []string) {
+		return http.StatusOK, []string{mgetFound("idx", "wrong", "node")}[:min(1, len(req.Body.Docs))]
+	}
+	f.coord = func(body MGetBody) (int, []string) {
+		if len(body.Docs) == len(ops) {
+			return 0, nil
+		}
+
+		return http.StatusOK, []string{mgetFound("idx", "wrong", "coordinator")}
+	}
+	obs := &recordingMGetObserver{}
+	c := f.client(MGetConfig{Observer: obs})
+
+	resp, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: ops}})
+	require.NoError(t, err)
+	requireAnswers(t, ops, resp)
+	for i := range resp.Docs {
+		_, gerr := resp.Docs[i].GetResult()
+		require.NoError(t, gerr, "document %d is the cluster's answer, not a made-up failure", i)
+	}
+	require.True(t, obs.done()[0].Resent)
+	require.Zero(t, obs.done()[0].FailedDocs)
 }
 
 func TestMGetDirectObserverReportsTheFanOut(t *testing.T) {

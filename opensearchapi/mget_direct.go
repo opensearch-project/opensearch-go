@@ -11,7 +11,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand/v2"
 	"net/http"
 	"strings"
@@ -20,6 +19,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
+	"github.com/opensearch-project/opensearch-go/v5/internal/scratch"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -44,16 +44,16 @@ const (
 // asking again, perhaps another copy, can succeed.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
-var mgetRetryableTypes = map[string]bool{
-	"no_shard_available_action_exception": true,
-	"shard_not_found_exception":           true,
-	"unavailable_shards_exception":        true,
-	"illegal_index_shard_state_exception": true,
-	"node_not_connected_exception":        true,
-	"node_disconnected_exception":         true,
-	"node_closed_exception":               true,
-	"connect_transport_exception":         true,
-	"receive_timeout_transport_exception": true,
+var mgetRetryableTypes = map[string]struct{}{
+	"no_shard_available_action_exception": {},
+	"shard_not_found_exception":           {},
+	"unavailable_shards_exception":        {},
+	"illegal_index_shard_state_exception": {},
+	"node_not_connected_exception":        {},
+	"node_disconnected_exception":         {},
+	"node_closed_exception":               {},
+	"connect_transport_exception":         {},
+	"receive_timeout_transport_exception": {},
 }
 
 // mgetRejectedTypes are the per-document error types that say the node was
@@ -61,9 +61,9 @@ var mgetRetryableTypes = map[string]bool{
 // does.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
-var mgetRejectedTypes = map[string]bool{
-	"opensearch_rejected_execution_exception": true,
-	"circuit_breaking_exception":              true,
+var mgetRejectedTypes = map[string]struct{}{
+	"opensearch_rejected_execution_exception": {},
+	"circuit_breaking_exception":              {},
 }
 
 // mgetSender sends one request to a node.
@@ -92,11 +92,7 @@ type mgetEngine struct {
 }
 
 //nolint:gochecknoglobals // A pool is process-wide by design.
-var mgetTargetPool = sync.Pool{New: func() any {
-	s := make([]*opensearchtransport.ShardTarget, 0, 4)
-
-	return &s
-}}
+var mgetTargetPool scratch.Pool[opensearchtransport.ShardTarget]
 
 // mgetBatch is documents bound for one node in one request.
 type mgetBatch struct {
@@ -135,9 +131,12 @@ type mgetCall struct {
 
 	mu struct {
 		sync.Mutex
-		header   http.Header
-		resend   bool
-		firstErr error
+		header http.Header
+		resend bool
+		// err is the failure returned should no request succeed, and errResp
+		// the response that came with it, if any; see recordErr.
+		err      error
+		errResp  *MGetResp
 		answered int
 		nodes    map[string]struct{}
 		stats    MGetDoneEvent
@@ -151,7 +150,7 @@ func (e *mgetEngine) plan(c *Client, req MGetReq) (*mgetCall, bool) {
 	if req.BodyReader != nil || req.Body == nil || req.Body.IDs != nil || len(req.Body.Docs) == 0 {
 		return nil, false
 	}
-	if req.Params != nil && req.Params.Preference != "" {
+	if req.Params != nil && (req.Params.Preference != "" || mgetReshapesResponse(req.Params.DebugParams)) {
 		return nil, false
 	}
 
@@ -180,6 +179,14 @@ func (e *mgetEngine) plan(c *Client, req MGetReq) (*mgetCall, bool) {
 	return call, true
 }
 
+// mgetReshapesResponse reports whether p changes the response's shape or the
+// request's body, so that a node's answer can no longer be matched to the
+// documents asked for: filter_path can drop each document's _id, format changes
+// the encoding, and source replaces the body.
+func mgetReshapesResponse(p DebugParams) bool {
+	return len(p.FilterPath) > 0 || p.Format != "" || p.Source != ""
+}
+
 // place groups the documents at positions by the node to send each to, in
 // batches of at most maxDocs, for the given attempt. A document that cannot be
 // placed is returned in residual. avoid names a node to pass over when a
@@ -197,11 +204,8 @@ func (call *mgetCall) place(positions []int, attempt int, avoid string) ([]mgetB
 		planned  = make(map[string]int)
 	)
 
-	targets, _ := mgetTargetPool.Get().(*[]*opensearchtransport.ShardTarget)
-	defer func() {
-		*targets = (*targets)[:0]
-		mgetTargetPool.Put(targets)
-	}()
+	targets := mgetTargetPool.Get()
+	defer mgetTargetPool.Put(targets)
 
 	for _, pos := range positions {
 		op := call.req.Body.Docs[pos]
@@ -349,7 +353,7 @@ func (call *mgetCall) finish(parent context.Context) (*MGetResp, error) {
 	}
 
 	call.mu.Lock()
-	resend, answered, firstErr, header := call.mu.resend, call.mu.answered, call.mu.firstErr, call.mu.header
+	resend, answered, err, errResp, header := call.mu.resend, call.mu.answered, call.mu.err, call.mu.errResp, call.mu.header
 	call.mu.Unlock()
 
 	if resend {
@@ -360,9 +364,13 @@ func (call *mgetCall) finish(parent context.Context) (*MGetResp, error) {
 
 		return call.c.Doc.MGet(WithMGetEngine(parent, MGetEngineCoordinator), call.req)
 	}
-	if answered == 0 && firstErr != nil {
+	if answered == 0 && err != nil {
 		// No node answered at all, as the coordinator path would have failed.
-		return &MGetResp{}, firstErr
+		if errResp == nil {
+			errResp = &MGetResp{}
+		}
+
+		return errResp, err
 	}
 
 	return call.assemble(header), nil
@@ -479,7 +487,7 @@ func (call *mgetCall) answer(
 
 			return scheduler.Rejected, b.slots, nil
 		case status == 0 || status >= http.StatusInternalServerError:
-			call.recordErr(err)
+			call.recordErr(resp, err)
 
 			return scheduler.Failed, b.slots, nil
 		default:
@@ -500,14 +508,16 @@ func (call *mgetCall) answer(
 	for i, pos := range b.slots {
 		item := resp.Docs[i]
 		if failure, ferr := item.MultiGetError(); ferr == nil {
+			_, rejected := mgetRejectedTypes[failure.Error.Type]
+			_, retryable := mgetRetryableTypes[failure.Error.Type]
 			switch {
-			case mgetRejectedTypes[failure.Error.Type]:
+			case rejected:
 				outcome = scheduler.Rejected
 				event.Rejected = true
 				retry = append(retry, pos)
 
 				continue
-			case mgetRetryableTypes[failure.Error.Type]:
+			case retryable:
 				retry = append(retry, pos)
 
 				continue
@@ -544,12 +554,14 @@ func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
 
 		return
 	case err != nil:
-		call.recordErr(err)
+		call.recordErr(resp, err)
 		call.fail(slots, err)
 
 		return
 	case !mgetAnswerMatches(resp, call.req.Body.Docs, slots):
-		call.fail(slots, fmt.Errorf("mget answered %d documents for %d asked", len(resp.Docs), len(slots)))
+		// The cluster answered, but not in a shape the documents can be placed
+		// from. Ask it for the whole mget, and return what it says.
+		call.resendWhole()
 
 		return
 	}
@@ -588,12 +600,16 @@ func (call *mgetCall) answered(resp *MGetResp, n int) {
 	}
 }
 
-func (call *mgetCall) recordErr(err error) {
+// recordErr records a request's failure, to be the call's result should no
+// request succeed. A failure with a response replaces one without, so the
+// caller can inspect what the cluster said, as a failed coordinator request
+// lets it.
+func (call *mgetCall) recordErr(resp *MGetResp, err error) {
 	call.mu.Lock()
 	defer call.mu.Unlock()
 
-	if call.mu.firstErr == nil {
-		call.mu.firstErr = err
+	if call.mu.err == nil || (mgetStatus(call.mu.errResp) == 0 && mgetStatus(resp) != 0) {
+		call.mu.err, call.mu.errResp = err, resp
 	}
 }
 

@@ -32,10 +32,13 @@ const (
 type Admission struct {
 	cfg WindowConfig
 
-	mu    sync.Mutex
-	nodes map[string]*admissionNode
+	mu struct {
+		sync.Mutex
+		nodes map[string]*admissionNode
+	}
 }
 
+// admissionNode is one node's state. Every field is guarded by [Admission].mu.
 type admissionNode struct {
 	window      *Window
 	outstanding int64
@@ -59,15 +62,18 @@ type Ticket struct {
 // NewAdmission returns an Admission whose nodes each start with a [Window] built
 // from cfg.
 func NewAdmission(cfg WindowConfig) *Admission {
-	return &Admission{cfg: cfg, nodes: make(map[string]*admissionNode)}
+	a := &Admission{cfg: cfg}
+	a.mu.nodes = make(map[string]*admissionNode)
+
+	return a
 }
 
 // nodeLocked returns the named node's state, creating it on first use.
 func (a *Admission) nodeLocked(name string) *admissionNode {
-	n, ok := a.nodes[name]
+	n, ok := a.mu.nodes[name]
 	if !ok {
 		n = &admissionNode{window: NewWindow(a.cfg), wake: make(chan struct{})}
-		a.nodes[name] = n
+		a.mu.nodes[name] = n
 	}
 
 	return n
@@ -157,7 +163,7 @@ func (a *Admission) State(node string) (NodeState, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	n, ok := a.nodes[node]
+	n, ok := a.mu.nodes[node]
 	if !ok {
 		return NodeState{}, false
 	}
