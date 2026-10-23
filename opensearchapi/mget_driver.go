@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -39,9 +38,10 @@ const (
 	// answers are put back together in the order the documents were asked for,
 	// so the caller gets the response the cluster would have given.
 	//
-	// A document the client cannot place -- one in an index whose shard map is
-	// not known yet, named through an alias or a data stream, or with no _index
-	// -- is fetched through a coordinating node in a request of its own. So is
+	// A document the client cannot resolve to a node -- one in an index whose
+	// shard map is not known yet, named through an alias or a data stream, or
+	// with no _index -- is fetched through a coordinating node in a request of
+	// its own. So is
 	// every document of an mget the client cannot split as the cluster would:
 	// one with a preference, a filter_path, a format or a source parameter, a raw
 	// BodyReader, or ids in place of docs.
@@ -196,8 +196,8 @@ func (d *mgetDriver) selected(ctx context.Context) MGetDriver {
 
 // interceptMGet is the hook DocumentClient.MGet calls first. It answers the
 // call itself, and reports true, when the direct driver is selected and can
-// place at least one of the documents; otherwise it reports false and the
-// mget goes to the cluster as one request.
+// resolve at least one of the documents to a node; otherwise it reports false
+// and the mget goes to the cluster as one request.
 func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, bool, error) {
 	d := c.ext.mget
 	if d == nil || d.lookup == nil || d.selected(ctx) != MGetDriverDirect {
@@ -205,10 +205,10 @@ func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, boo
 	}
 
 	call, err := d.write(c, req)
-	if errors.Is(err, errMGetNotSplittable) {
+	if err != nil {
 		// write says why the mget cannot be split; it goes to the cluster as one
 		// request, which is not a failure of the call.
-		return nil, false, nil
+		return nil, false, nil //nolint:nilerr // Not splitting is not the call's error.
 	}
 
 	resp, err := call.flush(ctx)

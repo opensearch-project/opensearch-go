@@ -209,10 +209,10 @@ type fakeServer struct {
 	// holdUntil, when above 0, holds every bulk request until that many are in
 	// flight together, then lets them all through; see holdForPeak.
 	holdUntil int
-	// reached is closed once holdUntil requests have been in flight together,
-	// or once holdTimeout has passed without that.
-	reached     chan struct{}
-	reachedOnce sync.Once
+	// reached is closed once holdUntil requests have been in flight together, or
+	// once holdTimeout has passed without that; release closes it, at most once.
+	reached chan struct{}
+	release func()
 	// respond, when set, supplies the response; the default is an empty success.
 	respond func(req sentRequest, body string) (status int, resp string)
 	// advance, when set, is called with each request as it is served, before it
@@ -231,6 +231,7 @@ type fakeServer struct {
 
 func newFakeServer(cluster *fakeCluster) *fakeServer {
 	s := &fakeServer{cluster: cluster, reached: make(chan struct{})}
+	s.release = sync.OnceFunc(func() { close(s.reached) })
 	s.mu.busy = map[shardKey]int{}
 
 	return s
@@ -249,7 +250,7 @@ func (s *fakeServer) holdForPeak(inflight int) {
 		return
 	}
 	if inflight >= s.holdUntil {
-		s.reachedOnce.Do(func() { close(s.reached) })
+		s.release()
 	}
 
 	timer := time.NewTimer(holdTimeout)
@@ -258,7 +259,7 @@ func (s *fakeServer) holdForPeak(inflight int) {
 	select {
 	case <-s.reached:
 	case <-timer.C:
-		s.reachedOnce.Do(func() { close(s.reached) })
+		s.release()
 	}
 }
 

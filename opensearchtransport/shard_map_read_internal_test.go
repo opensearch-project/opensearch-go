@@ -112,7 +112,7 @@ func TestReplicationTypeReachesEveryShardCopy(t *testing.T) {
 			require.NoError(t, tr.LookupShard("idx", "doc-1", &targets))
 			require.Len(t, targets, 3)
 			for _, target := range targets {
-				require.Equal(t, tt.replication, target.Replication, "copy on %s", target.Node.Name)
+				require.Equal(t, tt.replication, target.Replication, "copy on %q", target.Node.Name)
 			}
 		})
 	}

@@ -169,7 +169,7 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // OPENSEARCH_GO_DEBUG=true.
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 
-// MGet overrides opensearchapi.MGetConfig.Engine: "direct" splits each mget by
+// MGet overrides opensearchapi.MGetConfig.Driver: "direct" splits each mget by
 // shard in the client and sends each node only the documents it holds, and
 // "coordinator" sends each mget as one request for the cluster to split.
 // Case-insensitive; any other value is ignored.

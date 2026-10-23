@@ -839,6 +839,7 @@ func TestMGetDriverSelection(t *testing.T) {
 	}{
 		{name: "the release default", want: defaultMGetDriver},
 		{name: "the config", config: MGetDriverDirect, want: MGetDriverDirect},
+		{name: "the config's coordinator", config: MGetDriverCoordinator, want: MGetDriverCoordinator},
 		{name: "a context override", config: MGetDriverDirect, ctx: MGetDriverCoordinator, want: MGetDriverCoordinator},
 		{name: "a default context keeps the config", config: MGetDriverDirect, ctx: MGetDriverDefault, want: MGetDriverDirect},
 	}
