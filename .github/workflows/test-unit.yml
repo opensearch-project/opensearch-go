@@ -41,9 +41,9 @@ jobs:
 
   jsonv2:
     # internal/jsonx is the standard library's encoding/json where the toolchain
-    # builds encoding/json/v2, and go-json-experiment/json elsewhere. The test
-    # job runs the go.mod toolchain without the experiment, so this job builds
-    # and tests the other file.
+    # builds encoding/json/v2, and the copy in internal/third_party/jsonv2
+    # elsewhere. The test job runs the go.mod toolchain without the experiment,
+    # so this job builds and tests the other file.
     name: "Tests (GOEXPERIMENT=jsonv2)"
     runs-on: ubuntu-latest
     env:

@@ -4,11 +4,10 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-// This is go-json-experiment/json's constraint for being an alias of the
-// standard library, so the toolchain builds encoding/json/v2 and encoding/json
-// runs on it.
+// Where the toolchain builds encoding/json/v2, encoding/json runs on it, and
+// jsonx is encoding/json.
 
-//go:build goexperiment.jsonv2 && go1.25
+//go:build goexperiment.jsonv2
 
 package jsonx
 

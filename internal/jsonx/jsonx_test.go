@@ -249,7 +249,7 @@ func requireSameErrorType(t *testing.T, want, got error) {
 	case *json.MarshalerError:
 		var g *json.MarshalerError
 		require.ErrorAs(t, got, &g)
-		// go-json-experiment calls the method through a pointer, and names the
+		// The copied engine calls the method through a pointer, and names the
 		// pointer type where encoding/json may name the value's.
 		gotType := g.Type
 		if gotType.Kind() == reflect.Pointer && w.Type.Kind() != reflect.Pointer {

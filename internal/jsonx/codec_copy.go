@@ -4,10 +4,11 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-// This is go-json-experiment/json's constraint for compiling its own copy of
-// the engine, where the toolchain's encoding/json is the original one.
+// Where the toolchain does not build encoding/json/v2, encoding/json is the
+// original engine, so jsonx runs the copy of encoding/json/v2 in
+// internal/third_party/jsonv2.
 
-//go:build !goexperiment.jsonv2 || !go1.25
+//go:build !goexperiment.jsonv2
 
 package jsonx
 
@@ -15,20 +16,21 @@ import (
 	"encoding/json"
 	"errors"
 
-	jsonv2 "github.com/go-json-experiment/json"
-	"github.com/go-json-experiment/json/jsontext"
-	jsonv1 "github.com/go-json-experiment/json/v1"
+	jsonv2 "github.com/opensearch-project/opensearch-go/v5/internal/third_party/jsonv2/json"
+	"github.com/opensearch-project/opensearch-go/v5/internal/third_party/jsonv2/jsontext"
+	jsonv1 "github.com/opensearch-project/opensearch-go/v5/internal/third_party/jsonv2/v1"
 )
 
-// Engine names the JSON engine jsonx runs on: the copy of encoding/json/v2 in
-// github.com/go-json-experiment/json.
-const Engine = "github.com/go-json-experiment/json"
+// Engine names the JSON engine jsonx runs on: the copy of the standard
+// library's encoding/json/v2 in internal/third_party/jsonv2.
+const Engine = "internal/third_party/jsonv2"
 
-// options are encoding/json's semantics on this engine. They are jsonv1's
-// Marshal and Unmarshal, which pass DefaultOptionsV1, with one addition: this
-// engine knows jsonv1.Number, not encoding/json.Number, and would write and
-// read the latter as a plain string, so encoding/json.Number goes through
-// jsonv1.Number's methods.
+// options are encoding/json's semantics on this engine: jsonv1's
+// DefaultOptionsV1, the options encoding/json passes when it runs on the
+// encoding/json/v2 engine, with one addition. The copy's jsonv1 is a package of
+// its own, so the engine knows jsonv1.Number, not encoding/json.Number, and
+// would write and read the latter as a plain string; encoding/json.Number goes
+// through jsonv1.Number's methods.
 var options = jsonv2.JoinOptions(
 	jsonv1.DefaultOptionsV1(),
 	jsonv2.WithMarshalers(jsonv2.MarshalToFunc(func(enc *jsontext.Encoder, n json.Number) error {

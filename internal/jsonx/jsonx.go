@@ -10,18 +10,17 @@
 //
 // Where the toolchain builds encoding/json/v2, which Go 1.27 does by default
 // and Go 1.26 does with GOEXPERIMENT=jsonv2, encoding/json already runs on that
-// engine, and jsonx is encoding/json (codec_std.go). Elsewhere jsonx runs the
-// same engine from github.com/go-json-experiment/json, the code
-// encoding/json/v2 is cut from (codec_experiment.go). The two files' build
-// constraints are that package's own, under which it is an alias of the
-// standard library or compiles its own copy. On Go 1.26 without the
-// experiment, the original encoding/json engine makes about 2.7 times the
-// allocations decoding an mget response that the v2 engine does.
+// engine, and jsonx is encoding/json (codec_std.go). Elsewhere jsonx runs a
+// copy of the standard library's encoding/json/v2 from internal/third_party/
+// jsonv2 (codec_copy.go). On Go 1.26 without the experiment, the original
+// encoding/json engine makes about 2.7 times the allocations decoding an mget
+// response that the v2 engine does. Once the module requires a toolchain that
+// builds encoding/json/v2, codec_copy.go and the copy can be deleted.
 //
 // Every function has encoding/json's semantics, so what the client sends and
 // how it reads a response do not depend on the toolchain. Errors are
 // encoding/json's types, so a caller's errors.As matches them under every
-// engine. Under codec_experiment.go three details differ from Go 1.26's
+// engine. Under codec_copy.go three details differ from Go 1.26's
 // encoding/json: a Go string holding invalid UTF-8 is written with U+FFFD as
 // the character rather than as a \u escape, as encoding/json does from Go
 // 1.27; where encoding/json fails with an untyped error, such as for a
