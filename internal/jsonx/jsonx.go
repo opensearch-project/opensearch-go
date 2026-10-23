@@ -41,3 +41,7 @@ type Marshaler = json.Marshaler
 
 // Unmarshaler is encoding/json.Unmarshaler.
 type Unmarshaler = json.Unmarshaler
+
+// Number is encoding/json.Number. Under every engine jsonx writes and reads it
+// as encoding/json does: as the number literal it holds.
+type Number = json.Number

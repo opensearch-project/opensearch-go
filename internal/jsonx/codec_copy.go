@@ -13,8 +13,10 @@
 package jsonx
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 
 	jsonv2 "github.com/opensearch-project/opensearch-go/v5/internal/third_party/jsonv2/json"
 	"github.com/opensearch-project/opensearch-go/v5/internal/third_party/jsonv2/jsontext"
@@ -66,6 +68,86 @@ func Unmarshal(data []byte, v any) error {
 	}
 
 	return nil
+}
+
+// Encoder is encoding/json.Encoder's Encode and SetEscapeHTML, run on the
+// encoding/json/v2 engine. Each Encode writes one value and a newline. The
+// copy's jsonv1.Encoder is not used, since it does not take options and so
+// would write encoding/json.Number as a string.
+//
+// As encoding/json's does, each Encode encodes into a buffer of the Encoder's
+// own and gives the writer the whole value in one Write. A jsontext.Encoder on
+// the caller's writer would not do: on a *bytes.Buffer it appends into the
+// buffer's spare capacity and keeps its own length, so bytes the caller writes
+// to the buffer between values, such as the commas of an array, are
+// overwritten.
+type Encoder struct {
+	w        io.Writer
+	buf      bytes.Buffer
+	enc      *jsontext.Encoder
+	keepHTML bool
+}
+
+// NewEncoder is encoding/json.NewEncoder.
+func NewEncoder(w io.Writer) *Encoder {
+	return &Encoder{w: w}
+}
+
+// SetEscapeHTML is encoding/json.Encoder.SetEscapeHTML: whether &, < and > in
+// strings are escaped. They are by default.
+func (e *Encoder) SetEscapeHTML(on bool) {
+	if e.keepHTML == !on {
+		return
+	}
+	e.keepHTML = !on
+	e.enc = nil
+}
+
+// Encode is encoding/json.Encoder.Encode.
+func (e *Encoder) Encode(v any) error {
+	e.buf.Reset()
+	if e.enc == nil {
+		e.enc = jsontext.NewEncoder(&e.buf, options, jsontext.EscapeForHTML(!e.keepHTML))
+	} else {
+		e.enc.Reset(&e.buf, options, jsontext.EscapeForHTML(!e.keepHTML))
+	}
+	if err := jsonv2.MarshalEncode(e.enc, v); err != nil {
+		return stdError(err, nil)
+	}
+	_, err := e.w.Write(e.buf.Bytes())
+
+	return err
+}
+
+// Decoder is encoding/json.Decoder's Decode, run on the encoding/json/v2
+// engine: each Decode reads the next value in the stream into v.
+type Decoder struct {
+	dec *jsontext.Decoder
+}
+
+// NewDecoder is encoding/json.NewDecoder.
+func NewDecoder(r io.Reader) *Decoder {
+	return &Decoder{dec: jsontext.NewDecoder(r, options)}
+}
+
+// Decode is encoding/json.Decoder.Decode. It returns io.EOF at the end of the
+// stream, and io.ErrUnexpectedEOF for a stream that ends inside a value, as
+// encoding/json's does.
+func (d *Decoder) Decode(v any) error {
+	b, err := d.dec.ReadValue()
+	switch {
+	case err == nil:
+		return Unmarshal(b, v)
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		return io.ErrUnexpectedEOF
+	default:
+		return err
+	}
+}
+
+// Indent is encoding/json.Indent.
+func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
+	return stdError(jsonv1.Indent(dst, src, prefix, indent), src)
 }
 
 // stdError returns err as the encoding/json error it stands for, so that a

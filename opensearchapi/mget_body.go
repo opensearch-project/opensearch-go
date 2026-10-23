@@ -8,10 +8,11 @@ package opensearchapi
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"sync"
 	"sync/atomic"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // mgetMaxPooledBody is the largest buffer returned to mgetBodyPool. A larger one

@@ -28,7 +28,6 @@ package opensearchtransport
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -45,6 +44,8 @@ import (
 	"time"
 
 	"golang.org/x/sync/semaphore"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // errDiscoveryEmpty is returned by getNodesInfo when the /_nodes response

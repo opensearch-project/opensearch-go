@@ -29,7 +29,6 @@ package opensearchutil
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -43,6 +42,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"

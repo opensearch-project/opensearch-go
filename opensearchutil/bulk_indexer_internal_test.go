@@ -51,6 +51,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -2061,7 +2062,7 @@ func TestWorkerFlushGuardsMismatchedResponseCount(t *testing.T) {
 }
 
 // referenceMeta writes the action line as the bulk client did before metaEncoder: a fresh
-// encoder and a map of the metadata for every item.
+// encoder of the client's JSON codec and a map of the metadata for every item.
 func referenceMeta(t *testing.T, item BulkIndexerItem) string {
 	t.Helper()
 
@@ -2076,7 +2077,7 @@ func referenceMeta(t *testing.T, item BulkIndexerItem) string {
 	}
 
 	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	enc := jsonx.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	require.NoError(t, enc.Encode(map[string]bulkActionMetadata{item.Action: meta}))
 

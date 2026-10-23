@@ -7,10 +7,13 @@
 package jsonx_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -260,5 +263,114 @@ func requireSameErrorType(t *testing.T, want, got error) {
 	case *json.InvalidUnmarshalError, *json.UnsupportedTypeError, *json.UnsupportedValueError:
 		require.Equal(t, reflect.TypeOf(want), reflect.TypeOf(got), "jsonx: %v", got)
 		require.Equal(t, want.Error(), got.Error())
+	}
+}
+
+// TestEncoderMatchesEncodingJSON checks that jsonx's Encoder writes, value by
+// value, the bytes encoding/json's Encoder writes, including into a buffer the
+// caller also writes to between values, as an mget body's encoder does.
+func TestEncoderMatchesEncodingJSON(t *testing.T) {
+	t.Parallel()
+
+	values := []any{
+		map[string]any{"html": "<a>&</a>", "n": json.Number("12.50")},
+		[]int{1, 2, 3},
+		"plain",
+		struct {
+			N json.Number `json:"n,omitempty"`
+			S string      `json:"s"`
+		}{S: "x"},
+	}
+	tests := []struct {
+		name       string
+		escapeHTML bool
+	}{
+		{name: "escaping HTML", escapeHTML: true},
+		{name: "keeping HTML", escapeHTML: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var want, got bytes.Buffer
+			stdEnc, enc := json.NewEncoder(&want), jsonx.NewEncoder(&got)
+			stdEnc.SetEscapeHTML(tt.escapeHTML)
+			enc.SetEscapeHTML(tt.escapeHTML)
+			want.WriteString("[")
+			got.WriteString("[")
+			for i, v := range values {
+				if i > 0 {
+					want.WriteByte(',')
+					got.WriteByte(',')
+				}
+				require.NoError(t, stdEnc.Encode(v))
+				require.NoError(t, enc.Encode(v))
+				require.Equal(t, want.String(), got.String(), "engine %s, after value %d", jsonx.Engine, i)
+			}
+		})
+	}
+}
+
+// TestDecoderMatchesEncodingJSON checks that jsonx's Decoder reads a stream
+// value by value as encoding/json's does, and ends it the same way.
+func TestDecoderMatchesEncodingJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{name: "several values", in: `{"a":1} [2,3] "s" 4.5 null` + "\n"},
+		{name: "numbers", in: `{"n":12345678901234567890}`},
+		{name: "a stream that ends inside a value", in: `{"a":1} {"b":`},
+		{name: "an empty stream", in: ``},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stdDec, dec := json.NewDecoder(strings.NewReader(tt.in)), jsonx.NewDecoder(strings.NewReader(tt.in))
+			for {
+				var wantAny, gotAny any
+				wantErr := stdDec.Decode(&wantAny)
+				err := dec.Decode(&gotAny)
+				require.Equal(t, wantErr == nil, err == nil, "encoding/json: %v, jsonx: %v", wantErr, err)
+				if wantErr != nil {
+					if errors.Is(wantErr, io.EOF) || errors.Is(wantErr, io.ErrUnexpectedEOF) {
+						require.ErrorIs(t, err, wantErr)
+					}
+
+					return
+				}
+				require.Equal(t, wantAny, gotAny)
+			}
+		})
+	}
+}
+
+// TestIndentMatchesEncodingJSON checks that jsonx indents as encoding/json
+// does.
+func TestIndentMatchesEncodingJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{name: "nested", in: `{"a":[1,{"b":null}],"c":{}, "d" : [ ] }`},
+		{name: "invalid", in: `{"a":`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var want, got bytes.Buffer
+			wantErr := json.Indent(&want, []byte(tt.in), ">", "  ")
+			err := jsonx.Indent(&got, []byte(tt.in), ">", "  ")
+			require.Equal(t, wantErr == nil, err == nil, "encoding/json: %v, jsonx: %v", wantErr, err)
+			if wantErr == nil {
+				require.Equal(t, want.String(), got.String())
+			}
+		})
 	}
 }
