@@ -102,7 +102,7 @@ func TestReqFragment_WithTypedBody(t *testing.T) {
 
 	require.Contains(t, body, "Body *MlRegisterModelBody")
 	require.Contains(t, body, "BodyReader io.Reader")
-	require.Contains(t, body, "json.Marshal(r.Body)")
+	require.Contains(t, body, "build.JSONBody(r.Body)")
 	require.Contains(t, body, "r.BodyReader != nil")
 	require.NotContains(t, body, "Body   io.Reader")
 }
@@ -120,7 +120,9 @@ func TestReqFragment_Imports(t *testing.T) {
 	}{
 		{name: "no body", hasBody: false, wantIO: false},
 		{name: "with body", hasBody: true, wantIO: true},
-		{name: "with typed body", hasBody: true, hasTypedBody: true, wantIO: true, wantBytes: true, wantJSON: true},
+		// build.JSONBody encodes a typed body, so neither bytes nor the codec is
+		// imported for it.
+		{name: "with typed body", hasBody: true, hasTypedBody: true, wantIO: true},
 	}
 
 	for _, tt := range tests {
@@ -136,7 +138,7 @@ func TestReqFragment_Imports(t *testing.T) {
 			}
 			require.Equal(t, tt.wantIO, paths["io"], "io import mismatch")
 			require.Equal(t, tt.wantBytes, paths["bytes"], "bytes import mismatch")
-			require.Equal(t, tt.wantJSON, paths["encoding/json"], "encoding/json import mismatch")
+			require.Equal(t, tt.wantJSON, paths[emit.JSONImportPath], "JSON codec import mismatch")
 		})
 	}
 }

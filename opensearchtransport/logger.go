@@ -29,7 +29,6 @@ package opensearchtransport
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,6 +42,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 var debugLoggerPtr atomic.Pointer[debuglog.Logger]

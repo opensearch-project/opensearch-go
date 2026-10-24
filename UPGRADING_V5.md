@@ -872,3 +872,26 @@ opensearch_client_bulk_errors_total{layer="indexer"}
 # After
 opensearch_client_bulk_errors_total{layer="client"}
 ```
+
+## Direct mget driver reads from the fewest nodes
+
+The direct mget driver added in 5.1.3 chooses the shard copies it reads from with `MGetConfig.FanOut`. The default, `MGetFanOutFewestNodes`, reads each mget from as few nodes as hold its shards, and each shard once. In 5.1.3 the driver read each document from the least loaded copy of its shard, which reaches more nodes and can read one shard on several. That behavior is now `MGetFanOutLeastLoaded`. The coordinator driver, the default driver, is unchanged.
+
+To read from the least loaded copy, as 5.1.3 did:
+
+```go
+// Before: 5.1.3 read each document from the least loaded copy.
+client, err := opensearchapi.NewClient(opensearchapi.Config{
+	MGet: opensearchapi.MGetConfig{Driver: opensearchapi.MGetDriverDirect},
+})
+
+// After: same behavior.
+client, err := opensearchapi.NewClient(opensearchapi.Config{
+	MGet: opensearchapi.MGetConfig{
+		Driver: opensearchapi.MGetDriverDirect,
+		FanOut: opensearchapi.MGetFanOutLeastLoaded,
+	},
+})
+```
+
+`OPENSEARCH_GO_MGET_FANOUT=least-loaded` selects it without a code change, and `opensearchapi.WithMGetFanOut(ctx, opensearchapi.MGetFanOutLeastLoaded)` selects it for the mgets made with that context.

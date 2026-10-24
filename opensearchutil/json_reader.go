@@ -28,8 +28,9 @@ package opensearchutil
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // NewJSONReader encodes v into JSON and returns it as an io.Reader.

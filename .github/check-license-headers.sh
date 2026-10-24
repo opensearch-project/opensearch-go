@@ -29,7 +29,9 @@ function check_license_header {
 
 cd "$TOP"
 nErrors=0
-for f in $(git ls-files | grep '\.go$'); do
+# Code under a third_party directory is a copy of another project's, under that
+# project's license, which its own LICENSE file states.
+for f in $(git ls-files | grep '\.go$' | grep -v '/third_party/'); do
     if ! check_license_header $f; then
         nErrors=$((nErrors+1))
     fi

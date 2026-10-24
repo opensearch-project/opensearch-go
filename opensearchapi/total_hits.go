@@ -6,7 +6,7 @@
 
 package opensearchapi
 
-import "encoding/json"
+import json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 
 // TotalHits represents the total number of search hits. The server returns
 // this as either an object {"value": N, "relation": "eq"|"gte"} or a bare

@@ -9,9 +9,10 @@
 package opensearchapi
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // The HTTP status of the response, as a RestStatus enum name (e.g. "OK", "CREATED").
@@ -182,6 +183,16 @@ func (s RestStatus) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("invalid RestStatus value %d", int(s))
 	}
 	return json.Marshal(name)
+}
+
+// MarshalJSONTo writes s to enc as its wire name, as MarshalJSON encodes it. The
+// JSON codec the client encodes with calls it in place of MarshalJSON.
+func (s RestStatus) MarshalJSONTo(enc *json.TextEncoder) error {
+	name, ok := restStatusNames[s]
+	if !ok {
+		return fmt.Errorf("invalid RestStatus value %d", int(s))
+	}
+	return json.WriteString(enc, name)
 }
 
 // UnmarshalJSON decodes a wire name into its const. An unrecognized value sets

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"testing"
 
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -36,7 +37,7 @@ func BenchmarkMGetDirect(b *testing.B) {
 				answers = make(map[string]map[string]*MGetResp)
 			)
 			c.ext.mget.send = func(_ context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
-				body, _ := req.BodyReader.(*mgetBody)
+				body, _ := req.BodyReader.(*bufbody.Pooled)
 				// The transport closes a request body once it has sent it.
 				defer body.Close()
 

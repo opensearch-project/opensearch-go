@@ -71,7 +71,7 @@ func TestEnumFragment_Body(t *testing.T) {
 	}
 }
 
-// TestEnumFragment_Imports asserts the fragment pulls in encoding/json (for
+// TestEnumFragment_Imports asserts the fragment pulls in the JSON codec (for
 // Marshal/UnmarshalJSON) and fmt (for the error type), as the int-backed enum
 // needs custom marshaling.
 func TestEnumFragment_Imports(t *testing.T) {
@@ -90,7 +90,7 @@ func TestEnumFragment_Imports(t *testing.T) {
 	for _, imp := range frag.Imports() {
 		paths = append(paths, imp.Path)
 	}
-	require.ElementsMatch(t, []string{"encoding/json", "fmt"}, paths)
+	require.ElementsMatch(t, []string{emit.JSONImportPath, "fmt"}, paths)
 }
 
 func TestEnumFragment_Empty(t *testing.T) {
@@ -240,8 +240,8 @@ func TestNewEnumTypesFile_RenderedEnum(t *testing.T) {
 	} {
 		require.Contains(t, output, want)
 	}
-	// Custom marshaling pulls in encoding/json and fmt.
-	require.Contains(t, output, `"encoding/json"`)
+	// Custom marshaling pulls in the JSON codec, imported as json, and fmt.
+	require.Contains(t, output, `json "`+emit.JSONImportPath+`"`)
 	require.Contains(t, output, `"fmt"`)
 }
 

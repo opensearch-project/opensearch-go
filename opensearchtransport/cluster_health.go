@@ -28,10 +28,11 @@ package opensearchtransport
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"time"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 const clusterStatusRed = "red"

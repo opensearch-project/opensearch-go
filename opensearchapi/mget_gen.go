@@ -11,7 +11,6 @@ package opensearchapi
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -19,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
@@ -69,11 +69,13 @@ func (r MGetReq) GetRequest(method string) (*http.Request, error) {
 
 	var bodyReader io.Reader
 	if r.Body != nil {
-		bodyData, err := json.Marshal(r.Body)
+		// Encoded into a pooled buffer, which Execute releases once the request
+		// has returned.
+		body, err := build.JSONBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		bodyReader = bytes.NewReader(bodyData)
+		bodyReader = body
 	} else if r.BodyReader != nil {
 		bodyReader = r.BodyReader
 	}
@@ -338,6 +340,58 @@ func (u *MGetRespItem) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *MGetRespItem) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = MGetRespItemUnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		GetResult
+		Disc0   json.RawMessage `json:"error"`
+		Unknown json.TextValue  `json:",unknown"`
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(m.Disc0) > 0 {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v MGetMultiGetError
+		if err := json.Unmarshal(src, &v); err != nil {
+			return err
+		}
+		u.typ = MGetRespItemMultiGetErrorType
+		u.value = &v
+		return nil
+	}
+	u.typ = MGetRespItemGetResultType
+	u.value = &m.GetResult
+	return nil
+}
+
 func (u MGetRespItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
@@ -346,6 +400,19 @@ func (u MGetRespItem) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u MGetRespItem) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
 // MGetBody is a typed component of the mget operation.
