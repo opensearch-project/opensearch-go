@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -56,6 +57,67 @@ func TestEncodeMGetBody(t *testing.T) {
 			require.JSONEq(t, string(want), string(body.Bytes()), "the body says what the generated request would")
 		})
 	}
+}
+
+func TestAppendMGetOperation(t *testing.T) {
+	t.Parallel()
+
+	noSource := NewSearchSourceConfigFromBool(false)
+	tests := []struct {
+		name   string
+		op     MGetOperation
+		wantOK bool
+	}{
+		{name: "id only", op: MGetOperation{ID: "a"}, wantOK: true},
+		{name: "empty id", op: MGetOperation{ID: ""}, wantOK: true},
+		{
+			name: "every field it writes",
+			op: MGetOperation{
+				ID: "a", Index: new("idx"), Routing: new("r"), StoredFields: new("f1,f2"),
+				Version: new(int64(-7)), VersionType: new(VersionTypeExternal),
+			},
+			wantOK: true,
+		},
+		{name: "_source is left to the encoder", op: MGetOperation{ID: "a", Source: &noSource}},
+		{name: "html in the id", op: MGetOperation{ID: "b<&>"}},
+		{name: "quote in the index", op: MGetOperation{ID: "a", Index: new(`i"x`)}},
+		{name: "backslash in the routing", op: MGetOperation{ID: "a", Routing: new(`r\`)}},
+		{name: "control byte in the stored fields", op: MGetOperation{ID: "a", StoredFields: new("f\n")}},
+		{name: "non-ASCII in the version type", op: MGetOperation{ID: "a", VersionType: new(VersionType("é"))}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			prefix := []byte(`{"docs":[`)
+			got, ok := appendMGetOperation(prefix, &tt.op)
+			require.Equal(t, tt.wantOK, ok)
+			if !ok {
+				require.Equal(t, prefix, got, "appends nothing when it leaves op to the encoder")
+				return
+			}
+
+			want, err := json.Marshal(&tt.op)
+			require.NoError(t, err)
+			require.Equal(t, string(prefix)+string(want), string(got), "writes what encoding/json does")
+		})
+	}
+}
+
+// TestAppendMGetOperationKnowsEveryField fails when the generated MGetOperation
+// gains or renames a field, which appendMGetOperation would otherwise drop from
+// the body without a word.
+func TestAppendMGetOperationKnowsEveryField(t *testing.T) {
+	t.Parallel()
+
+	var tags []string
+	for f := range reflect.TypeFor[MGetOperation]().Fields() {
+		tags = append(tags, f.Tag.Get("json"))
+	}
+	require.Equal(t, []string{
+		"_id", "_index,omitempty", "_source,omitempty", "routing,omitempty",
+		"stored_fields,omitempty", "version,omitempty", "version_type,omitempty",
+	}, tags, "update appendMGetOperation to write the new field, then this list")
 }
 
 func TestMGetBodyIsABufferedReader(t *testing.T) {

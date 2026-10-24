@@ -9,6 +9,7 @@ package opensearchapi
 import (
 	"bytes"
 	"io"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -63,7 +64,8 @@ func encodeMGetBody(ops []MGetOperation, slots []int) (*mgetBody, error) {
 	// Encode each document on its own, straight from the caller's request. Copying
 	// them into a scratch slice to encode in one call is faster on its own, but
 	// the slice is lost whenever the pool is cleared, and on the whole mget it
-	// allocates more for no gain in time.
+	// allocates more for no gain in time. appendMGetOperation writes a typical
+	// document several times faster than Encode; Encode writes the rest.
 	// Encode follows each document with a newline, which is whitespace between
 	// array elements.
 	pb.buf.WriteString(`{"docs":[`)
@@ -71,6 +73,10 @@ func encodeMGetBody(ops []MGetOperation, slots []int) (*mgetBody, error) {
 	for i, pos := range slots {
 		if i > 0 {
 			pb.buf.WriteByte(',')
+		}
+		if b, ok := appendMGetOperation(pb.buf.AvailableBuffer(), &ops[pos]); ok {
+			pb.buf.Write(b)
+			continue
 		}
 		if err = pb.enc.Encode(&ops[pos]); err != nil {
 			break
@@ -90,6 +96,62 @@ func encodeMGetBody(ops []MGetOperation, slots []int) (*mgetBody, error) {
 	body.refs.Store(2)
 
 	return body, nil
+}
+
+// appendMGetOperation appends op to b as encoding/json encodes it, byte for
+// byte. It reports false, and appends nothing, for an op it leaves to the
+// encoder: one with a _source, or with a string holding a byte encoding/json
+// would escape. Only printable ASCII is written here; Encode writes the rest,
+// correctly for any input, only slower. TestAppendMGetOperationKnowsEveryField
+// fails when MGetOperation gains a field this does not write.
+func appendMGetOperation(b []byte, op *MGetOperation) ([]byte, bool) {
+	if op.Source != nil {
+		return b, false
+	}
+	start := len(b)
+	b = append(b, `{"_id":`...)
+	b, ok := appendMGetString(b, op.ID)
+	if ok && op.Index != nil {
+		b = append(b, `,"_index":`...)
+		b, ok = appendMGetString(b, *op.Index)
+	}
+	if ok && op.Routing != nil {
+		b = append(b, `,"routing":`...)
+		b, ok = appendMGetString(b, *op.Routing)
+	}
+	if ok && op.StoredFields != nil {
+		b = append(b, `,"stored_fields":`...)
+		b, ok = appendMGetString(b, *op.StoredFields)
+	}
+	if ok && op.Version != nil {
+		b = append(b, `,"version":`...)
+		b = strconv.AppendInt(b, *op.Version, 10)
+	}
+	if ok && op.VersionType != nil {
+		b = append(b, `,"version_type":`...)
+		b, ok = appendMGetString(b, string(*op.VersionType))
+	}
+	if !ok {
+		return b[:start], false
+	}
+
+	return append(b, '}'), true
+}
+
+// appendMGetString appends s quoted, and reports false when s holds a byte
+// encoding/json would escape or replace: a control byte, '"', '\\', HTML's '<',
+// '>' and '&', or any byte outside ASCII.
+func appendMGetString(b []byte, s string) ([]byte, bool) {
+	for i := range len(s) {
+		switch c := s[i]; {
+		case c < ' ' || c > '~', c == '"', c == '\\', c == '<', c == '>', c == '&':
+			return b, false
+		}
+	}
+	b = append(b, '"')
+	b = append(b, s...)
+
+	return append(b, '"'), true
 }
 
 // Read implements io.Reader.
