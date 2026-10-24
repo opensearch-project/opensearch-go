@@ -98,7 +98,7 @@ func needsNumber(t reflect.Type, marshal bool) bool {
 	if v, ok := needsNumberCache[i].Load(t); ok {
 		return v.(bool) //nolint:forcetypeassert // The cache holds only bools.
 	}
-	v := searchNumber(t, marshal, make(map[reflect.Type]bool))
+	v := searchNumber(t, marshal, make(map[reflect.Type]struct{}))
 	needsNumberCache[i].Store(t, v)
 
 	return v
@@ -113,14 +113,14 @@ var (
 	}
 )
 
-func searchNumber(t reflect.Type, marshal bool, seen map[reflect.Type]bool) bool {
+func searchNumber(t reflect.Type, marshal bool, seen map[reflect.Type]struct{}) bool {
 	if t == stdNumberType {
 		return true
 	}
-	if seen[t] {
+	if _, ok := seen[t]; ok {
 		return false
 	}
-	seen[t] = true
+	seen[t] = struct{}{}
 
 	methods := unmarshalerTypes
 	if marshal {
