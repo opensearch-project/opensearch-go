@@ -45,7 +45,7 @@ func TestEncodeMGetBody(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				_ = body.Close()
-				body.release()
+				bufbody.Release(body)
 			})
 
 			var got MGetBody
@@ -57,6 +57,23 @@ func TestEncodeMGetBody(t *testing.T) {
 			require.JSONEq(t, string(want), string(body.Bytes()), "the body says what the generated request would")
 		})
 	}
+}
+
+// TestEncodeMGetBodyEncodeError checks that a document the encoder cannot write
+// fails the body, as it would fail the generated request.
+func TestEncodeMGetBodyEncodeError(t *testing.T) {
+	t.Parallel()
+
+	var bad SearchSourceConfig
+	bad.SetRaw([]byte(`{"includes":`))
+	ops := []MGetOperation{{ID: "a"}, {ID: "b", Source: &bad}}
+
+	body, err := encodeMGetBody(ops, []int{0, 1})
+	require.Error(t, err)
+	require.Nil(t, body)
+
+	_, want := json.Marshal(MGetBody{Docs: ops})
+	require.Error(t, want, "the generated request fails on the same document")
 }
 
 func TestAppendMGetOperation(t *testing.T) {
@@ -142,66 +159,12 @@ func TestMGetBodyIsABufferedReader(t *testing.T) {
 
 	require.NoError(t, replay.Close())
 	require.NoError(t, body.Close())
-	body.release()
-}
-
-func TestMGetBodyBufferOutlivesEveryReader(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		// releaseOrder releases the driver's reference, the body's own, and one
-		// retry reader's, in the order given.
-		releaseOrder []string
-	}{
-		{name: "the driver last", releaseOrder: []string{"body", "replay", "driver"}},
-		{name: "the body last", releaseOrder: []string{"driver", "replay", "body"}},
-		{name: "a retry reader last", releaseOrder: []string{"driver", "body", "replay"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			body, err := encodeMGetBody([]MGetOperation{{ID: "a"}}, []int{0})
-			require.NoError(t, err)
-			replay, ok := body.NewReader().(io.ReadCloser)
-			require.True(t, ok, "a retry reader can be closed, so the transport tells the body when it is done")
-
-			release := map[string]func(){
-				"driver": body.release,
-				"body":   func() { _ = body.Close() },
-				"replay": func() { _ = replay.Close() },
-			}
-			for i, who := range tt.releaseOrder {
-				require.NotNil(t, body.b, "the buffer is kept while %d references remain", len(tt.releaseOrder)-i)
-				release[who]()
-			}
-			require.Nil(t, body.b, "the last release returns the buffer to the pool")
-		})
-	}
-}
-
-func TestMGetBodyCloseReleasesOnce(t *testing.T) {
-	t.Parallel()
-
-	body, err := encodeMGetBody([]MGetOperation{{ID: "a"}}, []int{0})
-	require.NoError(t, err)
-	replay, ok := body.NewReader().(io.ReadCloser)
-	require.True(t, ok)
-
-	require.NoError(t, body.Close())
-	require.NoError(t, body.Close())
-	require.NoError(t, replay.Close())
-	require.NoError(t, replay.Close())
-	require.NotNil(t, body.b, "closing twice does not drop the driver's reference")
-
-	body.release()
-	require.Nil(t, body.b)
+	bufbody.Release(body)
 }
 
 // BenchmarkMGetSubRequestBody compares the two ways a sub-request's body can be
 // built: copying the documents into an MGetBody that the generated request then
-// marshals, and encoding them into a pooled mgetBody that is released once the
+// marshals, and encoding them into a pooled body that is released once the
 // transport has closed it.
 func BenchmarkMGetSubRequestBody(b *testing.B) {
 	for _, n := range []int{10, 100, 1000} {
@@ -233,7 +196,7 @@ func BenchmarkMGetSubRequestBody(b *testing.B) {
 					b.Fatal(err)
 				}
 				_ = body.Close()
-				body.release()
+				bufbody.Release(body)
 			}
 		})
 	}

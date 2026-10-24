@@ -16,6 +16,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,6 +26,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
@@ -152,7 +155,7 @@ func (f *mgetFake) indexOf(req MGetReq, op MGetOperation) string {
 // decodeBody returns req with the pooled body the driver sent decoded into
 // req.Body, as a node would decode it.
 func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
-	body, ok := req.BodyReader.(*mgetBody)
+	body, ok := req.BodyReader.(*bufbody.Pooled)
 	if !ok {
 		f.t.Errorf("the driver sent a %T body, not its pooled mget body", req.BodyReader)
 
@@ -172,7 +175,7 @@ func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
 // only documents whose shard it holds a copy of.
 func (f *mgetFake) send(_ context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
 	req = f.decodeBody(req)
-	if body, ok := req.BodyReader.(*mgetBody); ok {
+	if body, ok := req.BodyReader.(*bufbody.Pooled); ok {
 		// The transport closes a request body once it has sent it.
 		defer body.Close()
 	}
@@ -1201,6 +1204,74 @@ func TestParseMGetFanOut(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMGetChoiceEnv checks that OPENSEARCH_GO_MGET and OPENSEARCH_GO_MGET_FANOUT
+// override the configuration, and that a value that does not parse, or spells
+// the Default, leaves the configuration's choice in place.
+func TestMGetChoiceEnv(t *testing.T) {
+	tests := []struct {
+		name       string
+		env        map[string]string
+		config     MGetConfig
+		wantDriver MGetDriver
+		wantFanOut MGetFanOut
+	}{
+		{
+			name:       "unset, the release defaults",
+			wantDriver: defaultMGetDriver, wantFanOut: defaultMGetFanOut,
+		},
+		{
+			name:       "set, over the configuration",
+			env:        map[string]string{envvars.MGet: "direct", envvars.MGetFanOut: "least-loaded"},
+			config:     MGetConfig{Driver: MGetDriverCoordinator, FanOut: MGetFanOutFewestNodes},
+			wantDriver: MGetDriverDirect, wantFanOut: MGetFanOutLeastLoaded,
+		},
+		{
+			name:       "set, over the release defaults",
+			env:        map[string]string{envvars.MGet: " Direct ", envvars.MGetFanOut: "LEAST-LOADED"},
+			wantDriver: MGetDriverDirect, wantFanOut: MGetFanOutLeastLoaded,
+		},
+		{
+			name:       "a value that does not parse keeps the configuration",
+			env:        map[string]string{envvars.MGet: "shard", envvars.MGetFanOut: "random"},
+			config:     MGetConfig{Driver: MGetDriverDirect, FanOut: MGetFanOutLeastLoaded},
+			wantDriver: MGetDriverDirect, wantFanOut: MGetFanOutLeastLoaded,
+		},
+		{
+			name:       "an empty value keeps the release defaults",
+			env:        map[string]string{envvars.MGet: "", envvars.MGetFanOut: ""},
+			wantDriver: defaultMGetDriver, wantFanOut: defaultMGetFanOut,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, name := range []string{envvars.MGet, envvars.MGetFanOut} {
+				if v, ok := tt.env[name]; ok {
+					t.Setenv(name, v)
+				} else {
+					// t.Setenv restores the variable after the test; unsetting it
+					// tests the unset case whatever the process environment holds.
+					t.Setenv(name, "")
+					require.NoError(t, os.Unsetenv(name))
+				}
+			}
+
+			d := newMGetDriver(tt.config, nil)
+			require.Equal(t, tt.wantDriver, d.driver)
+			require.Equal(t, tt.wantFanOut, d.fanOut)
+		})
+	}
+}
+
+// TestMGetChoiceString checks the names String gives a value no constant has.
+func TestMGetChoiceString(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "MGetDriver(9)", MGetDriver(9).String())
+	require.Equal(t, "MGetFanOut(7)", MGetFanOut(7).String())
+	require.Equal(t, "default", MGetDriverDefault.String())
+	require.Equal(t, "default", MGetFanOutDefault.String())
 }
 
 type recordingMGetObserver struct {

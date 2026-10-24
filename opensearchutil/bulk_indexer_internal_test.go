@@ -2116,6 +2116,11 @@ func TestMetaEncoderReuse(t *testing.T) {
 		{name: "an action the bulk API does not have", item: BulkIndexerItem{Action: "custom", DocumentID: "1"}},
 		{name: "an empty action", item: BulkIndexerItem{DocumentID: "1"}},
 		{name: "an action name that needs escaping", item: BulkIndexerItem{Action: "in\"dex", DocumentID: "1"}},
+		// Each of the four actions with a field the fast path leaves to the encoder.
+		{name: "an index the encoder writes", item: BulkIndexerItem{Action: "index", DocumentID: "é"}},
+		{name: "a create the encoder writes", item: BulkIndexerItem{Action: "create", DocumentID: "a\"b"}},
+		{name: "an update the encoder writes", item: BulkIndexerItem{Action: "update", WaitForActiveShards: 2}},
+		{name: "a delete the encoder writes", item: BulkIndexerItem{Action: "delete", Routing: new("r\\1")}},
 		{name: "an index again, after the others", item: BulkIndexerItem{Action: "index", Index: "i2", DocumentID: "d2"}},
 	}
 

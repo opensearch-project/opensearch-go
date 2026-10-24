@@ -18,6 +18,7 @@ import (
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	"github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
@@ -880,10 +881,10 @@ func (call *mgetCall) coordinate(ctx context.Context, slots []int) {
 
 // subRequest builds the request for the documents at slots, with the caller's
 // parameters; local adds preference=_local. Its body is encoded into a pooled
-// buffer, and the caller releases the returned body once the request has
-// returned. An error is from encoding a document, which the generated request
-// would have hit as well.
-func (call *mgetCall) subRequest(slots []int, local bool) (MGetReq, *mgetBody, error) {
+// buffer, and the caller passes the returned body to bufbody.Release once the
+// request has returned. An error is from encoding a document, which the
+// generated request would have hit as well.
+func (call *mgetCall) subRequest(slots []int, local bool) (MGetReq, *bufbody.Pooled, error) {
 	body, err := encodeMGetBody(call.req.Body.Docs, slots)
 	if err != nil {
 		return MGetReq{}, nil, err
@@ -928,7 +929,7 @@ func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 
 	sent := time.Now()
 	resp, err := call.d.send(ctx, call.c, j.node, sub)
-	body.release()
+	bufbody.Release(body)
 	event := MGetRequestEvent{
 		Node:       j.node.Name,
 		Attempt:    j.attempt,
@@ -1049,7 +1050,7 @@ func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
 
 	sent := time.Now()
 	resp, err := call.c.Doc.MGet(mgetCoordinated(ctx), sub)
-	body.release()
+	bufbody.Release(body)
 	event := MGetRequestEvent{Docs: len(slots), Duration: time.Since(sent), StatusCode: mgetStatus(resp), Err: err}
 	if call.d.observer != nil {
 		defer call.d.observer.OnMGetRequest(ctx, event)

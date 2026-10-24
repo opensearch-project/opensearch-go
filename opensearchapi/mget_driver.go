@@ -119,33 +119,18 @@ const (
 // OPENSEARCH_GO_MGET is not set.
 const defaultMGetDriver = MGetDriverCoordinator
 
+// mgetDriverNames spells each driver as OPENSEARCH_GO_MGET does.
+//
+//nolint:gochecknoglobals // read-only name table shared by String and ParseMGetDriver
+var mgetDriverNames = []string{MGetDriverDefault: "default", MGetDriverCoordinator: "coordinator", MGetDriverDirect: "direct"}
+
 // String returns the driver as OPENSEARCH_GO_MGET spells it.
-func (d MGetDriver) String() string {
-	switch d {
-	case MGetDriverDefault:
-		return "default"
-	case MGetDriverCoordinator:
-		return "coordinator"
-	case MGetDriverDirect:
-		return "direct"
-	default:
-		return fmt.Sprintf("MGetDriver(%d)", uint8(d))
-	}
-}
+func (d MGetDriver) String() string { return mgetChoiceName(mgetDriverNames, d, "MGetDriver") }
 
 // ParseMGetDriver parses a driver as OPENSEARCH_GO_MGET spells it: "direct"
 // or "coordinator", in any case. The empty string is MGetDriverDefault.
 func ParseMGetDriver(s string) (MGetDriver, error) {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "":
-		return MGetDriverDefault, nil
-	case "coordinator":
-		return MGetDriverCoordinator, nil
-	case "direct":
-		return MGetDriverDirect, nil
-	default:
-		return MGetDriverDefault, fmt.Errorf("unknown mget driver %q, want direct or coordinator", s)
-	}
+	return parseMGetChoice[MGetDriver](s, mgetDriverNames, "mget driver")
 }
 
 // MGetFanOut selects which copy of each shard [MGetDriverDirect] reads a
@@ -210,34 +195,75 @@ const (
 // OPENSEARCH_GO_MGET_FANOUT is not set.
 const defaultMGetFanOut = MGetFanOutFewestNodes
 
+// mgetFanOutNames spells each fan-out as OPENSEARCH_GO_MGET_FANOUT does.
+//
+//nolint:gochecknoglobals // read-only name table shared by String and ParseMGetFanOut
+var mgetFanOutNames = []string{MGetFanOutDefault: "default", MGetFanOutFewestNodes: "fewest-nodes", MGetFanOutLeastLoaded: "least-loaded"}
+
 // String returns the fan-out as OPENSEARCH_GO_MGET_FANOUT spells it.
-func (f MGetFanOut) String() string {
-	switch f {
-	case MGetFanOutDefault:
-		return "default"
-	case MGetFanOutFewestNodes:
-		return "fewest-nodes"
-	case MGetFanOutLeastLoaded:
-		return "least-loaded"
-	default:
-		return fmt.Sprintf("MGetFanOut(%d)", uint8(f))
-	}
-}
+func (f MGetFanOut) String() string { return mgetChoiceName(mgetFanOutNames, f, "MGetFanOut") }
 
 // ParseMGetFanOut parses a fan-out as OPENSEARCH_GO_MGET_FANOUT spells it:
 // "fewest-nodes" or "least-loaded", in any case. The empty string is
 // MGetFanOutDefault.
 func ParseMGetFanOut(s string) (MGetFanOut, error) {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "":
-		return MGetFanOutDefault, nil
-	case "fewest-nodes":
-		return MGetFanOutFewestNodes, nil
-	case "least-loaded":
-		return MGetFanOutLeastLoaded, nil
-	default:
-		return MGetFanOutDefault, fmt.Errorf("unknown mget fan-out %q, want fewest-nodes or least-loaded", s)
+	return parseMGetChoice[MGetFanOut](s, mgetFanOutNames, "mget fan-out")
+}
+
+// mgetChoice is an [MGetDriver] or an [MGetFanOut]: a choice the client's
+// configuration, an environment variable and a call's context can each make,
+// whose zero value, its Default, leaves the choice to the next of them.
+type mgetChoice interface{ ~uint8 }
+
+// mgetChoiceName returns the name of v in names, or typ(v) for a value names
+// does not hold.
+func mgetChoiceName[T mgetChoice](names []string, v T, typ string) string {
+	if int(v) < len(names) {
+		return names[v]
 	}
+
+	return fmt.Sprintf("%s(%d)", typ, uint8(v))
+}
+
+// parseMGetChoice parses s as one of names after the first, the Default's, in
+// any case and ignoring surrounding space. The empty string is the Default.
+// what names the choice in the error.
+func parseMGetChoice[T mgetChoice](s string, names []string, what string) (T, error) {
+	name := strings.ToLower(strings.TrimSpace(s))
+	if name == "" {
+		return 0, nil
+	}
+	for i := 1; i < len(names); i++ {
+		if name == names[i] {
+			return T(i), nil
+		}
+	}
+
+	return 0, fmt.Errorf("unknown %s %q, want %s", what, s, strings.Join(names[1:], " or "))
+}
+
+// resolveMGetChoice returns the choice the environment variable env makes, else
+// cfg's, else def. A value of env that does not parse is ignored.
+func resolveMGetChoice[T mgetChoice](cfg T, env string, parse func(string) (T, error), def T) T {
+	if v, ok := os.LookupEnv(env); ok {
+		if parsed, err := parse(v); err == nil && parsed != 0 {
+			cfg = parsed
+		}
+	}
+	if cfg == 0 {
+		return def
+	}
+
+	return cfg
+}
+
+// mgetOverride returns the choice ctx carries under key, else fallback.
+func mgetOverride[T mgetChoice](ctx context.Context, key any, fallback T) T {
+	if v, ok := ctx.Value(key).(T); ok && v != 0 {
+		return v
+	}
+
+	return fallback
 }
 
 // MGetConfig configures how [DocumentClient.MGet] fetches documents. Set it as
@@ -313,24 +339,8 @@ type shardLookup interface {
 // direct one for a call; it fetches nothing directly when the transport keeps
 // no shard map.
 func newMGetDriver(cfg MGetConfig, root *opensearch.Client) *mgetDriver {
-	driver := cfg.Driver
-	if v, ok := os.LookupEnv(envvars.MGet); ok {
-		if parsed, err := ParseMGetDriver(v); err == nil && parsed != MGetDriverDefault {
-			driver = parsed
-		}
-	}
-	if driver == MGetDriverDefault {
-		driver = defaultMGetDriver
-	}
-	fanOut := cfg.FanOut
-	if v, ok := os.LookupEnv(envvars.MGetFanOut); ok {
-		if parsed, err := ParseMGetFanOut(v); err == nil && parsed != MGetFanOutDefault {
-			fanOut = parsed
-		}
-	}
-	if fanOut == MGetFanOutDefault {
-		fanOut = defaultMGetFanOut
-	}
+	driver := resolveMGetChoice(cfg.Driver, envvars.MGet, ParseMGetDriver, defaultMGetDriver)
+	fanOut := resolveMGetChoice(cfg.FanOut, envvars.MGetFanOut, ParseMGetFanOut, defaultMGetFanOut)
 
 	maxDocs := cfg.MaxDocsPerRequest
 	if maxDocs <= 0 {
@@ -372,20 +382,12 @@ func newMGetDriver(cfg MGetConfig, root *opensearch.Client) *mgetDriver {
 
 // selected returns the driver a call made with ctx uses.
 func (d *mgetDriver) selected(ctx context.Context) MGetDriver {
-	if v, ok := ctx.Value(mgetDriverKey{}).(MGetDriver); ok && v != MGetDriverDefault {
-		return v
-	}
-
-	return d.driver
+	return mgetOverride(ctx, mgetDriverKey{}, d.driver)
 }
 
 // selectedFanOut returns the fan-out a call made with ctx uses.
 func (d *mgetDriver) selectedFanOut(ctx context.Context) MGetFanOut {
-	if v, ok := ctx.Value(mgetFanOutKey{}).(MGetFanOut); ok && v != MGetFanOutDefault {
-		return v
-	}
-
-	return d.fanOut
+	return mgetOverride(ctx, mgetFanOutKey{}, d.fanOut)
 }
 
 // interceptMGet is the hook DocumentClient.MGet calls first. It answers the

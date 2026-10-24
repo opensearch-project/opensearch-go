@@ -2277,32 +2277,32 @@ func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
 // appendActionLine appends the action line encode writes for action and m, newline
 // included, byte for byte. It reports false, and appends nothing, for a line it leaves
 // to the encoder: one with a WaitForActiveShards, which may hold any value, or with a
-// string holding a byte the encoder would escape. Only printable ASCII is written
-// here; the encoder writes the rest, correctly for any input, only slower.
-// TestAppendActionLineKnowsEveryField fails when bulkActionMetadata gains a field this
-// does not write.
+// string the encoder would escape. TestAppendActionLineKnowsEveryField fails when
+// bulkActionMetadata gains a field this does not write.
 func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, bool) {
 	if m.WaitForActiveShards != nil {
 		return b, false
 	}
 	start := len(b)
+	// The encoder does not escape HTML; see newMetaEncoder.
+	const escapeHTML = false
 	b = append(b, '{')
-	b, ok := appendMetaString(b, action)
+	b, ok := json.AppendString(b, action, escapeHTML)
 	b = append(b, ':')
 	// Each field is written with a comma before it, and the first comma then becomes
 	// the metadata object's opening brace.
 	open := len(b)
 	if ok && m.Index != "" {
 		b = append(b, `,"_index":`...)
-		b, ok = appendMetaString(b, m.Index)
+		b, ok = json.AppendString(b, m.Index, escapeHTML)
 	}
 	if ok && m.DocumentID != "" {
 		b = append(b, `,"_id":`...)
-		b, ok = appendMetaString(b, m.DocumentID)
+		b, ok = json.AppendString(b, m.DocumentID, escapeHTML)
 	}
 	if ok && m.Routing != nil {
 		b = append(b, `,"routing":`...)
-		b, ok = appendMetaString(b, *m.Routing)
+		b, ok = json.AppendString(b, *m.Routing, escapeHTML)
 	}
 	if ok && m.Version != nil {
 		b = append(b, `,"version":`...)
@@ -2310,7 +2310,7 @@ func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, b
 	}
 	if ok && m.VersionType != nil {
 		b = append(b, `,"version_type":`...)
-		b, ok = appendMetaString(b, *m.VersionType)
+		b, ok = json.AppendString(b, *m.VersionType, escapeHTML)
 	}
 	if ok && m.IfSeqNum != nil {
 		b = append(b, `,"if_seq_no":`...)
@@ -2322,7 +2322,7 @@ func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, b
 	}
 	if ok && m.Refresh != nil {
 		b = append(b, `,"refresh":`...)
-		b, ok = appendMetaString(b, *m.Refresh)
+		b, ok = json.AppendString(b, *m.Refresh, escapeHTML)
 	}
 	if ok && m.RequireAlias != nil {
 		b = append(b, `,"require_alias":`...)
@@ -2342,21 +2342,6 @@ func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, b
 	}
 
 	return append(b, "}}\n"...), true
-}
-
-// appendMetaString appends s quoted, and reports false when s holds a byte the
-// encoder, which does not escape HTML, would escape or replace: a control byte, '"',
-// '\\', or any byte outside ASCII.
-func appendMetaString(b []byte, s string) ([]byte, bool) {
-	for i := range len(s) {
-		if c := s[i]; c < ' ' || c > '~' || c == '"' || c == '\\' {
-			return b, false
-		}
-	}
-	b = append(b, '"')
-	b = append(b, s...)
-
-	return append(b, '"'), true
 }
 
 // writeBody writes the item body to the buffer.
