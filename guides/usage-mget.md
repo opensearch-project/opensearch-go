@@ -13,15 +13,7 @@ Select a driver with `MGetConfig.Driver`, `OPENSEARCH_GO_MGET`, or per call with
 
 ## What each driver costs
 
-For an mget whose documents fall in `S` shards, on `K` data nodes, where each shard has `C` copies:
-
-|                                    | Coordinator                                                                | Direct                                                                     |
-| ---------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Client requests                    | 1                                                                          | `R`, one per node for an mget under `MaxDocsPerRequest` documents per node |
-| Node-to-node requests              | `S - L`, where `L` is about `S/K`, the shards the coordinator holds itself | 0                                                                          |
-| Get thread pool tasks              | `S`                                                                        | `S` with fewest-nodes; more with least-loaded                              |
-| Hops on the latency path           | 2                                                                          | 1                                                                          |
-| Network transfers of each document | 2                                                                          | 1                                                                          |
+The [`MGetDriver`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#MGetDriver) doc comment tabulates what each driver costs an mget whose documents fall in `S` shards: client requests, node-to-node requests, get thread pool tasks, hops on the latency path, and network transfers of each document.
 
 On the server, every shard request is one task on the get thread pool of the node that reads it, and the task reads its documents one after another. A node sending a shard request to itself skips the network but not the task.
 
@@ -38,19 +30,7 @@ Select it with `MGetConfig.FanOut`, `OPENSEARCH_GO_MGET_FANOUT`, or per call wit
 
 ### Why fewest-nodes is the default
 
-Least-loaded spreads a shard's documents over its copies, so a shard with two or more documents in the mget is usually read twice: two get thread pool tasks, on two nodes, for one shard. Fewest-nodes reads each shard once, as the coordinator does, and reaches at most about `K/C` nodes. The table is calculated, not measured: one mget on idle nodes with evenly placed copies, averaged over 200 random mgets.
-
-| Nodes | Shards | Copies | Docs | Least-loaded requests | Least-loaded tasks | Fewest-nodes requests | Fewest-nodes tasks | Requests | Tasks |
-| ----: | -----: | -----: | ---: | --------------------: | -----------------: | --------------------: | -----------------: | -------: | ----: |
-|   300 |    300 |      2 |   10 |                    10 |                 10 |                    10 |                 10 |      -3% |   -2% |
-|   300 |    300 |      2 |  100 |                    95 |                 97 |                    73 |                 85 |     -23% |  -13% |
-|   300 |    300 |      2 | 1000 |                   298 |                512 |                   150 |                289 |     -50% |  -44% |
-|   300 |    300 |      3 | 1000 |                   300 |                644 |                   100 |                290 |     -67% |  -55% |
-|   300 |   3000 |      2 | 1000 |                   299 |                932 |                   150 |                851 |     -50% |   -9% |
-|   300 |   3000 |      2 | 5000 |                   300 |               3419 |                   150 |               2432 |     -50% |  -29% |
-|   300 |     30 |      2 | 1000 |                    60 |                 60 |                    30 |                 30 |     -50% |  -50% |
-
-For the same mgets the coordinator runs as many tasks as fewest-nodes, plus one node-to-node request per shard it does not hold itself: 289 to 849 in the rows with 1000 documents, against at most 150 client requests from the direct driver. Least-loaded runs more get thread pool tasks than the coordinator does.
+Least-loaded spreads a shard's documents over its copies, so a shard with two or more documents in the mget is usually read twice: two get thread pool tasks, on two nodes, for one shard. Fewest-nodes reads each shard once, as the coordinator does, and reaches at most about `K/C` of `K` data nodes when each shard has `C` copies. The [`MGetFanOut`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#MGetFanOut) doc comment has the calculated requests and get thread pool tasks of each fan-out, and of the coordinator, for mgets of 10 to 5000 documents.
 
 Fewer nodes also means fewer things that can go wrong. Every node an mget reaches is one more node that can be slow, time out, or fail it, so fewest-nodes adds documents to a node the mget already reaches before it sends a request to another node, however idle that node is.
 

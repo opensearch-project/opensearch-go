@@ -29,4 +29,4 @@ GOTOOLCHAIN=go1.27.3 go test ./...
 
 ## Deleting it
 
-Once the module's `go` directive is Go 1.27 or later, delete this directory and `internal/jsonx/codec_copy.go`, remove the build constraint from `internal/jsonx/codec_std.go`, the exclusion in `.github/check-license-headers.sh`, and the entry in `NOTICE.txt`.
+Once the module's `go` directive is Go 1.27 or later, delete this directory and `internal/jsonx/codec_copy.go`, remove the build constraint from `internal/jsonx/codec_std.go`, the exclusion in `.github/check-license-headers.sh`, the two `(^|/)third_party/` exclusions in `.golangci.yml`, the `internal/third_party/` entry under `ignore` in `.codecov.yml`, and the entry in `NOTICE.txt`.
