@@ -29,7 +29,6 @@ package opensearchutil
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -37,12 +36,14 @@ import (
 	"net/http"
 	"reflect"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -2238,6 +2239,15 @@ func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
 
 	e.buf.Reset()
 
+	// appendActionLine writes a typical line several times faster than the encoder,
+	// into the buffer's spare capacity.
+	if line, ok := appendActionLine(e.buf.AvailableBuffer(), item.Action, &e.meta); ok {
+		e.buf.Write(line)
+		e.meta = bulkActionMetadata{}
+
+		return e.buf.Bytes(), nil
+	}
+
 	var err error
 	switch item.Action {
 	case "index":
@@ -2262,6 +2272,76 @@ func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
 	e.meta = bulkActionMetadata{}
 
 	return e.buf.Bytes(), err
+}
+
+// appendActionLine appends the action line encode writes for action and m, newline
+// included, byte for byte. It reports false, and appends nothing, for a line it leaves
+// to the encoder: one with a WaitForActiveShards, which may hold any value, or with a
+// string the encoder would escape. TestAppendActionLineKnowsEveryField fails when
+// bulkActionMetadata gains a field this does not write.
+func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, bool) {
+	if m.WaitForActiveShards != nil {
+		return b, false
+	}
+	start := len(b)
+	// The encoder does not escape HTML; see newMetaEncoder.
+	const escapeHTML = false
+	b = append(b, '{')
+	b, ok := json.AppendString(b, action, escapeHTML)
+	b = append(b, ':')
+	// Each field is written with a comma before it, and the first comma then becomes
+	// the metadata object's opening brace.
+	open := len(b)
+	if ok && m.Index != "" {
+		b = append(b, `,"_index":`...)
+		b, ok = json.AppendString(b, m.Index, escapeHTML)
+	}
+	if ok && m.DocumentID != "" {
+		b = append(b, `,"_id":`...)
+		b, ok = json.AppendString(b, m.DocumentID, escapeHTML)
+	}
+	if ok && m.Routing != nil {
+		b = append(b, `,"routing":`...)
+		b, ok = json.AppendString(b, *m.Routing, escapeHTML)
+	}
+	if ok && m.Version != nil {
+		b = append(b, `,"version":`...)
+		b = strconv.AppendInt(b, *m.Version, 10)
+	}
+	if ok && m.VersionType != nil {
+		b = append(b, `,"version_type":`...)
+		b, ok = json.AppendString(b, *m.VersionType, escapeHTML)
+	}
+	if ok && m.IfSeqNum != nil {
+		b = append(b, `,"if_seq_no":`...)
+		b = strconv.AppendInt(b, *m.IfSeqNum, 10)
+	}
+	if ok && m.IfPrimaryTerm != nil {
+		b = append(b, `,"if_primary_term":`...)
+		b = strconv.AppendInt(b, *m.IfPrimaryTerm, 10)
+	}
+	if ok && m.Refresh != nil {
+		b = append(b, `,"refresh":`...)
+		b, ok = json.AppendString(b, *m.Refresh, escapeHTML)
+	}
+	if ok && m.RequireAlias != nil {
+		b = append(b, `,"require_alias":`...)
+		b = strconv.AppendBool(b, *m.RequireAlias)
+	}
+	if ok && m.RetryOnConflict != nil {
+		b = append(b, `,"retry_on_conflict":`...)
+		b = strconv.AppendInt(b, int64(*m.RetryOnConflict), 10)
+	}
+	if !ok {
+		return b[:start], false
+	}
+	if len(b) == open {
+		b = append(b, '{')
+	} else {
+		b[open] = '{'
+	}
+
+	return append(b, "}}\n"...), true
 }
 
 // writeBody writes the item body to the buffer.

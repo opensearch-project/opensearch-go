@@ -10,12 +10,12 @@ package ml
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -65,11 +65,13 @@ func (r UnloadModelReq) GetRequest(method string) (*http.Request, error) {
 
 	var bodyReader io.Reader
 	if r.Body != nil {
-		bodyData, err := json.Marshal(r.Body)
+		// Encoded into a pooled buffer, which Execute releases once the request
+		// has returned.
+		body, err := build.JSONBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		bodyReader = bytes.NewReader(bodyData)
+		bodyReader = body
 	} else if r.BodyReader != nil {
 		bodyReader = r.BodyReader
 	}

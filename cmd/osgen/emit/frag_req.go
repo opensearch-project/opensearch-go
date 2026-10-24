@@ -30,11 +30,7 @@ func (f *ReqFragment) Imports() []Import {
 		{Path: LocalModule + "/internal/path", Alias: "ospath"},
 	}
 	if f.Op.HasTypedBody {
-		imps = append(imps,
-			Import{Path: "bytes"},
-			Import{Path: "encoding/json"},
-			Import{Path: "io"},
-		)
+		imps = append(imps, Import{Path: "io"})
 		if f.Op.IsPlugin && f.Registry != nil && f.Op.RequestBody != nil &&
 			f.Op.RequestBody.Scope == ir.ScopeShared {
 			imps = append(imps, Import{Path: f.Registry.CoreImport})
@@ -56,7 +52,6 @@ func (f *ReqFragment) Body() (string, error) {
 		"wrapLine":         WrapLine,
 		"availabilityNote": AvailabilityNote,
 		"qualify":          qualify,
-		"hasSensitiveBody": hasSensitiveBody,
 		"hasFormatOverride": func(group string) bool {
 			return HasFormatOverride(group) != ""
 		},
@@ -67,27 +62,6 @@ func (f *ReqFragment) Body() (string, error) {
 		return "", fmt.Errorf("rendering ReqFragment for %s: %w", f.Op.Group, err)
 	}
 	return sb.String(), nil
-}
-
-// sensitiveBodyOps lists operation groups whose request body contains a
-// Password (or other credential) field whose JSON tag matches gosec's G117
-// "secret pattern" detector. The Marshal call site for these operations is
-// annotated with //nolint:gosec so the legitimate-credential marshal isn't
-// flagged.
-//
-//nolint:gochecknoglobals // immutable allowlist consulted by the template
-var sensitiveBodyOps = map[string]struct{}{
-	"security.change_password":    {},
-	"security.create_user":        {},
-	"security.create_user_legacy": {},
-}
-
-// hasSensitiveBody reports whether the operation marshals a body that
-// contains a credential field; used by the Req template to suppress
-// gosec G117 on the json.Marshal call site.
-func hasSensitiveBody(op *ir.Operation) bool {
-	_, ok := sensitiveBodyOps[op.Group]
-	return ok
 }
 
 // bodyMethodSwitch returns the HTTP method to use when a request body is
@@ -252,19 +226,13 @@ func (r {{.TypePrefix}}Req) GetRequest(method string) (*http.Request, error) {
 
 	var bodyReader io.Reader
 	if r.Body != nil {
-{{- if hasSensitiveBody .}}
-		// Body contains a credential field whose JSON tag (e.g. "password")
-		// matches gosec G117. The marshal here intentionally serializes the
-		// credential because the OpenSearch security API requires it on the
-		// wire; suppress the lint at the call site.
-		bodyData, err := json.Marshal(r.Body) //nolint:gosec // G117: legitimate credential field for security API
-{{- else}}
-		bodyData, err := json.Marshal(r.Body)
-{{- end}}
+		// Encoded into a pooled buffer, which Execute releases once the request
+		// has returned.
+		body, err := build.JSONBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		bodyReader = bytes.NewReader(bodyData)
+		bodyReader = body
 	} else if r.BodyReader != nil {
 		bodyReader = r.BodyReader
 	}

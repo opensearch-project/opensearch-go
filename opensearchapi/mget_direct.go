@@ -8,16 +8,18 @@ package opensearchapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	"github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -86,7 +88,19 @@ type mgetSender func(ctx context.Context, c *Client, node *opensearchtransport.C
 func sendMGetToNode(ctx context.Context, c *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
 	ctx = opensearchtransport.WithReadNode(ctx, node)
 
-	return c.Doc.MGet(WithMGetDriver(ctx, MGetDriverCoordinator), req)
+	return c.Doc.MGet(mgetCoordinated(ctx), req)
+}
+
+// mgetCoordinated returns ctx with [MGetDriverCoordinator] selected, so that a
+// sub-request goes to the cluster as one request rather than being split again.
+// flush selects it once for every request of a call; a ctx that already selects
+// it is returned as it is.
+func mgetCoordinated(ctx context.Context) context.Context {
+	if v, ok := ctx.Value(mgetDriverKey{}).(MGetDriver); ok && v == MGetDriverCoordinator {
+		return ctx
+	}
+
+	return WithMGetDriver(ctx, MGetDriverCoordinator)
 }
 
 // mgetDriver fetches an mget's documents from the nodes that hold them. One
@@ -94,6 +108,7 @@ func sendMGetToNode(ctx context.Context, c *Client, node *opensearchtransport.Co
 // of them.
 type mgetDriver struct {
 	driver      MGetDriver
+	fanOut      MGetFanOut
 	lookup      shardLookup
 	send        mgetSender
 	saturated   func(*opensearchtransport.Connection) bool
@@ -132,6 +147,8 @@ type mgetCall struct {
 	d   *mgetDriver
 	c   *Client
 	req MGetReq
+	// fanOut is how the call picks the shard copies it reads from.
+	fanOut MGetFanOut
 	// realtime is the request's realtime, true unless it says otherwise.
 	realtime bool
 	// routing is the request's default routing, applied to documents with none.
@@ -163,17 +180,18 @@ type mgetCall struct {
 		err      error
 		errResp  *MGetResp
 		answered int
-		nodes    map[string]struct{}
-		stats    MGetDoneEvent
+		// nodes names each node the call sent a request to, once.
+		nodes []string
+		stats MGetDoneEvent
 	}
 }
 
-// write takes req's documents and routes each to the node to send it to, ready
-// for flush. When req is not one the client can split the way the cluster would,
-// or no document routes to a node, it returns an error that wraps
-// errMGetNotSplittable and says why, and the mget goes to the cluster as one
-// request.
-func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
+// write takes req's documents and routes each to the node to send it to, picking
+// shard copies by fanOut, ready for flush. When req is not one the client can
+// split the way the cluster would, or no document routes to a node, it returns
+// an error that wraps errMGetNotSplittable and says why, and the mget goes to
+// the cluster as one request.
+func (d *mgetDriver) write(c *Client, req MGetReq, fanOut MGetFanOut) (*mgetCall, error) {
 	switch {
 	case req.BodyReader != nil || req.Body == nil || req.Body.IDs != nil || len(req.Body.Docs) == 0:
 		return nil, errMGetNoDocs
@@ -187,6 +205,7 @@ func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
 		d:        d,
 		c:        c,
 		req:      req,
+		fanOut:   fanOut,
 		realtime: req.Params == nil || req.Params.Realtime == nil || *req.Params.Realtime,
 		docs:     make([]MGetRespItem, len(req.Body.Docs)),
 	}
@@ -198,7 +217,7 @@ func (d *mgetDriver) write(c *Client, req MGetReq) (*mgetCall, error) {
 	call.params[1] = call.params[0]
 	call.params[1].Preference = mgetPreferenceLocal
 
-	call.jobs, call.unrouted = call.route(nil, 1, "")
+	call.jobs, call.unrouted = call.split(nil, 1, "")
 	if len(call.jobs) == 0 {
 		return nil, errMGetNoneRouted
 	}
@@ -214,53 +233,106 @@ func mgetReshapesResponse(p DebugParams) bool {
 	return len(p.FilterPath) > 0 || p.Format != "" || p.Source != ""
 }
 
-// route groups the documents at positions by the node each is sent to, into jobs
-// of at most maxDocs documents, for the given attempt. A nil positions routes
-// every document of the request. It returns the jobs, and the positions it could
-// not route to a node, which are fetched through a coordinating node instead.
-// avoid names a node to skip when a document's shard has a copy on another node.
-func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJob, []int) {
-	type groupKey struct {
-		node  string
-		local bool
-	}
-	// group is the documents bound for one node with one preference. start is
-	// where its positions begin in the shared slots array, and n how many there are.
-	type group struct {
-		node     *opensearchtransport.Connection
-		local    bool
-		start, n int
-	}
-
+// split routes the documents at positions to nodes for the given attempt, and
+// cuts each node's share into jobs of at most maxDocs documents. A nil
+// positions splits every document of the request. avoid names a node to skip
+// when a document's shard has a copy on another node. split returns the jobs,
+// and the positions it could not route to a node, which are fetched through a
+// coordinating node instead.
+func (call *mgetCall) split(positions []int, attempt int, avoid string) ([]mgetJob, []int) {
 	count := len(positions)
 	if positions == nil {
 		count = len(call.req.Body.Docs)
 	}
-	at := func(i int) int {
-		if positions == nil {
-			return i
+
+	s := getMGetRouteScratch(count)
+	defer putMGetRouteScratch(s)
+
+	unrouted := call.route(positions, avoid, s)
+
+	// assigned[i] is the group of the i-th position, or -1 when it is not routed.
+	// The groups' sizes are known only once every position is assigned.
+	for i, sn := range s.picks {
+		s.assigned[i] = -1
+		if sn.node == nil {
+			continue
 		}
 
-		return positions[i]
+		gk := mgetGroupKey{node: sn.node.Name, local: sn.local}
+		g, found := s.index[gk]
+		if !found {
+			g = len(s.groups)
+			s.index[gk] = g
+			s.groups = append(s.groups, mgetGroup{node: sn.node, local: sn.local})
+		}
+		s.groups[g].n++
+		s.assigned[i] = int32(g) //nolint:gosec // There are no more groups than nodes.
 	}
 
+	// Lay every group's positions out in one array, and cut each group into jobs
+	// of at most maxDocs. The array and the jobs outlive the call to split, so
+	// they are not scratch space.
+	routed, numJobs := 0, 0
+	for g := range s.groups {
+		s.groups[g].start = routed
+		routed += s.groups[g].n
+		numJobs += (s.groups[g].n + call.d.maxDocs - 1) / call.d.maxDocs
+	}
+	slots := make([]int, routed)
+	s.filled = slices.Grow(s.filled[:0], len(s.groups))[:len(s.groups)]
+	clear(s.filled)
+	for i, g := range s.assigned {
+		if g < 0 {
+			continue
+		}
+		slots[s.groups[g].start+s.filled[g]] = mgetPosition(positions, i)
+		s.filled[g]++
+	}
+
+	jobs := make([]mgetJob, 0, numJobs)
+	for _, grp := range s.groups {
+		mine := slots[grp.start : grp.start+grp.n]
+		for start := 0; start < len(mine); start += call.d.maxDocs {
+			end := min(start+call.d.maxDocs, len(mine))
+			jobs = append(jobs, mgetJob{node: grp.node, local: grp.local, attempt: attempt, slots: mine[start:end:end]})
+		}
+	}
+
+	return jobs, unrouted
+}
+
+// mgetPosition returns the i-th position of positions, where a nil positions
+// stands for every document of the request, in order.
+func mgetPosition(positions []int, i int) int {
+	if positions == nil {
+		return i
+	}
+
+	return positions[i]
+}
+
+// route chooses the node each document at positions is read from, by the
+// call's fan-out, and records the choice for the i-th position in s.picks[i]. A
+// position it cannot route to a node keeps no node in s.picks; route returns
+// those positions, in order.
+func (call *mgetCall) route(positions []int, avoid string, s *mgetRouteScratch) []int {
 	var (
 		unrouted []int
-		groups   []group
-		index    = make(map[groupKey]int)
-		planned  = make(map[string]int)
-		// assigned is the group of the i-th position, or -1 when it is not routed.
-		// Each document's node depends on the documents routed before it, so the
-		// groups' sizes are known only after the pass that assigns them.
-		assigned = make([]int32, count)
+		planned  map[string]int
+		cover    *mgetCover
 	)
+	if call.fanOut == MGetFanOutLeastLoaded {
+		planned = s.planned
+	} else {
+		cover = getMGetCover(len(s.picks))
+		defer putMGetCover(cover)
+	}
 
 	targets := mgetTargetPool.Get()
 	defer mgetTargetPool.Put(targets)
 
-	for i := range count {
-		pos := at(i)
-		assigned[i] = -1
+	for i := range s.picks {
+		pos := mgetPosition(positions, i)
 
 		op := call.req.Body.Docs[pos]
 		key := op.ID
@@ -278,53 +350,386 @@ func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJ
 			continue
 		}
 
+		// A read that must go to the primary has no copy to choose, so the cover
+		// leaves it to findShardNode.
+		if cover != nil && !call.primaryOnly(*targets) {
+			if !cover.add(i, idx, *targets, avoid, call.d.saturated) {
+				unrouted = append(unrouted, pos)
+			}
+
+			continue
+		}
+
 		sn, err := call.findShardNode(*targets, avoid, planned)
 		if err != nil {
 			unrouted = append(unrouted, pos)
 
 			continue
 		}
-		planned[sn.node.Name]++
-
-		gk := groupKey{node: sn.node.Name, local: sn.local}
-		g, found := index[gk]
-		if !found {
-			g = len(groups)
-			index[gk] = g
-			groups = append(groups, group{node: sn.node, local: sn.local})
+		if planned != nil {
+			planned[sn.node.Name]++
 		}
-		groups[g].n++
-		assigned[i] = int32(g) //nolint:gosec // There are no more groups than nodes.
+		if cover != nil {
+			cover.contacted(sn.node.Name)
+		}
+		s.picks[i] = sn
 	}
 
-	// Lay every group's positions out in one array, and cut each into jobs of at
-	// most maxDocs.
-	routed, numJobs := 0, 0
-	for g := range groups {
-		groups[g].start = routed
-		routed += groups[g].n
-		numJobs += (groups[g].n + call.d.maxDocs - 1) / call.d.maxDocs
+	if cover != nil {
+		cover.assign(call.d.windows, s.picks)
 	}
-	slots := make([]int, routed)
-	filled := make([]int, len(groups))
-	for i, g := range assigned {
-		if g < 0 {
+
+	return unrouted
+}
+
+// mgetGroupKey identifies the documents split sends to one node with one
+// preference.
+type mgetGroupKey struct {
+	node  string
+	local bool
+}
+
+// mgetGroup is the documents split sends to one node with one preference. start
+// is where their positions begin in the slots array that split lays out, and n
+// is how many there are.
+type mgetGroup struct {
+	node     *opensearchtransport.Connection
+	local    bool
+	start, n int
+}
+
+// mgetRouteScratch is the space split and route use only while they run. It is
+// pooled, and keeps what it grew from one mget to the next, up to the cover's
+// bounds.
+type mgetRouteScratch struct {
+	picks    []shardNode
+	assigned []int32
+	filled   []int
+	groups   []mgetGroup
+	index    map[mgetGroupKey]int
+	// planned counts, for MGetFanOutLeastLoaded, the documents already routed to
+	// each node.
+	planned map[string]int
+}
+
+//nolint:gochecknoglobals // A pool is process-wide by design.
+var mgetRouteScratchPool = sync.Pool{New: func() any {
+	return &mgetRouteScratch{index: make(map[mgetGroupKey]int), planned: make(map[string]int)}
+}}
+
+// getMGetRouteScratch returns pooled scratch space for routing count positions.
+func getMGetRouteScratch(count int) *mgetRouteScratch {
+	s, _ := mgetRouteScratchPool.Get().(*mgetRouteScratch)
+	s.picks = slices.Grow(s.picks[:0], count)[:count]
+	s.assigned = slices.Grow(s.assigned[:0], count)[:count]
+
+	return s
+}
+
+// putMGetRouteScratch empties s and returns it to the pool. It drops every
+// reference to a connection, so that pooled scratch keeps no removed node
+// alive, and drops what grew past the cover's bounds.
+func putMGetRouteScratch(s *mgetRouteScratch) {
+	clear(s.picks)
+	clear(s.groups)
+	s.groups = s.groups[:0]
+	if cap(s.picks) > mgetCoverMaxPositions {
+		s.picks, s.assigned = nil, nil
+	}
+	if cap(s.groups) > mgetCoverMaxNodes {
+		s.groups, s.filled = nil, nil
+	}
+	if len(s.index) > mgetCoverMaxNodes || len(s.planned) > mgetCoverMaxNodes {
+		s.index, s.planned = make(map[mgetGroupKey]int), make(map[string]int)
+	} else {
+		clear(s.index)
+		clear(s.planned)
+	}
+	mgetRouteScratchPool.Put(s)
+}
+
+// primaryOnly reports whether a document whose shard has the copies targets is
+// read from the primary only: a realtime read of an index not known to use
+// document replication. A replication type not known to be document
+// replication is treated as segment replication, whose replicas can trail the
+// primary.
+func (call *mgetCall) primaryOnly(targets []*opensearchtransport.ShardTarget) bool {
+	return call.realtime && len(targets) > 0 && targets[0].Replication != opensearchtransport.ReplicationDocument
+}
+
+// mgetCover picks, for MGetFanOutFewestNodes, one node for each shard an mget
+// reads so that the mget reaches as few nodes as it can. Finding the fewest is
+// the set cover problem, so it takes the greedy answer: the node holding a copy
+// of the most shards not yet covered, until every shard is covered. A node the
+// mget already sends to takes every shard it holds before any other node is
+// chosen: one more document to a node already reached costs less than a request
+// to another node, however idle, and every node an mget waits on is one more
+// that can time out or fail it.
+//
+// A cover is pooled, and keeps its maps and slices from one mget to the next;
+// recycle bounds what it keeps.
+type mgetCover struct {
+	shards []mgetCoverShard
+	index  map[mgetCoverKey]int32
+	// of is the shard of the i-th position, or -1 for a position the cover does
+	// not place.
+	of []int32
+	// nodes holds, for each node with a usable copy of a shard, what the cover
+	// knows of it.
+	nodes map[string]*mgetCoverNode
+	// spare are the mgetCoverNodes of earlier mgets, ready for reuse.
+	spare []*mgetCoverNode
+	// reached names the nodes the mget sends to whatever the cover chooses:
+	// those of reads that must go to the primary. A name may repeat.
+	reached []string
+	// usable and idle are add's scratch space.
+	usable, idle []*opensearchtransport.Connection
+}
+
+type mgetCoverKey struct {
+	index string
+	shard int
+}
+
+// mgetCoverShard is one shard: the nodes with a usable copy of it, and the node
+// the cover chose.
+type mgetCoverShard struct {
+	nodes  []string
+	chosen *opensearchtransport.Connection
+}
+
+// mgetCoverNode is one node: the shards it holds a usable copy of, how many of
+// them no node has been chosen for yet, and its documents in flight when assign
+// began.
+type mgetCoverNode struct {
+	conn      *opensearchtransport.Connection
+	holds     []int32
+	uncovered int
+	load      int64
+}
+
+const (
+	// mgetCoverMaxNodes, mgetCoverMaxShards and mgetCoverMaxPositions bound what a
+	// pooled cover keeps, so that one large mget does not hold its memory for every
+	// small one after it. A map or slice that grew past its bound is dropped when
+	// the cover is recycled, and the next mget grows a new one.
+	mgetCoverMaxNodes     = 1024
+	mgetCoverMaxShards    = 8192
+	mgetCoverMaxPositions = 16384
+)
+
+//nolint:gochecknoglobals // A pool is process-wide by design.
+var mgetCoverPool = sync.Pool{New: func() any { return newMGetCover() }}
+
+func newMGetCover() *mgetCover {
+	return &mgetCover{
+		index: make(map[mgetCoverKey]int32),
+		nodes: make(map[string]*mgetCoverNode),
+	}
+}
+
+// getMGetCover returns a pooled cover ready for count positions.
+func getMGetCover(count int) *mgetCover {
+	c, _ := mgetCoverPool.Get().(*mgetCover)
+	c.prepare(count)
+
+	return c
+}
+
+// prepare readies a recycled cover for count positions.
+func (c *mgetCover) prepare(count int) {
+	c.of = slices.Grow(c.of[:0], count)[:count]
+	for i := range c.of {
+		c.of[i] = -1
+	}
+}
+
+// recycle empties the cover for the next mget, dropping what grew past its
+// bounds and every reference to a connection, so that a pooled cover keeps no
+// removed node alive.
+func (c *mgetCover) recycle() {
+	if len(c.nodes) > mgetCoverMaxNodes || len(c.index) > mgetCoverMaxShards {
+		c.index = make(map[mgetCoverKey]int32)
+		c.nodes = make(map[string]*mgetCoverNode)
+	} else {
+		for _, n := range c.nodes {
+			if len(c.spare) >= mgetCoverMaxNodes || cap(n.holds) > mgetCoverMaxShards {
+				continue
+			}
+			n.conn, n.holds = nil, n.holds[:0]
+			c.spare = append(c.spare, n)
+		}
+		clear(c.index)
+		clear(c.nodes)
+	}
+
+	if cap(c.shards) > mgetCoverMaxShards {
+		c.shards = nil
+	} else {
+		for i := range c.shards {
+			c.shards[i].chosen = nil
+		}
+		c.shards = c.shards[:0]
+	}
+	if cap(c.of) > mgetCoverMaxPositions {
+		c.of = nil
+	}
+	if cap(c.reached) > mgetCoverMaxNodes {
+		c.reached = nil
+	}
+	c.reached = c.reached[:0]
+	clear(c.usable[:cap(c.usable)])
+	clear(c.idle[:cap(c.idle)])
+}
+
+// putMGetCover recycles c and returns it to the pool.
+func putMGetCover(c *mgetCover) {
+	c.recycle()
+	mgetCoverPool.Put(c)
+}
+
+// contacted records that the mget sends to node whatever the cover chooses.
+func (c *mgetCover) contacted(node string) {
+	if n := len(c.reached); n > 0 && c.reached[n-1] == node {
+		return
+	}
+	c.reached = append(c.reached, node)
+}
+
+// add records that the i-th position is in index's shard with the copies
+// targets. It skips the avoid node when the shard has another copy, and a
+// saturated node when the shard has a copy on one that is not. It reports
+// false when no copy is on a usable node.
+func (c *mgetCover) add(
+	i int, index string, targets []*opensearchtransport.ShardTarget, avoid string,
+	saturated func(*opensearchtransport.Connection) bool,
+) bool {
+	key := mgetCoverKey{index: index, shard: targets[0].Shard}
+	if s, ok := c.index[key]; ok {
+		c.of[i] = s
+
+		return true
+	}
+
+	c.usable, c.idle = c.usable[:0], c.idle[:0]
+	for _, target := range targets {
+		if target.Node == nil || (target.Node.Name == avoid && len(targets) > 1) {
 			continue
 		}
-		slots[groups[g].start+filled[g]] = at(i)
-		filled[g]++
+		c.usable = append(c.usable, target.Node)
+		if !saturated(target.Node) {
+			c.idle = append(c.idle, target.Node)
+		}
+	}
+	usable := c.usable
+	if len(c.idle) > 0 {
+		usable = c.idle
+	}
+	if len(usable) == 0 {
+		return false
 	}
 
-	jobs := make([]mgetJob, 0, numJobs)
-	for _, grp := range groups {
-		mine := slots[grp.start : grp.start+grp.n]
-		for start := 0; start < len(mine); start += call.d.maxDocs {
-			end := min(start+call.d.maxDocs, len(mine))
-			jobs = append(jobs, mgetJob{node: grp.node, local: grp.local, attempt: attempt, slots: mine[start:end:end]})
+	s := int32(len(c.shards)) //nolint:gosec // There are no more shards than positions.
+	if len(c.shards) < cap(c.shards) {
+		c.shards = c.shards[:s+1]
+	} else {
+		c.shards = append(c.shards, mgetCoverShard{})
+	}
+	shard := &c.shards[s]
+	shard.nodes, shard.chosen = shard.nodes[:0], nil
+	for _, conn := range usable {
+		shard.nodes = append(shard.nodes, conn.Name)
+		n := c.node(conn)
+		n.holds = append(n.holds, s)
+	}
+	c.index[key] = s
+	c.of[i] = s
+
+	return true
+}
+
+// node returns what the cover knows of conn's node, reusing a spare entry for a
+// node it has not seen in this mget.
+func (c *mgetCover) node(conn *opensearchtransport.Connection) *mgetCoverNode {
+	if n, ok := c.nodes[conn.Name]; ok {
+		return n
+	}
+
+	var n *mgetCoverNode
+	if last := len(c.spare) - 1; last >= 0 {
+		n, c.spare[last] = c.spare[last], nil
+		c.spare = c.spare[:last]
+	} else {
+		n = &mgetCoverNode{}
+	}
+	n.conn = conn
+	c.nodes[conn.Name] = n
+
+	return n
+}
+
+// assign chooses a node for every shard and writes each placed position's node
+// into picks. The nodes the mget already reaches take the shards they hold
+// first, in name order. Then the node with the most shards still uncovered
+// goes next, and on a tie the one with the fewest documents in flight in
+// windows, then the first by name. The greedy choice approximates the fewest
+// nodes; it does not promise them.
+func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
+	for name, n := range c.nodes {
+		n.uncovered = len(n.holds)
+		n.load = 0
+		if st, ok := windows.Stats(scheduler.NodeName(name)); ok {
+			n.load = st.InFlight
+		}
+	}
+	left := len(c.shards)
+	take := func(n *mgetCoverNode) {
+		for _, s := range n.holds {
+			if c.shards[s].chosen != nil {
+				continue
+			}
+			c.shards[s].chosen = n.conn
+			left--
+			for _, other := range c.shards[s].nodes {
+				c.nodes[other].uncovered--
+			}
 		}
 	}
 
-	return jobs, unrouted
+	slices.Sort(c.reached)
+	c.reached = slices.Compact(c.reached)
+	for _, name := range c.reached {
+		if n, ok := c.nodes[name]; ok {
+			take(n)
+		}
+	}
+
+	for left > 0 {
+		var (
+			best     *mgetCoverNode
+			bestName string
+		)
+		for name, n := range c.nodes {
+			if n.uncovered == 0 {
+				continue
+			}
+			switch {
+			case best == nil, n.uncovered > best.uncovered:
+			case n.uncovered == best.uncovered && n.load < best.load:
+			case n.uncovered == best.uncovered && n.load == best.load && name < bestName:
+			default:
+				continue
+			}
+			best, bestName = n, name
+		}
+		take(best)
+	}
+
+	for i, s := range c.of {
+		if s >= 0 {
+			picks[i] = shardNode{node: c.shards[s].chosen, local: true}
+		}
+	}
 }
 
 // findShardNode picks, among the nodes that hold a copy of a document's shard,
@@ -333,9 +738,9 @@ func (call *mgetCall) route(positions []int, attempt int, avoid string) ([]mgetJ
 // A realtime read of an index not known to use document replication goes to the
 // primary's node with no preference, so the node itself sends the read to the
 // primary, as a coordinator would. Any other read goes to the node with the
-// fewest documents in flight, counting the documents already routed in this
-// pass, and a replica wins a tie. It returns errNoUsableShardNode when no copy
-// is on a usable node.
+// fewest documents in flight, counting the documents in planned, the ones
+// already routed in this pass, and a replica wins a tie. It returns
+// errNoUsableShardNode when no copy is on a usable node.
 func (call *mgetCall) findShardNode(
 	targets []*opensearchtransport.ShardTarget, avoid string, planned map[string]int,
 ) (shardNode, error) {
@@ -343,9 +748,7 @@ func (call *mgetCall) findShardNode(
 		return shardNode{}, errNoUsableShardNode
 	}
 
-	// A replication type not known to be document replication is treated as
-	// segment replication, whose replicas can trail the primary.
-	if call.realtime && targets[0].Replication != opensearchtransport.ReplicationDocument {
+	if call.primaryOnly(targets) {
 		primary := targets[0]
 		if !primary.Primary || primary.Node == nil {
 			return shardNode{}, errNoUsableShardNode
@@ -390,17 +793,28 @@ func (call *mgetCall) findShardNode(
 // flush sends the written requests, waits for them, and returns the answer.
 func (call *mgetCall) flush(parent context.Context) (*MGetResp, error) {
 	start := time.Now()
-	ctx, cancel := context.WithCancel(parent)
+	// Every request of the call goes to the cluster as one request; selecting
+	// that once here saves each request a context of its own.
+	ctx, cancel := context.WithCancel(mgetCoordinated(parent))
 	call.cancel = cancel
 	defer cancel()
 
-	call.mu.nodes = make(map[string]struct{})
+	// A job per node is the usual case, and a retry that reaches another node
+	// grows the slice.
+	call.mu.nodes = make([]string, 0, len(call.jobs))
 	call.mu.stats.Docs = len(call.docs)
 
 	if len(call.unrouted) > 0 {
 		call.coordinate(ctx, call.unrouted)
 	}
-	for _, j := range call.jobs {
+	// The last job runs on this goroutine, which would otherwise only wait, so
+	// an mget that goes to one node starts no goroutine at all.
+	for i, j := range call.jobs {
+		if i == len(call.jobs)-1 {
+			call.sendJob(ctx, j)
+
+			break
+		}
 		call.dispatch(ctx, j)
 	}
 	call.wg.Wait()
@@ -467,10 +881,10 @@ func (call *mgetCall) coordinate(ctx context.Context, slots []int) {
 
 // subRequest builds the request for the documents at slots, with the caller's
 // parameters; local adds preference=_local. Its body is encoded into a pooled
-// buffer, and the caller releases the returned body once the request has
-// returned. An error is from encoding a document, which the generated request
-// would have hit as well.
-func (call *mgetCall) subRequest(slots []int, local bool) (MGetReq, *mgetBody, error) {
+// buffer, and the caller passes the returned body to bufbody.Release once the
+// request has returned. An error is from encoding a document, which the
+// generated request would have hit as well.
+func (call *mgetCall) subRequest(slots []int, local bool) (MGetReq, *bufbody.Pooled, error) {
 	body, err := encodeMGetBody(call.req.Body.Docs, slots)
 	if err != nil {
 		return MGetReq{}, nil, err
@@ -504,7 +918,9 @@ func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 	}
 
 	call.mu.Lock()
-	call.mu.nodes[j.node.Name] = struct{}{}
+	if !slices.Contains(call.mu.nodes, j.node.Name) {
+		call.mu.nodes = append(call.mu.nodes, j.node.Name)
+	}
 	call.mu.stats.Requests++
 	if j.attempt > 1 {
 		call.mu.stats.Retries++
@@ -513,7 +929,7 @@ func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 
 	sent := time.Now()
 	resp, err := call.d.send(ctx, call.c, j.node, sub)
-	body.release()
+	bufbody.Release(body)
 	event := MGetRequestEvent{
 		Node:       j.node.Name,
 		Attempt:    j.attempt,
@@ -546,7 +962,7 @@ func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 		return
 	}
 
-	jobs, unrouted := call.route(retry, j.attempt+1, j.node.Name)
+	jobs, unrouted := call.split(retry, j.attempt+1, j.node.Name)
 	if len(unrouted) > 0 {
 		call.coordinate(ctx, unrouted)
 	}
@@ -633,8 +1049,8 @@ func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
 	call.mu.Unlock()
 
 	sent := time.Now()
-	resp, err := call.c.Doc.MGet(WithMGetDriver(ctx, MGetDriverCoordinator), sub)
-	body.release()
+	resp, err := call.c.Doc.MGet(mgetCoordinated(ctx), sub)
+	bufbody.Release(body)
 	event := MGetRequestEvent{Docs: len(slots), Duration: time.Since(sent), StatusCode: mgetStatus(resp), Err: err}
 	if call.d.observer != nil {
 		defer call.d.observer.OnMGetRequest(ctx, event)

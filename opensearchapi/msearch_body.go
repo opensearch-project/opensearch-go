@@ -8,10 +8,11 @@ package opensearchapi
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // MSearchSubSearch is one search of a multi-search request. It is not a

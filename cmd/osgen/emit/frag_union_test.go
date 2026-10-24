@@ -287,7 +287,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 				switch imp.Path {
 				case "fmt":
 					hasFmt = true
-				case "encoding/json":
+				case emit.JSONImportPath:
 					hasJSON = true
 				case "github.com/opensearch-project/opensearch-go/v5/opensearchapi":
 					hasCore = true
@@ -297,7 +297,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 				require.Empty(t, imps, "no types should yield no imports")
 				return
 			}
-			require.True(t, hasJSON, "all union fragments need encoding/json")
+			require.True(t, hasJSON, "all union fragments need the JSON codec")
 			require.Equal(t, tt.wantFmt, hasFmt, "fmt import mismatch")
 			require.Equal(t, tt.wantCoreImport, hasCore, "core import mismatch")
 		})
@@ -349,10 +349,10 @@ func TestUnionFragment_FileAssembly(t *testing.T) {
 
 	output := string(src)
 	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
-	require.Contains(t, output, `"encoding/json"`)
+	require.Contains(t, output, `json "`+emit.JSONImportPath+`"`)
 	require.Contains(t, output, `"fmt"`)
 
-	jsonIdx := strings.Index(output, `"encoding/json"`)
+	jsonIdx := strings.Index(output, `json "`+emit.JSONImportPath+`"`)
 	fmtIdx := strings.Index(output, `"fmt"`)
 	require.Positive(t, jsonIdx)
 	require.Positive(t, fmtIdx)

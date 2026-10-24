@@ -32,3 +32,8 @@ coverage:
         target: 25%
         threshold: 5%
     patch: off
+
+# A copy of the Go standard library's encoding/json/v2, tested as the standard
+# library's; see internal/third_party/jsonv2/README.md.
+ignore:
+  - "internal/third_party/"

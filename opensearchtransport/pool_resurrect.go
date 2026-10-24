@@ -28,7 +28,6 @@ package opensearchtransport
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -37,6 +36,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // checkDeadMaxWorkers is the maximum number of concurrent health check

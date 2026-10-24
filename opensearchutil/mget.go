@@ -14,6 +14,7 @@ import (
 
 // MGet fetches req's documents with [opensearchapi.MGetDriverDirect], whatever
 // the client's configuration and OPENSEARCH_GO_MGET select.
+// [opensearchapi.MGetDriver] diagrams the requests each driver sends.
 func MGet(ctx context.Context, client *opensearchapi.Client, req opensearchapi.MGetReq) (*opensearchapi.MGetResp, error) {
 	return client.Doc.MGet(opensearchapi.WithMGetDriver(ctx, opensearchapi.MGetDriverDirect), req)
 }

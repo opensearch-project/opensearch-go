@@ -8,10 +8,11 @@ package opensearch
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // Error vars

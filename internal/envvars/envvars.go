@@ -172,8 +172,15 @@ const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 // MGet overrides opensearchapi.MGetConfig.Driver: "direct" splits each mget by
 // shard in the client and sends each node only the documents it holds, and
 // "coordinator" sends each mget as one request for the cluster to split.
-// Case-insensitive; any other value is ignored.
+// Case-insensitive; any other value is ignored. The opensearchapi.MGetDriver
+// doc comment diagrams the requests each driver sends.
 const MGet = "OPENSEARCH_GO_MGET"
+
+// MGetFanOut overrides opensearchapi.MGetConfig.FanOut: "fewest-nodes" reads
+// each mget's shards from as few nodes as hold them, and "least-loaded" reads
+// each document from the least loaded copy of its shard.
+// Case-insensitive; any other value is ignored.
+const MGetFanOut = "OPENSEARCH_GO_MGET_FANOUT"
 
 // BulkShard overrides BulkSizing.Shard for opensearchutil.BulkIndexer: "pid"
 // sizes each shard's buffer with the PID controller on latency, and "fixed" sends

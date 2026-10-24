@@ -28,7 +28,6 @@ package opensearch
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -45,6 +44,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
@@ -795,6 +795,9 @@ func Execute[T any](ctx context.Context, c *Client, method string, req Request, 
 	if err != nil {
 		return nil, err
 	}
+	// A body GetRequest encoded into a pooled buffer goes back to the pool once
+	// the request has returned and the transport has closed every reader of it.
+	defer bufbody.Release(httpReq.Body)
 
 	if ctx != nil {
 		httpReq = httpReq.WithContext(ctx)

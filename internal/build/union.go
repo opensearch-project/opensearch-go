@@ -7,8 +7,9 @@
 package build
 
 import (
-	"encoding/json"
 	"sync"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // maxPooledKeySetSize bounds the maps [HasJSONKeys] returns to keySetPool.
