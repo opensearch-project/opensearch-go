@@ -38,6 +38,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -2140,6 +2141,78 @@ func TestMetaEncoderFailure(t *testing.T) {
 		var target *json.UnsupportedValueError
 		require.ErrorAs(t, err, &target, action)
 	}
+}
+
+// TestAppendActionLine checks which action lines appendActionLine writes itself and
+// which it leaves to the encoder, and that each line it writes is the encoder's,
+// byte for byte.
+func TestAppendActionLine(t *testing.T) {
+	t.Parallel()
+
+	routing, versionType, refresh := "r-1", "external", "wait_for"
+	version, seqNo, primaryTerm := int64(-3), int64(7), int64(2)
+	requireAlias, retries := false, 4
+
+	tests := []struct {
+		name   string
+		item   BulkIndexerItem
+		wantOK bool
+	}{
+		{name: "an index with every field it writes", item: BulkIndexerItem{
+			Action: "index", Index: "i", DocumentID: "d", Routing: &routing, Version: &version, VersionType: &versionType,
+			IfSeqNum: &seqNo, IfPrimaryTerm: &primaryTerm, Refresh: &refresh, RequireAlias: &requireAlias,
+			RetryOnConflict: &retries,
+		}, wantOK: true},
+		{name: "a bare delete", item: BulkIndexerItem{Action: "delete", DocumentID: "x"}, wantOK: true},
+		{name: "a create with no fields at all", item: BulkIndexerItem{Action: "create"}, wantOK: true},
+		{name: "an index with no id", item: BulkIndexerItem{Action: "index", Index: "i"}, wantOK: true},
+		{name: "characters HTML escaping would change", item: BulkIndexerItem{Action: "index", DocumentID: "a<b>&c"}, wantOK: true},
+		{name: "an action the bulk API does not have", item: BulkIndexerItem{Action: "custom", DocumentID: "1"}, wantOK: true},
+		{name: "an empty action", item: BulkIndexerItem{DocumentID: "1"}, wantOK: true},
+		{name: "wait_for_active_shards is left to the encoder", item: BulkIndexerItem{Action: "index", WaitForActiveShards: "all"}},
+		{name: "a quote in the id", item: BulkIndexerItem{Action: "index", DocumentID: `a"b`}},
+		{name: "a backslash in the index", item: BulkIndexerItem{Action: "index", Index: `i\`}},
+		{name: "a newline in the routing", item: BulkIndexerItem{Action: "index", Routing: new("r\n")}},
+		{name: "non-ASCII in the refresh", item: BulkIndexerItem{Action: "index", Refresh: new("é")}},
+		{name: "invalid UTF-8 in the version type", item: BulkIndexerItem{Action: "index", DocumentID: "d", VersionType: new("\xff")}},
+		{name: "an action name that needs escaping", item: BulkIndexerItem{Action: "in\"dex", DocumentID: "1"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			meta := bulkActionMetadata{
+				Index: tt.item.Index, DocumentID: tt.item.DocumentID, Version: tt.item.Version, VersionType: tt.item.VersionType,
+				Routing: tt.item.Routing, IfPrimaryTerm: tt.item.IfPrimaryTerm, IfSeqNum: tt.item.IfSeqNum,
+				WaitForActiveShards: tt.item.WaitForActiveShards, Refresh: tt.item.Refresh, RequireAlias: tt.item.RequireAlias,
+				RetryOnConflict: tt.item.RetryOnConflict,
+			}
+			prefix := []byte("prior\n")
+			got, ok := appendActionLine(prefix, tt.item.Action, &meta)
+			require.Equal(t, tt.wantOK, ok)
+			if !ok {
+				require.Equal(t, prefix, got, "appends nothing when it leaves the line to the encoder")
+				return
+			}
+			require.Equal(t, string(prefix)+referenceMeta(t, tt.item), string(got))
+		})
+	}
+}
+
+// TestAppendActionLineKnowsEveryField fails when bulkActionMetadata gains or renames a
+// field, which appendActionLine would otherwise drop from the line without a word.
+func TestAppendActionLineKnowsEveryField(t *testing.T) {
+	t.Parallel()
+
+	var tags []string
+	for f := range reflect.TypeFor[bulkActionMetadata]().Fields() {
+		tags = append(tags, f.Tag.Get("json"))
+	}
+	require.Equal(t, []string{
+		"_index,omitempty", "_id,omitempty", "routing,omitempty", "version,omitempty", "version_type,omitempty",
+		"if_seq_no,omitempty", "if_primary_term,omitempty", "wait_for_active_shards,omitempty", "refresh,omitempty",
+		"require_alias,omitempty", "retry_on_conflict,omitempty",
+	}, tags, "update appendActionLine to write the new field, then this list")
 }
 
 // TestBulkIndexerOrderKey: items that share an order key are written in the order
