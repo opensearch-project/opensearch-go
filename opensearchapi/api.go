@@ -37,13 +37,20 @@ import (
 // OPENSEARCH_GO_DISCOVERY_CONFIG. An older client therefore tolerates
 // new wrapper bits added by a newer release.
 func resolveErrorMask(cfg Config) errmask.ErrorMask {
+	return resolveErrorMaskWith(cfg, os.LookupEnv)
+}
+
+// resolveErrorMaskWith is resolveErrorMask reading the environment variable
+// through getenv, so a test can supply it without changing the process
+// environment.
+func resolveErrorMaskWith(cfg Config, getenv func(string) (string, bool)) errmask.ErrorMask {
 	var base errmask.ErrorMask
 	if cfg.Errors == nil {
 		base = errmask.Empty // v5+ default: report every partial-failure category
 	} else {
 		base = *cfg.Errors
 	}
-	if v, ok := os.LookupEnv(envvars.ErrorMask); ok && v != "" {
+	if v, ok := getenv(envvars.ErrorMask); ok && v != "" {
 		mask, unknown := errmask.Parse(v, base)
 		if len(unknown) > 0 {
 			opensearchtransport.Debug().Str("env", envvars.ErrorMask).Strs("tokens", unknown).

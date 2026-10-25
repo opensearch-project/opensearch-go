@@ -19,9 +19,9 @@ import (
 // --- parsePolicyOverrides ---
 
 func TestParsePolicyOverrides_BoolValue(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROLE", "false")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROLE": "false"}))
 	require.Len(t, overrides, 1)
 
 	o := overrides[0]
@@ -31,18 +31,18 @@ func TestParsePolicyOverrides_BoolValue(t *testing.T) {
 }
 
 func TestParsePolicyOverrides_BoolTrue(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROUNDROBIN", "true")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROUNDROBIN": "true"}))
 	require.Len(t, overrides, 1)
 	require.NotNil(t, overrides[0].applyAll)
 	require.True(t, *overrides[0].applyAll)
 }
 
 func TestParsePolicyOverrides_PathBool(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROLE", "chain[0].mux[0].role[0]=false")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROLE": "chain[0].mux[0].role[0]=false"}))
 	require.Len(t, overrides, 1)
 
 	o := overrides[0]
@@ -55,9 +55,9 @@ func TestParsePolicyOverrides_PathBool(t *testing.T) {
 }
 
 func TestParsePolicyOverrides_CommaSeparated(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROLE", "chain[0].role[0]=false,chain[0].role[1]=true")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROLE": "chain[0].role[0]=false,chain[0].role[1]=true"}))
 	require.Len(t, overrides, 1)
 	require.Len(t, overrides[0].matchers, 2)
 	require.False(t, overrides[0].matchers[0].enable, "first matcher should be disable")
@@ -65,9 +65,9 @@ func TestParsePolicyOverrides_CommaSeparated(t *testing.T) {
 }
 
 func TestParsePolicyOverrides_RegexPattern(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROUTER", ".*mux.*=false")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROUTER": ".*mux.*=false"}))
 	require.Len(t, overrides, 1)
 
 	m := overrides[0].matchers[0]
@@ -76,23 +76,25 @@ func TestParsePolicyOverrides_RegexPattern(t *testing.T) {
 }
 
 func TestParsePolicyOverrides_UnsetVar(t *testing.T) {
-	// Don't set any env vars -- overrides should be empty.
-	overrides := parsePolicyOverrides()
+	t.Parallel()
+
+	// No env vars -- overrides should be empty.
+	overrides := parsePolicyOverrides(envLookup(nil))
 	require.Empty(t, overrides)
 }
 
 func TestParsePolicyOverrides_EmptyValue(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROLE", "")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROLE": ""}))
 	require.Empty(t, overrides)
 }
 
 func TestParsePolicyOverrides_FallbackRegex(t *testing.T) {
-	// Value with no '=' -- treated as regex fallback, disable on match.
-	t.Setenv("OPENSEARCH_GO_POLICY_ROLE", "chain.*role")
+	t.Parallel()
 
-	overrides := parsePolicyOverrides()
+	// Value with no '=' -- treated as regex fallback, disable on match.
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROLE": "chain.*role"}))
 	require.Len(t, overrides, 1)
 
 	m := overrides[0].matchers[0]
@@ -244,6 +246,8 @@ func TestApplyPolicyOverrides_PathMatch(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_RegexMatch(t *testing.T) {
+	t.Parallel()
+
 	root, err := NewDefaultPolicy()
 	require.NoError(t, err)
 
@@ -355,10 +359,10 @@ func TestPolicyState_Bitfield(t *testing.T) {
 // --- Integration: full env var flow ---
 
 func TestPolicyOverride_FullFlow(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_ROUNDROBIN", "false")
+	t.Parallel()
 
 	root := NewRoundRobinDefaultPolicy()
-	overrides := parsePolicyOverrides()
+	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROUNDROBIN": "false"}))
 	applyPolicyOverrides(root, overrides)
 
 	// Walk the tree and verify all RoundRobinPolicies are force-disabled.
@@ -386,11 +390,10 @@ func countPolicyNodes(p Policy) int {
 	return n
 }
 
-// parsePolicyOverridesForTest is a test helper that sets an env var and returns parsed overrides.
+// parsePolicyOverridesForTest parses overrides from a single synthetic env var.
 func parsePolicyOverridesForTest(t *testing.T, envKey, envVal string) []policyOverride {
 	t.Helper()
-	t.Setenv(envKey, envVal)
-	return parsePolicyOverrides()
+	return parsePolicyOverrides(envLookup(map[string]string{envKey: envVal}))
 }
 
 // --- writePolicyTree ---

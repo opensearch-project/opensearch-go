@@ -21,6 +21,8 @@ import (
 // is the behavioral change the osapilint v4->v5 hop flags as a semantic
 // followup; this exercises the actual resolver those callers must migrate to.
 func TestResolveErrorMask(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		cfg  *errmask.ErrorMask
@@ -81,10 +83,19 @@ func TestResolveErrorMask(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			env := map[string]string{}
 			if tt.env != "" {
-				t.Setenv(envvars.ErrorMask, tt.env)
+				env[envvars.ErrorMask] = tt.env
 			}
-			got := resolveErrorMask(Config{Errors: tt.cfg})
+			getenv := func(name string) (string, bool) {
+				v, ok := env[name]
+
+				return v, ok
+			}
+
+			got := resolveErrorMaskWith(Config{Errors: tt.cfg}, getenv)
 			require.Equal(t, tt.want, got)
 		})
 	}

@@ -148,6 +148,9 @@ type OpenSearchInfo struct {
 	} `json:"version"`
 }
 
+// lookupEnvFunc is the signature of os.LookupEnv.
+type lookupEnvFunc = func(name string) (string, bool)
+
 // Config represents the configuration of HTTP client.
 type Config struct {
 	URLs     []*url.URL
@@ -517,6 +520,10 @@ type Config struct {
 	//
 	// When nil (default), the built-in handler is used if AddressResolver is set.
 	AddressResolverRunner AddressResolverRunnerFunc
+
+	// lookupEnv reads the OPENSEARCH_GO_* overrides; nil reads the process
+	// environment. Only in-package tests set it.
+	lookupEnv lookupEnvFunc
 }
 
 // Transport manages HTTP round-trip concerns: connection pooling, retries,
@@ -701,6 +708,11 @@ func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) 
 
 // New creates new transport client.
 func New(cfg Config) (*Transport, error) {
+	getenv := cfg.lookupEnv
+	if getenv == nil {
+		getenv = os.LookupEnv
+	}
+
 	// Validate the compressor first, before any clone or goroutine exists, so a
 	// broken one fails here rather than on its first request.
 	compressor, err := newRequestCompressor(resolveCompressor(cfg.Compressor, cfg.CompressRequestBody))
@@ -789,7 +801,7 @@ func New(cfg Config) (*Transport, error) {
 	// RequestTimeout: 0 = no per-attempt timeout (default), >0 = explicit.
 	// OPENSEARCH_GO_REQUEST_TIMEOUT: time.ParseDuration format, integer seconds, or float seconds.
 	requestTimeout := cfg.RequestTimeout
-	if envVal, ok := os.LookupEnv(envvars.RequestTimeout); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.RequestTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			requestTimeout = d
 		}
@@ -806,7 +818,7 @@ func New(cfg Config) (*Transport, error) {
 	case verifyDeadAfter < 0:
 		verifyDeadAfter = 0
 	}
-	if envVal, ok := os.LookupEnv(envvars.VerifyDeadAfter); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.VerifyDeadAfter); ok && envVal != "" {
 		if d, err := envvars.ParseVerifyDeadAfter(envVal); err == nil {
 			verifyDeadAfter = d
 		}
@@ -915,7 +927,7 @@ func New(cfg Config) (*Transport, error) {
 	// 0 or unset = no override, <0 = disabled.
 	nodeStatsInterval := cfg.NodeStatsInterval
 	nodeStatsIntervalAuto := false
-	if envVal, ok := os.LookupEnv(envvars.NodeStatsInterval); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.NodeStatsInterval); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			nodeStatsInterval = d
 		}
@@ -932,7 +944,7 @@ func New(cfg Config) (*Transport, error) {
 	// OverloadedHeapThreshold: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD: integer 0-100.
 	overloadedHeapThreshold := cfg.OverloadedHeapThreshold
-	if envVal, ok := os.LookupEnv(envvars.OverloadedHeapThreshold); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.OverloadedHeapThreshold); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil {
 			overloadedHeapThreshold = v
 		}
@@ -944,7 +956,7 @@ func New(cfg Config) (*Transport, error) {
 	// OverloadedBreakerRatio: 0.0 = use default, >0.0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO: float 0.0-1.0.
 	overloadedBreakerRatio := cfg.OverloadedBreakerRatio
-	if envVal, ok := os.LookupEnv(envvars.OverloadedBreakerRatio); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.OverloadedBreakerRatio); ok && envVal != "" {
 		if v, err := strconv.ParseFloat(envVal, 64); err == nil && v > 0.0 && v <= 1.0 {
 			overloadedBreakerRatio = v
 		}
@@ -963,7 +975,7 @@ func New(cfg Config) (*Transport, error) {
 	// ActiveListCap: 0 = auto-derive, >0 = explicit cap, <0 = disabled.
 	// OPENSEARCH_GO_ACTIVE_LIST_CAP: integer.
 	activeListCap := cfg.ActiveListCap
-	if envVal, ok := os.LookupEnv(envvars.ActiveListCap); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.ActiveListCap); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil {
 			activeListCap = v
 		}
@@ -993,7 +1005,7 @@ func New(cfg Config) (*Transport, error) {
 	// StandbyRotationInterval: 0 = use DiscoverNodesInterval, >0 = explicit, <0 = disabled.
 	// OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL: time.ParseDuration format or integer seconds.
 	standbyRotationInterval := cfg.StandbyRotationInterval
-	if envVal, ok := os.LookupEnv(envvars.StandbyRotationInterval); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.StandbyRotationInterval); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			standbyRotationInterval = d
 		}
@@ -1002,7 +1014,7 @@ func New(cfg Config) (*Transport, error) {
 	// StandbyRotationCount: 0 = use default (1), >0 = explicit.
 	// OPENSEARCH_GO_STANDBY_ROTATION_COUNT: integer.
 	standbyRotationCount := cfg.StandbyRotationCount
-	if envVal, ok := os.LookupEnv(envvars.StandbyRotationCount); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.StandbyRotationCount); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil && v > 0 {
 			standbyRotationCount = v
 		}
@@ -1014,7 +1026,7 @@ func New(cfg Config) (*Transport, error) {
 	// StandbyPromotionChecks: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS: integer.
 	standbyPromotionChecks := int64(cfg.StandbyPromotionChecks)
-	if envVal, ok := os.LookupEnv(envvars.StandbyPromotionChecks); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.StandbyPromotionChecks); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil && v > 0 {
 			standbyPromotionChecks = int64(v)
 		}
@@ -1066,7 +1078,7 @@ func New(cfg Config) (*Transport, error) {
 	// ctx, so Close cancels it. See newDialContextDNSCache for the serve-stale and
 	// cache-sweep semantics.
 	if !customTransport {
-		settings := resolveDNSCacheSettings(cfg.DNSCacheRefresh, cfg.DNSDialTimeout, cfg.DNSKeepAlive, cfg.DNSTimeout)
+		settings := resolveDNSCacheSettings(getenv, cfg.DNSCacheRefresh, cfg.DNSDialTimeout, cfg.DNSKeepAlive, cfg.DNSTimeout)
 		if settings.refresh > 0 {
 			if httpTransport, ok := cfg.Transport.(*http.Transport); ok {
 				httpTransport = httpTransport.Clone()
@@ -1077,8 +1089,8 @@ func New(cfg Config) (*Transport, error) {
 	}
 
 	router := cfg.Router
-	if router == nil && !envvars.Falsy(envRouter) {
-		var opts []RouterOption
+	if router == nil && !envvars.FalsyFrom(getenv, envRouter) {
+		opts := []RouterOption{withLookupEnv(getenv)}
 		if cfg.ShardCostConfig != "" {
 			opts = append(opts, WithShardCosts(cfg.ShardCostConfig))
 		}
@@ -1181,12 +1193,12 @@ func New(cfg Config) (*Transport, error) {
 
 	// Parse discovery feature config from environment variable.
 	// Controls which server calls are made during the discovery cycle.
-	if val, ok := os.LookupEnv(envDiscoveryConfig); ok && val != "" {
+	if val, ok := getenv(envDiscoveryConfig); ok && val != "" {
 		client.discoveryFeatures = parseDiscoveryConfig(val)
 	}
 
 	// Parse seed URL fallback config. Default: enabled (zero-value).
-	if val, ok := os.LookupEnv(envFallbackConfig); ok && val != "" {
+	if val, ok := getenv(envFallbackConfig); ok && val != "" {
 		if b, err := strconv.ParseBool(val); err == nil && !b {
 			client.seedFallbackDisabled = true
 		}
@@ -1372,7 +1384,7 @@ func New(cfg Config) (*Transport, error) {
 		// the first DiscoveryUpdate so that force-disabled policies never
 		// accumulate connections.
 		if routerPolicy, ok := client.router.(Policy); ok {
-			if overrides := parsePolicyOverrides(); len(overrides) > 0 {
+			if overrides := parsePolicyOverrides(getenv); len(overrides) > 0 {
 				applyPolicyOverrides(routerPolicy, overrides)
 			}
 			// OPENSEARCH_GO_POLICY_DUMP prints the policy tree ("DOM") so an

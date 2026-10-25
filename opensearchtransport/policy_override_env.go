@@ -199,19 +199,19 @@ var policyTypeNames = []string{
 
 // parsePolicyOverrides reads OPENSEARCH_GO_POLICY_* environment variables
 // and returns parsed overrides. Only variables that are set AND non-empty
-// are processed (os.LookupEnv + non-empty check).
+// are processed (getenv lookup + non-empty check).
 //
 // Parsing priority for each env var value:
 //  1. strconv.ParseBool(value) -- if parseable, applies to ALL instances of that type
 //  2. Comma-separated items, each "path=<bool>":
 //     a. Split on last '=', try ParseBool(right) -- if valid, left is path pattern
 //     b. If right side isn't valid bool: treat entire item as regex then prefix
-func parsePolicyOverrides() []policyOverride {
+func parsePolicyOverrides(getenv lookupEnvFunc) []policyOverride {
 	var overrides []policyOverride
 
 	for _, name := range policyTypeNames {
 		envKey := "OPENSEARCH_GO_POLICY_" + strings.ToUpper(name)
-		envVal, ok := os.LookupEnv(envKey)
+		envVal, ok := getenv(envKey)
 		if !ok || envVal == "" {
 			continue
 		}

@@ -478,10 +478,16 @@ func newCachedDefault(cfg Config) (*Client, error) {
 //
 // It's an error to set both OPENSEARCH_URL and ELASTICSEARCH_URL.
 func NewClient(cfg Config) (*Client, error) {
+	return newClient(cfg, os.LookupEnv)
+}
+
+// newClient is NewClient reading the seed-address variable through getenv, so a
+// test can supply it without changing the process environment.
+func newClient(cfg Config, getenv func(string) (string, bool)) (*Client, error) {
 	var addrs []string
 
 	if len(cfg.Addresses) == 0 {
-		envAddress := getAddressFromEnvironment()
+		envAddress := addrsFromEnvironmentWith(getenv, envOpenSearchURL)
 		addrs = envAddress
 	} else {
 		addrs = append(addrs, cfg.Addresses...)
@@ -889,9 +895,14 @@ func (c *Client) GetConfig() *Config {
 // addrsFromEnvironment returns a list of addresses by splitting
 // the given environment variable with comma, or an empty list.
 func addrsFromEnvironment(name string) []string {
+	return addrsFromEnvironmentWith(os.LookupEnv, name)
+}
+
+// addrsFromEnvironmentWith is addrsFromEnvironment reading through getenv.
+func addrsFromEnvironmentWith(getenv func(string) (string, bool), name string) []string {
 	var addrs []string
 
-	if envURLs, ok := os.LookupEnv(name); ok && envURLs != "" {
+	if envURLs, ok := getenv(name); ok && envURLs != "" {
 		list := strings.Split(envURLs, ",")
 		addrs = make([]string, len(list))
 

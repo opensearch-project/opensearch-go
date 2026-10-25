@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"net"
-	"os"
 	"time"
 
 	"github.com/rs/dnscache"
@@ -58,9 +57,9 @@ const defaultDNSTimeout = 10 * time.Second
 //
 // A return value of 0 means caching is disabled; any positive value is the
 // refresh interval.
-func resolveDNSCacheRefresh(cfg time.Duration) time.Duration {
+func resolveDNSCacheRefresh(getenv lookupEnvFunc, cfg time.Duration) time.Duration {
 	refresh := cfg
-	if envVal, ok := os.LookupEnv(envvars.DNSCacheRefresh); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.DNSCacheRefresh); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			refresh = d
 		}
@@ -80,9 +79,9 @@ func resolveDNSCacheRefresh(cfg time.Duration) time.Duration {
 // value and the OPENSEARCH_GO_DNS_DIAL_TIMEOUT override (env wins when
 // parseable). The result feeds net.Dialer.Timeout directly: 0=default, <0=no
 // timeout, >0=explicit.
-func resolveDNSDialTimeout(cfg time.Duration) time.Duration {
+func resolveDNSDialTimeout(getenv lookupEnvFunc, cfg time.Duration) time.Duration {
 	timeout := cfg
-	if envVal, ok := os.LookupEnv(envvars.DNSDialTimeout); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.DNSDialTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			timeout = d
 		}
@@ -102,9 +101,9 @@ func resolveDNSDialTimeout(cfg time.Duration) time.Duration {
 // and the OPENSEARCH_GO_DNS_KEEP_ALIVE override (env wins when parseable). The
 // result feeds net.Dialer.KeepAlive directly: 0=default, <0=disabled (-1),
 // >0=explicit.
-func resolveDNSKeepAlive(cfg time.Duration) time.Duration {
+func resolveDNSKeepAlive(getenv lookupEnvFunc, cfg time.Duration) time.Duration {
 	keepAlive := cfg
-	if envVal, ok := os.LookupEnv(envvars.DNSKeepAlive); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.DNSKeepAlive); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			keepAlive = d
 		}
@@ -123,9 +122,9 @@ func resolveDNSKeepAlive(cfg time.Duration) time.Duration {
 // resolveDNSTimeout resolves the per-lookup DNS timeout from the config value
 // and the OPENSEARCH_GO_DNS_TIMEOUT override (env wins when parseable). The
 // result feeds dnscache.Resolver.Timeout: 0=default, <0=no timeout, >0=explicit.
-func resolveDNSTimeout(cfg time.Duration) time.Duration {
+func resolveDNSTimeout(getenv lookupEnvFunc, cfg time.Duration) time.Duration {
 	timeout := cfg
-	if envVal, ok := os.LookupEnv(envvars.DNSTimeout); ok && envVal != "" {
+	if envVal, ok := getenv(envvars.DNSTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			timeout = d
 		}
@@ -156,12 +155,12 @@ type dnsCacheSettings struct {
 // resolveDNSCacheSettings resolves the raw Config.DNS* values into the effective
 // tunables, applying env overrides and defaults. A zero refresh means caching is
 // disabled.
-func resolveDNSCacheSettings(refreshCfg, dialTimeoutCfg, keepAliveCfg, dnsTimeoutCfg time.Duration) dnsCacheSettings {
+func resolveDNSCacheSettings(getenv lookupEnvFunc, refreshCfg, dialTimeoutCfg, keepAliveCfg, dnsTimeoutCfg time.Duration) dnsCacheSettings {
 	return dnsCacheSettings{
-		refresh:     resolveDNSCacheRefresh(refreshCfg),
-		dialTimeout: resolveDNSDialTimeout(dialTimeoutCfg),
-		keepAlive:   resolveDNSKeepAlive(keepAliveCfg),
-		dnsTimeout:  resolveDNSTimeout(dnsTimeoutCfg),
+		refresh:     resolveDNSCacheRefresh(getenv, refreshCfg),
+		dialTimeout: resolveDNSDialTimeout(getenv, dialTimeoutCfg),
+		keepAlive:   resolveDNSKeepAlive(getenv, keepAliveCfg),
+		dnsTimeout:  resolveDNSTimeout(getenv, dnsTimeoutCfg),
 	}
 }
 

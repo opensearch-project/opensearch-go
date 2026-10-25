@@ -7,12 +7,21 @@
 package envvars //nolint:testpackage // white-box: exercises the unexported parseDefaultClientTTL directly
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+// mapLookup answers from env instead of the process environment, so the tests
+// that use it can run in parallel and an ambient variable cannot decide them.
+func mapLookup(env map[string]string) func(string) (string, bool) {
+	return func(name string) (string, bool) {
+		v, ok := env[name]
+
+		return v, ok
+	}
+}
 
 // TestTruthyAndFalsy covers the two boolean env-var helpers. Note the
 // asymmetry: unset, empty, and unparseable values all return false
@@ -21,6 +30,8 @@ import (
 // both helpers in tandem (e.g. `if !envvars.Falsy(name) { ... }` to
 // mean "unset OR truthy").
 func TestTruthyAndFalsy(t *testing.T) {
+	t.Parallel()
+
 	const key = "OS_GO_TEST_BOOL_HELPER"
 
 	tests := []struct {
@@ -43,20 +54,18 @@ func TestTruthyAndFalsy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			env := map[string]string{}
 			if tt.set {
-				t.Setenv(key, tt.setValue)
-			} else {
-				// Truly unset (not empty) so the LookupEnv ok==false path is
-				// exercised rather than duplicating the "empty string" row.
-				// t.Setenv first registers cleanup to restore any inherited
-				// value; os.Unsetenv then removes it for the test body.
-				t.Setenv(key, "")
-				os.Unsetenv(key) //nolint:usetesting // t.Setenv cannot unset; this test mutates process env and must not run in parallel
+				env[key] = tt.setValue
 			}
-			require.Equal(t, tt.wantTruthy, Truthy(key))
-			require.Equal(t, tt.wantFalsy, Falsy(key))
+			getenv := mapLookup(env)
+
+			require.Equal(t, tt.wantTruthy, TruthyFrom(getenv, key))
+			require.Equal(t, tt.wantFalsy, FalsyFrom(getenv, key))
 			// Truthy and Falsy must never both return true for the same value.
-			require.False(t, Truthy(key) && Falsy(key),
+			require.False(t, TruthyFrom(getenv, key) && FalsyFrom(getenv, key),
 				"Truthy and Falsy must be mutually exclusive")
 		})
 	}
@@ -68,6 +77,8 @@ func TestTruthyAndFalsy(t *testing.T) {
 // unset or empty Log falls through to Debug so nothing that relies on the boolean
 // alone changes.
 func TestDebugRequested(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		logSet   bool
@@ -102,22 +113,17 @@ func TestDebugRequested(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Setenv registers cleanup to restore any inherited value; Unsetenv
-			// then clears it so an ambient OPENSEARCH_GO_DEBUG in the developer's
-			// shell cannot decide the outcome. This test mutates process env and so
-			// must not run in parallel.
-			for _, key := range []string{Log, Debug} {
-				t.Setenv(key, "")
-				os.Unsetenv(key) //nolint:usetesting // t.Setenv cannot unset
-			}
+			t.Parallel()
+
+			env := map[string]string{}
 			if tt.logSet {
-				t.Setenv(Log, tt.logValue)
+				env[Log] = tt.logValue
 			}
 			if tt.debugSet {
-				t.Setenv(Debug, tt.debugVal)
+				env[Debug] = tt.debugVal
 			}
 
-			require.Equal(t, tt.want, DebugRequested())
+			require.Equal(t, tt.want, DebugRequestedFrom(mapLookup(env)))
 		})
 	}
 }
