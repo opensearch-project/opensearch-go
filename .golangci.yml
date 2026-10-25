@@ -176,6 +176,8 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      # A copy of another project's code, kept as that project wrote it.
+      - (^|/)third_party/
 issues:
   # Report every finding. At the defaults (3 and 50) golangci-lint truncates
   # repeated findings and says so in a log line that is easy to read past, so
@@ -204,3 +206,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - (^|/)third_party/

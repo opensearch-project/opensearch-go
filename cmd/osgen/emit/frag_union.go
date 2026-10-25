@@ -38,7 +38,7 @@ func (f *UnionFragment) Imports() []Import {
 		return nil
 	}
 	imps := []Import{
-		{Path: "encoding/json"},
+		jsonImport,
 		{Path: LocalModule + "/internal/build"},
 	}
 	var needBytes, needFmt bool
@@ -282,6 +282,21 @@ func (u {{.Name}}) MarshalJSON() ([]byte, error) {
 	}
 	return build.NullJSON, nil
 }
+{{template "marshalTo" .}}
+{{- end}}
+{{- define "marshalTo"}}
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u {{.Name}}) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
 {{- end}}
 {{- range $t := .}}
 {{- if $t.Discriminator}}
@@ -379,6 +394,62 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	if {{range $i, $p := .PresentProbes}}{{if $i}} && {{end}}len(m.{{$p}}) > 0{{end}} {
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = {{.Const}}
+		u.value = &v
+		return nil
+	}
+{{- end}}
+	u.typ = {{$t.Merge.PrimaryConst}}
+	u.value = &m.{{embedField (qualify $t.Merge.PrimaryGoType)}}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *{{$t.Name}}) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = {{$t.Name}}UnknownType
+	mark := json.MarkOf(dec)
+	if json.PeekKind(dec) == 'n' {
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	}
+	// Unknown keeps the members no other field takes, so the members can be
+	// written out again to decode another branch when the bytes are gone.
+	type merged struct {
+		{{qualify $t.Merge.PrimaryGoType}}
+	{{- range $t.Merge.Probes}}
+		{{.GoName}} json.RawMessage ` + "`json:\"{{.JSONKey}}\"`" + `
+	{{- end}}
+		Unknown json.TextValue ` + "`json:\",unknown\"`" + `
+	}
+	m := new(merged)
+	if err := json.UnmarshalDecode(dec, m); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+{{- range $t.Merge.Branches}}
+	if {{range $i, $p := .PresentProbes}}{{if $i}} && {{end}}len(m.{{$p}}) > 0{{end}} {
+		src := []byte(u.raw)
+		if !json.Valid(src) {
+			// A decoder reading an io.Reader reuses its buffer, so the bytes are
+			// gone or overwritten; write out the members it read instead.
+			u.raw = nil
+			b, err := json.Marshal(m)
+			if err != nil {
+				return err
+			}
+			src = b
+		}
+		var v {{qualify .GoType}}
+		if err := json.Unmarshal(src, &v); err != nil {
 			return err
 		}
 		u.typ = {{.Const}}
@@ -499,6 +570,7 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 	}
 	return build.NullJSON, nil
 }
+{{template "marshalTo" $t}}
 {{- else if isTryEach $t.Kind}}
 {{- if $t.Comment}}
 {{comment $t.Comment}}
@@ -633,6 +705,52 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	default:
 		return fmt.Errorf("{{$t.Name}}: unexpected JSON token: %s", data[:1])
 	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *{{$t.Name}}) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = {{$t.Name}}UnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+{{- range $t.Branches}}
+{{- if eq .TokenClass tokenObject}}
+	case '{':
+{{- else if eq .TokenClass tokenArray}}
+	case '[':
+{{- else if eq .TokenClass tokenString}}
+	case '"':
+{{- else if eq .TokenClass tokenNumber}}
+	case '0':
+{{- else if eq .TokenClass tokenBool}}
+	case 't', 'f':
+{{- end}}
+		var v {{qualify .GoType}}
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = {{constName $t.Name .Name}}
+		u.value = &v
+{{- end}}
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("{{$t.Name}}: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
 	return nil
 }
 

@@ -160,6 +160,8 @@ func FuzzItemMeta(f *testing.F) {
 	f.Add("create", "", "", "", false)
 	f.Add("delete", "a\"b", "c\nd", "e\\f", true)
 	f.Add("update", "idx", "<&>", "é", true)
+	// Neither half of U+0350 is valid UTF-8 on its own, but the two together are.
+	f.Add("0", "0", "\xcd", "\x90", false)
 
 	f.Fuzz(func(t *testing.T, action, index, id, routing string, hasRouting bool) {
 		item := BulkIndexerItem{Action: action, Index: index, DocumentID: id}
@@ -184,7 +186,7 @@ func FuzzItemMeta(f *testing.F) {
 		var meta map[string]map[string]any
 		require.NoError(t, json.Unmarshal([]byte(line), &meta), "valid JSON: %q", line)
 
-		if !utf8.ValidString(action + index + id + routing) {
+		if !utf8.ValidString(action) || !utf8.ValidString(index) || !utf8.ValidString(id) || !utf8.ValidString(routing) {
 			return // The encoder substitutes U+FFFD for invalid UTF-8.
 		}
 

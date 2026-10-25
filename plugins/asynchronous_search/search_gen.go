@@ -10,7 +10,6 @@ package asynchronous_search
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -62,11 +61,13 @@ func (r SearchReq) GetRequest(method string) (*http.Request, error) {
 
 	var bodyReader io.Reader
 	if r.Body != nil {
-		bodyData, err := json.Marshal(r.Body)
+		// Encoded into a pooled buffer, which Execute releases once the request
+		// has returned.
+		body, err := build.JSONBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
-		bodyReader = bytes.NewReader(bodyData)
+		bodyReader = body
 	} else if r.BodyReader != nil {
 		bodyReader = r.BodyReader
 	}

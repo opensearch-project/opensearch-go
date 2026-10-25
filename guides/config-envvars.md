@@ -38,6 +38,8 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_BULK_PID_KP`](#bulk-indexer)                                  | `1`                          | PID proportional gain                   |
 | [`OPENSEARCH_GO_BULK_PID_KI`](#bulk-indexer)                                  | `0.1`                        | PID integral gain                       |
 | [`OPENSEARCH_GO_BULK_PID_KD`](#bulk-indexer)                                  | `0.25`                       | PID derivative gain                     |
+| [`OPENSEARCH_GO_MGET`](#mget)                                                 | `coordinator`                | MGet driver: coordinator or direct      |
+| [`OPENSEARCH_GO_MGET_FANOUT`](#mget)                                          | `fewest-nodes`               | Direct MGet: fewest nodes or least load |
 | [`OPENSEARCH_GO_LOG`](#debug-and-diagnostics)                                 | unset                        | Internal log level                      |
 | [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging (superseded by `_LOG`)    |
 | [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask           |
@@ -146,6 +148,15 @@ Read once, when `opensearchutil.NewBulkIndexer` builds the bulk client, into pla
 | `OPENSEARCH_GO_BULK_PID_KD` | Non-negative float | `0.25` | The **derivative** gain: adds to each step in proportion to the change in `e` since the previous flush. A sudden slowdown adds a shrink on the flush where it appears, before the other two terms have caught up, and a recovery adds growth. Flush-to-flush noise changes `e` too; lower it, or set it to `0`, if the size jitters. Non-negative number. `0` turns the term off, and negative, `NaN`, infinite, or unparseable values are ignored. Each gain is read on its own, and has no effect when `OPENSEARCH_GO_BULK_SHARD=fixed`. Overrides `BulkSizing.PID.Kd`. | [How the PID controller works](indexing-bulk_indexer.md#how-the-pid-controller-works) |
 
 The two controllers are independent. To send every buffer at `FlushBytes`, set `OPENSEARCH_GO_BULK_SHARD=fixed`; nodes still back off on 429s. To hold every node's window where it started, set `OPENSEARCH_GO_BULK_TARGET=fixed`. Set both to turn sizing off altogether.
+
+## MGet
+
+Read once, when `opensearchapi.NewClient` builds the client. A variable that is set and valid overrides the matching `MGetConfig` field; unset, empty, or unparseable values leave the programmatic value (or default) in place. `WithMGetDriver` and `WithMGetFanOut` override both for one call.
+
+| Variable | Accepted values | Default | Meaning | See also |
+| --- | --- | --- | --- | --- |
+| `OPENSEARCH_GO_MGET` | `direct`, `coordinator` (case-insensitive) | `coordinator` | How `DocumentClient.MGet` fetches its documents. `coordinator` sends each mget as one request, and the node that receives it fetches each shard's documents from a node that holds a copy. `direct` sends each node only the documents it holds, with `preference=_local`, and puts the answers back in order. Overrides `MGetConfig.Driver`. | [Multi-Get](usage-mget.md#the-two-drivers) |
+| `OPENSEARCH_GO_MGET_FANOUT` | `fewest-nodes`, `least-loaded` (case-insensitive) | `fewest-nodes` | Which copy of each shard the `direct` driver reads from. `fewest-nodes` reads an mget from as few nodes as hold its shards, preferring a node the mget already sends to, and leaves out a node whose get thread pool is rejecting work while another copy is available. `least-loaded` reads each document from the copy on the node with the fewest documents in flight, which spreads an mget over every node that holds its shards. No effect with `coordinator`. Overrides `MGetConfig.FanOut`. | [Multi-Get](usage-mget.md#choosing-the-nodes-fan-out) |
 
 ## Debug and diagnostics
 

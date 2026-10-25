@@ -33,7 +33,7 @@ func (f *EnumFragment) Imports() []Import {
 		return nil
 	}
 	return []Import{
-		{Path: "encoding/json"},
+		jsonImport,
 		{Path: "fmt"},
 	}
 }
@@ -98,6 +98,16 @@ func (s {{$t.Name}}) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("invalid {{$t.Name}} value %d", int(s))
 	}
 	return json.Marshal(name)
+}
+
+// MarshalJSONTo writes s to enc as its wire name, as MarshalJSON encodes it. The
+// JSON codec the client encodes with calls it in place of MarshalJSON.
+func (s {{$t.Name}}) MarshalJSONTo(enc *json.TextEncoder) error {
+	name, ok := {{$names}}[s]
+	if !ok {
+		return fmt.Errorf("invalid {{$t.Name}} value %d", int(s))
+	}
+	return json.WriteString(enc, name)
 }
 
 // UnmarshalJSON decodes a wire name into its const. An unrecognized value sets

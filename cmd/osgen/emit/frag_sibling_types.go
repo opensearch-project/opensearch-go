@@ -37,7 +37,7 @@ func (f *SiblingTypesFragment) Imports() []Import {
 		}
 	}
 	if hasJSON {
-		imps = append(imps, Import{Path: "encoding/json"})
+		imps = append(imps, jsonImport)
 	}
 	if hasCrossPkg {
 		imps = append(imps, Import{Path: f.Registry.CoreImport})

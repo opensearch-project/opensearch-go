@@ -7,9 +7,10 @@
 package opensearchapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 // UnmarshalJSON decodes a [SnapshotShardFailure], accepting shard_id as either

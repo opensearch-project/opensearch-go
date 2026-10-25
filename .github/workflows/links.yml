@@ -1,6 +1,9 @@
 name: Link Checker
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 jobs:
   linkchecker:
@@ -22,6 +25,15 @@ jobs:
           key: cache-lychee-${{ github.sha }}
           restore-keys: cache-lychee-
 
+      # A pull request labeled pending-next-release documents symbols that
+      # pkg.go.dev cannot serve until the release is tagged, so a link to one
+      # of their anchors fails --include-fragments. Exclude this module's
+      # pkg.go.dev pages for such a pull request only.
+      - name: Skip pkg.go.dev for unreleased symbols
+        id: unreleased
+        if: contains(github.event.pull_request.labels.*.name, 'pending-next-release')
+        run: echo 'args=--exclude "^https://pkg.go.dev/github.com/opensearch-project/opensearch-go/"' >> "$GITHUB_OUTPUT"
+
       # Blocking: fail the build only on genuinely broken links (4xx/5xx,
       # DNS failures, timeouts). Redirects are accepted here so a moved link
       # does not break CI on its own -- the pass below surfaces those.
@@ -32,7 +44,7 @@ jobs:
         id: lychee-broken
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --include-fragments --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg" --exclude "^https://github.com/opensearch-project/opensearch-go/compare/"
+          args: --cache --max-cache-age 1d --cache-exclude-status '500..=599' --include-fragments --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg" --exclude "^https://github.com/opensearch-project/opensearch-go/compare/" ${{ steps.unreleased.outputs.args }}
           fail: true
           jobSummary: true
         env:
