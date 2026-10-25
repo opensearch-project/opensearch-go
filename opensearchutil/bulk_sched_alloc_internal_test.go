@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 // TestSchedulerPublishLoadAllocations: publishLoad runs once for every completed
@@ -24,7 +26,16 @@ import (
 // every node.
 func TestSchedulerPublishLoadAllocations(t *testing.T) {
 	cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(8)}, "n0", "n1", "n2")
-	bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{FlushInterval: time.Hour})
+	server := newFakeServer(cluster)
+
+	// AllocsPerRun counts mallocs process-wide, so the client must start no
+	// background discovery or stats polling that could allocate mid-measurement.
+	client := newBulkTestClient(t, server.roundTrip, func(c *opensearchapi.Config) {
+		c.Client.DiscoverNodesOnStart = new(false)
+		c.Client.NodeStatsInterval = -1
+	})
+	bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client, ShardRouter: cluster, FlushInterval: time.Hour})
+	require.NoError(t, err)
 	s := bi.(*bulkClient).sched
 
 	s.Lock()
