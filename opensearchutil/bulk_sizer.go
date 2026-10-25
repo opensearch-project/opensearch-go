@@ -276,8 +276,15 @@ type resolvedSizing struct {
 	kp, ki, kd float64
 }
 
-// resolve applies the defaults for a ceiling of flushBytes.
+// resolve applies the defaults for a ceiling of flushBytes, and the operator's
+// overrides from the process environment.
 func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
+	return c.resolveWith(flushBytes, os.LookupEnv)
+}
+
+// resolveWith is resolve reading the operator's overrides through getenv, so a
+// test can supply them without changing the process environment.
+func (c BulkSizing) resolveWith(flushBytes int, getenv func(string) (string, bool)) resolvedSizing {
 	ceiling := float64(max(flushBytes, 1))
 
 	r := resolvedSizing{
@@ -299,7 +306,7 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 		r.kp, r.ki, r.kd = sizingDefaultKp, sizingDefaultKi, sizingDefaultKd
 	}
 
-	r.applyEnv()
+	r.applyEnv(getenv)
 	r.fixed, r.targetFixed = r.shard == ShardFixed, r.node == TargetFixed
 
 	r.min = max(math.Min(r.min, ceiling), 1)
@@ -322,14 +329,14 @@ func (c BulkSizing) resolve(flushBytes int) resolvedSizing {
 // applyEnv applies the operator's overrides from the environment. It runs once,
 // as the bulk client is built, so that the controller tests plain fields afterwards
 // and never looks at the environment again.
-func (r *resolvedSizing) applyEnv() {
-	if v, ok := lookupEnv(envvars.BulkShard); ok {
+func (r *resolvedSizing) applyEnv(getenv func(string) (string, bool)) {
+	if v, ok := lookupEnv(getenv, envvars.BulkShard); ok {
 		if m, ok := parseSetting(v, ShardPID, ShardFixed); ok {
 			r.shard = m
 		}
 	}
 
-	if v, ok := lookupEnv(envvars.BulkTarget); ok {
+	if v, ok := lookupEnv(getenv, envvars.BulkTarget); ok {
 		if m, ok := parseSetting(v, TargetAIMD, TargetFixed); ok {
 			r.node = m
 		}
@@ -339,7 +346,7 @@ func (r *resolvedSizing) applyEnv() {
 		name string
 		gain *float64
 	}{{envvars.BulkPIDKp, &r.kp}, {envvars.BulkPIDKi, &r.ki}, {envvars.BulkPIDKd, &r.kd}} {
-		if v, ok := lookupEnv(g.name); ok {
+		if v, ok := lookupEnv(getenv, g.name); ok {
 			if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && !math.IsInf(f, 0) {
 				*g.gain = f
 			}
@@ -362,9 +369,10 @@ func parseSetting[T fmt.Stringer](v string, settings ...T) (T, bool) {
 	return zero, false
 }
 
-// lookupEnv returns the trimmed value of name, and whether it is set and not empty.
-func lookupEnv(name string) (string, bool) {
-	v, ok := os.LookupEnv(name)
+// lookupEnv returns the trimmed value of name through getenv, and whether it is
+// set and not empty.
+func lookupEnv(getenv func(string) (string, bool), name string) (string, bool) {
+	v, ok := getenv(name)
 	v = strings.TrimSpace(v)
 
 	return v, ok && v != ""
