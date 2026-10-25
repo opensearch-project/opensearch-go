@@ -20,6 +20,8 @@ import (
 )
 
 func TestSeedFallback(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Fallback succeeds when router returns ErrNoConnections", func(t *testing.T) {
 		seedURL, _ := url.Parse("http://seed-node:9200")
 

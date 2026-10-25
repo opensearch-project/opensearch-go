@@ -57,7 +57,8 @@ func TestParsePolicyOverrides_PathBool(t *testing.T) {
 func TestParsePolicyOverrides_CommaSeparated(t *testing.T) {
 	t.Parallel()
 
-	overrides := parsePolicyOverrides(envLookup(map[string]string{"OPENSEARCH_GO_POLICY_ROLE": "chain[0].role[0]=false,chain[0].role[1]=true"}))
+	env := map[string]string{"OPENSEARCH_GO_POLICY_ROLE": "chain[0].role[0]=false,chain[0].role[1]=true"}
+	overrides := parsePolicyOverrides(envLookup(env))
 	require.Len(t, overrides, 1)
 	require.Len(t, overrides[0].matchers, 2)
 	require.False(t, overrides[0].matchers[0].enable, "first matcher should be disable")

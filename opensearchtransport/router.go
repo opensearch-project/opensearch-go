@@ -743,7 +743,8 @@ func withLookupEnv(getenv lookupEnvFunc) RouterOption {
 	return func(c *routerConfig) { c.lookupEnv = getenv }
 }
 
-func defaultRouterConfig() routerConfig {	return routerConfig{
+func defaultRouterConfig() routerConfig {
+	return routerConfig{
 		minFanOut:       defaultMinFanOut,
 		maxFanOut:       defaultMaxFanOut,
 		idleEvictionTTL: defaultIdleEvictionTTL,
