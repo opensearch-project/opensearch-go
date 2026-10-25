@@ -18,7 +18,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
@@ -27,7 +26,9 @@ import (
 // pool as it does against a cluster, and checks that what the transport makes of
 // the pool does not hold the bulk client below NumWorkers requests to the node.
 // TestBulkIndexerPoolWindowDoesNotCapRequests sets the pool's window by hand.
-func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralleltest // Sets an environment variable.
+func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
+	t.Parallel()
+
 	const (
 		shards     = 8
 		numWorkers = 4
@@ -38,15 +39,15 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 		name string
 		// statsInterval is the node statistics poll interval; below zero, the
 		// node's statistics are never polled.
-		statsInterval string
+		statsInterval time.Duration
 	}{
-		{name: "before any statistics poll", statsInterval: "-1"},
-		{name: "after a poll of a node that rejected writes before the client started", statsInterval: "10ms"},
+		{name: "before any statistics poll", statsInterval: -1},
+		{name: "after a poll of a node that rejected writes before the client started", statsInterval: 10 * time.Millisecond},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(envvars.NodeStatsInterval, tt.statsInterval)
+			t.Parallel()
 
 			m := DefaultShardMap(shards)
 			catShards := make([]string, shards)
@@ -100,6 +101,7 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 			}, func(cfg *opensearchapi.Config) {
 				cfg.Client.Addresses = []string{"http://127.0.0.1:9200"}
 				cfg.Client.DiscoverNodesOnStart = new(false)
+				cfg.Client.NodeStatsInterval = tt.statsInterval
 			})
 
 			// The first lookup registers the index; discovery then fetches its shard
@@ -115,7 +117,7 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) { //nolint:paralle
 				return false
 			}, 10*time.Second, 10*time.Millisecond, "the transport never placed the index's shards")
 
-			if tt.statsInterval != "-1" {
+			if tt.statsInterval > 0 {
 				<-secondPoll
 				defer close(resume)
 			}

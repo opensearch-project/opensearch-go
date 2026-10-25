@@ -191,6 +191,13 @@ type Config struct {
 	// otherwise; <0 = disabled; >0 = explicit interval.
 	DiscoverNodesInterval time.Duration
 
+	// NodeStatsInterval sets how often each node's JVM heap, circuit breaker and
+	// thread pool statistics are polled. 0 = auto-derive from cluster size;
+	// >0 = explicit interval; <0 = disabled. The
+	// OPENSEARCH_GO_NODE_STATS_INTERVAL environment variable overrides it; see
+	// [opensearchtransport.Config.NodeStatsInterval].
+	NodeStatsInterval time.Duration
+
 	// VerifyDeadAfter is the duration a dead connection can be blindly
 	// resurrected for use as a zombie connection when no other healthy
 	// connections are available. A connection proven reachable is a zombie
@@ -529,6 +536,8 @@ func NewClient(cfg Config) (*Client, error) {
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
 
+		NodeStatsInterval: cfg.NodeStatsInterval,
+
 		VerifyDeadAfter: cfg.VerifyDeadAfter,
 
 		HealthCheckTimeout:    cfg.HealthCheckTimeout,
@@ -696,6 +705,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		b.Int(-1)
 	}
 	b.Int(int64(cfg.DiscoverNodesInterval)).
+		Int(int64(cfg.NodeStatsInterval)).
 		Int(int64(cfg.VerifyDeadAfter)).
 		Int(int64(cfg.HealthCheckTimeout)).
 		Int(int64(cfg.HealthCheckMaxRetries)).
