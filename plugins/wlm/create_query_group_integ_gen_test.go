@@ -23,6 +23,7 @@ import (
 
 func TestCreateQueryGroup(t *testing.T) {
 	t.Skip("requires workload management query group") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

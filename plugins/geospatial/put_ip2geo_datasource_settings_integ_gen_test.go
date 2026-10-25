@@ -23,6 +23,7 @@ import (
 
 func TestPutIP2GeoDatasourceSettings(t *testing.T) {
 	t.Skip("requires IP2Geo datasource or external network access") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

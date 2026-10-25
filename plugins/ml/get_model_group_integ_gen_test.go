@@ -22,6 +22,7 @@ import (
 
 func TestGetModelGroup(t *testing.T) {
 	t.Skip("requires ML model or connector registration") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-get-model-group")

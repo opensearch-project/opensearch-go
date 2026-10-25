@@ -22,6 +22,7 @@ import (
 
 func TestDeleteScheduledExperiments(t *testing.T) {
 	t.Skip("requires search relevance resources (experiments, query sets)") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

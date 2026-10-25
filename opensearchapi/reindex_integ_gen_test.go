@@ -22,6 +22,7 @@ import (
 
 func TestReindex(t *testing.T) {
 	t.Skip("requires source index with documents") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

@@ -23,6 +23,7 @@ import (
 
 func TestMSearch(t *testing.T) {
 	t.Skip("requires NDJSON multi-search body") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

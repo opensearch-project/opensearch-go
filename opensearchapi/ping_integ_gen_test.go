@@ -19,6 +19,7 @@ import (
 )
 
 func TestPing(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

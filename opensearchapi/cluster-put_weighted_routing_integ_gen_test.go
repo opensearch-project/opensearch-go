@@ -22,6 +22,7 @@ import (
 
 func TestClusterPutWeightedRouting(t *testing.T) {
 	t.Skip("requires awareness attributes and weighted routing setup") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-cluster-put-weighted-routing")

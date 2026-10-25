@@ -22,6 +22,7 @@ import (
 
 func TestGetRoleMapping(t *testing.T) {
 	t.Skip("requires security plugin resources") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-get-role-mapping")

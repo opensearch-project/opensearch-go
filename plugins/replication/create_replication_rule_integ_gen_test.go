@@ -23,6 +23,7 @@ import (
 
 func TestCreateReplicationRule(t *testing.T) {
 	t.Skip("requires cross-cluster replication setup") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

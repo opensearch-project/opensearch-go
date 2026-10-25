@@ -22,6 +22,7 @@ import (
 
 func TestDeletePolicy(t *testing.T) {
 	t.Skip("requires existing ISM policy") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-delete-policy")

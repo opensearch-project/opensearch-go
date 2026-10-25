@@ -23,6 +23,7 @@ import (
 
 func TestIndicesAddBlock(t *testing.T) {
 	t.Skip("requires valid block name (write/read/read_only/metadata)") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

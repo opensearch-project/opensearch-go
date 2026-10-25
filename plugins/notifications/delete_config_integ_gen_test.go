@@ -22,6 +22,7 @@ import (
 
 func TestDeleteConfig(t *testing.T) {
 	t.Skip("requires notification channel or config") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

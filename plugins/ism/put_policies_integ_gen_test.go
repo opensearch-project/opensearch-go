@@ -23,6 +23,7 @@ import (
 
 func TestPutPolicies(t *testing.T) {
 	t.Skip("requires valid ISM policy document body") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-put-policies")

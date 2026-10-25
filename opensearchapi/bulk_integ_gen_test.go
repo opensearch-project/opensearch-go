@@ -24,6 +24,7 @@ import (
 
 func TestBulk(t *testing.T) {
 	t.Skip("requires NDJSON body with action metadata") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

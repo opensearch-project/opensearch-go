@@ -22,6 +22,7 @@ import (
 
 func TestRenderSearchTemplate(t *testing.T) {
 	t.Skip("requires search template body") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

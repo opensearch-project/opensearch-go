@@ -21,6 +21,7 @@ import (
 
 func TestSearchModels(t *testing.T) {
 	t.Skip("requires KNN model training data and infrastructure") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

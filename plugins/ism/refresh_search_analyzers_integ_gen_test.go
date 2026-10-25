@@ -24,6 +24,7 @@ import (
 
 func TestRefreshSearchAnalyzers(t *testing.T) {
 	t.Skip("response struct does not match actual response format") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

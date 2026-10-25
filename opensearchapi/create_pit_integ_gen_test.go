@@ -23,6 +23,7 @@ import (
 )
 
 func TestCreatePIT(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "CreatePIT")

@@ -21,6 +21,7 @@ import (
 )
 
 func TestCatClusterManager(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.0", "CatClusterManager")
