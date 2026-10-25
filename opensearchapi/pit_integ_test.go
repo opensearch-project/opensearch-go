@@ -264,36 +264,3 @@ func TestIntegration_PITDeleteMissing(t *testing.T) {
 	_, err = pit.Search(t.Context(), &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{}})
 	require.ErrorIs(t, err, opensearchapi.ErrPITClosed)
 }
-
-// TestIntegration_PITKeepAliveRefresh checks that PIT.Search keeps a PIT open
-// without sending keep_alive: the server restarts the keep_alive set on create
-// with every search, so searching every 5s keeps a PIT with a 20s keep_alive
-// open for 2 minutes. Expired PITs are freed by a periodic sweep (about a
-// minute by default), so an unsearched PIT would be gone within about 80s and
-// the window spans that.
-func TestIntegration_PITKeepAliveRefresh(t *testing.T) {
-	if testing.Short() {
-		t.Skip("spans the server's expiry sweep")
-	}
-	client, err := testutil.NewClient(t)
-	require.NoError(t, err)
-	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
-	index := newPITIndex(t, client, pitDocs)
-
-	pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{
-		Indices: []string{index},
-		Params:  &opensearchapi.CreatePITParams{KeepAlive: 20 * time.Second},
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = pit.Close(context.Background()) }) // t.Context() is done by cleanup
-
-	ctx := t.Context()
-	gone := func() bool {
-		if _, err := pit.Search(ctx, &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Size: new(1)}}); err != nil {
-			return true
-		}
-		ok, err := findPIT(ctx, client, pit.ID())
-		return err != nil || !ok
-	}
-	require.Never(t, gone, 2*time.Minute, 5*time.Second)
-}

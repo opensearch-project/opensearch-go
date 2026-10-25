@@ -383,6 +383,7 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 {{- if .Config.SkipReason}}
 	t.Skip({{quote .Config.SkipReason}}) //nolint:gocritic // FIXME: implement proper test fixture
 {{- end}}
+	t.Parallel()
 {{- if .Config.IsPlugin}}
 	client, err := plugintest.NewClient(t)
 {{- else}}
