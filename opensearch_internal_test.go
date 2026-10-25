@@ -35,7 +35,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -97,6 +96,8 @@ func (r testReq) GetRequest(method string) (*http.Request, error) {
 }
 
 func TestClientConfiguration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("With empty", func(t *testing.T) {
 		c, err := NewDefaultClient()
 		require.NoError(t, err)
@@ -131,7 +132,11 @@ func TestClientConfiguration(t *testing.T) {
 			return "http://example.com", name == envOpenSearchURL
 		}
 
-		c, err := newClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)}, getenv)
+		cfg := Config{
+			Addresses: []string{"http://localhost:8080//"},
+			Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+		}
+		c, err := newClient(cfg, getenv)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://localhost:8080", u)
@@ -145,10 +150,11 @@ func TestClientConfiguration(t *testing.T) {
 	})
 
 	t.Run("With invalid URL from environment", func(t *testing.T) {
-		os.Setenv(envOpenSearchURL, ":foobar")
-		defer func() { os.Setenv(envOpenSearchURL, "") }()
+		getenv := func(name string) (string, bool) {
+			return ":foobar", name == envOpenSearchURL
+		}
 
-		_, err := NewDefaultClient()
+		_, err := newClient(Config{}, getenv)
 		require.Error(t, err)
 	})
 

@@ -42,6 +42,8 @@ func (b *closeCountBody) Close() error {
 // http.RoundTripper does for a request it fails. A body that lends memory, such
 // as a bulk indexer's buffer, is released by its Close.
 func TestStreamClosesBodyOnErrNoConnections(t *testing.T) {
+	t.Parallel()
+
 	t.Run("seed fallback disabled", func(t *testing.T) {
 		t.Parallel()
 
