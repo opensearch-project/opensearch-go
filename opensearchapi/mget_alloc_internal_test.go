@@ -104,10 +104,13 @@ var mgetAllocModes = []mgetAllocMode{
 
 // newMGetAllocClient returns a client whose requests the replay transport
 // answers. The direct driver routes over the fake's shard map, and sends each
-// node's request as it does against a cluster.
+// node's request as it does against a cluster. The router is off, so the client
+// starts no seed health check or discovery: AllocsPerRun counts mallocs
+// process-wide, and either would allocate mid-measurement.
 func newMGetAllocClient(tb testing.TB, mode mgetAllocMode) *Client {
 	tb.Helper()
 
+	tb.Setenv("OPENSEARCH_GO_ROUTER", "false")
 	c, err := NewClient(Config{Client: opensearch.Config{
 		Addresses: []string{"http://replay.invalid:9200"},
 		Transport: newMGetReplayTransport(),
