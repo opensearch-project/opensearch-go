@@ -22,6 +22,7 @@ import (
 )
 
 func TestIndicesPutIndexTemplate(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-indices-put-index-template")

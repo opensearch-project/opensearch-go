@@ -278,17 +278,17 @@ func FuzzBulkSizingEnv(f *testing.F) {
 	f.Add("x", "y", "1e400", "0x10", "  7  ")
 
 	f.Fuzz(func(t *testing.T, shard, node, kp, ki, kd string) {
-		if strings.ContainsRune(shard+node+kp+ki+kd, 0) {
-			t.Skip("an environment variable cannot hold a NUL")
+		t.Parallel()
+
+		env := map[string]string{
+			envvars.BulkShard:  shard,
+			envvars.BulkTarget: node,
+			envvars.BulkPIDKp:  kp,
+			envvars.BulkPIDKi:  ki,
+			envvars.BulkPIDKd:  kd,
 		}
 
-		t.Setenv(envvars.BulkShard, shard)
-		t.Setenv(envvars.BulkTarget, node)
-		t.Setenv(envvars.BulkPIDKp, kp)
-		t.Setenv(envvars.BulkPIDKi, ki)
-		t.Setenv(envvars.BulkPIDKd, kd)
-
-		r := BulkSizing{}.resolve(testCeiling)
+		r := BulkSizing{}.resolveWith(testCeiling, envLookup(env))
 		for name, gain := range map[string]float64{"kp": r.kp, "ki": r.ki, "kd": r.kd} {
 			require.False(t, math.IsNaN(gain) || math.IsInf(gain, 0) || gain < 0, "%q = %v", name, gain)
 		}

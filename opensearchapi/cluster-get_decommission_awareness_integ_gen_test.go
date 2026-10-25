@@ -22,6 +22,7 @@ import (
 
 func TestClusterGetDecommissionAwareness(t *testing.T) {
 	t.Skip("requires awareness attributes configured") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-cluster-get-decommission-awareness")

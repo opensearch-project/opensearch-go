@@ -191,6 +191,13 @@ type Config struct {
 	// otherwise; <0 = disabled; >0 = explicit interval.
 	DiscoverNodesInterval time.Duration
 
+	// NodeStatsInterval sets how often each node's JVM heap, circuit breaker and
+	// thread pool statistics are polled. 0 = auto-derive from cluster size;
+	// >0 = explicit interval; <0 = disabled. The
+	// OPENSEARCH_GO_NODE_STATS_INTERVAL environment variable overrides it; see
+	// [opensearchtransport.Config.NodeStatsInterval].
+	NodeStatsInterval time.Duration
+
 	// VerifyDeadAfter is the duration a dead connection can be blindly
 	// resurrected for use as a zombie connection when no other healthy
 	// connections are available. A connection proven reachable is a zombie
@@ -471,10 +478,16 @@ func newCachedDefault(cfg Config) (*Client, error) {
 //
 // It's an error to set both OPENSEARCH_URL and ELASTICSEARCH_URL.
 func NewClient(cfg Config) (*Client, error) {
+	return newClient(cfg, os.LookupEnv)
+}
+
+// newClient is NewClient reading the seed-address variable through getenv, so a
+// test can supply it without changing the process environment.
+func newClient(cfg Config, getenv func(string) (string, bool)) (*Client, error) {
 	var addrs []string
 
 	if len(cfg.Addresses) == 0 {
-		envAddress := getAddressFromEnvironment()
+		envAddress := addrsFromEnvironmentWith(getenv, envOpenSearchURL)
 		addrs = envAddress
 	} else {
 		addrs = append(addrs, cfg.Addresses...)
@@ -528,6 +541,8 @@ func NewClient(cfg Config) (*Client, error) {
 		DebugLogger: cfg.DebugLogger,
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
+
+		NodeStatsInterval: cfg.NodeStatsInterval,
 
 		VerifyDeadAfter: cfg.VerifyDeadAfter,
 
@@ -696,6 +711,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		b.Int(-1)
 	}
 	b.Int(int64(cfg.DiscoverNodesInterval)).
+		Int(int64(cfg.NodeStatsInterval)).
 		Int(int64(cfg.VerifyDeadAfter)).
 		Int(int64(cfg.HealthCheckTimeout)).
 		Int(int64(cfg.HealthCheckMaxRetries)).
@@ -879,9 +895,14 @@ func (c *Client) GetConfig() *Config {
 // addrsFromEnvironment returns a list of addresses by splitting
 // the given environment variable with comma, or an empty list.
 func addrsFromEnvironment(name string) []string {
+	return addrsFromEnvironmentWith(os.LookupEnv, name)
+}
+
+// addrsFromEnvironmentWith is addrsFromEnvironment reading through getenv.
+func addrsFromEnvironmentWith(getenv func(string) (string, bool), name string) []string {
 	var addrs []string
 
-	if envURLs, ok := os.LookupEnv(name); ok && envURLs != "" {
+	if envURLs, ok := getenv(name); ok && envURLs != "" {
 		list := strings.Split(envURLs, ",")
 		addrs = make([]string, len(list))
 

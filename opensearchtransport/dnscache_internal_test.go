@@ -79,6 +79,15 @@ func testDNSSettings() dnsCacheSettings {
 	}
 }
 
+// envLookup returns a lookupEnvFunc backed by env instead of the process
+// environment, so tests can exercise env overrides in parallel.
+func envLookup(env map[string]string) lookupEnvFunc {
+	return func(name string) (string, bool) {
+		v, ok := env[name]
+		return v, ok
+	}
+}
+
 func TestResolveDNSCacheRefresh(t *testing.T) {
 	t.Parallel()
 
@@ -95,13 +104,14 @@ func TestResolveDNSCacheRefresh(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, resolveDNSCacheRefresh(tt.cfg))
+			require.Equal(t, tt.want, resolveDNSCacheRefresh(envLookup(nil), tt.cfg))
 		})
 	}
 }
 
 func TestResolveDNSCacheRefreshEnvOverride(t *testing.T) {
-	// Cannot be parallel: t.Setenv forbids it.
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		env  string
@@ -116,8 +126,9 @@ func TestResolveDNSCacheRefreshEnvOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("OPENSEARCH_GO_DNS_CACHE_REFRESH", tt.env)
-			require.Equal(t, tt.want, resolveDNSCacheRefresh(tt.cfg))
+			t.Parallel()
+			env := map[string]string{"OPENSEARCH_GO_DNS_CACHE_REFRESH": tt.env}
+			require.Equal(t, tt.want, resolveDNSCacheRefresh(envLookup(env), tt.cfg))
 		})
 	}
 }
@@ -138,13 +149,14 @@ func TestResolveDNSDialTimeout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, resolveDNSDialTimeout(tt.cfg))
+			require.Equal(t, tt.want, resolveDNSDialTimeout(envLookup(nil), tt.cfg))
 		})
 	}
 }
 
 func TestResolveDNSDialTimeoutEnvOverride(t *testing.T) {
-	// Cannot be parallel: t.Setenv forbids it.
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		env  string
@@ -159,8 +171,9 @@ func TestResolveDNSDialTimeoutEnvOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("OPENSEARCH_GO_DNS_DIAL_TIMEOUT", tt.env)
-			require.Equal(t, tt.want, resolveDNSDialTimeout(tt.cfg))
+			t.Parallel()
+			env := map[string]string{"OPENSEARCH_GO_DNS_DIAL_TIMEOUT": tt.env}
+			require.Equal(t, tt.want, resolveDNSDialTimeout(envLookup(env), tt.cfg))
 		})
 	}
 }
@@ -181,13 +194,14 @@ func TestResolveDNSKeepAlive(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, resolveDNSKeepAlive(tt.cfg))
+			require.Equal(t, tt.want, resolveDNSKeepAlive(envLookup(nil), tt.cfg))
 		})
 	}
 }
 
 func TestResolveDNSKeepAliveEnvOverride(t *testing.T) {
-	// Cannot be parallel: t.Setenv forbids it.
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		env  string
@@ -202,8 +216,9 @@ func TestResolveDNSKeepAliveEnvOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("OPENSEARCH_GO_DNS_KEEP_ALIVE", tt.env)
-			require.Equal(t, tt.want, resolveDNSKeepAlive(tt.cfg))
+			t.Parallel()
+			env := map[string]string{"OPENSEARCH_GO_DNS_KEEP_ALIVE": tt.env}
+			require.Equal(t, tt.want, resolveDNSKeepAlive(envLookup(env), tt.cfg))
 		})
 	}
 }
@@ -224,13 +239,14 @@ func TestResolveDNSTimeout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, resolveDNSTimeout(tt.cfg))
+			require.Equal(t, tt.want, resolveDNSTimeout(envLookup(nil), tt.cfg))
 		})
 	}
 }
 
 func TestResolveDNSTimeoutEnvOverride(t *testing.T) {
-	// Cannot be parallel: t.Setenv forbids it.
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		env  string
@@ -245,8 +261,9 @@ func TestResolveDNSTimeoutEnvOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("OPENSEARCH_GO_DNS_TIMEOUT", tt.env)
-			require.Equal(t, tt.want, resolveDNSTimeout(tt.cfg))
+			t.Parallel()
+			env := map[string]string{"OPENSEARCH_GO_DNS_TIMEOUT": tt.env}
+			require.Equal(t, tt.want, resolveDNSTimeout(envLookup(env), tt.cfg))
 		})
 	}
 }

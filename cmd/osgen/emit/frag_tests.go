@@ -304,6 +304,11 @@ func (c IntegTestConfig) HasFlag(f TestFlag) bool {
 	return c.Flags&f != 0
 }
 
+// Serial returns true if TestSerial is set.
+func (c IntegTestConfig) Serial() bool {
+	return c.Flags&TestSerial != 0
+}
+
 // WaitReady returns true if TestWaitReady is set.
 func (c IntegTestConfig) WaitReady() bool {
 	return c.Flags&TestWaitReady != 0
@@ -382,6 +387,9 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 }).Parse(`func Test{{.Config.TypePrefix}}(t *testing.T) {
 {{- if .Config.SkipReason}}
 	t.Skip({{quote .Config.SkipReason}}) //nolint:gocritic // FIXME: implement proper test fixture
+{{- end}}
+{{- if not .Config.Serial}}
+	t.Parallel()
 {{- end}}
 {{- if .Config.IsPlugin}}
 	client, err := plugintest.NewClient(t)

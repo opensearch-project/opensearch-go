@@ -24,6 +24,7 @@ import (
 
 func TestCreate(t *testing.T) {
 	t.Skip("op_type=create conflicts with doc fixture") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

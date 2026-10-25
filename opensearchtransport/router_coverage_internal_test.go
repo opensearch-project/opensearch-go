@@ -20,6 +20,8 @@ import (
 // --- NewDefaultPolicy env var override coverage ---
 
 func TestNewDefaultPolicy_EnvOverrides(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		envVars     map[string]string
@@ -60,14 +62,13 @@ func TestNewDefaultPolicy_EnvOverrides(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for k, v := range tt.envVars {
-				t.Setenv(k, v)
-			}
+			t.Parallel()
 			if tt.enableDebug {
 				enableTestDebugLogger(t)
 			}
 
-			policy, err := NewDefaultPolicy(tt.opts...)
+			opts := append([]RouterOption{withLookupEnv(envLookup(tt.envVars))}, tt.opts...)
+			policy, err := NewDefaultPolicy(opts...)
 			require.NoError(t, err)
 			require.NotNil(t, policy)
 		})

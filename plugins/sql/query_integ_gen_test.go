@@ -23,6 +23,7 @@ import (
 
 func TestQuery(t *testing.T) {
 	t.Skip("requires valid SQL query body") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

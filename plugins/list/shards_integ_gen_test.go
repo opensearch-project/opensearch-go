@@ -24,6 +24,7 @@ import (
 
 func TestShards(t *testing.T) {
 	t.Skip("response struct does not match cat-style response format") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 

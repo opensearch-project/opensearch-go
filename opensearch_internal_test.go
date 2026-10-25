@@ -35,7 +35,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -97,6 +96,8 @@ func (r testReq) GetRequest(method string) (*http.Request, error) {
 }
 
 func TestClientConfiguration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("With empty", func(t *testing.T) {
 		c, err := NewDefaultClient()
 		require.NoError(t, err)
@@ -112,20 +113,30 @@ func TestClientConfiguration(t *testing.T) {
 	})
 
 	t.Run("With URL from OPENSEARCH_URL", func(t *testing.T) {
-		os.Setenv(envOpenSearchURL, "http://opensearch.com")
-		defer func() { os.Setenv(envOpenSearchURL, "") }()
+		t.Parallel()
 
-		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+		getenv := func(name string) (string, bool) {
+			return "http://opensearch.com", name == envOpenSearchURL
+		}
+
+		c, err := newClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)}, getenv)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://opensearch.com", u)
 	})
 
 	t.Run("With URL from environment and cfg.Addresses", func(t *testing.T) {
-		os.Setenv(envOpenSearchURL, "http://example.com")
-		defer func() { os.Setenv(envOpenSearchURL, "") }()
+		t.Parallel()
 
-		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+		getenv := func(name string) (string, bool) {
+			return "http://example.com", name == envOpenSearchURL
+		}
+
+		cfg := Config{
+			Addresses: []string{"http://localhost:8080//"},
+			Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+		}
+		c, err := newClient(cfg, getenv)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://localhost:8080", u)
@@ -139,10 +150,11 @@ func TestClientConfiguration(t *testing.T) {
 	})
 
 	t.Run("With invalid URL from environment", func(t *testing.T) {
-		os.Setenv(envOpenSearchURL, ":foobar")
-		defer func() { os.Setenv(envOpenSearchURL, "") }()
+		getenv := func(name string) (string, bool) {
+			return ":foobar", name == envOpenSearchURL
+		}
 
-		_, err := NewDefaultClient()
+		_, err := newClient(Config{}, getenv)
 		require.Error(t, err)
 	})
 
@@ -919,7 +931,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 52
+	const knownFieldCount = 53
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")

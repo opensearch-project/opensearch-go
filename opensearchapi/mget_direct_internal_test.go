@@ -16,7 +16,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -1210,6 +1209,8 @@ func TestParseMGetFanOut(t *testing.T) {
 // override the configuration, and that a value that does not parse, or spells
 // the Default, leaves the configuration's choice in place.
 func TestMGetChoiceEnv(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		env        map[string]string
@@ -1246,18 +1247,15 @@ func TestMGetChoiceEnv(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for _, name := range []string{envvars.MGet, envvars.MGetFanOut} {
-				if v, ok := tt.env[name]; ok {
-					t.Setenv(name, v)
-				} else {
-					// t.Setenv restores the variable after the test; unsetting it
-					// tests the unset case whatever the process environment holds.
-					t.Setenv(name, "")
-					require.NoError(t, os.Unsetenv(name))
-				}
+			t.Parallel()
+
+			getenv := func(name string) (string, bool) {
+				v, ok := tt.env[name]
+
+				return v, ok
 			}
 
-			d := newMGetDriver(tt.config, nil)
+			d := newMGetDriverWith(tt.config, nil, getenv)
 			require.Equal(t, tt.wantDriver, d.driver)
 			require.Equal(t, tt.wantFanOut, d.fanOut)
 		})

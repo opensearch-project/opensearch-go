@@ -20,6 +20,8 @@ import (
 )
 
 func TestSeedFallback(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Fallback succeeds when router returns ErrNoConnections", func(t *testing.T) {
 		seedURL, _ := url.Parse("http://seed-node:9200")
 
@@ -101,10 +103,11 @@ func TestSeedFallback(t *testing.T) {
 	})
 
 	t.Run("Fallback disabled via OPENSEARCH_GO_FALLBACK=false", func(t *testing.T) {
-		t.Setenv(envFallbackConfig, "false")
+		t.Parallel()
 
 		seedURL, _ := url.Parse("http://seed-node:9200")
 		tp, err := New(Config{
+			lookupEnv:             envLookup(map[string]string{envFallbackConfig: "false"}),
 			URLs:                  []*url.URL{seedURL},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,

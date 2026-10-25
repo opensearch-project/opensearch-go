@@ -250,13 +250,18 @@ func TestBulkIndexerWarnsOnceWhenShardRoutingIsUnavailable(t *testing.T) { //nol
 // TestBulkIndexerUserRouterIsNotDiagnosed pins that the start-up warning is about
 // the client's own router. One the caller supplied is theirs: it may be a
 // StaticShardRouter on a client that has no router, and that works.
-func TestBulkIndexerUserRouterIsNotDiagnosed(t *testing.T) { //nolint:paralleltest // Sets an environment variable.
-	t.Setenv("OPENSEARCH_GO_ROUTER", "false")
+func TestBulkIndexerUserRouterIsNotDiagnosed(t *testing.T) {
+	t.Parallel()
 
-	server := newFakeServer(newFakeCluster(nil))
 	var got warnings
 	router := StaticShardRouter{"idx": DefaultShardMap(8)}
-	bi := newBulkClient(t, server, BulkIndexerConfig{NumWorkers: 1, ShardRouter: router, OnWarning: got.add})
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		Client:      &opensearchapi.Client{Client: &opensearch.Client{Transport: plainTransport{}}},
+		NumWorkers:  1,
+		ShardRouter: router,
+		OnWarning:   got.add,
+	})
+	require.NoError(t, err)
 
 	require.Empty(t, got.all())
 	require.NotEqual(t, NoShardRouter, bi.(*bulkClient).router)

@@ -20,6 +20,7 @@ import (
 )
 
 func TestClusterPendingTasks(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

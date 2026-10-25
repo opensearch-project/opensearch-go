@@ -21,6 +21,7 @@ import (
 )
 
 func TestNodesReloadSecureSettings(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-nodes-reload-secure-settings")

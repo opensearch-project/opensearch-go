@@ -23,6 +23,7 @@ import (
 
 func TestIndicesSplit(t *testing.T) {
 	t.Skip("requires source index with number_of_routing_shards > number_of_shards") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 

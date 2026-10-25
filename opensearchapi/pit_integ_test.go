@@ -265,16 +265,25 @@ func TestIntegration_PITDeleteMissing(t *testing.T) {
 	require.ErrorIs(t, err, opensearchapi.ErrPITClosed)
 }
 
+// pitKeepAliveWindow outlasts the longest an unsearched PIT survives: its 20s
+// keep_alive plus one sweep, which search.keep_alive_interval sets to a minute
+// by default.
+const pitKeepAliveWindow = 90 * time.Second
+
 // TestIntegration_PITKeepAliveRefresh checks that PIT.Search keeps a PIT open
 // without sending keep_alive: the server restarts the keep_alive set on create
 // with every search, so searching every 5s keeps a PIT with a 20s keep_alive
-// open for 2 minutes. Expired PITs are freed by a periodic sweep (about a
-// minute by default), so an unsearched PIT would be gone within about 80s and
-// the window spans that.
+// open across the expiry sweep. An unsearched PIT would be gone within about
+// 80s and the window spans that.
+//
+// It runs in parallel so its wait overlaps the rest of the package. That is
+// safe against the generated delete_all_pits test, which is serial and so
+// finishes before any parallel test starts.
 func TestIntegration_PITKeepAliveRefresh(t *testing.T) {
 	if testing.Short() {
 		t.Skip("spans the server's expiry sweep")
 	}
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
@@ -295,5 +304,5 @@ func TestIntegration_PITKeepAliveRefresh(t *testing.T) {
 		ok, err := findPIT(ctx, client, pit.ID())
 		return err != nil || !ok
 	}
-	require.Never(t, gone, 2*time.Minute, 5*time.Second)
+	require.Never(t, gone, pitKeepAliveWindow, 5*time.Second)
 }

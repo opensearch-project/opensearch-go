@@ -24,6 +24,7 @@ import (
 
 func TestSearchPipelineDelete(t *testing.T) {
 	t.Skip("requires search pipeline to exist") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.9", "SearchPipelineDelete")

@@ -18,6 +18,8 @@ import (
 // that OPENSEARCH_GO_ROUTER=false opts out, honors precedence rules, and
 // surfaces parse errors from ShardCostConfig.
 func TestEnvRouterAutoConstruction(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name            string
 		envValue        string // empty value is treated as unset; the router defaults on
@@ -83,12 +85,12 @@ func TestEnvRouterAutoConstruction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Cannot use t.Parallel(): t.Setenv mutates process state.
-			t.Setenv(envRouter, tt.envValue)
+			t.Parallel()
 
 			cfg := Config{
 				URLs:            []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
 				ShardCostConfig: tt.shardCostConfig,
+				lookupEnv:       envLookup(map[string]string{envRouter: tt.envValue}),
 			}
 			if tt.programmaticSet {
 				router, err := NewDefaultRouter()

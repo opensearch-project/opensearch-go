@@ -6,6 +6,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `NodeStatsInterval` to `opensearch.Config`, so a client built with `opensearch.NewClient` or `opensearchapi.NewClient` can set the node statistics poll interval in code instead of through `OPENSEARCH_GO_NODE_STATS_INTERVAL`. ([#1237](https://github.com/opensearch-project/opensearch-go/pull/1237))
+- Add a test that runs the bulk indexer over the real transport against a fake node, and checks that the transport's view of the node's write pool does not hold the indexer below `NumWorkers` requests to the node, before any statistics poll and after a poll of a node that rejected writes before the client started. ([#1237](https://github.com/opensearch-project/opensearch-go/pull/1237))
 - Add `MGetFanOut` to choose which shard copies the direct mget driver reads from: `MGetFanOutFewestNodes`, the default, reads each mget from as few nodes as hold its shards and prefers a node the mget already sends to, so an mget pays each request's fixed cost, and waits on a node that can time out, fewer times; `MGetFanOutLeastLoaded` reads each document from the least loaded copy, as the driver did before. Select it with `MGetConfig.FanOut`, `OPENSEARCH_GO_MGET_FANOUT=fewest-nodes|least-loaded`, or per call with `WithMGetFanOut`. ([#1240](https://github.com/opensearch-project/opensearch-go/pull/1240))
 
 ### Changed

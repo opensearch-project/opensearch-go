@@ -22,6 +22,12 @@ const (
 	// before the test operation executes. Prevents flakes from nodes that haven't
 	// fully initialized in CI.
 	TestWaitReady
+
+	// TestSerial omits t.Parallel() from the generated test. Use it for
+	// operations that act on cluster-global state (such as deleting every PIT)
+	// and would otherwise disturb tests running alongside them. Serial tests
+	// finish before the package's parallel tests are released.
+	TestSerial
 )
 
 // TestRule matches operations by name pattern and/or version constraint.
@@ -414,6 +420,11 @@ var TestRules = []TestRule{
 	{
 		NamePattern: "wlm*", Flags: TestSkip,
 		Reason: "requires workload management query group",
+	},
+
+	// --- Cluster-global operations ---
+	{
+		NamePattern: "delete_all_pits", Flags: TestSerial,
 	},
 
 	// --- Readiness gates (transient CI startup issues) ---

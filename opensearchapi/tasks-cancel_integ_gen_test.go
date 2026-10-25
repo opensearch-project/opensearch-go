@@ -22,6 +22,7 @@ import (
 
 func TestTasksCancel(t *testing.T) {
 	t.Skip("requires active long-running task") //nolint:gocritic // FIXME: implement proper test fixture
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	name := testutil.MustUniqueString(t, "test-tasks-cancel")

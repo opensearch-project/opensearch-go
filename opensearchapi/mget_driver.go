@@ -244,8 +244,10 @@ func parseMGetChoice[T mgetChoice](s string, names []string, what string) (T, er
 
 // resolveMGetChoice returns the choice the environment variable env makes, else
 // cfg's, else def. A value of env that does not parse is ignored.
-func resolveMGetChoice[T mgetChoice](cfg T, env string, parse func(string) (T, error), def T) T {
-	if v, ok := os.LookupEnv(env); ok {
+func resolveMGetChoice[T mgetChoice](
+	cfg T, getenv func(string) (string, bool), env string, parse func(string) (T, error), def T,
+) T {
+	if v, ok := getenv(env); ok {
 		if parsed, err := parse(v); err == nil && parsed != 0 {
 			cfg = parsed
 		}
@@ -339,8 +341,14 @@ type shardLookup interface {
 // direct one for a call; it fetches nothing directly when the transport keeps
 // no shard map.
 func newMGetDriver(cfg MGetConfig, root *opensearch.Client) *mgetDriver {
-	driver := resolveMGetChoice(cfg.Driver, envvars.MGet, ParseMGetDriver, defaultMGetDriver)
-	fanOut := resolveMGetChoice(cfg.FanOut, envvars.MGetFanOut, ParseMGetFanOut, defaultMGetFanOut)
+	return newMGetDriverWith(cfg, root, os.LookupEnv)
+}
+
+// newMGetDriverWith is newMGetDriver reading the environment overrides through
+// getenv, so a test can supply them without changing the process environment.
+func newMGetDriverWith(cfg MGetConfig, root *opensearch.Client, getenv func(string) (string, bool)) *mgetDriver {
+	driver := resolveMGetChoice(cfg.Driver, getenv, envvars.MGet, ParseMGetDriver, defaultMGetDriver)
+	fanOut := resolveMGetChoice(cfg.FanOut, getenv, envvars.MGetFanOut, ParseMGetFanOut, defaultMGetFanOut)
 
 	maxDocs := cfg.MaxDocsPerRequest
 	if maxDocs <= 0 {

@@ -21,6 +21,7 @@ import (
 )
 
 func TestCatNodes(t *testing.T) {
+	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.WaitForAllNodesReady(t, client)

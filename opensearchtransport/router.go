@@ -732,6 +732,15 @@ type routerConfig struct {
 	// errs collects configuration errors from RouterOption functions.
 	// Logged at router creation time via debugLogger.
 	errs []error
+
+	// lookupEnv reads the environment overrides; nil reads the process
+	// environment. Only in-package callers set it.
+	lookupEnv lookupEnvFunc
+}
+
+// withLookupEnv makes a router read its environment overrides through getenv.
+func withLookupEnv(getenv lookupEnvFunc) RouterOption {
+	return func(c *routerConfig) { c.lookupEnv = getenv }
 }
 
 func defaultRouterConfig() routerConfig {
@@ -901,16 +910,21 @@ func buildStandaloneRouterConfig(opts []RouterOption) (routerConfig, *shardCostC
 		opt(&cfg)
 	}
 
+	getenv := cfg.lookupEnv
+	if getenv == nil {
+		getenv = os.LookupEnv
+	}
+
 	// Apply environment variable overrides after programmatic options.
 	// Env vars take precedence: a user can override a programmatic
 	// WithShardExactRouting(true) with OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact.
-	if val, ok := os.LookupEnv(envRoutingConfig); ok && val != "" {
+	if val, ok := getenv(envRoutingConfig); ok && val != "" {
 		cfg.routingFeatures = parseRoutingConfig(val)
 	}
-	if val, ok := os.LookupEnv(envDiscoveryConfig); ok && val != "" {
+	if val, ok := getenv(envDiscoveryConfig); ok && val != "" {
 		cfg.discoveryFeatures = parseDiscoveryConfig(val)
 	}
-	if val, ok := os.LookupEnv(envShardRequests); ok && val != "" {
+	if val, ok := getenv(envShardRequests); ok && val != "" {
 		cfg.adaptiveConcurrency, cfg.routingFeatures = parseShardRequests(val, cfg.routingFeatures)
 		// Validate after env override (env may have set min > max).
 		if cfg.adaptiveConcurrency.minVal > 0 && cfg.adaptiveConcurrency.maxVal > 0 &&
@@ -929,7 +943,7 @@ func buildStandaloneRouterConfig(opts []RouterOption) (routerConfig, *shardCostC
 	// Resolve shard cost tables and scoring function.
 	// Priority: env var > WithShardCosts() RouterOption > compile-time defaults.
 	shardCostSpec := cfg.shardCostSpec
-	if envVal, ok := os.LookupEnv(envShardCost); ok && envVal != "" {
+	if envVal, ok := getenv(envShardCost); ok && envVal != "" {
 		shardCostSpec = envVal
 	}
 

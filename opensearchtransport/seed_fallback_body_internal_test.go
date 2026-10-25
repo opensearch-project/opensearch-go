@@ -42,12 +42,16 @@ func (b *closeCountBody) Close() error {
 // http.RoundTripper does for a request it fails. A body that lends memory, such
 // as a bulk indexer's buffer, is released by its Close.
 func TestStreamClosesBodyOnErrNoConnections(t *testing.T) {
+	t.Parallel()
+
 	t.Run("seed fallback disabled", func(t *testing.T) {
-		t.Setenv(envFallbackConfig, "false")
+		t.Parallel()
 
 		tp := newNoConnectionsTransport(t, func(*http.Request) (*http.Response, error) {
 			t.Error("no request should be sent")
 			return nil, io.EOF
+		}, func(cfg *Config) {
+			cfg.lookupEnv = envLookup(map[string]string{envFallbackConfig: "false"})
 		})
 		require.Nil(t, tp.seedFallbackPool)
 

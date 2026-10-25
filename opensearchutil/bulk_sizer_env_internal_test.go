@@ -19,9 +19,19 @@ import (
 	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 )
 
-// These tests set environment variables, so none of them runs in parallel.
+// envLookup answers from env instead of the process environment, so the tests
+// that use it can run in parallel.
+func envLookup(env map[string]string) func(string) (string, bool) {
+	return func(name string) (string, bool) {
+		v, ok := env[name]
+
+		return v, ok
+	}
+}
 
 func TestBulkSizingEnvShard(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		shard     ShardSizing
@@ -41,9 +51,9 @@ func TestBulkSizingEnvShard(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(envvars.BulkShard, tt.env)
+			t.Parallel()
 
-			r := BulkSizing{Shard: tt.shard}.resolve(testCeiling)
+			r := BulkSizing{Shard: tt.shard}.resolveWith(testCeiling, envLookup(map[string]string{envvars.BulkShard: tt.env}))
 			require.Equal(t, tt.wantShard, r.shard)
 			require.Equal(t, tt.wantShard == ShardFixed, r.fixed)
 			require.False(t, r.targetFixed, "the shard setting leaves the node window alone")
@@ -56,6 +66,8 @@ func TestBulkSizingEnvShard(t *testing.T) {
 }
 
 func TestBulkSizingEnvNode(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		node     TargetSizing
@@ -73,9 +85,9 @@ func TestBulkSizingEnvNode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv(envvars.BulkTarget, tt.env)
+			t.Parallel()
 
-			r := BulkSizing{Target: tt.node}.resolve(testCeiling)
+			r := BulkSizing{Target: tt.node}.resolveWith(testCeiling, envLookup(map[string]string{envvars.BulkTarget: tt.env}))
 			require.Equal(t, tt.wantNode, r.node)
 			require.Equal(t, tt.wantNode == TargetFixed, r.targetFixed)
 			require.False(t, r.fixed, "the node setting leaves the shard buffers alone")
@@ -109,6 +121,8 @@ func TestSizingString(t *testing.T) {
 }
 
 func TestBulkSizingEnvPIDGains(t *testing.T) {
+	t.Parallel()
+
 	defaults := [3]float64{sizingDefaultKp, sizingDefaultKi, sizingDefaultKd}
 
 	tests := []struct {
@@ -142,11 +156,9 @@ func TestBulkSizingEnvPIDGains(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for name, value := range tt.env {
-				t.Setenv(name, value)
-			}
+			t.Parallel()
 
-			r := tt.sizing.resolve(testCeiling)
+			r := tt.sizing.resolveWith(testCeiling, envLookup(tt.env))
 			want, got := tt.want, [3]float64{r.kp, r.ki, r.kd}
 			require.InDeltaSlice(t, want[:], got[:], 1e-9, "kp, ki, kd")
 		})
@@ -154,9 +166,11 @@ func TestBulkSizingEnvPIDGains(t *testing.T) {
 }
 
 func TestBulkIndexerByteWindowStart(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
-		name string
-		env  map[string]string
+		name   string
+		sizing BulkSizing
 		// nodeBytes is TargetBytes in the config, 0 for unset.
 		nodeBytes int
 		// wantCeiling is where the window starts and the most it grows to, wantFixed
@@ -168,19 +182,18 @@ func TestBulkIndexerByteWindowStart(t *testing.T) {
 		{name: "TargetBytes caps the window", nodeBytes: 8 << 20, wantCeiling: 8 << 20},
 		{name: "TargetBytes is held to the job", nodeBytes: 1 << 40, wantCeiling: 64 << 20},
 		{
-			name: "a fixed node holds the window where it started", env: map[string]string{envvars.BulkTarget: "fixed"},
+			name: "a fixed node holds the window where it started", sizing: BulkSizing{Target: TargetFixed},
 			nodeBytes: 8 << 20, wantCeiling: 8 << 20, wantFixed: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for name, value := range tt.env {
-				t.Setenv(name, value)
-			}
+			t.Parallel()
 
 			cluster := newFakeCluster(map[string]ShardMap{"idx": DefaultShardMap(2)}, "n0", "n1")
 			bi := newBulkClient(t, newFakeServer(cluster), BulkIndexerConfig{
 				NumWorkers: 1, FlushBytes: 1 << 20, MaxMemoryBytes: 64 << 20, TargetBytes: tt.nodeBytes, FlushInterval: time.Hour,
+				Sizing: tt.sizing,
 			}).(*bulkClient)
 
 			require.InDelta(t, tt.wantCeiling, bi.window.Start, 0, "it starts wide open")

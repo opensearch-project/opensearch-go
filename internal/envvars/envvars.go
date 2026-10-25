@@ -138,10 +138,16 @@ const Debug = "OPENSEARCH_GO_DEBUG"
 // Read it rather than either variable directly, so every consumer resolves the
 // two the same way.
 func DebugRequested() bool {
-	if val, ok := os.LookupEnv(Log); ok && val != "" {
+	return DebugRequestedFrom(os.LookupEnv)
+}
+
+// DebugRequestedFrom is [DebugRequested] reading the variables through getenv
+// instead of the process environment.
+func DebugRequestedFrom(getenv func(string) (string, bool)) bool {
+	if val, ok := getenv(Log); ok && val != "" {
 		return strings.EqualFold(strings.TrimSpace(val), LogLevelDebug)
 	}
-	return Truthy(Debug)
+	return TruthyFrom(getenv, Debug)
 }
 
 // PolicyDump dumps the router's policy tree (the structural "DOM": the
@@ -277,7 +283,13 @@ func DefaultClientTTLValue() time.Duration {
 // strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy
 // values all return false.
 func Truthy(name string) bool {
-	val, ok := os.LookupEnv(name)
+	return TruthyFrom(os.LookupEnv, name)
+}
+
+// TruthyFrom is [Truthy] reading the variable through getenv instead of the
+// process environment.
+func TruthyFrom(getenv func(string) (string, bool), name string) bool {
+	val, ok := getenv(name)
 	if !ok || val == "" {
 		return false
 	}
@@ -291,7 +303,13 @@ func Truthy(name string) bool {
 // to be distinguished from "unset" (where Truthy alone collapses both
 // into false).
 func Falsy(name string) bool {
-	val, ok := os.LookupEnv(name)
+	return FalsyFrom(os.LookupEnv, name)
+}
+
+// FalsyFrom is [Falsy] reading the variable through getenv instead of the
+// process environment.
+func FalsyFrom(getenv func(string) (string, bool), name string) bool {
+	val, ok := getenv(name)
 	if !ok || val == "" {
 		return false
 	}
