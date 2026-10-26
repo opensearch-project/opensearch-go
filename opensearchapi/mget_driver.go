@@ -402,19 +402,19 @@ func (d *mgetDriver) selectedFanOut(ctx context.Context) MGetFanOut {
 // call itself, and reports true, when the direct driver is selected and can
 // route at least one of the documents to a node; otherwise it reports false
 // and the mget goes to the cluster as one request, decoded into the response
-// it returns, which mgetSeed sizes when the request says how many documents it
-// asks for.
+// it returns, which allocMGetResp sizes when the request says how many documents
+// it asks for.
 func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, bool, error) {
 	d := c.ext.mget
 	if d == nil || d.lookup == nil || d.selected(ctx) != MGetDriverDirect {
-		return mgetSeed(ctx, req), false, nil
+		return allocMGetResp(ctx, req), false, nil
 	}
 
 	call, err := d.write(c, req, d.selectedFanOut(ctx))
 	if err != nil {
 		// write says why the mget cannot be split; it goes to the cluster as one
 		// request, which is not a failure of the call.
-		return mgetSeed(ctx, req), false, nil //nolint:nilerr // Not splitting is not the call's error.
+		return allocMGetResp(ctx, req), false, nil //nolint:nilerr // Not splitting is not the call's error.
 	}
 
 	resp, err := call.flush(ctx)
@@ -422,19 +422,20 @@ func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, boo
 	return resp, true, err
 }
 
-// mgetSeed returns the response a coordinated mget is decoded into: one with
+// allocMGetResp returns the response a coordinated mget is decoded into: one with
 // room for a document per document asked for, so that decoding the answer does
 // not grow Docs by copying, and its documents' storage is sized for them. The
 // documents are the request's, or, for a direct driver's sub-request, whose body
 // is already encoded, those withMGetDocs gave ctx. It returns nil when neither
 // says, as for ids or a caller's own BodyReader.
 //
-// The seed also carries the requested documents to MGetResp.UnmarshalJSONFrom,
-// in the first unused element of Docs, so that a document whose _id and _index
-// match the request reuses the request's strings. The decoder clears that
-// element before it decodes into it, and MGetResp.unseed drops a seed nothing
-// decoded into; see takeMGetAsked.
-func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
+// The preallocated response also carries the requested documents to
+// MGetResp.UnmarshalJSONFrom, in the first unused element of Docs, so that a
+// document whose _id and _index match the request reuses the request's strings.
+// The decoder clears that element before it decodes into it, and
+// MGetResp.dropPrealloc drops a preallocated response nothing decoded into; see
+// takeMGetAsked.
+func allocMGetResp(ctx context.Context, req MGetReq) *MGetResp {
 	asked, _ := ctx.Value(mgetDocsKey{}).(*mgetAsked)
 	if req.Body != nil && len(req.Body.Docs) > 0 {
 		asked = &mgetAsked{docs: req.Body.Docs, index: req.Index}
@@ -487,8 +488,8 @@ func (a *mgetAsked) doc(i int) (string, string) {
 type mgetDocsKey struct{}
 
 // withMGetDocs returns ctx saying that the mget sent with it asks for the
-// documents of req at slots, which mgetSeed sizes the response for. They ride on
-// ctx because the direct driver's sub-requests carry their body already encoded,
+// documents of req at slots, which allocMGetResp sizes the response for. They ride
+// on ctx because the direct driver's sub-requests carry their body already encoded,
 // and the generated DocumentClient.MGet takes nothing else that could carry them.
 func withMGetDocs(ctx context.Context, req MGetReq, slots []int) context.Context {
 	return context.WithValue(ctx, mgetDocsKey{}, &mgetAsked{docs: req.Body.Docs, slots: slots, index: req.Index})

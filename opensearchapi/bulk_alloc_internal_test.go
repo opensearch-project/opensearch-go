@@ -49,13 +49,13 @@ func (bulkEchoTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-func TestBulkSeed(t *testing.T) {
+func TestAllocBulkResp(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name    string
 		hint    int // apiutil.WithBulkItems, when not 0
-		wantCap int // -1: no seed
+		wantCap int // -1: no preallocated response
 	}{
 		{name: "a count", hint: 5, wantCap: 5},
 		{name: "no count", wantCap: -1},
@@ -69,24 +69,24 @@ func TestBulkSeed(t *testing.T) {
 			if tt.hint != 0 {
 				ctx = apiutil.WithBulkItems(ctx, tt.hint)
 			}
-			seed := (&Client{}).seedBulk(ctx, BulkReq{})
+			prealloc := (&Client{}).allocBulkResp(ctx, BulkReq{})
 			if tt.wantCap < 0 {
-				require.Nil(t, seed)
+				require.Nil(t, prealloc)
 
 				return
 			}
-			require.NotNil(t, seed)
-			require.Empty(t, seed.Items)
-			require.Equal(t, tt.wantCap, cap(seed.Items))
-			require.True(t, takeBulkSeed(seed.Items), "the seed carries its mark")
-			require.False(t, takeBulkSeed(seed.Items), "taken out once")
+			require.NotNil(t, prealloc)
+			require.Empty(t, prealloc.Items)
+			require.Equal(t, tt.wantCap, cap(prealloc.Items))
+			require.True(t, takeBulkAllocMark(prealloc.Items), "the preallocated response carries its mark")
+			require.False(t, takeBulkAllocMark(prealloc.Items), "taken out once")
 		})
 	}
 }
 
-// TestBulkDecodesIntoSeed checks that the generated Bulk decodes the answer into
-// the response seedBulk sizes from the count the context gives.
-func TestBulkDecodesIntoSeed(t *testing.T) {
+// TestBulkDecodesIntoPrealloc checks that the generated Bulk decodes the answer
+// into the response allocBulkResp sizes from the count the context gives.
+func TestBulkDecodesIntoPrealloc(t *testing.T) {
 	t.Parallel()
 
 	c, err := NewClient(Config{Client: opensearch.Config{
@@ -113,7 +113,7 @@ func TestBulkDecodesIntoSeed(t *testing.T) {
 
 		return resp
 	}
-	require.Equal(t, 5, cap(bulk(t, true).Items), "the answer filled the seed")
+	require.Equal(t, 5, cap(bulk(t, true).Items), "the answer filled the preallocated response")
 	require.NotEqual(t, 5, cap(bulk(t, false).Items), "without a count, Items grew from empty")
 }
 
@@ -132,10 +132,11 @@ func (s statusTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	}, nil
 }
 
-// TestSeededResponsesWithoutTheirArray checks that a bulk or mget whose response
-// was seeded returns what an unseeded one does when the answer does not decode an
-// array into the seed: nil Items or Docs, with nothing of the request kept.
-func TestSeededResponsesWithoutTheirArray(t *testing.T) {
+// TestPreallocatedResponsesWithoutTheirArray checks that a bulk or mget whose
+// response was preallocated returns what one that was not does when the answer
+// does not decode an array into it: nil Items or Docs, with nothing of the
+// request kept.
+func TestPreallocatedResponsesWithoutTheirArray(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -153,7 +154,7 @@ func TestSeededResponsesWithoutTheirArray(t *testing.T) {
 			t.Parallel()
 
 			c, err := NewClient(Config{Client: opensearch.Config{
-				Addresses:    []string{"http://seed.invalid:9200"},
+				Addresses:    []string{"http://alloc.invalid:9200"},
 				Transport:    statusTransport{status: tt.status, body: tt.body},
 				DisableRetry: true,
 			}})

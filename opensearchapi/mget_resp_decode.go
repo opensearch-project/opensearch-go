@@ -45,7 +45,7 @@ type mgetRespGenericDecode MGetResp
 func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 	var errs typeErrors
 	err := errs.keep(r.decode(dec, &errs))
-	r.unseed()
+	r.dropPrealloc()
 	if err != nil {
 		return err
 	}
@@ -53,10 +53,11 @@ func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 	return errs.err("MGetResp")
 }
 
-// unseed drops a seed the answer did not decode into, such as for a failed
-// request or a body without docs, so that Docs is nil, as it is in a response
-// that was not seeded, and the response keeps nothing of the request.
-func (r *MGetResp) unseed() {
+// dropPrealloc drops a preallocated response the answer did not decode into, such
+// as for a failed request or a body without docs, so that Docs is nil, as it is
+// in a response that was not preallocated, and the response keeps nothing of the
+// request.
+func (r *MGetResp) dropPrealloc() {
 	if len(r.Docs) == 0 && takeMGetAsked(r.Docs) != nil {
 		r.Docs = nil
 	}
@@ -121,9 +122,9 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 	return err
 }
 
-// takeMGetAsked returns the requested documents that mgetSeed stored in the first
-// unused element of docs, an empty Docs, and clears that element. It returns nil
-// when docs did not come from mgetSeed.
+// takeMGetAsked returns the requested documents that allocMGetResp stored in the
+// first unused element of docs, an empty Docs, and clears that element. It
+// returns nil when docs did not come from allocMGetResp.
 func takeMGetAsked(docs []MGetRespItem) *mgetAsked {
 	if cap(docs) == 0 {
 		return nil

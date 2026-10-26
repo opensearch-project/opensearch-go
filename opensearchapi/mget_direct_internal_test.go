@@ -174,12 +174,12 @@ func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
 // only documents whose shard it holds a copy of. Each request's ctx must size
 // the response for the documents the request asks for, through withMGetDocs.
 func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
-	seed := mgetSeed(ctx, req)
+	prealloc := allocMGetResp(ctx, req)
 	req = f.decodeBody(req)
-	if seed == nil {
-		f.t.Errorf("a request to %q for %d documents has no seed", node.Name, len(req.Body.Docs))
-	} else if cap(seed.Docs) != len(req.Body.Docs) {
-		f.t.Errorf("a request to %q for %d documents has a seed with room for %d", node.Name, len(req.Body.Docs), cap(seed.Docs))
+	if prealloc == nil {
+		f.t.Errorf("a request to %q for %d documents has no preallocated response", node.Name, len(req.Body.Docs))
+	} else if cap(prealloc.Docs) != len(req.Body.Docs) {
+		f.t.Errorf("a request to %q for %d documents has a preallocated response with room for %d", node.Name, len(req.Body.Docs), cap(prealloc.Docs))
 	}
 	if body, ok := req.BodyReader.(*bufbody.Pooled); ok {
 		// The transport closes a request body once it has sent it.
@@ -1279,17 +1279,17 @@ func TestMGetChoiceString(t *testing.T) {
 	require.Equal(t, "default", MGetFanOutDefault.String())
 }
 
-// TestMGetCoordinatedDecodesIntoSeed checks that an mget sent to the cluster as
+// TestMGetCoordinatedDecodesIntoPrealloc checks that an mget sent to the cluster as
 // one request is decoded into Docs sized for the documents it asks for, rather
 // than grown from empty while the answer is read.
 //
 //nolint:paralleltest // newMGetAllocClient turns the router off with t.Setenv.
-func TestMGetCoordinatedDecodesIntoSeed(t *testing.T) {
+func TestMGetCoordinatedDecodesIntoPrealloc(t *testing.T) {
 	c := newMGetAllocClient(t, mgetAllocModes[0])
 	resp, err := c.Doc.MGet(t.Context(), mgetAllocRequest(5))
 	require.NoError(t, err)
 	require.Len(t, resp.Docs, 5)
-	require.Equal(t, 5, cap(resp.Docs), "the answer filled the seed, not a slice grown from empty")
+	require.Equal(t, 5, cap(resp.Docs), "the answer filled the preallocated response, not a slice grown from empty")
 	for i := range resp.Docs {
 		got, err := resp.Docs[i].GetResult()
 		require.NoError(t, err)
@@ -1297,7 +1297,7 @@ func TestMGetCoordinatedDecodesIntoSeed(t *testing.T) {
 	}
 }
 
-func TestMGetSeed(t *testing.T) {
+func TestAllocMGetResp(t *testing.T) {
 	t.Parallel()
 
 	other := "other"
@@ -1309,7 +1309,7 @@ func TestMGetSeed(t *testing.T) {
 		name  string
 		req   MGetReq
 		slots []int    // withMGetDocs over parent, when not nil
-		want  []string // each document's _id/_index; nil: no seed
+		want  []string // each document's _id/_index; nil: no preallocated response
 	}{
 		{name: "docs", req: MGetReq{Index: "default", Body: &MGetBody{Docs: parent.Body.Docs[:3]}}, want: []string{"a/idx", "b/idx", "c/other"}},
 		{name: "docs over a hint", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "z")}}, slots: []int{0, 1}, want: []string{"z/idx"}},
@@ -1332,18 +1332,18 @@ func TestMGetSeed(t *testing.T) {
 			if tt.slots != nil {
 				ctx = withMGetDocs(ctx, parent, tt.slots)
 			}
-			seed := mgetSeed(ctx, tt.req)
+			prealloc := allocMGetResp(ctx, tt.req)
 			if tt.want == nil {
-				require.Nil(t, seed)
+				require.Nil(t, prealloc)
 				return
 			}
-			require.NotNil(t, seed)
-			require.Empty(t, seed.Docs)
-			require.Equal(t, len(tt.want), cap(seed.Docs))
+			require.NotNil(t, prealloc)
+			require.Empty(t, prealloc.Docs)
+			require.Equal(t, len(tt.want), cap(prealloc.Docs))
 
-			asked := takeMGetAsked(seed.Docs)
-			require.NotNil(t, asked, "the seed carries what the mget asks for")
-			require.Nil(t, takeMGetAsked(seed.Docs), "taken out once")
+			asked := takeMGetAsked(prealloc.Docs)
+			require.NotNil(t, asked, "the preallocated response carries what the mget asks for")
+			require.Nil(t, takeMGetAsked(prealloc.Docs), "taken out once")
 			got := make([]string, asked.len())
 			for i := range got {
 				id, index := asked.doc(i)

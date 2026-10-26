@@ -116,7 +116,7 @@ func TestMGetRespDecodeFailsAsTheGeneratedDecoder(t *testing.T) {
 	}
 }
 
-// TestMGetRespDecodeTakesWhatWasAsked decodes answers into the seed of a request
+// TestMGetRespDecodeTakesWhatWasAsked decodes answers into the preallocated response of a request
 // and checks that each document gets what the generated decoder gives it, and
 // that an _id and _index that match the request are the request's strings, not
 // copies.
@@ -185,7 +185,7 @@ func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
 			var want mgetRespGenericDecode
 			wantErr := json.Unmarshal([]byte(tt.body), &want)
 
-			got := mgetSeed(t.Context(), req)
+			got := allocMGetResp(t.Context(), req)
 			err := json.Unmarshal([]byte(tt.body), got)
 			if wantErr != nil {
 				requireSameDecodeError(t, wantErr, err, "MGetResp")
@@ -196,7 +196,7 @@ func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
 
 			var wantStreamed mgetRespGenericDecode
 			wantErr = json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(tt.body))), &wantStreamed)
-			streamed := mgetSeed(t.Context(), req)
+			streamed := allocMGetResp(t.Context(), req)
 			err = json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(tt.body))), streamed)
 			require.Equal(t, wantErr != nil, err != nil, "decoded from a reader: %v", err)
 			require.Equal(t, MGetResp(wantStreamed), *streamed, "decoded from a reader")
@@ -214,16 +214,18 @@ func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
 	}
 }
 
-// mgetAskedOf returns what mgetSeed's seed for req says req asks for.
+// mgetAskedOf returns what the preallocated response allocMGetResp returns for
+// req says req asks for.
 func mgetAskedOf(t *testing.T, req MGetReq) *mgetAsked {
 	t.Helper()
 
-	return takeMGetAsked(mgetSeed(t.Context(), req).Docs)
+	return takeMGetAsked(allocMGetResp(t.Context(), req).Docs)
 }
 
-// TestMGetRespDecodeUsesTheSeed checks that the documents go into the capacity
-// Docs already has, which the mget dispatch sizes for the documents asked for.
-func TestMGetRespDecodeUsesTheSeed(t *testing.T) {
+// TestMGetRespDecodeUsesThePrealloc checks that the documents go into the
+// capacity Docs already has, which the mget dispatch sizes for the documents
+// asked for.
+func TestMGetRespDecodeUsesThePrealloc(t *testing.T) {
 	t.Parallel()
 
 	var b strings.Builder
@@ -240,7 +242,7 @@ func TestMGetRespDecodeUsesTheSeed(t *testing.T) {
 	backing := &resp.Docs[:1][0]
 	require.NoError(t, json.Unmarshal([]byte(b.String()), &resp))
 	require.Len(t, resp.Docs, 20)
-	require.Same(t, backing, &resp.Docs[0], "decoded into the seed's array")
+	require.Same(t, backing, &resp.Docs[0], "decoded into the preallocated array")
 	for i := range resp.Docs {
 		got, err := resp.Docs[i].GetResult()
 		require.NoError(t, err)
@@ -284,7 +286,7 @@ func TestMGetRespDecoderKnowsTheUnion(t *testing.T) {
 }
 
 // TestMGetRespDecodeAllocations bounds what decoding 100 found documents into a
-// seeded response allocates: each document's _id and the copy of its _source,
+// preallocated response allocates: each document's _id and the copy of its _source,
 // and one chunk of storage. The generated decoder makes six allocations a
 // document here.
 //

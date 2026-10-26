@@ -132,7 +132,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 			notContains: []string{"classifyError"},
 		},
 		{
-			name: "an interceptor is tried before the request is sent, and may seed the response",
+			name: "an interceptor is tried before the request is sent, and may preallocate the response",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
 					Group:       "mget",
@@ -148,34 +148,34 @@ func TestDispatchFragment_Body(t *testing.T) {
 				}
 			},
 			contains: []string{
-				"seed, handled, err := c.apiClient.interceptMGet(ctx, req)\n\tif handled {\n\t\treturn seed, err\n\t}\n" +
-					"\tvar data MGetResp\n\tif seed != nil {\n\t\tdata = *seed\n\t}\n",
-				"); err != nil {\n\t\tif seed != nil {\n\t\t\tdata.unseed()\n\t\t}\n\t\treturn &data, err\n\t}",
+				"prealloc, intercepted, err := c.apiClient.interceptMGet(ctx, req)\n\tif intercepted {\n\t\treturn prealloc, err\n\t}\n" +
+					"\tvar data MGetResp\n\tif prealloc != nil {\n\t\tdata = *prealloc\n\t}\n",
+				"); err != nil {\n\t\tif prealloc != nil {\n\t\t\tdata.dropPrealloc()\n\t\t}\n\t\treturn &data, err\n\t}",
 				"return c.Doc.MGet(ctx, req)",
 			},
 			notContains: []string{"err  error"},
 		},
 		{
-			name: "a seeder sizes the response before the request is sent",
+			name: "a response allocator sizes the response before the request is sent",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
-					Group:       "bulk",
-					TypePrefix:  "Bulk",
-					HTTPMethods: []string{http.MethodPost},
-					PrimaryPath: "/_bulk",
-					Response:    newRespType("Bulk"),
-					Seeder:      "seedBulk",
+					Group:             "bulk",
+					TypePrefix:        "Bulk",
+					HTTPMethods:       []string{http.MethodPost},
+					PrimaryPath:       "/_bulk",
+					Response:          newRespType("Bulk"),
+					ResponseAllocator: "allocBulkResp",
 					DispatchRoutes: []ir.DispatchRoute{
 						{ReceiverType: "DocumentClient", MethodName: "Bulk", FieldPath: "Doc"},
 					},
 				}
 			},
 			contains: []string{
-				"seed := c.apiClient.seedBulk(ctx, req)\n\tvar (\n\t\tdata BulkResp\n\t\terr  error\n\t)\n" +
-					"\tif seed != nil {\n\t\tdata = *seed\n\t}\n",
-				"); err != nil {\n\t\tif seed != nil {\n\t\t\tdata.unseed()\n\t\t}\n\t\treturn &data, err\n\t}",
+				"prealloc := c.apiClient.allocBulkResp(ctx, req)\n\tvar (\n\t\tdata BulkResp\n\t\terr  error\n\t)\n" +
+					"\tif prealloc != nil {\n\t\tdata = *prealloc\n\t}\n",
+				"); err != nil {\n\t\tif prealloc != nil {\n\t\t\tdata.dropPrealloc()\n\t\t}\n\t\treturn &data, err\n\t}",
 			},
-			notContains: []string{"handled"},
+			notContains: []string{"intercepted"},
 		},
 		{
 			name: "an operation without an interceptor sends the request directly",
@@ -191,7 +191,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 					},
 				}
 			},
-			notContains: []string{"handled", "seed", "unseed"},
+			notContains: []string{"intercepted", "prealloc", "dropPrealloc"},
 		},
 		{
 			name: "compat forwarder renders thin forwarding body",

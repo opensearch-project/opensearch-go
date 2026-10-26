@@ -62,7 +62,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		ErrorWrappers:     resolveErrorWrappers(op),
 		ErrorTypes:        op.ErrorTypes,
 		Interceptor:       interceptors[op.Group],
-		Seeder:            seeders[op.Group],
+		ResponseAllocator: respAllocs[op.Group],
 	}
 
 	// Plugin operations dispatch through their own flat client method; its

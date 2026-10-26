@@ -460,13 +460,13 @@ type MGetOperation struct {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
 func (c DocumentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
-	seed, handled, err := c.apiClient.interceptMGet(ctx, req)
-	if handled {
-		return seed, err
+	prealloc, intercepted, err := c.apiClient.interceptMGet(ctx, req)
+	if intercepted {
+		return prealloc, err
 	}
 	var data MGetResp
-	if seed != nil {
-		data = *seed
+	if prealloc != nil {
+		data = *prealloc
 	}
 	method := http.MethodGet
 	if req.Body != nil || req.BodyReader != nil {
@@ -478,8 +478,8 @@ func (c DocumentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error
 		method,
 		req, &data,
 	); err != nil {
-		if seed != nil {
-			data.unseed()
+		if prealloc != nil {
+			data.dropPrealloc()
 		}
 		return &data, err
 	}

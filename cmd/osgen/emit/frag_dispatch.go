@@ -870,29 +870,29 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 	}
 {{end}}
 {{- $intercepted := and $op.Interceptor (not $op.IsNoBody)}}
-{{- $seeded := and $op.Seeder (not $op.IsNoBody) (not $intercepted)}}
+{{- $respAlloc := and $op.ResponseAllocator (not $op.IsNoBody) (not $intercepted)}}
 {{- if $intercepted}}
-	seed, handled, err := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Interceptor}}(ctx, req)
-	if handled {
-		return seed, err
+	prealloc, intercepted, err := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Interceptor}}(ctx, req)
+	if intercepted {
+		return prealloc, err
 	}
-{{- else if $seeded}}
-	seed := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Seeder}}(ctx, req)
+{{- else if $respAlloc}}
+	prealloc :={{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.ResponseAllocator}}(ctx, req)
 {{- end}}
 {{- if $op.IsNoBody}}
 	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
 {{- else if $intercepted}}
 	var data {{$op.TypePrefix}}Resp
-	if seed != nil {
-		data = *seed
+	if prealloc != nil {
+		data = *prealloc
 	}
-{{- else if $seeded}}
+{{- else if $respAlloc}}
 	var (
 		data {{$op.TypePrefix}}Resp
 		err  error
 	)
-	if seed != nil {
-		data = *seed
+	if prealloc != nil {
+		data = *prealloc
 	}
 {{- else}}
 	var (
@@ -913,9 +913,9 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		method,
 		req, &data,
 	); err != nil {
-{{- if or $intercepted $seeded}}
-		if seed != nil {
-			data.unseed()
+{{- if or $intercepted $respAlloc}}
+		if prealloc != nil {
+			data.dropPrealloc()
 		}
 {{- end}}
 		return &data, {{requestErr}}
@@ -927,9 +927,9 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		{{methodConst (primaryMethod $op)}},
 		req, &data,
 	); err != nil {
-{{- if or $intercepted $seeded}}
-		if seed != nil {
-			data.unseed()
+{{- if or $intercepted $respAlloc}}
+		if prealloc != nil {
+			data.dropPrealloc()
 		}
 {{- end}}
 		return &data, {{requestErr}}

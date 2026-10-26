@@ -38,7 +38,7 @@ type bulkRespGenericDecode BulkResp
 func (r *BulkResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 	var errs typeErrors
 	err := errs.keep(r.decode(dec, &errs))
-	r.unseed()
+	r.dropPrealloc()
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (r *BulkResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 
 // decodeItems decodes the items array into r.Items, reusing its capacity.
 func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *chunkStore[bulkRespSlot], errs *typeErrors) error {
-	takeBulkSeed(r.Items)
+	takeBulkAllocMark(r.Items)
 	if json.PeekKind(dec) != '[' {
 		return json.UnmarshalDecode(dec, &r.Items)
 	}

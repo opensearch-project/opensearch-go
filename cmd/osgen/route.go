@@ -440,13 +440,14 @@ var interceptors = map[string]string{
 	"mget": "interceptMGet",
 }
 
-// seeders maps an operation group to the hand-written *Client method that sizes
-// its response before the request is sent; see ir.Operation.Seeder. bulk is
-// seeded so that its response has room for the actions the request carries.
+// respAllocs maps an operation group to the hand-written *Client method that
+// allocates its response before the request is sent; see
+// ir.Operation.ResponseAllocator. bulk's response is allocated up front so that
+// it has room for the actions the request carries.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
-var seeders = map[string]string{
-	"bulk": "seedBulk",
+var respAllocs = map[string]string{
+	"bulk": "allocBulkResp",
 }
 
 // compatForwardersFor builds the dispatchRoutes for a group's compatibility

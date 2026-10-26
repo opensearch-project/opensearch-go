@@ -122,21 +122,23 @@ type Operation struct {
 	//
 	// When it reports true the dispatch returns its response and error. When it
 	// reports false the dispatch sends the request as usual, and treats the
-	// response it returned, if any, as a seed; see Seeder. Empty for every
-	// operation not listed in cmd/osgen's interceptors table.
+	// response it returned, if any, as a preallocated response; see
+	// ResponseAllocator. Empty for every operation not listed in cmd/osgen's
+	// interceptors table.
 	Interceptor string
 
-	// Seeder names a hand-written method on *Client that the dispatch calls
-	// before it sends the request:
+	// ResponseAllocator names a hand-written method on *Client that the dispatch
+	// calls before it sends the request:
 	//
-	//	func (c *Client) <Seeder>(ctx context.Context, req <Prefix>Req) *<Prefix>Resp
+	//	func (c *Client) <ResponseAllocator>(ctx context.Context, req <Prefix>Req) *<Prefix>Resp
 	//
-	// It returns a seed, a response sized for what the request asks for, or nil.
-	// The dispatch decodes the answer into a copy of the seed, and when the
-	// request fails it calls the response's unseed method, which drops what is
-	// left of the seed, so that a failed call returns what an unseeded one does.
-	// Empty for every operation not listed in cmd/osgen's seeders table.
-	Seeder string
+	// It returns a preallocated response, one sized for what the request asks for,
+	// or nil. The dispatch decodes the answer into a copy of it, and when the
+	// request fails it calls the response's dropPrealloc method, which drops what
+	// is left of the preallocation, so that a failed call returns what a call
+	// without one does. Empty for every operation not listed in cmd/osgen's
+	// respAllocs table.
+	ResponseAllocator string
 
 	// Routing (computed during parse from group name).
 	Package    string
