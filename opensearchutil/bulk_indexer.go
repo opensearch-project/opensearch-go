@@ -36,6 +36,7 @@ import (
 	"net/http"
 	"reflect"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -1935,7 +1936,10 @@ func (w *worker) sendBuffer(b *buffer) {
 
 	w.buf = newChunkBuffer(bi.chunks)
 	w.buf.small = bi.pieces
-	w.items = w.items[:0]
+	// Sized for every item once: a worker the pool dropped at a collection comes
+	// back with no capacity, and growing by appending would copy the items again
+	// and again.
+	w.items = slices.Grow(w.items[:0], len(b.items))
 	w.node = b.dest
 	w.throttled, w.failed, w.served, w.tooLarge = false, false, false, 0
 	w.sent, w.busy = 0, 0
