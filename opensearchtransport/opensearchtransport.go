@@ -1558,7 +1558,7 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	// Request behavior and runs regardless of whether an observer is registered.
 	var n int64
 	if res != nil && res.Body != nil {
-		body, rerr := io.ReadAll(res.Body)
+		body, rerr := readResponseBody(res)
 		res.Body.Close()
 		res.Body = bufbody.New(body)
 		n = int64(len(body))
@@ -1592,6 +1592,27 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	}
 
 	return res, err
+}
+
+// maxPresizedBody bounds the buffer readResponseBody allocates from a response's
+// Content-Length, so that a wrong or hostile header cannot make it allocate more
+// than the body holds. A longer body is read as io.ReadAll reads it.
+const maxPresizedBody = 64 << 20
+
+// readResponseBody reads res's body whole. When the response gives its body's
+// length, the body is read into one buffer of that length, with room for
+// bytes.Buffer's minimum read, where io.ReadAll starts at 512 bytes and grows by
+// copying. A length that is wrong costs a regrowth, not a short read.
+func readResponseBody(res *http.Response) ([]byte, error) {
+	n := res.ContentLength
+	if n <= 0 || n > maxPresizedBody {
+		return io.ReadAll(res.Body)
+	}
+	var buf bytes.Buffer
+	buf.Grow(int(n) + bytes.MinRead)
+	_, err := buf.ReadFrom(res.Body)
+
+	return buf.Bytes(), err
 }
 
 // headerContentEncoding is the request header a Compressor sets and stream
