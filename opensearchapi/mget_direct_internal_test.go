@@ -1298,35 +1298,56 @@ func TestMGetCoordinatedDecodesIntoSeed(t *testing.T) {
 func TestMGetSeed(t *testing.T) {
 	t.Parallel()
 
+	other := "other"
+	parent := MGetReq{Index: "idx", Body: &MGetBody{Docs: mgetDocs("idx", "a", "b", "c", "d")}}
+	parent.Body.Docs[2].Index = &other
+	parent.Index = "default"
+
 	tests := []struct {
-		name    string
-		req     MGetReq
-		hint    int // withMGetDocs, when not 0
-		wantCap int // -1: no seed
+		name  string
+		req   MGetReq
+		slots []int    // withMGetDocs over parent, when not nil
+		want  []string // each document's _id/_index; nil: no seed
 	}{
-		{name: "docs", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "a", "b", "c")}}, wantCap: 3},
-		{name: "docs over a hint", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "a")}}, hint: 5, wantCap: 1},
-		{name: "an encoded sub-request's hint", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}, hint: 4, wantCap: 4},
-		{name: "no body", req: MGetReq{}, wantCap: -1},
-		{name: "ids", req: MGetReq{Index: "idx", Body: &MGetBody{IDs: new("a,b")}}, wantCap: -1},
-		{name: "a raw body", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}, wantCap: -1},
+		{name: "docs", req: MGetReq{Index: "default", Body: &MGetBody{Docs: parent.Body.Docs[:3]}}, want: []string{"a/idx", "b/idx", "c/other"}},
+		{name: "docs over a hint", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "z")}}, slots: []int{0, 1}, want: []string{"z/idx"}},
+		{
+			name:  "an encoded sub-request's hint",
+			req:   MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)},
+			slots: []int{1, 2, 3},
+			want:  []string{"b/idx", "c/other", "d/idx"},
+		},
+		{name: "a hint with no documents", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}, slots: []int{}},
+		{name: "no body", req: MGetReq{}},
+		{name: "ids", req: MGetReq{Index: "idx", Body: &MGetBody{IDs: new("a,b")}}},
+		{name: "a raw body", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			ctx := t.Context()
-			if tt.hint != 0 {
-				ctx = withMGetDocs(ctx, tt.hint)
+			if tt.slots != nil {
+				ctx = withMGetDocs(ctx, parent, tt.slots)
 			}
 			seed := mgetSeed(ctx, tt.req)
-			if tt.wantCap < 0 {
+			if tt.want == nil {
 				require.Nil(t, seed)
 				return
 			}
 			require.NotNil(t, seed)
 			require.Empty(t, seed.Docs)
-			require.Equal(t, tt.wantCap, cap(seed.Docs))
+			require.Equal(t, len(tt.want), cap(seed.Docs))
+
+			asked := takeMGetAsked(seed.Docs)
+			require.NotNil(t, asked, "the seed carries what the mget asks for")
+			require.Nil(t, takeMGetAsked(seed.Docs), "taken out once")
+			got := make([]string, asked.len())
+			for i := range got {
+				id, index := asked.doc(i)
+				got[i] = id + "/" + index
+			}
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

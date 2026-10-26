@@ -9,11 +9,13 @@
 package opensearchapi
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 	"testing/iotest"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 
@@ -113,6 +115,109 @@ func TestMGetRespDecodeFailsAsTheGeneratedDecoder(t *testing.T) {
 			require.Equal(t, MGetResp(wantStreamed), gotStreamed, "decoded from a reader")
 		})
 	}
+}
+
+// TestMGetRespDecodeTakesWhatWasAsked decodes answers into the seed of a request
+// and checks that each document gets what the generated decoder gives it, and
+// that an _id and _index that are what the document was asked for by are the
+// request's strings, not copies.
+func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		ids    []string
+		body   string
+		shared []bool // whether each document's _id is the request's; its _index always is
+	}{
+		{
+			name:   "the documents asked for",
+			ids:    []string{"a", "b"},
+			body:   `{"docs":[{"_index":"idx","_id":"a","found":true,"_source":{}},{"_index":"idx","_id":"b","found":false}]}`,
+			shared: []bool{true, true},
+		},
+		{
+			name:   "another order",
+			ids:    []string{"a", "b"},
+			body:   `{"docs":[{"_index":"idx","_id":"b","found":true},{"_index":"idx","_id":"a","found":true}]}`,
+			shared: []bool{false, false},
+		},
+		{
+			name:   "an escaped id",
+			ids:    []string{"doc"},
+			body:   `{"docs":[{"_index":"idx","_id":"d\u006fc","found":true}]}`,
+			shared: []bool{false},
+		},
+		{
+			name:   "an id asked for with a backslash",
+			ids:    []string{`a\nb`},
+			body:   `{"docs":[{"_index":"idx","_id":"a\nb","found":true}]}`,
+			shared: []bool{false},
+		},
+		{
+			name:   "an id that is not UTF-8",
+			ids:    []string{"a\xffb"},
+			body:   "{\"docs\":[{\"_index\":\"idx\",\"_id\":\"a\xffb\",\"found\":true}]}",
+			shared: []bool{false},
+		},
+		{
+			name:   "an error document",
+			ids:    []string{"a"},
+			body:   `{"docs":[{"_index":"idx","_id":"a","error":{"type":"t","reason":"r"}}]}`,
+			shared: []bool{false},
+		},
+		{
+			name:   "more documents than asked for",
+			ids:    []string{"a"},
+			body:   `{"docs":[{"_index":"idx","_id":"a","found":true},{"_index":"idx","_id":"b","found":true}]}`,
+			shared: []bool{true},
+		},
+		{
+			name: "an id of the wrong type",
+			ids:  []string{"a", "b"},
+			body: `{"docs":[{"_index":"idx","_id":5,"found":true},{"_index":"idx","_id":"b","found":true}]}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", tt.ids...)}}
+			var want mgetRespGenericDecode
+			wantErr := json.Unmarshal([]byte(tt.body), &want)
+
+			got := mgetSeed(t.Context(), req)
+			err := json.Unmarshal([]byte(tt.body), got)
+			if wantErr != nil {
+				requireSameDecodeError(t, wantErr, err, "MGetResp")
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, MGetResp(want), *got)
+
+			var wantStreamed mgetRespGenericDecode
+			wantErr = json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(tt.body))), &wantStreamed)
+			streamed := mgetSeed(t.Context(), req)
+			err = json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(tt.body))), streamed)
+			require.Equal(t, wantErr != nil, err != nil, "decoded from a reader: %v", err)
+			require.Equal(t, MGetResp(wantStreamed), *streamed, "decoded from a reader")
+
+			for i, shared := range tt.shared {
+				doc, err := got.Docs[i].GetResult()
+				if err != nil {
+					continue
+				}
+				id, index := mgetAskedOf(req).doc(i)
+				require.Equal(t, shared, unsafe.StringData(doc.ID) == unsafe.StringData(id), "document %d's _id", i)
+				require.Same(t, unsafe.StringData(index), unsafe.StringData(doc.Index), "document %d's _index", i)
+			}
+		})
+	}
+}
+
+// mgetAskedOf returns what mgetSeed's seed for req says req asks for.
+func mgetAskedOf(req MGetReq) *mgetAsked {
+	return takeMGetAsked(mgetSeed(context.Background(), req).Docs)
 }
 
 // TestMGetRespDecodeUsesTheSeed checks that the documents go into the capacity

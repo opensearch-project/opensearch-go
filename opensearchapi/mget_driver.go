@@ -424,29 +424,71 @@ func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, boo
 
 // mgetSeed returns the response a coordinated mget is decoded into: one with
 // room for a document per document asked for, so that decoding the answer does
-// not grow Docs by copying, and its documents' storage is sized for them. The count
-// is the request's docs, or, for a direct driver's sub-request, whose body is
-// already encoded, the count withMGetDocs gave ctx. It returns nil when neither
+// not grow Docs by copying, and its documents' storage is sized for them. The
+// documents are the request's, or, for a direct driver's sub-request, whose body
+// is already encoded, those withMGetDocs gave ctx. It returns nil when neither
 // says, as for ids or a caller's own BodyReader.
+//
+// The first element of the room in Docs carries what the request asks for, to
+// MGetResp.UnmarshalJSONFrom, which takes it out before it decodes a document
+// there, and gives each document the _id and _index it asked for when the answer
+// holds the same, instead of a copy; see takeMGetAsked.
 func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
-	n, _ := ctx.Value(mgetDocsKey{}).(int)
+	asked, _ := ctx.Value(mgetDocsKey{}).(*mgetAsked)
 	if req.Body != nil && len(req.Body.Docs) > 0 {
-		n = len(req.Body.Docs)
+		asked = &mgetAsked{docs: req.Body.Docs, index: req.Index}
 	}
-	if n <= 0 {
+	if asked == nil || asked.len() == 0 {
 		return nil
 	}
 
-	return &MGetResp{Docs: make([]MGetRespItem, 0, n)}
+	docs := make([]MGetRespItem, 0, asked.len())
+	docs[:1][0].value = asked
+
+	return &MGetResp{Docs: docs}
+}
+
+// mgetAsked is the documents an mget asks for, in the order its body names them:
+// docs, or, for a direct driver's sub-request, docs[slots[i]] for each i. index
+// is the request's index, which a document without its own is in.
+type mgetAsked struct {
+	docs  []MGetOperation
+	slots []int
+	index string
+}
+
+func (a *mgetAsked) len() int {
+	if a.slots != nil {
+		return len(a.slots)
+	}
+
+	return len(a.docs)
+}
+
+// doc returns the _id and _index the i-th document asked for, or empty strings
+// when a is nil or has no i-th document.
+func (a *mgetAsked) doc(i int) (string, string) {
+	if a == nil || i >= a.len() {
+		return "", ""
+	}
+	if a.slots != nil {
+		i = a.slots[i]
+	}
+	op := a.docs[i]
+	if op.Index != nil {
+		return op.ID, *op.Index
+	}
+
+	return op.ID, a.index
 }
 
 // mgetDocsKey is the context key for withMGetDocs.
 type mgetDocsKey struct{}
 
-// withMGetDocs returns ctx saying that the mget sent with it asks for n
-// documents, which mgetSeed sizes the response for. The count rides on ctx
-// because the direct driver's sub-requests carry their body already encoded,
-// and the generated DocumentClient.MGet takes nothing else that could carry it.
-func withMGetDocs(ctx context.Context, n int) context.Context {
-	return context.WithValue(ctx, mgetDocsKey{}, n)
+// withMGetDocs returns ctx saying that the mget sent with it asks for the
+// documents of req at slots, which mgetSeed sizes the response for. They ride on
+// ctx because the direct driver's sub-requests carry their body already encoded,
+// and the generated DocumentClient.MGet takes nothing else that could carry them.
+func withMGetDocs(ctx context.Context, req MGetReq, slots []int) context.Context {
+	return context.WithValue(ctx, mgetDocsKey{}, &mgetAsked{docs: req.Body.Docs, slots: slots, index: req.Index})
 }

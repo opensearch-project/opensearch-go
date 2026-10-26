@@ -8,6 +8,7 @@ package opensearchapi
 
 import (
 	"bytes"
+	"unicode/utf8"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
@@ -21,9 +22,10 @@ type mgetRespGenericDecode MGetResp
 // values, without allocating each document's GetResult and the values its
 // pointer fields name one by one: those come from chunks shared by a run of
 // documents. Docs keeps the capacity it has, which the mget dispatch sizes for
-// the documents asked for. The JSON codec the client decodes with calls it in
-// place of the reflective decoder, as encoding/json does where it runs on the v2
-// engine, from Go 1.27.
+// the documents asked for, and a document whose _id and _index are the ones it
+// was asked for by gets the request's strings rather than copies. The JSON codec
+// the client decodes with calls it in place of the reflective decoder, as
+// encoding/json does where it runs on the v2 engine, from Go 1.27.
 //
 // A document's GetResult shares its chunk, of at most 256 documents, with the
 // documents decoded beside it, so a GetResult kept past the response keeps the
@@ -87,12 +89,15 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 		r.Docs = []MGetRespItem{}
 	}
 	r.Docs = r.Docs[:0]
+	asked := takeMGetAsked(r.Docs)
 	store := chunkStore[mgetDocSlot]{first: cap(r.Docs)}
 	for json.PeekKind(dec) != ']' {
 		// Decoded in place: a local MGetRespItem would escape to the heap, through
 		// the generated fallback, once for every document.
 		r.Docs = append(r.Docs, MGetRespItem{})
-		if err := errs.keep(decodeMGetDoc(dec, &r.Docs[len(r.Docs)-1], &store)); err != nil {
+		i := len(r.Docs) - 1
+		id, index := asked.doc(i)
+		if err := errs.keep(decodeMGetDoc(dec, &r.Docs[i], &store, id, index)); err != nil {
 			return err
 		}
 	}
@@ -101,16 +106,33 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 	return err
 }
 
+// takeMGetAsked returns what mgetSeed left in the first element of the room in
+// docs, an empty Docs, about the documents the mget asks for, and clears the
+// element; nil when docs is not a seed's.
+func takeMGetAsked(docs []MGetRespItem) *mgetAsked {
+	if cap(docs) == 0 {
+		return nil
+	}
+	spare := &docs[:1][0]
+	asked, ok := spare.value.(*mgetAsked)
+	if ok {
+		*spare = MGetRespItem{}
+	}
+
+	return asked
+}
+
 // decodeMGetDoc decodes one document into u, as MGetRespItem.UnmarshalJSONFrom
 // does: a document with an error member is a MultiGetError, any other object a
-// GetResult, and RawJSON is the bytes the document was read from.
-func decodeMGetDoc(dec *json.TextDecoder, u *MGetRespItem, store *chunkStore[mgetDocSlot]) error {
+// GetResult, and RawJSON is the bytes the document was read from. id and index
+// are what the document was asked for by, or empty.
+func decodeMGetDoc(dec *json.TextDecoder, u *MGetRespItem, store *chunkStore[mgetDocSlot], id, index string) error {
 	if json.PeekKind(dec) != '{' {
 		return u.UnmarshalJSONFrom(dec)
 	}
 	mark := json.MarkOf(dec)
 	slot := store.next()
-	if err := slot.decode(dec); err != nil {
+	if err := slot.decode(dec, id, index); err != nil {
 		return err
 	}
 	u.raw = mark.Consumed(dec)
@@ -155,8 +177,9 @@ type mgetDocSlot struct {
 
 // decode decodes a document object into s.get, and its error member, if it has
 // one, into s.errMember. It reads the whole object past a value of the wrong
-// type, then returns the first such error.
-func (s *mgetDocSlot) decode(dec *json.TextDecoder) error {
+// type, then returns the first such error. An _id or _index that is id or index,
+// what the document was asked for by, is that string rather than a copy.
+func (s *mgetDocSlot) decode(dec *json.TextDecoder, id, index string) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err
 	}
@@ -169,9 +192,9 @@ func (s *mgetDocSlot) decode(dec *json.TextDecoder) error {
 		}
 		switch {
 		case bytes.EqualFold(name, []byte("_id")):
-			err = json.UnmarshalDecode(dec, &g.ID)
+			err = decodeKnownString(dec, &g.ID, id)
 		case bytes.EqualFold(name, []byte("_index")):
-			err = json.UnmarshalDecode(dec, &g.Index)
+			err = decodeKnownString(dec, &g.Index, index)
 		case bytes.EqualFold(name, []byte("found")):
 			err = json.UnmarshalDecode(dec, &g.Found)
 		case bytes.EqualFold(name, []byte("_source")):
@@ -205,4 +228,25 @@ func (s *mgetDocSlot) decode(dec *json.TextDecoder) error {
 	}
 
 	return nil
+}
+
+// decodeKnownString decodes the next value into dst as UnmarshalDecode does, but
+// stores known, without allocating, when the value is a string that decodes to
+// known: one whose bytes are known's, with no escape, which would decode to other
+// bytes, and valid UTF-8, which is not replaced.
+func decodeKnownString(dec *json.TextDecoder, dst *string, known string) error {
+	if known == "" || json.PeekKind(dec) != '"' {
+		return json.UnmarshalDecode(dec, dst)
+	}
+	v, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+	if raw := v[1 : len(v)-1]; string(raw) == known && bytes.IndexByte(raw, '\\') < 0 && utf8.Valid(raw) {
+		*dst = known
+
+		return nil
+	}
+
+	return json.Unmarshal(v, dst)
 }
