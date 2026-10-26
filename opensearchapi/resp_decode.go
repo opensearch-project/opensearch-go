@@ -100,7 +100,7 @@ type chunkStore[T any] struct {
 
 const (
 	chunkFirst = 8
-	chunkMax   = 256
+	chunkMax   = 64
 )
 
 func (st *chunkStore[T]) next() *T {

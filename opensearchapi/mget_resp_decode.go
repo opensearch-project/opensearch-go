@@ -27,7 +27,7 @@ type mgetRespGenericDecode MGetResp
 // the client decodes with calls it in place of the reflective decoder, as
 // encoding/json does where it runs on the v2 engine, from Go 1.27.
 //
-// A document's GetResult shares its chunk, of at most 256 documents, with the
+// A document's GetResult shares its chunk, of at most 64 documents, with the
 // documents decoded beside it, so a GetResult kept past the response keeps the
 // chunk too; MGetRespItem.RawJSON already keeps the whole response body. Source
 // is a copy, as it is when decoded reflectively.

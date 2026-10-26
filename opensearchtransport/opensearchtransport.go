@@ -1605,10 +1605,11 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 const maxPresizedBody = 64 << 20
 
 // A Transport keeps at most readBufsKept buffers in readBufs, each of at most
-// maxKeptReadBuf bytes: 8 MiB at most.
+// maxKeptReadBuf bytes: 1 MiB at most. A longer body is still read through a
+// buffer and copied out, and the buffer is then dropped.
 const (
-	readBufsKept   = 8
-	maxKeptReadBuf = 1 << 20
+	readBufsKept   = 4
+	maxKeptReadBuf = 256 << 10
 )
 
 // readResponseBody reads res's body whole. When the response gives its body's

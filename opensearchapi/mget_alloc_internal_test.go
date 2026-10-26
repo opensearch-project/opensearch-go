@@ -153,9 +153,9 @@ func TestMGetAllocations(t *testing.T) {
 	// mode and keys: what was measured, plus 1% or 2, whichever is more, for
 	// sync.Pool entries a garbage collection drops during the run.
 	maxAllocs := map[string]map[int]float64{
-		"coordinator":         {1: 27, 10: 36, 100: 126, 1000: 1039},
-		"direct/fewest-nodes": {1: 46, 10: 86, 100: 176, 1000: 1121},
-		"direct/least-loaded": {1: 46, 10: 117, 100: 207, 1000: 1122},
+		"coordinator":         {1: 27, 10: 36, 100: 127, 1000: 1051},
+		"direct/fewest-nodes": {1: 46, 10: 86, 100: 177, 1000: 1133},
+		"direct/least-loaded": {1: 46, 10: 117, 100: 207, 1000: 1133},
 	}
 
 	for _, mode := range mgetAllocModes {
