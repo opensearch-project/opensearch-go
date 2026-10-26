@@ -443,7 +443,9 @@ type Config struct {
 	HealthCheck HealthCheckFunc
 
 	// Transport is the underlying HTTP transport. If nil, a clone of
-	// http.DefaultTransport is used, with a process-local DNS cache installed on
+	// http.DefaultTransport is used, with MaxIdleConns set to DefaultMaxIdleConns
+	// and MaxIdleConnsPerHost to DefaultMaxIdleConnsPerHost, and with a
+	// process-local DNS cache installed on
 	// it (see DNSCacheRefresh). A non-nil Transport keeps its own configuration:
 	// CACert and InsecureSkipVerify are applied to a clone of it, and that clone
 	// also has HTTP/2 re-enabled when attaching them would otherwise leave it
@@ -710,6 +712,34 @@ func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) 
 	return httpTransport, nil
 }
 
+const (
+	// DefaultMaxIdleConns is the idle connection limit across all hosts on the
+	// default transport.
+	DefaultMaxIdleConns = 4096
+
+	// DefaultMaxIdleConnsPerHost is the idle connection limit for one node on the
+	// default transport. net/http keeps only 2, which makes a concurrent caller
+	// open and close a connection on most requests; a client fanning out across
+	// nodes needs a deeper pool.
+	DefaultMaxIdleConnsPerHost = 64
+)
+
+// newDefaultTransport returns a clone of http.DefaultTransport sized for a
+// client that fans out across many nodes. The clone keeps http.DefaultTransport
+// itself unmodified, since other packages share it.
+func newDefaultTransport() http.RoundTripper {
+	base, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return http.DefaultTransport
+	}
+
+	tr := base.Clone()
+	tr.MaxIdleConns = DefaultMaxIdleConns
+	tr.MaxIdleConnsPerHost = DefaultMaxIdleConnsPerHost
+
+	return tr
+}
+
 // New creates new transport client.
 func New(cfg Config) (*Transport, error) {
 	getenv := cfg.lookupEnv
@@ -735,7 +765,7 @@ func New(cfg Config) (*Transport, error) {
 	// reassigned.
 	customTransport := cfg.Transport != nil
 	if cfg.Transport == nil {
-		cfg.Transport = http.DefaultTransport
+		cfg.Transport = newDefaultTransport()
 	}
 
 	// tlsClone is the clone a TLS branch below installed, and stays nil when
