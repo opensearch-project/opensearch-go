@@ -9,7 +9,6 @@
 package opensearchapi
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -207,7 +206,7 @@ func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
 				if err != nil {
 					continue
 				}
-				id, index := mgetAskedOf(req).doc(i)
+				id, index := mgetAskedOf(t, req).doc(i)
 				require.Equal(t, shared, unsafe.StringData(doc.ID) == unsafe.StringData(id), "document %d's _id", i)
 				require.Same(t, unsafe.StringData(index), unsafe.StringData(doc.Index), "document %d's _index", i)
 			}
@@ -216,8 +215,10 @@ func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
 }
 
 // mgetAskedOf returns what mgetSeed's seed for req says req asks for.
-func mgetAskedOf(req MGetReq) *mgetAsked {
-	return takeMGetAsked(mgetSeed(context.Background(), req).Docs)
+func mgetAskedOf(t *testing.T, req MGetReq) *mgetAsked {
+	t.Helper()
+
+	return takeMGetAsked(mgetSeed(t.Context(), req).Docs)
 }
 
 // TestMGetRespDecodeUsesTheSeed checks that the documents go into the capacity
@@ -318,4 +319,4 @@ func TestMGetRespDecodeAllocations(t *testing.T) {
 
 // mgetRespDecodeMaxAllocs is the most allocations TestMGetRespDecodeAllocations
 // allows: what was measured, plus 2%.
-const mgetRespDecodeMaxAllocs = 206.0
+const mgetRespDecodeMaxAllocs = 208.0

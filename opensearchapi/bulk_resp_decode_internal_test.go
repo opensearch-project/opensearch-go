@@ -228,8 +228,12 @@ func TestBulkRespDecodeAllocations(t *testing.T) {
 	if raceEnabled {
 		t.Skip("the race detector allocates on its own")
 	}
-	require.LessOrEqual(t, allocs, 125.0, "about one allocation an item, for its _id")
+	require.LessOrEqual(t, allocs, bulkRespDecodeMaxAllocs, "about one allocation an item, for its _id")
 }
+
+// bulkRespDecodeMaxAllocs is the most allocations TestBulkRespDecodeAllocations
+// allows: what was measured, 112, plus 2%.
+const bulkRespDecodeMaxAllocs = 115.0
 
 // TestBulkRespDecoderKnowsEveryField fails when the generated BulkResp, BulkItem or
 // BulkRespItem gains or renames a field, which BulkResp.UnmarshalJSONFrom would

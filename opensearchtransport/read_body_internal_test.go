@@ -15,11 +15,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"testing"
 	"testing/iotest"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 // newReadBodyTransport returns a Transport with the free list New gives one.
@@ -95,19 +95,24 @@ func TestReadResponseBodyOwnsWhatItReturns(t *testing.T) {
 	const readers = 2 * readBufsKept
 	const letters = "abcdefghijklmnopqrstuvwxyz"
 	got := make([][]byte, readers)
-	errs := make([]error, readers)
-	var wg sync.WaitGroup
+	var g errgroup.Group
 	for i := range readers {
-		wg.Go(func() {
-			got[i], errs[i] = read(strings.Repeat(letters[i:i+1], 1000+i))
-			for range 10 {
-				_, _ = read(strings.Repeat("z", 2000))
+		g.Go(func() error {
+			var err error
+			if got[i], err = read(strings.Repeat(letters[i:i+1], 1000+i)); err != nil {
+				return err
 			}
+			for range 10 {
+				if _, err := read(strings.Repeat("z", 2000)); err != nil {
+					return err
+				}
+			}
+
+			return nil
 		})
 	}
-	wg.Wait()
+	require.NoError(t, g.Wait())
 	for i := range readers {
-		require.NoError(t, errs[i])
 		require.Equal(t, strings.Repeat(letters[i:i+1], 1000+i), string(got[i]))
 	}
 }
