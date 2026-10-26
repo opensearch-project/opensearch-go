@@ -120,9 +120,11 @@ type Operation struct {
 	//
 	//	func (c *Client) <Interceptor>(ctx context.Context, req <Prefix>Req) (*<Prefix>Resp, bool, error)
 	//
-	// When it reports true the dispatch returns its response and error; when
-	// it reports false the dispatch sends the request as usual. Empty for every
-	// operation not listed in cmd/osgen's interceptors table.
+	// When it reports true the dispatch returns its response and error. When it
+	// reports false the dispatch sends the request as usual, and decodes the
+	// answer into a copy of the response it returned, if it returned one, so
+	// that it can size the response for what the request asks for. Empty for
+	// every operation not listed in cmd/osgen's interceptors table.
 	Interceptor string
 
 	// Routing (computed during parse from group name).

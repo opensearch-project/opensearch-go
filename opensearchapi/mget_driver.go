@@ -401,21 +401,49 @@ func (d *mgetDriver) selectedFanOut(ctx context.Context) MGetFanOut {
 // interceptMGet is the hook DocumentClient.MGet calls first. It answers the
 // call itself, and reports true, when the direct driver is selected and can
 // route at least one of the documents to a node; otherwise it reports false
-// and the mget goes to the cluster as one request.
+// and the mget goes to the cluster as one request, decoded into the response
+// it returns, which has room for every document the request names.
 func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, bool, error) {
 	d := c.ext.mget
 	if d == nil || d.lookup == nil || d.selected(ctx) != MGetDriverDirect {
-		return nil, false, nil
+		return mgetSeed(ctx, req), false, nil
 	}
 
 	call, err := d.write(c, req, d.selectedFanOut(ctx))
 	if err != nil {
 		// write says why the mget cannot be split; it goes to the cluster as one
 		// request, which is not a failure of the call.
-		return nil, false, nil //nolint:nilerr // Not splitting is not the call's error.
+		return mgetSeed(ctx, req), false, nil //nolint:nilerr // Not splitting is not the call's error.
 	}
 
 	resp, err := call.flush(ctx)
 
 	return resp, true, err
+}
+
+// mgetSeed returns the response a coordinated mget is decoded into: one with
+// room for a document per document asked for, so that decoding the answer does
+// not grow Docs by copying, and its documents' storage is sized once. The count
+// is the request's docs, or, for a direct driver's sub-request, whose body is
+// already encoded, the count withMGetDocs gave ctx. It returns nil when neither
+// says, as for ids or a caller's own BodyReader.
+func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
+	n, _ := ctx.Value(mgetDocsKey{}).(int)
+	if req.Body != nil && len(req.Body.Docs) > 0 {
+		n = len(req.Body.Docs)
+	}
+	if n <= 0 {
+		return nil
+	}
+
+	return &MGetResp{Docs: make([]MGetRespItem, 0, n)}
+}
+
+// mgetDocsKey is the context key for withMGetDocs.
+type mgetDocsKey struct{}
+
+// withMGetDocs returns ctx saying that the mget sent with it asks for n
+// documents, which mgetSeed sizes the response for.
+func withMGetDocs(ctx context.Context, n int) context.Context {
+	return context.WithValue(ctx, mgetDocsKey{}, n)
 }

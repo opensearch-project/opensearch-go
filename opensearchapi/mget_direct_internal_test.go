@@ -1272,6 +1272,60 @@ func TestMGetChoiceString(t *testing.T) {
 	require.Equal(t, "default", MGetFanOutDefault.String())
 }
 
+// TestMGetCoordinatedDecodesIntoSeed checks that an mget sent to the cluster as
+// one request is decoded into Docs sized for the documents it asks for, rather
+// than grown from empty while the answer is read.
+//
+//nolint:paralleltest // newMGetAllocClient turns the router off with t.Setenv.
+func TestMGetCoordinatedDecodesIntoSeed(t *testing.T) {
+	c := newMGetAllocClient(t, mgetAllocModes[0])
+	resp, err := c.Doc.MGet(t.Context(), mgetAllocRequest(5))
+	require.NoError(t, err)
+	require.Len(t, resp.Docs, 5)
+	require.Equal(t, 5, cap(resp.Docs), "the answer filled the seed, not a slice grown from empty")
+	for i := range resp.Docs {
+		got, err := resp.Docs[i].GetResult()
+		require.NoError(t, err)
+		require.Equal(t, fmt.Sprintf("doc-%d", i), got.ID)
+	}
+}
+
+func TestMGetSeed(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		req     MGetReq
+		hint    int // withMGetDocs, when not 0
+		wantCap int // -1: no seed
+	}{
+		{name: "docs", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "a", "b", "c")}}, wantCap: 3},
+		{name: "docs over a hint", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "a")}}, hint: 5, wantCap: 1},
+		{name: "an encoded sub-request's hint", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}, hint: 4, wantCap: 4},
+		{name: "no body", req: MGetReq{}, wantCap: -1},
+		{name: "ids", req: MGetReq{Index: "idx", Body: &MGetBody{IDs: new("a,b")}}, wantCap: -1},
+		{name: "a raw body", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}, wantCap: -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			if tt.hint != 0 {
+				ctx = withMGetDocs(ctx, tt.hint)
+			}
+			seed := mgetSeed(ctx, tt.req)
+			if tt.wantCap < 0 {
+				require.Nil(t, seed)
+				return
+			}
+			require.NotNil(t, seed)
+			require.Empty(t, seed.Docs)
+			require.Equal(t, tt.wantCap, cap(seed.Docs))
+		})
+	}
+}
+
 type recordingMGetObserver struct {
 	mu   sync.Mutex
 	reqs []MGetRequestEvent

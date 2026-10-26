@@ -132,7 +132,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 			notContains: []string{"classifyError"},
 		},
 		{
-			name: "an interceptor is tried before the request is sent",
+			name: "an interceptor is tried before the request is sent, and may seed the response",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
 					Group:       "mget",
@@ -148,9 +148,11 @@ func TestDispatchFragment_Body(t *testing.T) {
 				}
 			},
 			contains: []string{
-				"if resp, handled, err := c.apiClient.interceptMGet(ctx, req); handled {\n\t\treturn resp, err\n\t}",
+				"seed, handled, err := c.apiClient.interceptMGet(ctx, req)\n\tif handled {\n\t\treturn seed, err\n\t}\n" +
+					"\tvar data MGetResp\n\tif seed != nil {\n\t\tdata = *seed\n\t}\n",
 				"return c.Doc.MGet(ctx, req)",
 			},
+			notContains: []string{"err  error"},
 		},
 		{
 			name: "an operation without an interceptor sends the request directly",
