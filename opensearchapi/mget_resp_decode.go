@@ -87,7 +87,7 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 		r.Docs = []MGetRespItem{}
 	}
 	r.Docs = r.Docs[:0]
-	store := mgetDocStore{first: min(cap(r.Docs), mgetDocMaxChunk)}
+	store := chunkStore[mgetDocSlot]{first: cap(r.Docs)}
 	for json.PeekKind(dec) != ']' {
 		// Decoded in place: a local MGetRespItem would escape to the heap, through
 		// the generated fallback, once for every document.
@@ -104,7 +104,7 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 // decodeMGetDoc decodes one document into u, as MGetRespItem.UnmarshalJSONFrom
 // does: a document with an error member is a MultiGetError, any other object a
 // GetResult, and RawJSON is the bytes the document was read from.
-func decodeMGetDoc(dec *json.TextDecoder, u *MGetRespItem, store *mgetDocStore) error {
+func decodeMGetDoc(dec *json.TextDecoder, u *MGetRespItem, store *chunkStore[mgetDocSlot]) error {
 	if json.PeekKind(dec) != '{' {
 		return u.UnmarshalJSONFrom(dec)
 	}
@@ -205,31 +205,4 @@ func (s *mgetDocSlot) decode(dec *json.TextDecoder) error {
 	}
 
 	return nil
-}
-
-// mgetDocStore hands out mgetDocSlots from chunks: the first as large as first,
-// the room Docs has for the documents asked for up to a bound, else small, and
-// each after it twice the last up to the bound. A chunk is never grown, so a
-// pointer into it stays valid.
-type mgetDocStore struct {
-	first int
-	chunk []mgetDocSlot
-}
-
-const (
-	mgetDocFirstChunk = 8
-	mgetDocMaxChunk   = 256
-)
-
-func (st *mgetDocStore) next() *mgetDocSlot {
-	if len(st.chunk) == cap(st.chunk) {
-		size := min(max(2*cap(st.chunk), mgetDocFirstChunk), mgetDocMaxChunk)
-		if st.chunk == nil && st.first > 0 {
-			size = st.first
-		}
-		st.chunk = make([]mgetDocSlot, 0, size)
-	}
-	st.chunk = st.chunk[:len(st.chunk)+1]
-
-	return &st.chunk[len(st.chunk)-1]
 }

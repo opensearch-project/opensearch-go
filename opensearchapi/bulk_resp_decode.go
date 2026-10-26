@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"bytes"
-	stdjson "encoding/json"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
@@ -50,7 +49,7 @@ func (r *BulkResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err
 	}
-	var store bulkRespStore
+	var store chunkStore[bulkRespSlot]
 	for json.PeekKind(dec) != '}' {
 		name, err := memberName(dec)
 		if err != nil {
@@ -78,7 +77,7 @@ func (r *BulkResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 }
 
 // decodeItems decodes the items array into r.Items, reusing its capacity.
-func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *bulkRespStore, errs *typeErrors) error {
+func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *chunkStore[bulkRespSlot], errs *typeErrors) error {
 	if json.PeekKind(dec) != '[' {
 		return json.UnmarshalDecode(dec, &r.Items)
 	}
@@ -109,7 +108,7 @@ func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *bulkRespStore, errs
 }
 
 // decodeBulkItem decodes one item, {"<action>":{...}}, into item.
-func decodeBulkItem(dec *json.TextDecoder, item *BulkItem, store *bulkRespStore, errs *typeErrors) error {
+func decodeBulkItem(dec *json.TextDecoder, item *BulkItem, store *chunkStore[bulkRespSlot], errs *typeErrors) error {
 	if json.PeekKind(dec) != '{' {
 		return errs.keep(json.UnmarshalDecode(dec, item))
 	}
@@ -216,98 +215,4 @@ func (s *bulkRespSlot) decode(dec *json.TextDecoder, it *BulkRespItem, errs *typ
 	_, err := dec.ReadToken()
 
 	return err
-}
-
-// decodeOptional points field at dst and decodes the next value into it, as the
-// reflective decoder fills a nil pointer field, even with a value of the wrong
-// type, or decodes into the value field already names, or clears field for null.
-func decodeOptional[T any](dec *json.TextDecoder, dst *T, field **T) error {
-	if json.PeekKind(dec) == 'n' {
-		*field = nil
-		_, err := dec.ReadToken()
-
-		return err
-	}
-	if *field == nil {
-		*field = dst
-	}
-
-	return json.UnmarshalDecode(dec, *field)
-}
-
-// bulkRespStore hands out bulkRespSlots from chunks that double in size up to a
-// bound, so that a response costs a few allocations however many items it has,
-// and a small one does not pay for a large chunk. A chunk is never grown, so a
-// pointer into it stays valid.
-type bulkRespStore struct {
-	chunk []bulkRespSlot
-}
-
-const (
-	bulkRespFirstChunk = 8
-	bulkRespMaxChunk   = 256
-)
-
-func (st *bulkRespStore) next() *bulkRespSlot {
-	if len(st.chunk) == cap(st.chunk) {
-		size := min(max(2*cap(st.chunk), bulkRespFirstChunk), bulkRespMaxChunk)
-		st.chunk = make([]bulkRespSlot, 0, size)
-	}
-	st.chunk = st.chunk[:len(st.chunk)+1]
-
-	return &st.chunk[len(st.chunk)-1]
-}
-
-// memberName reads an object member's name and returns it unquoted. The name is
-// the decoder's own bytes, good until its next read, unless it holds an escape,
-// which is decoded into a copy.
-func memberName(dec *json.TextDecoder) ([]byte, error) {
-	v, err := dec.ReadValue()
-	if err != nil {
-		return nil, err
-	}
-	name := v[1 : len(v)-1]
-	if bytes.IndexByte(name, '\\') < 0 {
-		return name, nil
-	}
-	var s string
-	if err := json.Unmarshal(v, &s); err != nil {
-		return nil, err
-	}
-
-	return []byte(s), nil
-}
-
-// typeErrors keeps the first type error of a decode that goes on past it, as the
-// reflective decoder does, leaving the value of the wrong type unset.
-type typeErrors struct {
-	first *stdjson.UnmarshalTypeError
-}
-
-// keep returns nil for a type error, which it keeps if it is the first, and any
-// other error, such as a syntax error, which ends the decode.
-func (e *typeErrors) keep(err error) error {
-	if err == nil {
-		return nil
-	}
-	te := json.AsTypeError(err)
-	if te == nil {
-		return err
-	}
-	if e.first == nil {
-		e.first = te
-	}
-
-	return nil
-}
-
-// err returns the first type error kept, naming root as the type decoded, as the
-// reflective decoder names the type it was called with, or nil.
-func (e *typeErrors) err(root string) error {
-	if e.first == nil {
-		return nil
-	}
-	e.first.Struct = root
-
-	return e.first
 }

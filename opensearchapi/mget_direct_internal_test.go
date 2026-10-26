@@ -171,9 +171,14 @@ func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
 }
 
 // send implements mgetSender for the nodes of the fake cluster. A node answers
-// only documents whose shard it holds a copy of.
-func (f *mgetFake) send(_ context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
+// only documents whose shard it holds a copy of. Each request's ctx must size
+// the response for the documents the request asks for, through withMGetDocs.
+func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
+	seed := mgetSeed(ctx, req)
 	req = f.decodeBody(req)
+	if seed == nil || cap(seed.Docs) != len(req.Body.Docs) {
+		f.t.Errorf("a request to %s for %d documents has no seed of that size: %v", node.Name, len(req.Body.Docs), seed)
+	}
 	if body, ok := req.BodyReader.(*bufbody.Pooled); ok {
 		// The transport closes a request body once it has sent it.
 		defer body.Close()

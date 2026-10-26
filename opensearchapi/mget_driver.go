@@ -444,7 +444,9 @@ func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
 type mgetDocsKey struct{}
 
 // withMGetDocs returns ctx saying that the mget sent with it asks for n
-// documents, which mgetSeed sizes the response for.
+// documents, which mgetSeed sizes the response for. The count rides on ctx
+// because the direct driver's sub-requests carry their body already encoded,
+// and the generated DocumentClient.MGet takes nothing else that could carry it.
 func withMGetDocs(ctx context.Context, n int) context.Context {
 	return context.WithValue(ctx, mgetDocsKey{}, n)
 }
