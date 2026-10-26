@@ -179,7 +179,8 @@ func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtranspor
 	if prealloc == nil {
 		f.t.Errorf("a request to %q for %d documents has no preallocated response", node.Name, len(req.Body.Docs))
 	} else if cap(prealloc.Docs) != len(req.Body.Docs) {
-		f.t.Errorf("a request to %q for %d documents has a preallocated response with room for %d", node.Name, len(req.Body.Docs), cap(prealloc.Docs))
+		f.t.Errorf("a request to %q for %d documents has a preallocated response with room for %d",
+			node.Name, len(req.Body.Docs), cap(prealloc.Docs))
 	}
 	if body, ok := req.BodyReader.(*bufbody.Pooled); ok {
 		// The transport closes a request body once it has sent it.

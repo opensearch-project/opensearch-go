@@ -877,7 +877,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		return prealloc, err
 	}
 {{- else if $respAlloc}}
-	prealloc :={{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.ResponseAllocator}}(ctx, req)
+	prealloc := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.ResponseAllocator}}(ctx, req)
 {{- end}}
 {{- if $op.IsNoBody}}
 	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
