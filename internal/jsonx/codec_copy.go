@@ -157,6 +157,22 @@ type TextDecoder = jsontext.Decoder
 // TextValue is the copy's jsontext.Value.
 type TextValue = jsontext.Value
 
+// AsTypeError returns the error err holds for a value of the wrong type as an
+// encoding/json.UnmarshalTypeError, or nil. Unmarshal reports it in that type;
+// UnmarshalDecode reports it in the copy's jsonv1 type, which this converts as
+// Unmarshal does.
+func AsTypeError(err error) *json.UnmarshalTypeError {
+	if te, ok := errors.AsType[*json.UnmarshalTypeError](err); ok {
+		return te
+	}
+	if _, ok := errors.AsType[*jsonv1.UnmarshalTypeError](err); !ok {
+		return nil
+	}
+	te, _ := errors.AsType[*json.UnmarshalTypeError](stdError(err, nil))
+
+	return te
+}
+
 // UnmarshalDecode decodes the next value of dec into v with dec's options. Call
 // it from an UnmarshalJSONFrom method. When v's type can hold an
 // encoding/json.Number that dec's options were not chosen for, it adds the

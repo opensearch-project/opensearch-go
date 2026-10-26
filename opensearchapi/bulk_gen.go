@@ -268,16 +268,23 @@ func (r *BulkResp) PartialFailures(mask errmask.ErrorMask) []error {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/bulk/
 func (c DocumentClient) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
+	prealloc := c.apiClient.allocBulkResp(ctx, req)
 	var (
 		data BulkResp
 		err  error
 	)
+	if prealloc != nil {
+		data = *prealloc
+	}
 	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
 		req, &data,
 	); err != nil {
+		if prealloc != nil {
+			data.dropPrealloc()
+		}
 		return &data, err
 	}
 	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)

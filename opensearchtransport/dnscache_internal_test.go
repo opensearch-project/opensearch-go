@@ -599,21 +599,42 @@ func TestNewDoesNotModifyCustomTransport(t *testing.T) {
 	require.ErrorIs(t, dialErr, sentinel, "custom DialContext must be preserved untouched")
 }
 
-// TestNewDisabledLeavesDefaultTransport verifies that disabling the cache
-// (DNSCacheRefresh < 0) leaves the stock http.DefaultTransport in place rather
-// than cloning and rewiring it.
-func TestNewDisabledLeavesDefaultTransport(t *testing.T) {
+// TestNewDefaultTransportPool verifies that the transport built when the caller
+// supplies none is a clone of http.DefaultTransport with a deep idle pool,
+// whether or not the DNS cache is enabled, and leaves the global untouched.
+func TestNewDefaultTransportPool(t *testing.T) {
 	t.Parallel()
 
-	client, err := New(Config{
-		URLs:            []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
-		DNSCacheRefresh: -1,
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = client.Close() })
+	tests := []struct {
+		name    string
+		refresh time.Duration
+	}{
+		{name: "dns cache disabled", refresh: -1},
+		{name: "dns cache enabled", refresh: 0},
+	}
 
-	require.Same(t, http.DefaultTransport, client.transport,
-		"disabled cache should leave http.DefaultTransport untouched")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			before := http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost
+
+			client, err := New(Config{
+				URLs:            []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
+				DNSCacheRefresh: tt.refresh,
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = client.Close() })
+
+			require.NotSame(t, http.DefaultTransport, client.transport)
+
+			got, ok := client.transport.(*http.Transport)
+			require.True(t, ok)
+			require.Equal(t, DefaultMaxIdleConns, got.MaxIdleConns)
+			require.Equal(t, DefaultMaxIdleConnsPerHost, got.MaxIdleConnsPerHost)
+			require.Equal(t, before, http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost)
+		})
+	}
 }
 
 // TestNewEnabledClonesDefaultTransport verifies the default path installs a

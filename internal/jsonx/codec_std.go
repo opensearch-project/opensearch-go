@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
+	"errors"
 	"io"
 )
 
@@ -27,6 +28,14 @@ type TextDecoder = jsontext.Decoder
 
 // TextValue is encoding/json/jsontext.Value.
 type TextValue = jsontext.Value
+
+// AsTypeError returns the error err holds for a value of the wrong type, as
+// UnmarshalDecode and Unmarshal report it, or nil.
+func AsTypeError(err error) *json.UnmarshalTypeError {
+	te, _ := errors.AsType[*json.UnmarshalTypeError](err)
+
+	return te
+}
 
 // UnmarshalDecode decodes the next value of dec into v with dec's options. Call
 // it from an UnmarshalJSONFrom method.

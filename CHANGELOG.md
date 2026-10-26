@@ -8,6 +8,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Raise the default transport's idle connection pool to `MaxIdleConns` 4096 and `MaxIdleConnsPerHost` 64 (net/http keeps 2 per host), and build it from a clone of `http.DefaultTransport` whether or not the DNS cache is enabled, so concurrent requests reuse connections instead of opening a new one for most of them. A `Transport` you supply is unchanged. ([#1243](https://github.com/opensearch-project/opensearch-go/pull/1243))
+- Optimize allocations for bulk decode and mget response evaluation: decode each bulk item's `BulkRespItem` and each mget document's `GetResult`, and the values their pointer fields point to, into storage allocated up to 64 at a time, with the same values and type errors as before; reuse the request's `_id` and `_index` strings for mget documents that match them; size an mget's `Docs` and a bulk indexer response's `Items` for the documents requested, and the bulk indexer's list of items once per request; read a response body that has a `Content-Length` into one buffer of that length, and one that does not, such as a gzip response, through a buffer the transport keeps (at most 4, of up to 256 KiB); and build query strings without a `url.Values`. A 1000-document mget makes a quarter of the allocations (4,049 to 1,039), with 28% fewer bytes, and runs 17% faster; against a node that gzips its responses, the kept read buffer cuts its bytes by a further 27%. A bulk response of 100 created items goes from 8.1 allocations an item to 1.1. A `GetResult` or `BulkRespItem` kept from a response keeps alive the storage it shares with up to 63 other documents or items. ([#1243](https://github.com/opensearch-project/opensearch-go/pull/1243))
+
 ### Deprecated
 
 ### Removed
@@ -42,6 +45,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - Fix the transport reading a node's thread pool counters as new on its first statistics poll. The counters count from the node's start, so a node that had rejected writes at any time before the client connected was marked overloaded and had its pool window halved, and a queue or wait time already there read as congestion. The first poll of a pool now records the counters as a baseline and changes nothing, as the cluster-wide search window already did for a node it had not seen. ([#1235](https://github.com/opensearch-project/opensearch-go/pull/1235))
+- Fix `TestMGetAllocations` and `TestSchedulerPublishLoadAllocations` failing on a busy machine. Their clients started a seed health check and node discovery in the background, and `testing.AllocsPerRun`, which counts every allocation in the process, counted those too. The tests turn the router off, so their clients start neither. ([#1243](https://github.com/opensearch-project/opensearch-go/pull/1243))
 
 ### Dependencies
 

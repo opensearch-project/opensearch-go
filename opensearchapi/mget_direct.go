@@ -928,7 +928,7 @@ func (call *mgetCall) sendJob(ctx context.Context, j mgetJob) {
 	call.mu.Unlock()
 
 	sent := time.Now()
-	resp, err := call.d.send(ctx, call.c, j.node, sub)
+	resp, err := call.d.send(withMGetDocs(ctx, call.req, j.slots), call.c, j.node, sub)
 	bufbody.Release(body)
 	event := MGetRequestEvent{
 		Node:       j.node.Name,
@@ -1049,7 +1049,7 @@ func (call *mgetCall) sendCoordinated(ctx context.Context, slots []int) {
 	call.mu.Unlock()
 
 	sent := time.Now()
-	resp, err := call.c.Doc.MGet(mgetCoordinated(ctx), sub)
+	resp, err := call.c.Doc.MGet(withMGetDocs(mgetCoordinated(ctx), call.req, slots), sub)
 	bufbody.Release(body)
 	event := MGetRequestEvent{Docs: len(slots), Duration: time.Since(sent), StatusCode: mgetStatus(resp), Err: err}
 	if call.d.observer != nil {

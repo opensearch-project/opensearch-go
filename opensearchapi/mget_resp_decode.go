@@ -1,0 +1,268 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package opensearchapi
+
+import (
+	"bytes"
+	"unicode/utf8"
+
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
+)
+
+// mgetRespGenericDecode is MGetResp without its methods, which the reflective
+// decoder fills in.
+type mgetRespGenericDecode MGetResp
+
+// UnmarshalJSONFrom decodes an mget response as the reflective decoder does, with
+// the generated MGetRespItem.UnmarshalJSONFrom for each document, into the same
+// values, without allocating each document's GetResult and the values its
+// pointer fields name one by one: those come from chunks shared by a run of
+// documents. Docs keeps the capacity it has, which the mget dispatch sizes for
+// the documents asked for, and a document whose _id and _index match the request
+// reuses the request's strings instead of copying them. The JSON codec
+// the client decodes with calls it in place of the reflective decoder, as
+// encoding/json does where it runs on the v2 engine, from Go 1.27.
+//
+// A document's GetResult shares its chunk with the documents decoded beside it,
+// so a GetResult kept past the response keeps the chunk too; MGetRespItem.RawJSON
+// already keeps the whole response body. Source is a copy, as it is when decoded
+// reflectively.
+//
+// Member names are matched as encoding/json matches them, ignoring case, and
+// every value is decoded by the codec. A document holding a value of the wrong
+// type is left unknown, as the generated decoder leaves it, and the decode goes
+// on, returning the first such error, naming MGetResp, once the response has
+// been read. A document that is not an object, or a value of another shape than
+// the mget API gives, is decoded as the generated decoder decodes it.
+//
+// TestMGetRespDecoderKnowsEveryField and TestMGetRespDecoderKnowsTheUnion fail
+// when MGetResp, GetResult or MGetRespItem changes in a way this does not
+// decode.
+func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	var errs typeErrors
+	err := errs.keep(r.decode(dec, &errs))
+	r.dropPrealloc()
+	if err != nil {
+		return err
+	}
+
+	return errs.err("MGetResp")
+}
+
+// dropPrealloc drops a preallocated response the answer did not decode into, such
+// as for a failed request or a body without docs, so that Docs is nil, as it is
+// in a response that was not preallocated, and the response keeps nothing of the
+// request.
+func (r *MGetResp) dropPrealloc() {
+	if len(r.Docs) == 0 && takeMGetAsked(r.Docs) != nil {
+		r.Docs = nil
+	}
+}
+
+func (r *MGetResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
+	if json.PeekKind(dec) != '{' {
+		return json.UnmarshalDecode(dec, (*mgetRespGenericDecode)(r))
+	}
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+	for json.PeekKind(dec) != '}' {
+		name, err := memberName(dec)
+		if err != nil {
+			return err
+		}
+		if bytes.EqualFold(name, []byte("docs")) {
+			err = r.decodeDocs(dec, errs)
+		} else {
+			err = dec.SkipValue()
+		}
+		if err = errs.keep(err); err != nil {
+			return err
+		}
+	}
+	_, err := dec.ReadToken()
+
+	return err
+}
+
+// decodeDocs decodes the docs array into r.Docs, reusing its capacity.
+func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
+	var asked *mgetAsked
+	if len(r.Docs) == 0 {
+		asked = takeMGetAsked(r.Docs)
+	}
+	if json.PeekKind(dec) != '[' {
+		return json.UnmarshalDecode(dec, &r.Docs)
+	}
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+	// An empty array decodes to an empty slice, not nil, as it does reflectively.
+	if r.Docs == nil {
+		r.Docs = []MGetRespItem{}
+	}
+	r.Docs = r.Docs[:0]
+	store := chunkStore[mgetDocSlot]{first: cap(r.Docs)}
+	for json.PeekKind(dec) != ']' {
+		// Reset, unlike a bulk item, because the generated union decoder resets the
+		// document it decodes into.
+		u := nextElem(&r.Docs)
+		*u = MGetRespItem{}
+		id, index := asked.doc(len(r.Docs) - 1)
+		if err := errs.keep(decodeMGetDoc(dec, u, &store, id, index)); err != nil {
+			return err
+		}
+	}
+	_, err := dec.ReadToken()
+
+	return err
+}
+
+// takeMGetAsked returns the requested documents that allocMGetResp stored in the
+// first unused element of docs, an empty Docs, and clears that element. It
+// returns nil when docs did not come from allocMGetResp.
+func takeMGetAsked(docs []MGetRespItem) *mgetAsked {
+	if cap(docs) == 0 {
+		return nil
+	}
+	spare := &docs[:1][0]
+	asked, ok := spare.value.(*mgetAsked)
+	if ok {
+		*spare = MGetRespItem{}
+	}
+
+	return asked
+}
+
+// decodeMGetDoc decodes one document into u, as MGetRespItem.UnmarshalJSONFrom
+// does: a document with an error member is a MultiGetError, any other object a
+// GetResult, and RawJSON is the bytes the document was read from. id and index
+// are the document's requested _id and _index, or empty.
+func decodeMGetDoc(dec *json.TextDecoder, u *MGetRespItem, store *chunkStore[mgetDocSlot], id, index string) error {
+	if json.PeekKind(dec) != '{' {
+		return u.UnmarshalJSONFrom(dec)
+	}
+	mark := json.MarkOf(dec)
+	slot := store.next()
+	if err := slot.decode(dec, id, index); err != nil {
+		return err
+	}
+	u.raw = mark.Consumed(dec)
+	if len(slot.errMember) == 0 {
+		u.typ = MGetRespItemGetResultType
+		u.value = &slot.get
+
+		return nil
+	}
+
+	var v MGetMultiGetError
+	if json.Valid(u.raw) {
+		if err := json.Unmarshal(u.raw, &v); err != nil {
+			return err
+		}
+	} else {
+		// A decoder reading an io.Reader reuses its buffer, so the bytes are gone or
+		// overwritten; build the branch from the members read instead.
+		u.raw = nil
+		v.ID, v.Index = slot.get.ID, slot.get.Index
+		if err := json.Unmarshal(slot.errMember, &v.Error); err != nil {
+			return err
+		}
+	}
+	u.typ = MGetRespItemMultiGetErrorType
+	u.value = &v
+
+	return nil
+}
+
+// mgetDocSlot holds one document's GetResult and the values its pointer fields
+// name.
+type mgetDocSlot struct {
+	get                         GetResult
+	routing, docType            string
+	primaryTerm, seqNo, version int64
+	// errMember is the document's error member, which makes it a MultiGetError.
+	// It is kept here, not in a local, which would escape to the heap for every
+	// document.
+	errMember json.RawMessage
+}
+
+// decode decodes a document object into s.get, and its error member, if it has
+// one, into s.errMember. It reads the whole object past a value of the wrong
+// type, then returns the first such error. An _id or _index that matches the
+// requested id or index reuses that string instead of copying it.
+func (s *mgetDocSlot) decode(dec *json.TextDecoder, id, index string) error {
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+	var errs typeErrors
+	g := &s.get
+	for json.PeekKind(dec) != '}' {
+		name, err := memberName(dec)
+		if err != nil {
+			return err
+		}
+		switch {
+		case bytes.EqualFold(name, []byte("_id")):
+			err = decodeKnownString(dec, &g.ID, id)
+		case bytes.EqualFold(name, []byte("_index")):
+			err = decodeKnownString(dec, &g.Index, index)
+		case bytes.EqualFold(name, []byte("found")):
+			err = json.UnmarshalDecode(dec, &g.Found)
+		case bytes.EqualFold(name, []byte("_source")):
+			err = json.UnmarshalDecode(dec, &g.Source)
+		case bytes.EqualFold(name, []byte("_version")):
+			err = decodeOptional(dec, &s.version, &g.Version)
+		case bytes.EqualFold(name, []byte("_seq_no")):
+			err = decodeOptional(dec, &s.seqNo, &g.SeqNo)
+		case bytes.EqualFold(name, []byte("_primary_term")):
+			err = decodeOptional(dec, &s.primaryTerm, &g.PrimaryTerm)
+		case bytes.EqualFold(name, []byte("_routing")):
+			err = decodeOptional(dec, &s.routing, &g.Routing)
+		case bytes.EqualFold(name, []byte("_type")):
+			err = decodeOptional(dec, &s.docType, &g.Type)
+		case bytes.EqualFold(name, []byte("fields")):
+			err = json.UnmarshalDecode(dec, &g.Fields)
+		case bytes.EqualFold(name, []byte("error")):
+			err = json.UnmarshalDecode(dec, &s.errMember)
+		default:
+			err = dec.SkipValue()
+		}
+		if err = errs.keep(err); err != nil {
+			return err
+		}
+	}
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+	if errs.first != nil {
+		return errs.first
+	}
+
+	return nil
+}
+
+// decodeKnownString decodes the next value into dst as UnmarshalDecode does, but
+// stores known instead of allocating a copy when the value's bytes are exactly
+// known's. The bytes must hold no escape and be valid UTF-8: an escape, or an
+// invalid byte, which the decoder replaces, would decode to other bytes.
+func decodeKnownString(dec *json.TextDecoder, dst *string, known string) error {
+	if known == "" || json.PeekKind(dec) != '"' {
+		return json.UnmarshalDecode(dec, dst)
+	}
+	v, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+	if raw := v[1 : len(v)-1]; string(raw) == known && bytes.IndexByte(raw, '\\') < 0 && utf8.Valid(raw) {
+		*dst = known
+
+		return nil
+	}
+
+	return json.Unmarshal(v, dst)
+}

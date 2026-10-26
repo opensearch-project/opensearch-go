@@ -120,10 +120,25 @@ type Operation struct {
 	//
 	//	func (c *Client) <Interceptor>(ctx context.Context, req <Prefix>Req) (*<Prefix>Resp, bool, error)
 	//
-	// When it reports true the dispatch returns its response and error; when
-	// it reports false the dispatch sends the request as usual. Empty for every
-	// operation not listed in cmd/osgen's interceptors table.
+	// When it reports true the dispatch returns its response and error. When it
+	// reports false the dispatch sends the request as usual, and treats the
+	// response it returned, if any, as a preallocated response; see
+	// ResponseAllocator. Empty for every operation not listed in cmd/osgen's
+	// interceptors table.
 	Interceptor string
+
+	// ResponseAllocator names a hand-written method on *Client that the dispatch
+	// calls before it sends the request:
+	//
+	//	func (c *Client) <ResponseAllocator>(ctx context.Context, req <Prefix>Req) *<Prefix>Resp
+	//
+	// It returns a preallocated response, one sized for what the request asks for,
+	// or nil. The dispatch decodes the answer into a copy of it, and when the
+	// request fails it calls the response's dropPrealloc method, which drops what
+	// is left of the preallocation, so that a failed call returns what a call
+	// without one does. Empty for every operation not listed in cmd/osgen's
+	// respAllocs table.
+	ResponseAllocator string
 
 	// Routing (computed during parse from group name).
 	Package    string

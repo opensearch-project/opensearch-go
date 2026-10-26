@@ -440,6 +440,16 @@ var interceptors = map[string]string{
 	"mget": "interceptMGet",
 }
 
+// respAllocs maps an operation group to the hand-written *Client method that
+// allocates its response before the request is sent; see
+// ir.Operation.ResponseAllocator. bulk's response is allocated up front so that
+// it has room for the actions the request carries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var respAllocs = map[string]string{
+	"bulk": "allocBulkResp",
+}
+
 // compatForwardersFor builds the dispatchRoutes for a group's compatibility
 // forwarders, each pointing at the canonical primary route. The Forward
 // expression is relative to the forwarder's own receiver: a top-level forwarder

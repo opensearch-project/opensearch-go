@@ -396,6 +396,8 @@ Key settings to verify on any custom transport:
 
 `Clone()` copies all of these. If you must build from scratch (e.g. for a non-`*http.Transport` round tripper), set at minimum `ForceAttemptHTTP2: true` and `MaxIdleConnsPerHost` >= your expected concurrency.
 
+When you supply no `Transport`, the client uses a clone of `http.DefaultTransport` with `MaxIdleConns` raised to 4096 and `MaxIdleConnsPerHost` to 64, so a client fanning out across many nodes keeps its connections. A clone you make yourself keeps `DefaultTransport`'s values (the table above), so raise both on it when you expect concurrent requests to many nodes.
+
 ## Operation Classifier
 
 The `opensearchtransport.OperationClassifier` maps HTTP method+path pairs to structured `OperationID` values. This enables transparent metrics, tracing, or access-control middleware at the `http.RoundTripper` layer without per-operation wrapper code.

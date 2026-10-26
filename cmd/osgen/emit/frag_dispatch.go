@@ -869,18 +869,38 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		req = &{{$op.TypePrefix}}Req{}
 	}
 {{end}}
-{{- if and $op.Interceptor (not $op.IsNoBody)}}
-	if resp, handled, err := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Interceptor}}(ctx, req); handled {
-		return resp, err
+{{- $intercepted := and $op.Interceptor (not $op.IsNoBody)}}
+{{- $respAlloc := and $op.ResponseAllocator (not $op.IsNoBody) (not $intercepted)}}
+{{- if $intercepted}}
+	prealloc, intercepted, err := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Interceptor}}(ctx, req)
+	if intercepted {
+		return prealloc, err
 	}
+{{- else if $respAlloc}}
+	prealloc := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.ResponseAllocator}}(ctx, req)
 {{- end}}
 {{- if $op.IsNoBody}}
 	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
+{{- else if $intercepted}}
+	var data {{$op.TypePrefix}}Resp
+	if prealloc != nil {
+		data = *prealloc
+	}
+{{- else if $respAlloc}}
+	var (
+		data {{$op.TypePrefix}}Resp
+		err  error
+	)
+	if prealloc != nil {
+		data = *prealloc
+	}
 {{- else}}
 	var (
 		data {{$op.TypePrefix}}Resp
 		err  error
 	)
+{{- end}}
+{{- if not $op.IsNoBody}}
 {{- $switch := methodSwitch $op}}
 {{- if $switch}}
 	method := {{methodConst (primaryMethod $op)}}
@@ -893,6 +913,11 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		method,
 		req, &data,
 	); err != nil {
+{{- if or $intercepted $respAlloc}}
+		if prealloc != nil {
+			data.dropPrealloc()
+		}
+{{- end}}
 		return &data, {{requestErr}}
 	}
 {{- else}}
@@ -902,6 +927,11 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		{{methodConst (primaryMethod $op)}},
 		req, &data,
 	); err != nil {
+{{- if or $intercepted $respAlloc}}
+		if prealloc != nil {
+			data.dropPrealloc()
+		}
+{{- end}}
 		return &data, {{requestErr}}
 	}
 {{- end}}

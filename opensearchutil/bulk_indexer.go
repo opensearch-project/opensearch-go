@@ -36,6 +36,7 @@ import (
 	"net/http"
 	"reflect"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,6 +44,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -1935,7 +1937,10 @@ func (w *worker) sendBuffer(b *buffer) {
 
 	w.buf = newChunkBuffer(bi.chunks)
 	w.buf.small = bi.pieces
-	w.items = w.items[:0]
+	// Sized for every item once: a worker the pool dropped at a collection comes
+	// back with no capacity, and growing by appending would copy the items again
+	// and again.
+	w.items = slices.Grow(w.items[:0], len(b.items))
 	w.node = b.dest
 	w.throttled, w.failed, w.served, w.tooLarge = false, false, false, 0
 	w.sent, w.busy = 0, 0
@@ -2460,7 +2465,8 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 	}
 
 	start := w.bi.now()
-	blk, err := w.bi.config.Client.Doc.Bulk(w.toNode(ctx), req)
+	// The response is decoded into Items sized for the batch's actions.
+	blk, err := w.bi.config.Client.Doc.Bulk(apiutil.WithBulkItems(w.toNode(ctx), len(w.items)), req)
 	elapsed := w.bi.now().Sub(start)
 
 	// The controllers read a rate, bytes over the time the node spent on them, so

@@ -171,9 +171,17 @@ func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
 }
 
 // send implements mgetSender for the nodes of the fake cluster. A node answers
-// only documents whose shard it holds a copy of.
-func (f *mgetFake) send(_ context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
+// only documents whose shard it holds a copy of. Each request's ctx must size
+// the response for the documents the request asks for, through withMGetDocs.
+func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
+	prealloc := allocMGetResp(ctx, req)
 	req = f.decodeBody(req)
+	if prealloc == nil {
+		f.t.Errorf("a request to %q for %d documents has no preallocated response", node.Name, len(req.Body.Docs))
+	} else if cap(prealloc.Docs) != len(req.Body.Docs) {
+		f.t.Errorf("a request to %q for %d documents has a preallocated response with room for %d",
+			node.Name, len(req.Body.Docs), cap(prealloc.Docs))
+	}
 	if body, ok := req.BodyReader.(*bufbody.Pooled); ok {
 		// The transport closes a request body once it has sent it.
 		defer body.Close()
@@ -1270,6 +1278,81 @@ func TestMGetChoiceString(t *testing.T) {
 	require.Equal(t, "MGetFanOut(7)", MGetFanOut(7).String())
 	require.Equal(t, "default", MGetDriverDefault.String())
 	require.Equal(t, "default", MGetFanOutDefault.String())
+}
+
+// TestMGetCoordinatedDecodesIntoPrealloc checks that an mget sent to the cluster as
+// one request is decoded into Docs sized for the documents it asks for, rather
+// than grown from empty while the answer is read.
+//
+//nolint:paralleltest // newMGetAllocClient turns the router off with t.Setenv.
+func TestMGetCoordinatedDecodesIntoPrealloc(t *testing.T) {
+	c := newMGetAllocClient(t, mgetAllocModes[0])
+	resp, err := c.Doc.MGet(t.Context(), mgetAllocRequest(5))
+	require.NoError(t, err)
+	require.Len(t, resp.Docs, 5)
+	require.Equal(t, 5, cap(resp.Docs), "the answer filled the preallocated response, not a slice grown from empty")
+	for i := range resp.Docs {
+		got, err := resp.Docs[i].GetResult()
+		require.NoError(t, err)
+		require.Equal(t, fmt.Sprintf("doc-%d", i), got.ID)
+	}
+}
+
+func TestAllocMGetResp(t *testing.T) {
+	t.Parallel()
+
+	other := "other"
+	parent := MGetReq{Index: "idx", Body: &MGetBody{Docs: mgetDocs("idx", "a", "b", "c", "d")}}
+	parent.Body.Docs[2].Index = &other
+	parent.Index = "default"
+
+	tests := []struct {
+		name  string
+		req   MGetReq
+		slots []int    // withMGetDocs over parent, when not nil
+		want  []string // each document's _id/_index; nil: no preallocated response
+	}{
+		{name: "docs", req: MGetReq{Index: "default", Body: &MGetBody{Docs: parent.Body.Docs[:3]}}, want: []string{"a/idx", "b/idx", "c/other"}},
+		{name: "docs over a hint", req: MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "z")}}, slots: []int{0, 1}, want: []string{"z/idx"}},
+		{
+			name:  "an encoded sub-request's hint",
+			req:   MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)},
+			slots: []int{1, 2, 3},
+			want:  []string{"b/idx", "c/other", "d/idx"},
+		},
+		{name: "a hint with no documents", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}, slots: []int{}},
+		{name: "no body", req: MGetReq{}},
+		{name: "ids", req: MGetReq{Index: "idx", Body: &MGetBody{IDs: new("a,b")}}},
+		{name: "a raw body", req: MGetReq{BodyReader: strings.NewReader(`{"docs":[]}`)}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			if tt.slots != nil {
+				ctx = withMGetDocs(ctx, parent, tt.slots)
+			}
+			prealloc := allocMGetResp(ctx, tt.req)
+			if tt.want == nil {
+				require.Nil(t, prealloc)
+				return
+			}
+			require.NotNil(t, prealloc)
+			require.Empty(t, prealloc.Docs)
+			require.Equal(t, len(tt.want), cap(prealloc.Docs))
+
+			asked := takeMGetAsked(prealloc.Docs)
+			require.NotNil(t, asked, "the preallocated response carries what the mget asks for")
+			require.Nil(t, takeMGetAsked(prealloc.Docs), "taken out once")
+			got := make([]string, asked.len())
+			for i := range got {
+				id, index := asked.doc(i)
+				got[i] = id + "/" + index
+			}
+			require.Equal(t, tt.want, got)
+		})
+	}
 }
 
 type recordingMGetObserver struct {

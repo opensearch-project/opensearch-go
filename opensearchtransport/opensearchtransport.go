@@ -443,7 +443,9 @@ type Config struct {
 	HealthCheck HealthCheckFunc
 
 	// Transport is the underlying HTTP transport. If nil, a clone of
-	// http.DefaultTransport is used, with a process-local DNS cache installed on
+	// http.DefaultTransport is used, with MaxIdleConns set to DefaultMaxIdleConns
+	// and MaxIdleConnsPerHost to DefaultMaxIdleConnsPerHost, and with a
+	// process-local DNS cache installed on
 	// it (see DNSCacheRefresh). A non-nil Transport keeps its own configuration:
 	// CACert and InsecureSkipVerify are applied to a clone of it, and that clone
 	// also has HTTP/2 re-enabled when attaching them would otherwise leave it
@@ -599,6 +601,10 @@ type Transport struct {
 	// to [None]; see requestCompressor.encoding.
 	compressor *requestCompressor
 
+	// readBufs holds the buffers readResponseBody reads a body of unknown length
+	// into; see readResponseBody. nil, in a Transport not built by New, keeps none.
+	readBufs chan *bytes.Buffer
+
 	metrics *metrics
 
 	transport  http.RoundTripper
@@ -706,6 +712,34 @@ func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) 
 	return httpTransport, nil
 }
 
+const (
+	// DefaultMaxIdleConns is the idle connection limit across all hosts on the
+	// default transport.
+	DefaultMaxIdleConns = 4096
+
+	// DefaultMaxIdleConnsPerHost is the idle connection limit for one node on the
+	// default transport. net/http keeps only 2, which makes a concurrent caller
+	// open and close a connection on most requests; a client fanning out across
+	// nodes needs a deeper pool.
+	DefaultMaxIdleConnsPerHost = 64
+)
+
+// newDefaultTransport returns a clone of http.DefaultTransport sized for a
+// client that fans out across many nodes. The clone keeps http.DefaultTransport
+// itself unmodified, since other packages share it.
+func newDefaultTransport() http.RoundTripper {
+	base, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return http.DefaultTransport
+	}
+
+	tr := base.Clone()
+	tr.MaxIdleConns = DefaultMaxIdleConns
+	tr.MaxIdleConnsPerHost = DefaultMaxIdleConnsPerHost
+
+	return tr
+}
+
 // New creates new transport client.
 func New(cfg Config) (*Transport, error) {
 	getenv := cfg.lookupEnv
@@ -731,7 +765,7 @@ func New(cfg Config) (*Transport, error) {
 	// reassigned.
 	customTransport := cfg.Transport != nil
 	if cfg.Transport == nil {
-		cfg.Transport = http.DefaultTransport
+		cfg.Transport = newDefaultTransport()
 	}
 
 	// tlsClone is the clone a TLS branch below installed, and stays nil when
@@ -1172,6 +1206,7 @@ func New(cfg Config) (*Transport, error) {
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
 		compressor: compressor,
+		readBufs:   make(chan *bytes.Buffer, readBufsKept),
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1558,7 +1593,7 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	// Request behavior and runs regardless of whether an observer is registered.
 	var n int64
 	if res != nil && res.Body != nil {
-		body, rerr := io.ReadAll(res.Body)
+		body, rerr := tr.readResponseBody(res)
 		res.Body.Close()
 		res.Body = bufbody.New(body)
 		n = int64(len(body))
@@ -1592,6 +1627,68 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	}
 
 	return res, err
+}
+
+// maxPresizedBody bounds the buffer readResponseBody allocates from a response's
+// Content-Length, so that a wrong or hostile header cannot make it allocate more
+// than the body holds. A longer body is read as one of unknown length.
+const maxPresizedBody = 64 << 20
+
+// A Transport keeps at most readBufsKept buffers in readBufs, each of at most
+// maxKeptReadBuf bytes: 1 MiB at most. A longer body is still read through a
+// buffer and copied out, and the buffer is then dropped.
+const (
+	readBufsKept   = 4
+	maxKeptReadBuf = 256 << 10
+)
+
+// readResponseBody reads res's body whole. When the response gives its body's
+// length, the body is read into one buffer of that length, with room for
+// bytes.Buffer's minimum read, where io.ReadAll starts at 512 bytes and grows by
+// copying. A length that is wrong costs a regrowth, not a short read.
+//
+// A body of unknown length, such as a gzip response, which loses its length when
+// the HTTP transport decompresses it, or a chunked one, is read into a buffer
+// from readBufs that has grown to earlier bodies' size, and copied out at its own
+// length: one allocation, where io.ReadAll's growth makes about twice the body's
+// size in allocations. The buffers are a free list and not a sync.Pool, which
+// drops what it holds after two garbage collections: a client decoding large
+// responses collects often enough that most reads would find the pool empty.
+//
+// A response with no body, such as one to a HEAD request, whose Content-Length is
+// the length the body would have had, is not read.
+func (tr *Transport) readResponseBody(res *http.Response) ([]byte, error) {
+	if res.Body == http.NoBody {
+		return []byte{}, nil
+	}
+	n := res.ContentLength
+	if n > 0 && n <= maxPresizedBody {
+		var buf bytes.Buffer
+		buf.Grow(int(n) + bytes.MinRead)
+		_, err := buf.ReadFrom(res.Body)
+
+		return buf.Bytes(), err
+	}
+
+	var buf *bytes.Buffer
+	select {
+	case buf = <-tr.readBufs:
+	default:
+		buf = new(bytes.Buffer)
+	}
+	_, err := buf.ReadFrom(res.Body)
+	// Not nil for an empty body, as io.ReadAll returns: a nil body reads as no
+	// body at all to Response.RawBody.
+	body := append([]byte{}, buf.Bytes()...)
+	if buf.Cap() <= maxKeptReadBuf {
+		buf.Reset()
+		select {
+		case tr.readBufs <- buf:
+		default:
+		}
+	}
+
+	return body, err
 }
 
 // headerContentEncoding is the request header a Compressor sets and stream

@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
@@ -163,14 +164,39 @@ func Request(method string, path string, body io.Reader, params map[string]strin
 	}
 
 	if len(params) > 0 {
-		q := buf.url.Query()
-		for k, v := range params {
-			q.Set(k, v)
-		}
-		buf.url.RawQuery = q.Encode()
+		buf.url.RawQuery = encodeQuery(params)
 	}
 
 	return &buf.req, nil
+}
+
+// encodeQuery returns params as url.Values.Encode writes them, keys sorted and
+// keys and values query-escaped, without building the url.Values, the slice of
+// keys or a string for each value that needs no escaping: one allocation for
+// most requests.
+func encodeQuery(params map[string]string) string {
+	// Room for the parameters almost every request has, on the stack.
+	var stack [8]string
+	keys := stack[:0]
+	n := 0
+	for k, v := range params {
+		keys = append(keys, k)
+		n += len(k) + len(v) + len("=&")
+	}
+	slices.Sort(keys)
+
+	var b strings.Builder
+	b.Grow(n)
+	for i, k := range keys {
+		if i > 0 {
+			b.WriteByte('&')
+		}
+		b.WriteString(url.QueryEscape(k))
+		b.WriteByte('=')
+		b.WriteString(url.QueryEscape(params[k]))
+	}
+
+	return b.String()
 }
 
 // isTokenChar reports whether c is a valid HTTP token character per

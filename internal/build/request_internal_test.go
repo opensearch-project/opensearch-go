@@ -11,8 +11,10 @@ package build
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -349,4 +351,45 @@ func (b *chunkedBody) NewReader() io.Reader {
 		readers[i] = strings.NewReader(c)
 	}
 	return io.MultiReader(readers...)
+}
+
+// TestEncodeQuery checks that encodeQuery writes what url.Values.Encode writes.
+func TestEncodeQuery(t *testing.T) {
+	t.Parallel()
+
+	many := make(map[string]string)
+	for i := range 20 {
+		many[fmt.Sprintf("k%02d", 19-i)] = fmt.Sprintf("v%d", i)
+	}
+	tests := map[string]map[string]string{
+		"one":                         {"timeout": "30s"},
+		"sorted":                      {"z": "1", "a": "2", "m": "3"},
+		"an empty value":              {"refresh": ""},
+		"values that need escaping":   {"q": "a b&c=d/e?f#g+h%i", "routing": "é,ü"},
+		"a key that needs escaping":   {"a b": "1", "x&y": "2"},
+		"more keys than on the stack": many,
+	}
+	for name, params := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			want := url.Values{}
+			for k, v := range params {
+				want.Set(k, v)
+			}
+			require.Equal(t, want.Encode(), encodeQuery(params))
+		})
+	}
+}
+
+// TestEncodeQueryAllocations checks that parameters that need no escaping cost
+// the one string.
+//
+//nolint:paralleltest // testing.AllocsPerRun panics in a parallel test.
+func TestEncodeQueryAllocations(t *testing.T) {
+	params := map[string]string{"preference": "_local", "refresh": "true", "timeout": "30s"}
+	var got string
+	allocs := testing.AllocsPerRun(100, func() { got = encodeQuery(params) })
+	require.Equal(t, "preference=_local&refresh=true&timeout=30s", got)
+	require.LessOrEqual(t, allocs, 1.0)
 }

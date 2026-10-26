@@ -29,7 +29,9 @@ func TestSchedulerPublishLoadAllocations(t *testing.T) {
 	server := newFakeServer(cluster)
 
 	// AllocsPerRun counts mallocs process-wide, so the client must start no
-	// background discovery or stats polling that could allocate mid-measurement.
+	// background discovery, stats polling or seed health check that could
+	// allocate mid-measurement. Only turning the router off stops the health check.
+	t.Setenv("OPENSEARCH_GO_ROUTER", "false")
 	client := newBulkTestClient(t, server.roundTrip, func(c *opensearchapi.Config) {
 		c.Client.DiscoverNodesOnStart = new(false)
 		c.Client.NodeStatsInterval = -1
