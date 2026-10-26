@@ -118,3 +118,18 @@ func (st *chunkStore[T]) next() *T {
 
 	return &st.chunk[len(st.chunk)-1]
 }
+
+// nextElem extends *s by one element and returns it: the next element of the
+// capacity *s already has, holding what it holds, or a zero one appended. The
+// decoders decode in place through it, since a local element would escape to the
+// heap once for every element.
+func nextElem[T any](s *[]T) *T {
+	if len(*s) < cap(*s) {
+		*s = (*s)[:len(*s)+1]
+	} else {
+		var zero T
+		*s = append(*s, zero)
+	}
+
+	return &(*s)[len(*s)-1]
+}

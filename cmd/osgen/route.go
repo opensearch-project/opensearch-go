@@ -433,13 +433,20 @@ var compatForwarders = map[string][]compatForwarder{
 // interceptors maps an operation group to the hand-written *Client method its
 // dispatch tries before sending the request; see ir.Operation.Interceptor. mget
 // is intercepted so that its documents can be fetched from the nodes that hold
-// them instead of through one coordinating node, and bulk so that its response
-// can be sized for the actions the request carries.
+// them instead of through one coordinating node.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var interceptors = map[string]string{
-	"bulk": "interceptBulk",
 	"mget": "interceptMGet",
+}
+
+// seeders maps an operation group to the hand-written *Client method that sizes
+// its response before the request is sent; see ir.Operation.Seeder. bulk is
+// seeded so that its response has room for the actions the request carries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var seeders = map[string]string{
+	"bulk": "seedBulk",
 }
 
 // compatForwardersFor builds the dispatchRoutes for a group's compatibility

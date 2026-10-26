@@ -176,8 +176,10 @@ func (f *mgetFake) decodeBody(req MGetReq) MGetReq {
 func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtransport.Connection, req MGetReq) (*MGetResp, error) {
 	seed := mgetSeed(ctx, req)
 	req = f.decodeBody(req)
-	if seed == nil || cap(seed.Docs) != len(req.Body.Docs) {
-		f.t.Errorf("a request to %q for %d documents has no seed of that size: %v", node.Name, len(req.Body.Docs), seed)
+	if seed == nil {
+		f.t.Errorf("a request to %q for %d documents has no seed", node.Name, len(req.Body.Docs))
+	} else if cap(seed.Docs) != len(req.Body.Docs) {
+		f.t.Errorf("a request to %q for %d documents has a seed with room for %d", node.Name, len(req.Body.Docs), cap(seed.Docs))
 	}
 	if body, ok := req.BodyReader.(*bufbody.Pooled); ok {
 		// The transport closes a request body once it has sent it.

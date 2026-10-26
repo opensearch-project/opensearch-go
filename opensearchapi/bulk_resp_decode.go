@@ -32,11 +32,14 @@ type bulkRespGenericDecode BulkResp
 // naming BulkResp, once the response has been read. A value of another shape
 // than the bulk API gives, such as items that are not an array, is decoded by
 // the reflective decoder.
+//
 // TestBulkRespDecoderKnowsEveryField fails when BulkResp, BulkItem or
 // BulkRespItem gains a field this does not decode.
 func (r *BulkResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 	var errs typeErrors
-	if err := errs.keep(r.decode(dec, &errs)); err != nil {
+	err := errs.keep(r.decode(dec, &errs))
+	r.unseed()
+	if err != nil {
 		return err
 	}
 
@@ -79,6 +82,7 @@ func (r *BulkResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 
 // decodeItems decodes the items array into r.Items, reusing its capacity.
 func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *chunkStore[bulkRespSlot], errs *typeErrors) error {
+	takeBulkSeed(r.Items)
 	if json.PeekKind(dec) != '[' {
 		return json.UnmarshalDecode(dec, &r.Items)
 	}
@@ -91,15 +95,9 @@ func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *chunkStore[bulkResp
 	}
 	r.Items = r.Items[:0]
 	for json.PeekKind(dec) != ']' {
-		// Decoded in place, merging into what the capacity already holds as the
-		// reflective decoder does: a local BulkItem would escape to the heap,
-		// through the reflective fallback, once for every item.
-		if len(r.Items) < cap(r.Items) {
-			r.Items = r.Items[:len(r.Items)+1]
-		} else {
-			r.Items = append(r.Items, BulkItem{})
-		}
-		if err := decodeBulkItem(dec, &r.Items[len(r.Items)-1], store, errs); err != nil {
+		// Merged into what the capacity already holds, as the reflective decoder
+		// merges into it.
+		if err := decodeBulkItem(dec, nextElem(&r.Items), store, errs); err != nil {
 			return err
 		}
 	}

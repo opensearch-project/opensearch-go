@@ -150,9 +150,32 @@ func TestDispatchFragment_Body(t *testing.T) {
 			contains: []string{
 				"seed, handled, err := c.apiClient.interceptMGet(ctx, req)\n\tif handled {\n\t\treturn seed, err\n\t}\n" +
 					"\tvar data MGetResp\n\tif seed != nil {\n\t\tdata = *seed\n\t}\n",
+				"); err != nil {\n\t\tif seed != nil {\n\t\t\tdata.unseed()\n\t\t}\n\t\treturn &data, err\n\t}",
 				"return c.Doc.MGet(ctx, req)",
 			},
 			notContains: []string{"err  error"},
+		},
+		{
+			name: "a seeder sizes the response before the request is sent",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:       "bulk",
+					TypePrefix:  "Bulk",
+					HTTPMethods: []string{http.MethodPost},
+					PrimaryPath: "/_bulk",
+					Response:    newRespType("Bulk"),
+					Seeder:      "seedBulk",
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "DocumentClient", MethodName: "Bulk", FieldPath: "Doc"},
+					},
+				}
+			},
+			contains: []string{
+				"seed := c.apiClient.seedBulk(ctx, req)\n\tvar (\n\t\tdata BulkResp\n\t\terr  error\n\t)\n" +
+					"\tif seed != nil {\n\t\tdata = *seed\n\t}\n",
+				"); err != nil {\n\t\tif seed != nil {\n\t\t\tdata.unseed()\n\t\t}\n\t\treturn &data, err\n\t}",
+			},
+			notContains: []string{"handled"},
 		},
 		{
 			name: "an operation without an interceptor sends the request directly",
@@ -168,7 +191,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 					},
 				}
 			},
-			notContains: []string{"handled"},
+			notContains: []string{"handled", "seed", "unseed"},
 		},
 		{
 			name: "compat forwarder renders thin forwarding body",

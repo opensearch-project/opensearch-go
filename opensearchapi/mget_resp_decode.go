@@ -38,16 +38,28 @@ type mgetRespGenericDecode MGetResp
 // on, returning the first such error, naming MGetResp, once the response has
 // been read. A document that is not an object, or a value of another shape than
 // the mget API gives, is decoded as the generated decoder decodes it.
+//
 // TestMGetRespDecoderKnowsEveryField and TestMGetRespDecoderKnowsTheUnion fail
 // when MGetResp, GetResult or MGetRespItem changes in a way this does not
 // decode.
 func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 	var errs typeErrors
-	if err := errs.keep(r.decode(dec, &errs)); err != nil {
+	err := errs.keep(r.decode(dec, &errs))
+	r.unseed()
+	if err != nil {
 		return err
 	}
 
 	return errs.err("MGetResp")
+}
+
+// unseed drops a seed the answer did not decode into, such as for a failed
+// request or a body without docs, so that Docs is nil, as it is in a response
+// that was not seeded, and the response keeps nothing of the request.
+func (r *MGetResp) unseed() {
+	if len(r.Docs) == 0 && takeMGetAsked(r.Docs) != nil {
+		r.Docs = nil
+	}
 }
 
 func (r *MGetResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
@@ -78,6 +90,10 @@ func (r *MGetResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 
 // decodeDocs decodes the docs array into r.Docs, reusing its capacity.
 func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
+	var asked *mgetAsked
+	if len(r.Docs) == 0 {
+		asked = takeMGetAsked(r.Docs)
+	}
 	if json.PeekKind(dec) != '[' {
 		return json.UnmarshalDecode(dec, &r.Docs)
 	}
@@ -89,15 +105,14 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 		r.Docs = []MGetRespItem{}
 	}
 	r.Docs = r.Docs[:0]
-	asked := takeMGetAsked(r.Docs)
 	store := chunkStore[mgetDocSlot]{first: cap(r.Docs)}
 	for json.PeekKind(dec) != ']' {
-		// Decoded in place: a local MGetRespItem would escape to the heap, through
-		// the generated fallback, once for every document.
-		r.Docs = append(r.Docs, MGetRespItem{})
-		i := len(r.Docs) - 1
-		id, index := asked.doc(i)
-		if err := errs.keep(decodeMGetDoc(dec, &r.Docs[i], &store, id, index)); err != nil {
+		// Reset, unlike a bulk item, because the generated union decoder resets the
+		// document it decodes into.
+		u := nextElem(&r.Docs)
+		*u = MGetRespItem{}
+		id, index := asked.doc(len(r.Docs) - 1)
+		if err := errs.keep(decodeMGetDoc(dec, u, &store, id, index)); err != nil {
 			return err
 		}
 	}

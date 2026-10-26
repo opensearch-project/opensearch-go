@@ -147,3 +147,26 @@ func TestReadResponseBodyAllocatesOnce(t *testing.T) {
 		})
 	}
 }
+
+// TestReadResponseBodyOfNoBody checks that a response without a body, such as one
+// to a HEAD request, which keeps the Content-Length the body would have had, is
+// not read into a buffer of that length.
+//
+//nolint:paralleltest // testing.AllocsPerRun panics in a parallel test.
+func TestReadResponseBodyOfNoBody(t *testing.T) {
+	tr := newReadBodyTransport()
+	res := &http.Response{ContentLength: 64 << 10, Body: http.NoBody}
+
+	var (
+		got []byte
+		err error
+	)
+	allocs := testing.AllocsPerRun(20, func() { got, err = tr.readResponseBody(res) })
+	require.NoError(t, err)
+	require.NotNil(t, got, "a nil body reads as none to Response.RawBody")
+	require.Empty(t, got)
+	if raceEnabled {
+		t.Skip("the race detector allocates on its own")
+	}
+	require.Zero(t, allocs)
+}

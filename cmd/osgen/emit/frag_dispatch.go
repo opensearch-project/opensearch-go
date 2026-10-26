@@ -870,16 +870,27 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 	}
 {{end}}
 {{- $intercepted := and $op.Interceptor (not $op.IsNoBody)}}
+{{- $seeded := and $op.Seeder (not $op.IsNoBody) (not $intercepted)}}
 {{- if $intercepted}}
 	seed, handled, err := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Interceptor}}(ctx, req)
 	if handled {
 		return seed, err
 	}
+{{- else if $seeded}}
+	seed := {{if .TopLevel}}c{{else}}c.apiClient{{end}}.{{$op.Seeder}}(ctx, req)
 {{- end}}
 {{- if $op.IsNoBody}}
 	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
 {{- else if $intercepted}}
 	var data {{$op.TypePrefix}}Resp
+	if seed != nil {
+		data = *seed
+	}
+{{- else if $seeded}}
+	var (
+		data {{$op.TypePrefix}}Resp
+		err  error
+	)
 	if seed != nil {
 		data = *seed
 	}
@@ -902,6 +913,11 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		method,
 		req, &data,
 	); err != nil {
+{{- if or $intercepted $seeded}}
+		if seed != nil {
+			data.unseed()
+		}
+{{- end}}
 		return &data, {{requestErr}}
 	}
 {{- else}}
@@ -911,6 +927,11 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		{{methodConst (primaryMethod $op)}},
 		req, &data,
 	); err != nil {
+{{- if or $intercepted $seeded}}
+		if seed != nil {
+			data.unseed()
+		}
+{{- end}}
 		return &data, {{requestErr}}
 	}
 {{- end}}

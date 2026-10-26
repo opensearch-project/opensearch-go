@@ -181,7 +181,7 @@ func encodeQuery(params map[string]string) string {
 	n := 0
 	for k, v := range params {
 		keys = append(keys, k)
-		n += len(k) + len(v) + 2
+		n += len(k) + len(v) + len("=&")
 	}
 	slices.Sort(keys)
 

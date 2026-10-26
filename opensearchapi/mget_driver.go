@@ -432,7 +432,8 @@ func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, boo
 // The seed also carries the requested documents to MGetResp.UnmarshalJSONFrom,
 // in the first unused element of Docs, so that a document whose _id and _index
 // match the request reuses the request's strings. The decoder clears that
-// element before it decodes into it; see takeMGetAsked.
+// element before it decodes into it, and MGetResp.unseed drops a seed nothing
+// decoded into; see takeMGetAsked.
 func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
 	asked, _ := ctx.Value(mgetDocsKey{}).(*mgetAsked)
 	if req.Body != nil && len(req.Body.Docs) > 0 {

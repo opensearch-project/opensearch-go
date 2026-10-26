@@ -478,6 +478,9 @@ func (c DocumentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error
 		method,
 		req, &data,
 	); err != nil {
+		if seed != nil {
+			data.unseed()
+		}
 		return &data, err
 	}
 	return &data, nil

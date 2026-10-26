@@ -144,7 +144,7 @@ func requireSameDecodeError(t *testing.T, want, got error, root string) {
 		return
 	}
 	gotType := json.AsTypeError(got)
-	require.NotNil(t, gotType, "a type error: %v", got)
+	require.NotNil(t, gotType, "a type error: %q", got)
 	require.Equal(t, root, gotType.Struct)
 	w, g := *wantType, *gotType
 	w.Struct, g.Struct = "", ""

@@ -1622,9 +1622,15 @@ const (
 // from readBufs that has grown to earlier bodies' size, and copied out at its own
 // length: one allocation, where io.ReadAll's growth makes about twice the body's
 // size in allocations. The buffers are a free list and not a sync.Pool, which
-// every garbage collection empties: a client decoding large responses collects
-// often enough that the buffers would be gone by the next response.
+// drops what it holds after two garbage collections: a client decoding large
+// responses collects often enough that most reads would find the pool empty.
+//
+// A response with no body, such as one to a HEAD request, whose Content-Length is
+// the length the body would have had, is not read.
 func (tr *Transport) readResponseBody(res *http.Response) ([]byte, error) {
+	if res.Body == http.NoBody {
+		return []byte{}, nil
+	}
 	n := res.ContentLength
 	if n > 0 && n <= maxPresizedBody {
 		var buf bytes.Buffer
