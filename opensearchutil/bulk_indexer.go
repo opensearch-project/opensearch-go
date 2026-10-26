@@ -44,6 +44,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	sched "github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -2464,7 +2465,8 @@ func (w *worker) send(ctx context.Context, attempt int) (retryBatch, error) {
 	}
 
 	start := w.bi.now()
-	blk, err := w.bi.config.Client.Doc.Bulk(w.toNode(ctx), req)
+	// The response is decoded into Items sized for the batch's actions.
+	blk, err := w.bi.config.Client.Doc.Bulk(apiutil.WithBulkItems(w.toNode(ctx), len(w.items)), req)
 	elapsed := w.bi.now().Sub(start)
 
 	// The controllers read a rate, bytes over the time the node spent on them, so

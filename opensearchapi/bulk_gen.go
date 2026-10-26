@@ -268,10 +268,14 @@ func (r *BulkResp) PartialFailures(mask errmask.ErrorMask) []error {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/bulk/
 func (c DocumentClient) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
-	var (
-		data BulkResp
-		err  error
-	)
+	seed, handled, err := c.apiClient.interceptBulk(ctx, req)
+	if handled {
+		return seed, err
+	}
+	var data BulkResp
+	if seed != nil {
+		data = *seed
+	}
 	if data.response, err = request(
 		ctx,
 		c.apiClient,

@@ -19,9 +19,10 @@ type bulkRespGenericDecode BulkResp
 // UnmarshalJSONFrom decodes a bulk response as the reflective decoder does, into
 // the same values, without allocating each item's BulkRespItem and the values its
 // pointer fields name one by one: those come from chunks shared by a run of
-// items. The JSON codec the client decodes with calls it in place of the
-// reflective decoder, as encoding/json does where it runs on the v2 engine, from
-// Go 1.27.
+// items. Items keeps the capacity it has, which the bulk dispatch sizes for the
+// actions the bulk indexer sends. The JSON codec the client decodes with calls it
+// in place of the reflective decoder, as encoding/json does where it runs on the
+// v2 engine, from Go 1.27.
 //
 // Member names are matched as encoding/json matches them, ignoring case, and
 // every value is decoded by the codec, so null, numbers and strings decode as
@@ -49,7 +50,7 @@ func (r *BulkResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err
 	}
-	var store chunkStore[bulkRespSlot]
+	store := chunkStore[bulkRespSlot]{first: cap(r.Items)}
 	for json.PeekKind(dec) != '}' {
 		name, err := memberName(dec)
 		if err != nil {
