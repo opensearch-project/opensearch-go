@@ -13,9 +13,10 @@ import (
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
-// decodeOptional points field at dst and decodes the next value into it, as the
-// reflective decoder fills a nil pointer field, even with a value of the wrong
-// type, or decodes into the value field already names, or clears field for null.
+// decodeOptional decodes the next value into a pointer field as the reflective
+// decoder does: null clears field; otherwise the value decodes into what field
+// points to, and a nil field is first pointed at dst, even when the value turns
+// out to be of the wrong type.
 func decodeOptional[T any](dec *json.TextDecoder, dst *T, field **T) error {
 	if json.PeekKind(dec) == 'n' {
 		*field = nil
@@ -56,8 +57,9 @@ type typeErrors struct {
 	first *stdjson.UnmarshalTypeError
 }
 
-// keep returns nil for a type error, which it keeps if it is the first, and any
-// other error, such as a syntax error, which ends the decode.
+// keep records err if it is the first type error, and returns nil for any type
+// error. It returns any other error, such as a syntax error, which ends the
+// decode.
 func (e *typeErrors) keep(err error) error {
 	if err == nil {
 		return nil
@@ -73,8 +75,8 @@ func (e *typeErrors) keep(err error) error {
 	return nil
 }
 
-// err returns the first type error kept, naming root as the type decoded, as the
-// reflective decoder names the type it was called with, or nil.
+// err returns the first type error kept, or nil. The error names root as the type
+// decoded, as the reflective decoder names the type it was called with.
 func (e *typeErrors) err(root string) error {
 	if e.first == nil {
 		return nil
@@ -85,11 +87,12 @@ func (e *typeErrors) err(root string) error {
 }
 
 // chunkStore hands out values of T from chunks, so that a response costs a few
-// allocations however many values it has: the first chunk first long, the room
-// the response has for the values asked for, else chunkFirst, and each after it
-// twice the last. No chunk is longer than chunkMax, so a small response does not
-// pay for a large chunk and a value kept past the response keeps at most
-// chunkMax-1 others. A chunk is never grown, so a pointer into it stays valid.
+// allocations however many values it has. The first chunk holds first values,
+// the number the response has room for, or chunkFirst when that is 0; each later
+// chunk is twice the last. No chunk is longer than chunkMax, so a small response
+// does not pay for a large chunk, and a value kept past the response keeps at
+// most chunkMax-1 others alive. A chunk is never grown, so a pointer into it
+// stays valid.
 type chunkStore[T any] struct {
 	first int
 	chunk []T

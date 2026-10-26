@@ -429,10 +429,10 @@ func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, boo
 // is already encoded, those withMGetDocs gave ctx. It returns nil when neither
 // says, as for ids or a caller's own BodyReader.
 //
-// The first element of the room in Docs carries what the request asks for, to
-// MGetResp.UnmarshalJSONFrom, which takes it out before it decodes a document
-// there, and gives each document the _id and _index it asked for when the answer
-// holds the same, instead of a copy; see takeMGetAsked.
+// The seed also carries the requested documents to MGetResp.UnmarshalJSONFrom,
+// in the first unused element of Docs, so that a document whose _id and _index
+// match the request reuses the request's strings. The decoder clears that
+// element before it decodes into it; see takeMGetAsked.
 func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
 	asked, _ := ctx.Value(mgetDocsKey{}).(*mgetAsked)
 	if req.Body != nil && len(req.Body.Docs) > 0 {
@@ -450,7 +450,7 @@ func mgetSeed(ctx context.Context, req MGetReq) *MGetResp {
 
 // mgetAsked is the documents an mget asks for, in the order its body names them:
 // docs, or, for a direct driver's sub-request, docs[slots[i]] for each i. index
-// is the request's index, which a document without its own is in.
+// is the request's default index, for documents that name none.
 type mgetAsked struct {
 	docs  []MGetOperation
 	slots []int
@@ -465,8 +465,8 @@ func (a *mgetAsked) len() int {
 	return len(a.docs)
 }
 
-// doc returns the _id and _index the i-th document asked for, or empty strings
-// when a is nil or has no i-th document.
+// doc returns the requested _id and _index of the i-th document, or empty
+// strings when a is nil or has no i-th document.
 func (a *mgetAsked) doc(i int) (string, string) {
 	if a == nil || i >= a.len() {
 		return "", ""

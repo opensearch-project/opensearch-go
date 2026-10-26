@@ -170,8 +170,9 @@ type bulkRespSlot struct {
 	shards                      ShardInfo
 }
 
-// decode decodes an action's result object into it, which is s.item unless it
-// merges into a result already decoded, pointing its nil pointer fields at s.
+// decode decodes an action's result object into it: s.item, or the result of an
+// earlier member for the same action, which it merges into. Pointer fields that
+// are nil are pointed at s's storage.
 func (s *bulkRespSlot) decode(dec *json.TextDecoder, it *BulkRespItem, errs *typeErrors) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err

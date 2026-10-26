@@ -22,8 +22,8 @@ type mgetRespGenericDecode MGetResp
 // values, without allocating each document's GetResult and the values its
 // pointer fields name one by one: those come from chunks shared by a run of
 // documents. Docs keeps the capacity it has, which the mget dispatch sizes for
-// the documents asked for, and a document whose _id and _index are the ones it
-// was asked for by gets the request's strings rather than copies. The JSON codec
+// the documents asked for, and a document whose _id and _index match the request
+// reuses the request's strings instead of copying them. The JSON codec
 // the client decodes with calls it in place of the reflective decoder, as
 // encoding/json does where it runs on the v2 engine, from Go 1.27.
 //
@@ -106,9 +106,9 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 	return err
 }
 
-// takeMGetAsked returns what mgetSeed left in the first element of the room in
-// docs, an empty Docs, about the documents the mget asks for, and clears the
-// element; nil when docs is not a seed's.
+// takeMGetAsked returns the requested documents that mgetSeed stored in the first
+// unused element of docs, an empty Docs, and clears that element. It returns nil
+// when docs did not come from mgetSeed.
 func takeMGetAsked(docs []MGetRespItem) *mgetAsked {
 	if cap(docs) == 0 {
 		return nil
@@ -125,7 +125,7 @@ func takeMGetAsked(docs []MGetRespItem) *mgetAsked {
 // decodeMGetDoc decodes one document into u, as MGetRespItem.UnmarshalJSONFrom
 // does: a document with an error member is a MultiGetError, any other object a
 // GetResult, and RawJSON is the bytes the document was read from. id and index
-// are what the document was asked for by, or empty.
+// are the document's requested _id and _index, or empty.
 func decodeMGetDoc(dec *json.TextDecoder, u *MGetRespItem, store *chunkStore[mgetDocSlot], id, index string) error {
 	if json.PeekKind(dec) != '{' {
 		return u.UnmarshalJSONFrom(dec)
@@ -177,8 +177,8 @@ type mgetDocSlot struct {
 
 // decode decodes a document object into s.get, and its error member, if it has
 // one, into s.errMember. It reads the whole object past a value of the wrong
-// type, then returns the first such error. An _id or _index that is id or index,
-// what the document was asked for by, is that string rather than a copy.
+// type, then returns the first such error. An _id or _index that matches the
+// requested id or index reuses that string instead of copying it.
 func (s *mgetDocSlot) decode(dec *json.TextDecoder, id, index string) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err
@@ -231,9 +231,9 @@ func (s *mgetDocSlot) decode(dec *json.TextDecoder, id, index string) error {
 }
 
 // decodeKnownString decodes the next value into dst as UnmarshalDecode does, but
-// stores known, without allocating, when the value is a string that decodes to
-// known: one whose bytes are known's, with no escape, which would decode to other
-// bytes, and valid UTF-8, which is not replaced.
+// stores known instead of allocating a copy when the value's bytes are exactly
+// known's. The bytes must hold no escape and be valid UTF-8: an escape, or an
+// invalid byte, which the decoder replaces, would decode to other bytes.
 func decodeKnownString(dec *json.TextDecoder, dst *string, known string) error {
 	if known == "" || json.PeekKind(dec) != '"' {
 		return json.UnmarshalDecode(dec, dst)

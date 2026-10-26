@@ -119,8 +119,8 @@ func TestMGetRespDecodeFailsAsTheGeneratedDecoder(t *testing.T) {
 
 // TestMGetRespDecodeTakesWhatWasAsked decodes answers into the seed of a request
 // and checks that each document gets what the generated decoder gives it, and
-// that an _id and _index that are what the document was asked for by are the
-// request's strings, not copies.
+// that an _id and _index that match the request are the request's strings, not
+// copies.
 func TestMGetRespDecodeTakesWhatWasAsked(t *testing.T) {
 	t.Parallel()
 
