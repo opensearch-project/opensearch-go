@@ -10,8 +10,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/opensearch-project/opensearch-go/v5 v5.1.2-0.20261022060914-a1678f1b0d33 h1:zUPw1kJjsPTeZRsb0ASc9nRfkdKC8BWfoMZSUuHCEu4=
-github.com/opensearch-project/opensearch-go/v5 v5.1.2-0.20261022060914-a1678f1b0d33/go.mod h1:VKWkTG+A9Kjq5mqkxb/IlN+6rWH8C46rwzw9dHRti+U=
+github.com/opensearch-project/opensearch-go/v5 v5.1.3-0.20261026223653-bd1669168f43 h1:RTsog7CwQ8SIYHPr1zfwLxSA9VRkjlRL90tFEx6RN1s=
+github.com/opensearch-project/opensearch-go/v5 v5.1.3-0.20261026223653-bd1669168f43/go.mod h1:VKWkTG+A9Kjq5mqkxb/IlN+6rWH8C46rwzw9dHRti+U=
 github.com/prometheus/client_golang v1.25.0 h1:cDtW1TcFsMi1RJc8khwCKB4VhzwV04aKqbYtNOXuiK0=
 github.com/prometheus/client_golang v1.25.0/go.mod h1:j2X/4/kaQHLPnmyEU8zjmkndo1T317VpCIQEml8LTKk=
 github.com/prometheus/client_model v0.6.3 h1:O0jaTVAYNxTHYInEPFJt5I3+sN8zqBtVMPTB1qyxiEo=
