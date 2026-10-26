@@ -22,21 +22,33 @@ type mgetRespGenericDecode MGetResp
 // pointer fields name one by one: those come from chunks shared by a run of
 // documents. Docs keeps the capacity it has, which the mget dispatch sizes for
 // the documents asked for. The JSON codec the client decodes with calls it in
-// place of the reflective decoder; callers that decode an MGetResp with
-// encoding/json get the reflective decoder.
+// place of the reflective decoder, as encoding/json does where it runs on the v2
+// engine, from Go 1.27.
 //
-// A document's GetResult shares its chunk with the documents decoded beside it,
-// so a GetResult kept past the response keeps the chunk too; MGetRespItem.RawJSON
-// already keeps the whole response body. Source is a copy, as it is when decoded
-// reflectively.
+// A document's GetResult shares its chunk, of at most 256 documents, with the
+// documents decoded beside it, so a GetResult kept past the response keeps the
+// chunk too; MGetRespItem.RawJSON already keeps the whole response body. Source
+// is a copy, as it is when decoded reflectively.
 //
 // Member names are matched as encoding/json matches them, ignoring case, and
-// every value is decoded by the codec. A document that is not an object, or a
-// value of another shape than the mget API gives, is decoded as the generated
-// decoder decodes it. TestMGetRespDecoderKnowsEveryField and
-// TestMGetRespDecoderKnowsTheUnion fail when MGetResp, GetResult or MGetRespItem
-// changes in a way this does not decode.
+// every value is decoded by the codec. A document holding a value of the wrong
+// type is left unknown, as the generated decoder leaves it, and the decode goes
+// on, returning the first such error, naming MGetResp, once the response has
+// been read. A document that is not an object, or a value of another shape than
+// the mget API gives, is decoded as the generated decoder decodes it.
+// TestMGetRespDecoderKnowsEveryField and TestMGetRespDecoderKnowsTheUnion fail
+// when MGetResp, GetResult or MGetRespItem changes in a way this does not
+// decode.
 func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	var errs typeErrors
+	if err := errs.keep(r.decode(dec, &errs)); err != nil {
+		return err
+	}
+
+	return errs.err("MGetResp")
+}
+
+func (r *MGetResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 	if json.PeekKind(dec) != '{' {
 		return json.UnmarshalDecode(dec, (*mgetRespGenericDecode)(r))
 	}
@@ -49,11 +61,11 @@ func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 			return err
 		}
 		if bytes.EqualFold(name, []byte("docs")) {
-			err = r.decodeDocs(dec)
+			err = r.decodeDocs(dec, errs)
 		} else {
 			err = dec.SkipValue()
 		}
-		if err != nil {
+		if err = errs.keep(err); err != nil {
 			return err
 		}
 	}
@@ -63,7 +75,7 @@ func (r *MGetResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 }
 
 // decodeDocs decodes the docs array into r.Docs, reusing its capacity.
-func (r *MGetResp) decodeDocs(dec *json.TextDecoder) error {
+func (r *MGetResp) decodeDocs(dec *json.TextDecoder, errs *typeErrors) error {
 	if json.PeekKind(dec) != '[' {
 		return json.UnmarshalDecode(dec, &r.Docs)
 	}
@@ -75,12 +87,12 @@ func (r *MGetResp) decodeDocs(dec *json.TextDecoder) error {
 		r.Docs = []MGetRespItem{}
 	}
 	r.Docs = r.Docs[:0]
-	store := mgetDocStore{first: cap(r.Docs)}
+	store := mgetDocStore{first: min(cap(r.Docs), mgetDocMaxChunk)}
 	for json.PeekKind(dec) != ']' {
 		// Decoded in place: a local MGetRespItem would escape to the heap, through
 		// the generated fallback, once for every document.
 		r.Docs = append(r.Docs, MGetRespItem{})
-		if err := decodeMGetDoc(dec, &r.Docs[len(r.Docs)-1], &store); err != nil {
+		if err := errs.keep(decodeMGetDoc(dec, &r.Docs[len(r.Docs)-1], &store)); err != nil {
 			return err
 		}
 	}
@@ -142,11 +154,13 @@ type mgetDocSlot struct {
 }
 
 // decode decodes a document object into s.get, and its error member, if it has
-// one, into s.errMember.
+// one, into s.errMember. It reads the whole object past a value of the wrong
+// type, then returns the first such error.
 func (s *mgetDocSlot) decode(dec *json.TextDecoder) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err
 	}
+	var errs typeErrors
 	g := &s.get
 	for json.PeekKind(dec) != '}' {
 		name, err := memberName(dec)
@@ -179,19 +193,24 @@ func (s *mgetDocSlot) decode(dec *json.TextDecoder) error {
 		default:
 			err = dec.SkipValue()
 		}
-		if err != nil {
+		if err = errs.keep(err); err != nil {
 			return err
 		}
 	}
-	_, err := dec.ReadToken()
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+	if errs.first != nil {
+		return errs.first
+	}
 
-	return err
+	return nil
 }
 
 // mgetDocStore hands out mgetDocSlots from chunks: the first as large as first,
-// the room Docs has for the documents asked for, else small, and each after it
-// twice the last up to a bound. A chunk is never grown, so a pointer into it
-// stays valid.
+// the room Docs has for the documents asked for up to a bound, else small, and
+// each after it twice the last up to the bound. A chunk is never grown, so a
+// pointer into it stays valid.
 type mgetDocStore struct {
 	first int
 	chunk []mgetDocSlot

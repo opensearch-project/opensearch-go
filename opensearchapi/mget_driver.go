@@ -402,7 +402,8 @@ func (d *mgetDriver) selectedFanOut(ctx context.Context) MGetFanOut {
 // call itself, and reports true, when the direct driver is selected and can
 // route at least one of the documents to a node; otherwise it reports false
 // and the mget goes to the cluster as one request, decoded into the response
-// it returns, which has room for every document the request names.
+// it returns, which mgetSeed sizes when the request says how many documents it
+// asks for.
 func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, bool, error) {
 	d := c.ext.mget
 	if d == nil || d.lookup == nil || d.selected(ctx) != MGetDriverDirect {
@@ -423,7 +424,7 @@ func (c *Client) interceptMGet(ctx context.Context, req MGetReq) (*MGetResp, boo
 
 // mgetSeed returns the response a coordinated mget is decoded into: one with
 // room for a document per document asked for, so that decoding the answer does
-// not grow Docs by copying, and its documents' storage is sized once. The count
+// not grow Docs by copying, and its documents' storage is sized for them. The count
 // is the request's docs, or, for a direct driver's sub-request, whose body is
 // already encoded, the count withMGetDocs gave ctx. It returns nil when neither
 // says, as for ids or a caller's own BodyReader.

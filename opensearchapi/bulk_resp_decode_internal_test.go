@@ -44,6 +44,7 @@ var bulkRespCorpus = map[string]string{
 	"a null item":                `{"items":[null,{"index":{"_id":"c","status":201}}]}`,
 	"an item with two actions":   `{"items":[{"index":{"_id":"d","status":201},"create":{"_id":"e","status":201}}]}`,
 	"a repeated field":           `{"items":[{"index":{"_id":"f","_id":"g","status":200,"status":201}}],"took":1,"took":2}`,
+	"a repeated action":          `{"items":[{"index":{"_id":"a","status":201},"index":{"result":"created","_version":2}}]}`,
 	"escaped names":              `{"t\u006fok":7,"\u0069tems":[{"ind\u0065x":{"_\u0069d":"h","st\u0061tus":201}}]}`,
 	"escaped and unicode values": `{"items":[{"index":{"_id":"é\"q\"","result":"créated","status":201}}]}`,
 	"invalid UTF-8 in a value":   "{\"items\":[{\"index\":{\"_id\":\"a\xffb\",\"status\":201}}]}",
@@ -84,31 +85,115 @@ func TestBulkRespDecodesAsTheReflectiveDecoder(t *testing.T) {
 	}
 }
 
-// TestBulkRespDecodeFailures checks that a response the reflective decoder
-// refuses is refused here too.
-func TestBulkRespDecodeFailures(t *testing.T) {
+// TestBulkRespDecodeFailsAsTheReflectiveDecoder decodes responses the
+// reflective decoder refuses, from bytes and from a reader that hands over a byte
+// at a time, and checks that it gets the values and the error the reflective
+// decoder gets: past a value of the wrong type the decode goes on.
+func TestBulkRespDecodeFailsAsTheReflectiveDecoder(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]string{
-		"items not an array":      `{"items":{}}`,
-		"an item not an object":   `{"items":[5]}`,
-		"an action not an object": `{"items":[{"index":5}]}`,
-		"a status not a number":   `{"items":[{"index":{"status":"201"}}]}`,
-		"a version not a number":  `{"items":[{"index":{"_version":"x"}}]}`,
-		"an id not a string":      `{"items":[{"index":{"_id":5}}]}`,
-		"took not a number":       `{"took":"1"}`,
-		"truncated":               `{"items":[{"index":{"_id":"a"`,
-		"not an object":           `[1]`,
+		"items not an array":      `{"items":{},"took":3}`,
+		"an item not an object":   `{"items":[5,{"index":{"_id":"b","status":201}}]}`,
+		"an action not an object": `{"items":[{"index":5,"create":{"_id":"b"}},{"index":{"_id":"c"}}]}`,
+		"a status not a number":   `{"items":[{"index":{"status":"x","_id":"a"}},{"index":{"_id":"b","status":201}}],"took":3}`,
+		"a version not a number":  `{"items":[{"index":{"_version":"x","_id":"a","_seq_no":4}}],"errors":true}`,
+		"an id not a string":      `{"items":[{"index":{"_id":5,"status":201}}]}`,
+		"shards not an object":    `{"items":[{"index":{"_shards":[1],"status":201}}]}`,
+		"an error of the wrong shape": `{"items":[{"index":{"error":{"type":5,"reason":"r"},"status":400}},` +
+			`{"index":{"_id":"b"}}]}`,
+		"took not a number":            `{"took":"x","errors":true}`,
+		"two values of the wrong type": `{"items":[{"index":{"status":"x"}},{"index":{"_id":5}}],"took":"y"}`,
+		"truncated":                    `{"items":[{"index":{"_id":"a"`,
+		"a syntax error":               `{"items":[{"index":{"_id":"a",}}]}`,
+		"not an object":                `[1]`,
 	}
 	for name, body := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			_, wantErr := decodeBulkGeneric(t, body)
+			want, wantErr := decodeBulkGeneric(t, body)
 			require.Error(t, wantErr, "the reflective decoder refuses it")
 
 			var got BulkResp
-			require.Error(t, json.Unmarshal([]byte(body), &got))
+			err := json.Unmarshal([]byte(body), &got)
+			requireSameDecodeError(t, wantErr, err, "BulkResp")
+			require.Equal(t, want, got)
+
+			var streamed BulkResp
+			err = json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(body))), &streamed)
+			require.Error(t, err, "decoded from a reader")
+			if json.AsTypeError(wantErr) != nil {
+				// A syntax error from a reader is the decoder's, not Unmarshal's.
+				requireSameDecodeError(t, wantErr, err, "BulkResp")
+				require.Equal(t, want, streamed, "decoded from a reader")
+			}
+		})
+	}
+}
+
+// requireSameDecodeError checks that got is the error want is, a type error
+// naming root, the type decoded, where want names the type without its methods.
+func requireSameDecodeError(t *testing.T, want, got error, root string) {
+	t.Helper()
+
+	wantType := json.AsTypeError(want)
+	if wantType == nil {
+		require.EqualError(t, got, want.Error())
+
+		return
+	}
+	gotType := json.AsTypeError(got)
+	require.NotNil(t, gotType, "a type error: %v", got)
+	require.Equal(t, root, gotType.Struct)
+	w, g := *wantType, *gotType
+	w.Struct, g.Struct = "", ""
+	require.Equal(t, w, g)
+}
+
+// TestBulkRespDecodeMergesAsTheReflectiveDecoder decodes into a response that
+// already holds items and checks that it merges into them as the reflective
+// decoder does.
+func TestBulkRespDecodeMergesAsTheReflectiveDecoder(t *testing.T) {
+	t.Parallel()
+
+	id, version := "kept", int64(7)
+	tests := []struct {
+		name string
+		into func() BulkResp
+		body string
+	}{
+		{
+			name: "items in the slice",
+			into: func() BulkResp {
+				return BulkResp{Took: 9, Items: []BulkItem{{Index: &BulkRespItem{ID: &id, Status: 500}}, {}}}
+			},
+			body: `{"items":[{"index":{"status":201}},{"create":{"_id":"b"}},{"delete":{"_id":"c"}}]}`,
+		},
+		{
+			name: "items in the capacity",
+			into: func() BulkResp {
+				items := []BulkItem{{Index: &BulkRespItem{ID: &id, Version: &version}}}
+
+				return BulkResp{Items: items[:0]}
+			},
+			body: `{"items":[{"index":{"_version":2}}]}`,
+		},
+		{
+			name: "an action replaced by null",
+			into: func() BulkResp { return BulkResp{Items: []BulkItem{{Index: &BulkRespItem{ID: &id}}}} },
+			body: `{"items":[{"index":null,"create":{"_id":"b"}}]}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			want := bulkRespGenericDecode(tt.into())
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &want))
+			got := tt.into()
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &got))
+			require.Equal(t, BulkResp(want), got)
 		})
 	}
 }

@@ -67,27 +67,50 @@ func TestMGetRespDecodesAsTheGeneratedDecoder(t *testing.T) {
 	}
 }
 
-// TestMGetRespDecodeFailures checks that a response the generated decoder refuses
-// is refused here too.
-func TestMGetRespDecodeFailures(t *testing.T) {
+// TestMGetRespDecodeFailsAsTheGeneratedDecoder decodes responses the generated
+// decoder refuses, from bytes and from a reader that hands over a byte at a
+// time, and checks that it gets the values and the error the generated decoder
+// gets: past a document holding a value of the wrong type the decode goes on.
+func TestMGetRespDecodeFailsAsTheGeneratedDecoder(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]string{
-		"docs not an array":           `{"docs":{}}`,
-		"a document not an object":    `{"docs":[5]}`,
-		"a found not a boolean":       `{"docs":[{"_id":"a","found":"yes"}]}`,
-		"an error of the wrong shape": `{"docs":[{"_id":"a","error":{"type":5}}]}`,
-		"truncated":                   `{"docs":[{"_id":"a"`,
-		"not an object":               `[1]`,
+		"docs not an array":        `{"docs":{}}`,
+		"a document not an object": `{"docs":[5,{"_id":"b","found":true}]}`,
+		"a found not a boolean":    `{"docs":[{"_id":"a","found":"yes","_source":{}},{"_id":"b","found":true}]}`,
+		"a version not a number":   `{"docs":[{"_id":"a","_version":"x","found":true},{"_id":"b","found":true}]}`,
+		"an error of the wrong shape": `{"docs":[{"_id":"a","error":{"type":5}},` +
+			`{"_id":"b","found":true}]}`,
+		"an error with an id not a string": `{"docs":[{"_id":5,"error":{"type":"t"}},{"_id":"b","found":true}]}`,
+		"two documents of the wrong type":  `{"docs":[{"_id":"a","found":1},{"_id":"b","_seq_no":"x"}]}`,
+		"truncated":                        `{"docs":[{"_id":"a"`,
+		"a syntax error":                   `{"docs":[{"_id":"a",}]}`,
+		"not an object":                    `[1]`,
 	}
 	for name, body := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			var want mgetRespGenericDecode
-			require.Error(t, json.Unmarshal([]byte(body), &want), "the generated decoder refuses it")
+			wantErr := json.Unmarshal([]byte(body), &want)
+			require.Error(t, wantErr, "the generated decoder refuses it")
 			var got MGetResp
-			require.Error(t, json.Unmarshal([]byte(body), &got))
+			requireSameDecodeError(t, wantErr, json.Unmarshal([]byte(body), &got), "MGetResp")
+			require.Equal(t, MGetResp(want), got)
+
+			if json.AsTypeError(wantErr) == nil {
+				return
+			}
+			var wantStreamed mgetRespGenericDecode
+			wantErr = json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(body))), &wantStreamed)
+			require.Error(t, wantErr)
+			var gotStreamed MGetResp
+			err := json.UnmarshalDecode(json.NewTextDecoder(iotest.OneByteReader(strings.NewReader(body))), &gotStreamed)
+			// From a reader, the generated decoder decodes an error document again from
+			// its members written out, and this one from the error member alone, so the
+			// error's offset and path differ there.
+			require.NotNil(t, json.AsTypeError(err), "decoded from a reader")
+			require.Equal(t, MGetResp(wantStreamed), gotStreamed, "decoded from a reader")
 		})
 	}
 }

@@ -8,6 +8,7 @@ package opensearchapi
 
 import (
 	"bytes"
+	stdjson "encoding/json"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
@@ -20,16 +21,29 @@ type bulkRespGenericDecode BulkResp
 // the same values, without allocating each item's BulkRespItem and the values its
 // pointer fields name one by one: those come from chunks shared by a run of
 // items. The JSON codec the client decodes with calls it in place of the
-// reflective decoder; callers that decode a BulkResp with encoding/json get the
-// reflective decoder.
+// reflective decoder, as encoding/json does where it runs on the v2 engine, from
+// Go 1.27.
 //
 // Member names are matched as encoding/json matches them, ignoring case, and
 // every value is decoded by the codec, so null, numbers and strings decode as
-// they do anywhere else. A value of another shape than the bulk API gives, such
-// as items that are not an array, is decoded by the reflective decoder.
+// they do anywhere else. A repeated member, or an item already in Items, is
+// merged into as the reflective decoder merges into it. A value of the wrong
+// type is left unset and the decode goes on, returning the first such error,
+// naming BulkResp, once the response has been read. A value of another shape
+// than the bulk API gives, such as items that are not an array, is decoded by
+// the reflective decoder.
 // TestBulkRespDecoderKnowsEveryField fails when BulkResp, BulkItem or
 // BulkRespItem gains a field this does not decode.
 func (r *BulkResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	var errs typeErrors
+	if err := errs.keep(r.decode(dec, &errs)); err != nil {
+		return err
+	}
+
+	return errs.err("BulkResp")
+}
+
+func (r *BulkResp) decode(dec *json.TextDecoder, errs *typeErrors) error {
 	if json.PeekKind(dec) != '{' {
 		return json.UnmarshalDecode(dec, (*bulkRespGenericDecode)(r))
 	}
@@ -44,7 +58,7 @@ func (r *BulkResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 		}
 		switch {
 		case bytes.EqualFold(name, []byte("items")):
-			err = r.decodeItems(dec, &store)
+			err = r.decodeItems(dec, &store, errs)
 		case bytes.EqualFold(name, []byte("errors")):
 			err = json.UnmarshalDecode(dec, &r.Errors)
 		case bytes.EqualFold(name, []byte("took")):
@@ -54,7 +68,7 @@ func (r *BulkResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 		default:
 			err = dec.SkipValue()
 		}
-		if err != nil {
+		if err = errs.keep(err); err != nil {
 			return err
 		}
 	}
@@ -64,7 +78,7 @@ func (r *BulkResp) UnmarshalJSONFrom(dec *json.TextDecoder) error {
 }
 
 // decodeItems decodes the items array into r.Items, reusing its capacity.
-func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *bulkRespStore) error {
+func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *bulkRespStore, errs *typeErrors) error {
 	if json.PeekKind(dec) != '[' {
 		return json.UnmarshalDecode(dec, &r.Items)
 	}
@@ -77,10 +91,15 @@ func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *bulkRespStore) erro
 	}
 	r.Items = r.Items[:0]
 	for json.PeekKind(dec) != ']' {
-		// Decoded in place: a local BulkItem would escape to the heap, through
-		// the reflective fallback, once for every item.
-		r.Items = append(r.Items, BulkItem{})
-		if err := decodeBulkItem(dec, &r.Items[len(r.Items)-1], store); err != nil {
+		// Decoded in place, merging into what the capacity already holds as the
+		// reflective decoder does: a local BulkItem would escape to the heap,
+		// through the reflective fallback, once for every item.
+		if len(r.Items) < cap(r.Items) {
+			r.Items = r.Items[:len(r.Items)+1]
+		} else {
+			r.Items = append(r.Items, BulkItem{})
+		}
+		if err := decodeBulkItem(dec, &r.Items[len(r.Items)-1], store, errs); err != nil {
 			return err
 		}
 	}
@@ -90,9 +109,9 @@ func (r *BulkResp) decodeItems(dec *json.TextDecoder, store *bulkRespStore) erro
 }
 
 // decodeBulkItem decodes one item, {"<action>":{...}}, into item.
-func decodeBulkItem(dec *json.TextDecoder, item *BulkItem, store *bulkRespStore) error {
+func decodeBulkItem(dec *json.TextDecoder, item *BulkItem, store *bulkRespStore, errs *typeErrors) error {
 	if json.PeekKind(dec) != '{' {
-		return json.UnmarshalDecode(dec, item)
+		return errs.keep(json.UnmarshalDecode(dec, item))
 	}
 	if _, err := dec.ReadToken(); err != nil {
 		return err
@@ -122,17 +141,20 @@ func decodeBulkItem(dec *json.TextDecoder, item *BulkItem, store *bulkRespStore)
 		if json.PeekKind(dec) != '{' {
 			// null clears the action, and anything else fails as it does for the
 			// reflective decoder.
-			if err := json.UnmarshalDecode(dec, action); err != nil {
+			if err := errs.keep(json.UnmarshalDecode(dec, action)); err != nil {
 				return err
 			}
 
 			continue
 		}
 		slot := store.next()
-		if err := slot.decode(dec); err != nil {
+		// A repeated action merges into the result the first one decoded.
+		if *action == nil {
+			*action = &slot.item
+		}
+		if err := slot.decode(dec, *action, errs); err != nil {
 			return err
 		}
-		*action = &slot.item
 	}
 	_, err := dec.ReadToken()
 
@@ -148,12 +170,12 @@ type bulkRespSlot struct {
 	shards                      ShardInfo
 }
 
-// decode decodes an action's result object into s.item.
-func (s *bulkRespSlot) decode(dec *json.TextDecoder) error {
+// decode decodes an action's result object into it, which is s.item unless it
+// merges into a result already decoded, pointing its nil pointer fields at s.
+func (s *bulkRespSlot) decode(dec *json.TextDecoder, it *BulkRespItem, errs *typeErrors) error {
 	if _, err := dec.ReadToken(); err != nil {
 		return err
 	}
-	it := &s.item
 	for json.PeekKind(dec) != '}' {
 		name, err := memberName(dec)
 		if err != nil {
@@ -187,7 +209,7 @@ func (s *bulkRespSlot) decode(dec *json.TextDecoder) error {
 		default:
 			err = dec.SkipValue()
 		}
-		if err != nil {
+		if err = errs.keep(err); err != nil {
 			return err
 		}
 	}
@@ -196,8 +218,9 @@ func (s *bulkRespSlot) decode(dec *json.TextDecoder) error {
 	return err
 }
 
-// decodeOptional decodes the next value into dst and points field at it, as the
-// reflective decoder fills a pointer field, or clears field for null.
+// decodeOptional points field at dst and decodes the next value into it, as the
+// reflective decoder fills a nil pointer field, even with a value of the wrong
+// type, or decodes into the value field already names, or clears field for null.
 func decodeOptional[T any](dec *json.TextDecoder, dst *T, field **T) error {
 	if json.PeekKind(dec) == 'n' {
 		*field = nil
@@ -205,12 +228,11 @@ func decodeOptional[T any](dec *json.TextDecoder, dst *T, field **T) error {
 
 		return err
 	}
-	if err := json.UnmarshalDecode(dec, dst); err != nil {
-		return err
+	if *field == nil {
+		*field = dst
 	}
-	*field = dst
 
-	return nil
+	return json.UnmarshalDecode(dec, *field)
 }
 
 // bulkRespStore hands out bulkRespSlots from chunks that double in size up to a
@@ -254,4 +276,38 @@ func memberName(dec *json.TextDecoder) ([]byte, error) {
 	}
 
 	return []byte(s), nil
+}
+
+// typeErrors keeps the first type error of a decode that goes on past it, as the
+// reflective decoder does, leaving the value of the wrong type unset.
+type typeErrors struct {
+	first *stdjson.UnmarshalTypeError
+}
+
+// keep returns nil for a type error, which it keeps if it is the first, and any
+// other error, such as a syntax error, which ends the decode.
+func (e *typeErrors) keep(err error) error {
+	if err == nil {
+		return nil
+	}
+	te := json.AsTypeError(err)
+	if te == nil {
+		return err
+	}
+	if e.first == nil {
+		e.first = te
+	}
+
+	return nil
+}
+
+// err returns the first type error kept, naming root as the type decoded, as the
+// reflective decoder names the type it was called with, or nil.
+func (e *typeErrors) err(root string) error {
+	if e.first == nil {
+		return nil
+	}
+	e.first.Struct = root
+
+	return e.first
 }
