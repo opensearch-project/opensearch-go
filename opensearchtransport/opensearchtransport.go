@@ -599,6 +599,10 @@ type Transport struct {
 	// to [None]; see requestCompressor.encoding.
 	compressor *requestCompressor
 
+	// readBufs holds the buffers readResponseBody reads a body of unknown length
+	// into; see readResponseBody. nil, in a Transport not built by New, keeps none.
+	readBufs chan *bytes.Buffer
+
 	metrics *metrics
 
 	transport  http.RoundTripper
@@ -1172,6 +1176,7 @@ func New(cfg Config) (*Transport, error) {
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
 		compressor: compressor,
+		readBufs:   make(chan *bytes.Buffer, readBufsKept),
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1558,7 +1563,7 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	// Request behavior and runs regardless of whether an observer is registered.
 	var n int64
 	if res != nil && res.Body != nil {
-		body, rerr := readResponseBody(res)
+		body, rerr := tr.readResponseBody(res)
 		res.Body.Close()
 		res.Body = bufbody.New(body)
 		n = int64(len(body))
@@ -1596,23 +1601,57 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 
 // maxPresizedBody bounds the buffer readResponseBody allocates from a response's
 // Content-Length, so that a wrong or hostile header cannot make it allocate more
-// than the body holds. A longer body is read as io.ReadAll reads it.
+// than the body holds. A longer body is read as one of unknown length.
 const maxPresizedBody = 64 << 20
+
+// A Transport keeps at most readBufsKept buffers in readBufs, each of at most
+// maxKeptReadBuf bytes: 8 MiB at most.
+const (
+	readBufsKept   = 8
+	maxKeptReadBuf = 1 << 20
+)
 
 // readResponseBody reads res's body whole. When the response gives its body's
 // length, the body is read into one buffer of that length, with room for
 // bytes.Buffer's minimum read, where io.ReadAll starts at 512 bytes and grows by
 // copying. A length that is wrong costs a regrowth, not a short read.
-func readResponseBody(res *http.Response) ([]byte, error) {
+//
+// A body of unknown length, such as a gzip response, which loses its length when
+// the HTTP transport decompresses it, or a chunked one, is read into a buffer
+// from readBufs that has grown to earlier bodies' size, and copied out at its own
+// length: one allocation, where io.ReadAll's growth makes about twice the body's
+// size in allocations. The buffers are a free list and not a sync.Pool, which
+// every garbage collection empties: a client decoding large responses collects
+// often enough that the buffers would be gone by the next response.
+func (tr *Transport) readResponseBody(res *http.Response) ([]byte, error) {
 	n := res.ContentLength
-	if n <= 0 || n > maxPresizedBody {
-		return io.ReadAll(res.Body)
-	}
-	var buf bytes.Buffer
-	buf.Grow(int(n) + bytes.MinRead)
-	_, err := buf.ReadFrom(res.Body)
+	if n > 0 && n <= maxPresizedBody {
+		var buf bytes.Buffer
+		buf.Grow(int(n) + bytes.MinRead)
+		_, err := buf.ReadFrom(res.Body)
 
-	return buf.Bytes(), err
+		return buf.Bytes(), err
+	}
+
+	var buf *bytes.Buffer
+	select {
+	case buf = <-tr.readBufs:
+	default:
+		buf = new(bytes.Buffer)
+	}
+	_, err := buf.ReadFrom(res.Body)
+	// Not nil for an empty body, as io.ReadAll returns: a nil body reads as no
+	// body at all to Response.RawBody.
+	body := append([]byte{}, buf.Bytes()...)
+	if buf.Cap() <= maxKeptReadBuf {
+		buf.Reset()
+		select {
+		case tr.readBufs <- buf:
+		default:
+		}
+	}
+
+	return body, err
 }
 
 // headerContentEncoding is the request header a Compressor sets and stream

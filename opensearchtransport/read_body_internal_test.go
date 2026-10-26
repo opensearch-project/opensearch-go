@@ -11,14 +11,21 @@ package opensearchtransport
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"testing/iotest"
 
 	"github.com/stretchr/testify/require"
 )
+
+// newReadBodyTransport returns a Transport with the free list New gives one.
+func newReadBodyTransport() *Transport {
+	return &Transport{readBufs: make(chan *bytes.Buffer, readBufsKept)}
+}
 
 func TestReadResponseBody(t *testing.T) {
 	t.Parallel()
@@ -39,6 +46,15 @@ func TestReadResponseBody(t *testing.T) {
 		{name: "a length shorter than the body", contentLength: 10, want: body},
 		{name: "a length longer than the body", contentLength: 5000, want: body},
 		{name: "a length past the bound", contentLength: maxPresizedBody + 1, want: body},
+		{name: "an empty body of unknown length", contentLength: -1, reader: func() io.Reader {
+			return strings.NewReader("")
+		}, want: ""},
+		{name: "a body read a byte at a time, of unknown length", contentLength: -1, reader: func() io.Reader {
+			return iotest.OneByteReader(strings.NewReader(body))
+		}, want: body},
+		{name: "a read of unknown length that fails", contentLength: -1, reader: func() io.Reader {
+			return io.MultiReader(strings.NewReader(body[:100]), iotest.ErrReader(boom))
+		}, want: body[:100], wantErr: boom},
 		{name: "a body read a byte at a time", contentLength: 3000, reader: func() io.Reader {
 			return iotest.OneByteReader(strings.NewReader(body))
 		}, want: body},
@@ -54,38 +70,75 @@ func TestReadResponseBody(t *testing.T) {
 			if tt.reader != nil {
 				r = tt.reader()
 			}
-			got, err := readResponseBody(&http.Response{ContentLength: tt.contentLength, Body: io.NopCloser(r)})
+			got, err := newReadBodyTransport().readResponseBody(&http.Response{ContentLength: tt.contentLength, Body: io.NopCloser(r)})
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}
 			require.Equal(t, tt.want, string(got))
+			require.NotNil(t, got, "a nil body reads as none to Response.RawBody")
 		})
 	}
 }
 
-// TestReadResponseBodyAllocatesOnce checks that a body of the length its response
-// gives is read into one buffer, where io.ReadAll would grow one by copying.
+// TestReadResponseBodyOwnsWhatItReturns checks that bodies of unknown length,
+// read through the buffers of readBufs, from several goroutines at once, are not
+// overwritten by the bodies read after them.
+func TestReadResponseBodyOwnsWhatItReturns(t *testing.T) {
+	t.Parallel()
+
+	tr := newReadBodyTransport()
+	read := func(s string) ([]byte, error) {
+		return tr.readResponseBody(&http.Response{ContentLength: -1, Body: io.NopCloser(strings.NewReader(s))})
+	}
+	const readers = 2 * readBufsKept
+	const letters = "abcdefghijklmnopqrstuvwxyz"
+	got := make([][]byte, readers)
+	errs := make([]error, readers)
+	var wg sync.WaitGroup
+	for i := range readers {
+		wg.Go(func() {
+			got[i], errs[i] = read(strings.Repeat(letters[i:i+1], 1000+i))
+			for range 10 {
+				_, _ = read(strings.Repeat("z", 2000))
+			}
+		})
+	}
+	wg.Wait()
+	for i := range readers {
+		require.NoError(t, errs[i])
+		require.Equal(t, strings.Repeat(letters[i:i+1], 1000+i), string(got[i]))
+	}
+}
+
+// TestReadResponseBodyAllocatesOnce checks that a body is read into one buffer
+// of its length, from the length its response gives or, without one, through a
+// buffer of readBufs, where io.ReadAll would grow one by copying.
 //
 //nolint:paralleltest // testing.AllocsPerRun panics in a parallel test.
 func TestReadResponseBodyAllocatesOnce(t *testing.T) {
 	body := bytes.Repeat([]byte("x"), 64<<10)
-	r := bytes.NewReader(body)
-	res := &http.Response{ContentLength: int64(len(body)), Body: io.NopCloser(r)}
+	for _, contentLength := range []int64{int64(len(body)), -1} {
+		t.Run(fmt.Sprintf("length %d", contentLength), func(t *testing.T) {
+			tr := newReadBodyTransport()
+			r := bytes.NewReader(body)
+			res := &http.Response{ContentLength: contentLength, Body: io.NopCloser(r)}
 
-	var (
-		got []byte
-		err error
-	)
-	allocs := testing.AllocsPerRun(20, func() {
-		r.Reset(body)
-		got, err = readResponseBody(res)
-	})
-	require.NoError(t, err)
-	require.Len(t, got, len(body))
-	if raceEnabled {
-		t.Skip("the race detector allocates on its own")
+			var (
+				got []byte
+				err error
+			)
+			allocs := testing.AllocsPerRun(20, func() {
+				r.Reset(body)
+				got, err = tr.readResponseBody(res)
+			})
+			require.NoError(t, err)
+			require.Len(t, got, len(body))
+			if raceEnabled {
+				t.Skip("the race detector allocates on its own")
+			}
+			require.LessOrEqual(t, allocs, 1.0)
+		})
 	}
-	require.LessOrEqual(t, allocs, 1.0)
 }
