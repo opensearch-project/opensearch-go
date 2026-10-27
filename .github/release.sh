@@ -15,7 +15,7 @@
 #   release.sh plan     Print the runbook for RELEASE_TAG, marking the current step.
 #   release.sh prepare  Edit CHANGELOG.md and version.go for RELEASE_TAG.
 #   release.sh pin      Point the nested modules at the merged prepare commit.
-#   release.sh verify   Check the merged pin commit and print the tag request.
+#   release.sh verify   Check the merged pin commit and print the tag request form.
 #
 # Environment:
 #   RELEASE_TAG      tag to release, e.g. v5.2.0
@@ -266,7 +266,7 @@ plan() {
     printf '  Merge with "Squash and merge".\n\n'
 
     mark 5; printf 'Step 5: verify the pin commit%s and request the signed tag' "${pin:+ ($(git rev-parse --short "$pin"), $pv)}"; done_note 5
-    printf '\033[2m  release-verify only reads; when every check passes it prints the gh issue create command to run.\033[0m\n'
+    printf '\033[2m  release-verify only reads; when every check passes it prints the GitHub Request form link and the text for each field.\033[0m\n'
     printf '  make release-verify release-tag=%s\n\n' "$tag"
 
     mark 6; printf 'Step 6: once %s exists, publish the GitHub release from its CHANGELOG section' "$tag"; done_note 6
@@ -424,22 +424,27 @@ verify() {
     fi
 
     printf '\n\033[1mAll checks passed. Tag %s on %s.\033[0m\n\n' "$tag" "$pin"
-    printf 'File the signed-tag request:\n\n'
-    printf 'gh issue create --repo opensearch-project/.github --label github-request \\\n'
-    printf "  --title '%s' --body-file - <<'EOF'\n" "[GitHub Request] Tag new opensearch-go $tag release"
-    {
-        printf '### What is the type of request?\n\nRepository Management\n\n'
-        printf '### Details of the request\n\n'
-        printf 'Please create a signed `%s` tag for `opensearch-go` from `%s` on the `main` branch.\n\n' "$tag" "$pin"
-        printf -- '- repository: https://github.com/%s\n- target branch: `main`\n- module path: `%s`\n\n' "$SLUG" "$ROOT"
-        printf '```\ngit tag -s %s %s -m "Tag %s"\n```\n\n' "$tag" "$pin" "$tag"
-        printf '### Additional information to support your request\n\n'
-        printf -- '- version file: %s#diff-%s\n' "$changes" "$(diff_anchor internal/version/version.go)"
-        printf -- '- CHANGELOG: %s#diff-%s\n' "$changes" "$(diff_anchor CHANGELOG.md)"
-        printf -- '- Pin commit: https://github.com/%s/commit/%s\n\n' "$SLUG" "$pin"
-        printf '### When does this request need to be completed?\n\nASAP\n'
-    }
-    printf 'EOF\n\n'
+    # The GitHub Request form applies the github-request label the admin
+    # dashboards filter on. gh issue create --label cannot: GitHub silently
+    # drops labels on a new issue from anyone without push access to the repo.
+    # The form's fields have no id, so only the title can be prefilled.
+    local title title_uri
+    title="[GitHub Request] Tag new opensearch-go $tag release"
+    title_uri=$(printf '%s' "$title" | sed 's/ /%20/g; s/\[/%5B/g; s/\]/%5D/g') # the title holds no other URL-reserved characters
+    printf 'File the signed-tag request with the GitHub Request form, then paste each field below into it:\n\n'
+    printf '  https://github.com/opensearch-project/.github/issues/new?template=GITHUB_REQUEST_TEMPLATE.yaml&title=%s\n\n' "$title_uri"
+    printf '\033[2m--- What is the type of request?\033[0m\n'
+    printf 'Repository Management\n\n'
+    printf '\033[2m--- Details of the request\033[0m\n'
+    printf 'Please create a signed `%s` tag for `opensearch-go` from `%s` on the `main` branch.\n\n' "$tag" "$pin"
+    printf -- '- repository: https://github.com/%s\n- target branch: `main`\n- module path: `%s`\n\n' "$SLUG" "$ROOT"
+    printf '```\ngit tag -s %s %s -m "Tag %s"\n```\n\n' "$tag" "$pin" "$tag"
+    printf '\033[2m--- Additional information to support your request\033[0m\n'
+    printf -- '- version file: %s#diff-%s\n' "$changes" "$(diff_anchor internal/version/version.go)"
+    printf -- '- CHANGELOG: %s#diff-%s\n' "$changes" "$(diff_anchor CHANGELOG.md)"
+    printf -- '- Pin commit: https://github.com/%s/commit/%s\n\n' "$SLUG" "$pin"
+    printf '\033[2m--- When does this request need to be completed?\033[0m\n'
+    printf 'ASAP\n\n'
 }
 
 case "${1:-}" in
