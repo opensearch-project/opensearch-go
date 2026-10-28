@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.10
 
 require (
-	github.com/getkin/kin-openapi v0.151.0
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/google/renameio/v2 v2.0.2
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/mod v0.42.0

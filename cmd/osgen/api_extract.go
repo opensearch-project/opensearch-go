@@ -157,6 +157,9 @@ func extractOperations(
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("loading spec: %w", err)
 	}
+	if err := dropRedundantRefTypeConjuncts(spec); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("normalizing spec: %w", err)
+	}
 
 	type groupData struct {
 		ops []struct {
