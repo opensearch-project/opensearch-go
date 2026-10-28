@@ -21,6 +21,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Update the `toolchain` line to go1.26.10 in the root and all nested modules, so builds in this repository use Go 1.26.10. The go directive stays 1.26.0, so consumers are not affected
+
 ## [5.1.3]
 
 ### Added
