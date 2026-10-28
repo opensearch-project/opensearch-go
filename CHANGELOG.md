@@ -14,7 +14,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- Keep nodes available when a transport attempt returns an error while the caller's context is canceled or its deadline has expired, including seed fallback. These failures no longer demote the node, invalidate shard placement, or trigger a retry. (PR link pending.)
+- Keep nodes available when a transport attempt returns an error while the caller's context is canceled or its deadline has expired, including seed fallback. These failures no longer demote the node, invalidate shard placement, or trigger a retry. ([#1254](https://github.com/opensearch-project/opensearch-go/pull/1254))
 
 ### Security
 
