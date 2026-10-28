@@ -1845,6 +1845,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			shouldRetry     bool
 			shouldCloseBody bool
 			adaptiveShards  int
+			callerCanceled  bool
 		)
 
 		if pinned, pinnedPool := pinnedRequestNode(req.Context()); pinned != nil && i == 0 {
@@ -1971,7 +1972,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			attemptReq.Close = true
 		}
 
-		res, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
+		res, callerCanceled, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
 
 		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			statusCode := 0
@@ -2028,6 +2029,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			}
 
 			Debug().Str("conn", conn.URLString).Err(err).Msg("Request failed")
+
+			if callerCanceled {
+				break
+			}
 
 			// Retry on HTTP/2 stream resets (RST_STREAM frames such as REFUSED_STREAM).
 			// Go 1.21+ added As bridging on the vendored internal http2.StreamError
@@ -2340,11 +2345,14 @@ func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
 //
 // The drain itself is [Connection.drainingConn]: a later request carries
 // Request.Close and net/http retires the connection. Nothing is closed here.
+//
+// The second result reports a caller cancellation observed when RoundTrip
+// returned, before observers or cleanup can cancel any context.
 func (tr *Transport) roundTripAttempt(
 	attemptReq *http.Request,
 	attemptCtx, callerCtx context.Context,
 	conn *Connection,
-) (*http.Response, error) {
+) (*http.Response, bool, error) {
 	// Rebuild the request only when a timeout or observer span actually derived
 	// a new context, so the default path allocates nothing.
 	if attemptCtx != callerCtx {
@@ -2352,6 +2360,7 @@ func (tr *Transport) roundTripAttempt(
 	}
 
 	res, err := tr.transport.RoundTrip(attemptReq)
+	callerCanceled := err != nil && callerCtx.Err() != nil
 
 	// Ask for a drain only for a timeout we generated. context.DeadlineExceeded
 	// reports Timeout() == true, so a caller's own expiring deadline arrives
@@ -2360,14 +2369,15 @@ func (tr *Transport) roundTripAttempt(
 	// callerCtx Err means the cancellation came from above and the connection is
 	// left alone. If the caller's deadline expires between our timeout firing
 	// and this check the connection is spared, which is the safe direction.
-	if err != nil && callerCtx.Err() == nil {
+	if err != nil && !callerCanceled {
 		if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
 			caught := conn.drainingConn.Add(1)
 			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
 				Msg("Timed out; asking the next request to drain this node's connection")
 		}
 	}
-	return res, err
+
+	return res, callerCanceled, err
 }
 
 // performSeedFallback attempts a single request using the seed URL fallback pool.
@@ -2376,8 +2386,8 @@ func (tr *Transport) roundTripAttempt(
 //
 // On success: marks the seed connection healthy and sets discoveryNeeded to
 // expedite full cluster rediscovery.
-// On failure: marks the seed connection as failed so the pool's resurrection
-// timer can schedule retries.
+// On a transport failure not caused by caller cancellation: marks the seed
+// connection as failed so the pool's resurrection timer can schedule retries.
 //
 // bodyOpen says req.Body is still the caller's open, unsent body. The fallback
 // then owns closing it: a body replaced from GetBody is closed here, and one
@@ -2453,7 +2463,8 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 		attemptReq.Close = true
 	}
 
-	res, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn) //nolint:contextcheck // child of req.Context()
+	//nolint:contextcheck // child of req.Context()
+	res, callerCanceled, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
 
 	if attemptCancel != nil {
 		if err != nil || res == nil {
@@ -2474,7 +2485,10 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 
 	if err != nil {
 		Debug().Str("conn", conn.URLString).Err(err).Msg("Seed fallback: request failed")
-		tr.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
+		if !callerCanceled {
+			tr.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
+		}
+
 		return nil, fmt.Errorf("seed fallback request failed: %w", err)
 	}
 
