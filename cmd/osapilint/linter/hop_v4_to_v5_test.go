@@ -188,8 +188,9 @@ func TestHopV4toV5_SnapshotInfoRenames(t *testing.T) {
 
 // TestHopV4toV5_ParamsRenames pins the Params types renamed alongside their Req
 // types, the Query -> Q field renames proven by the v4 `params["q"]` assembly,
-// and the shared params v5 moved into the embedded TimeoutParams/DebugParams,
-// which are promoted fields on v5 and so carry no change.
+// the params v5 dropped, which are manual, and the shared params v5 moved into
+// the embedded TimeoutParams/DebugParams, which are promoted fields on v5 and
+// so carry no change.
 func TestHopV4toV5_ParamsRenames(t *testing.T) {
 	t.Parallel()
 
@@ -213,6 +214,12 @@ func TestHopV4toV5_ParamsRenames(t *testing.T) {
 		apirev.FieldChange{Kind: apirev.KindRename, From: "Query", To: "Q", NewType: "string"})
 	assertChange(t, d.Structs[v4api+".IndicesCountParams"].Changes,
 		apirev.FieldChange{Kind: apirev.KindRename, From: "Query", To: "Q", NewType: "string"})
+	assertChange(t, d.Structs[v4api+".SearchParams"].Changes,
+		apirev.FieldChange{Kind: apirev.KindRename, From: "Query", To: "Q", NewType: "string"})
+	assertChange(t, d.Structs[v4api+".UpdateByQueryParams"].Changes,
+		apirev.FieldChange{Kind: apirev.KindRename, From: "Query", To: "Q", NewType: "string"})
+	assertChangeKind(t, d.Structs[v4api+".SearchParams"].Changes, "MinCompatibleShardNode", apirev.KindManual)
+	assertChangeKind(t, d.Structs[v4api+".UpdateByQueryParams"].Changes, "VersionType", apirev.KindManual)
 
 	promoted := []struct{ typ, v5typ, field string }{
 		{"DocumentGetParams", "GetParams", "Pretty"},

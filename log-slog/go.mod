@@ -2,7 +2,7 @@ module github.com/opensearch-project/opensearch-go/log-slog/v5
 
 go 1.26.0
 
-toolchain go1.26.9
+toolchain go1.26.10
 
 require (
 	github.com/opensearch-project/opensearch-go/v5 v5.1.3-0.20261026223653-bd1669168f43

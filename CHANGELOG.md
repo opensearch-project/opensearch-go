@@ -15,10 +15,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - Keep nodes available when a transport attempt returns an error while the caller's context is canceled or its deadline has expired, including seed fallback. These failures no longer demote the node, invalidate shard placement, or trigger a retry. ([#1254](https://github.com/opensearch-project/opensearch-go/pull/1254))
+- `cmd/osapilint`: classify four v4 params fields that v5 dropped from the same-named params types, so the v4 -> v5 run no longer aborts with an `osapilint bug` error on code that uses them. `SearchParams.Query` and `UpdateByQueryParams.Query` are renamed to `Q`, which v4 already sent as `q`. `SearchParams.MinCompatibleShardNode` and `UpdateByQueryParams.VersionType` have no v5 param and are reported `MANUAL`, because dropping them would change the request ([#1256](https://github.com/opensearch-project/opensearch-go/pull/1256))
 
 ### Security
 
 ### Dependencies
+
+- Update the `toolchain` line to go1.26.10 in the root and all nested modules, so builds in this repository use Go 1.26.10. The go directive stays 1.26.0, so consumers are not affected ([#1256](https://github.com/opensearch-project/opensearch-go/pull/1256))
 
 ## [5.1.3]
 

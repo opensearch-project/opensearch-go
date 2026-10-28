@@ -199,6 +199,8 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		// Params: v4 `params["q"] = r.Query`.
 		{"DocumentDeleteByQueryParams", "Query", "DeleteByQueryParams", "Q"},
 		{"IndicesCountParams", "Query", "CountParams", "Q"},
+		{"SearchParams", "Query", "", "Q"},
+		{"UpdateByQueryParams", "Query", "", "Q"},
 
 		// Template, script and data stream op families. The v4 identifier fields
 		// are the spec path elements (ospath.<Name>Path{...}); the target type
@@ -236,6 +238,11 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		{"DataStreamDeleteReq", "DataStream", "v5 takes Name []string; v4 sent []string{DataStream}"},
 		{"IndexTemplateSimulateIndexParams", "Cause", simulateIndexParamNote},
 		{"IndexTemplateSimulateIndexParams", "Create", simulateIndexParamNote},
+		{"SearchParams", "MinCompatibleShardNode", "v5 SearchParams has no such param; dropping it would change the request"},
+		{
+			"UpdateByQueryParams", "VersionType",
+			"v5 UpdateByQueryParams has no such param; v4 sent version_type=true|false, dropping it would change the request",
+		},
 
 		// Sub-clients removed from the API client. A call through them is
 		// regrouped (MethodRegroups); a bare reference, such as storing the
