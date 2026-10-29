@@ -13,6 +13,7 @@
 // operations that are not grouped are methods on [Client] directly.
 //
 //   - client.QueryGroup reaches [QueryGroupClient]
+//   - client.WorkloadGroup reaches [WorkloadGroupClient]
 package wlm
 
 import (
@@ -25,14 +26,16 @@ import (
 
 // Client provides methods for this plugin API.
 type Client struct {
-	Client     *opensearch.Client
-	QueryGroup QueryGroupClient
+	Client        *opensearch.Client
+	QueryGroup    QueryGroupClient
+	WorkloadGroup WorkloadGroupClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
 	c.QueryGroup = QueryGroupClient{client: c}
+	c.WorkloadGroup = WorkloadGroupClient{client: c}
 	return c
 }
 
@@ -65,6 +68,32 @@ type QueryGroupClient struct {
 	client *Client
 }
 
+// WorkloadGroupClient groups a related subset of this plugin's API. WorkloadGroupClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type WorkloadGroupClient struct {
+	client *Client
+}
+
+// Stats retrieves workload management statistics for workload groups on one or more nodes.
+//
+// GET /_wlm/stats
+//
+// Available: >= 2.18.0.
+//
+// See: https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/workload-management/wlm-feature-overview/
+func (c *Client) Stats(ctx context.Context, req *StatsReq) (*StatsResp, error) {
+	if req == nil {
+		req = &StatsReq{}
+	}
+	var resp StatsResp
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
 // CreateQueryGroup creates a new query group and sets the resource limits for the new query group.
 //
 // PUT /_wlm/query_group
@@ -75,6 +104,23 @@ func (c QueryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQuery
 		req = &CreateQueryGroupReq{}
 	}
 	var resp CreateQueryGroupResp
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
+// CreateWorkloadGroup creates a new workload group and sets the resource limits for the new workload group.
+//
+// PUT /_wlm/workload_group
+//
+// Available: >= 3.0.0.
+func (c WorkloadGroupClient) CreateWorkloadGroup(ctx context.Context, req *CreateWorkloadGroupReq) (*CreateWorkloadGroupResp, error) {
+	if req == nil {
+		req = &CreateWorkloadGroupReq{}
+	}
+	var resp CreateWorkloadGroupResp
 	var err error
 	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
@@ -96,6 +142,20 @@ func (c QueryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryG
 	return &resp, nil
 }
 
+// DeleteWorkloadGroup deletes the specified workload group.
+//
+// DELETE /_wlm/workload_group/{name}
+//
+// Available: >= 3.0.0.
+func (c WorkloadGroupClient) DeleteWorkloadGroup(ctx context.Context, req DeleteWorkloadGroupReq) (*DeleteWorkloadGroupResp, error) {
+	var resp DeleteWorkloadGroupResp
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
 // GetQueryGroup retrieves the specified query group. If no query group is specified, all query groups in the cluster are retrieved.
 //
 // GET /_wlm/query_group
@@ -103,6 +163,20 @@ func (c QueryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryG
 // Available: >= 2.17.0.
 func (c QueryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error) {
 	var resp GetQueryGroupResp
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
+// GetWorkloadGroup retrieves the specified workload group. If no workload group is specified, all workload groups in the cluster are retrieved.
+//
+// GET /_wlm/workload_group
+//
+// Available: >= 3.0.0.
+func (c WorkloadGroupClient) GetWorkloadGroup(ctx context.Context, req GetWorkloadGroupReq) (*GetWorkloadGroupResp, error) {
+	var resp GetWorkloadGroupResp
 	var err error
 	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -124,9 +198,28 @@ func (c QueryGroupClient) UpdateQueryGroup(ctx context.Context, req UpdateQueryG
 	return &resp, nil
 }
 
+// UpdateWorkloadGroup updates the specified workload group.
+//
+// PUT /_wlm/workload_group/{name}
+//
+// Available: >= 3.0.0.
+func (c WorkloadGroupClient) UpdateWorkloadGroup(ctx context.Context, req UpdateWorkloadGroupReq) (*UpdateWorkloadGroupResp, error) {
+	var resp UpdateWorkloadGroupResp
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
 // Deprecated: use Client.QueryGroup.CreateQueryGroup instead.
 func (c *Client) CreateQueryGroup(ctx context.Context, req *CreateQueryGroupReq) (*CreateQueryGroupResp, error) {
 	return c.QueryGroup.CreateQueryGroup(ctx, req)
+}
+
+// Deprecated: use Client.WorkloadGroup.CreateWorkloadGroup instead.
+func (c *Client) CreateWorkloadGroup(ctx context.Context, req *CreateWorkloadGroupReq) (*CreateWorkloadGroupResp, error) {
+	return c.WorkloadGroup.CreateWorkloadGroup(ctx, req)
 }
 
 // Deprecated: use Client.QueryGroup.DeleteQueryGroup instead.
@@ -134,14 +227,29 @@ func (c *Client) DeleteQueryGroup(ctx context.Context, req DeleteQueryGroupReq) 
 	return c.QueryGroup.DeleteQueryGroup(ctx, req)
 }
 
+// Deprecated: use Client.WorkloadGroup.DeleteWorkloadGroup instead.
+func (c *Client) DeleteWorkloadGroup(ctx context.Context, req DeleteWorkloadGroupReq) (*DeleteWorkloadGroupResp, error) {
+	return c.WorkloadGroup.DeleteWorkloadGroup(ctx, req)
+}
+
 // Deprecated: use Client.QueryGroup.GetQueryGroup instead.
 func (c *Client) GetQueryGroup(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error) {
 	return c.QueryGroup.GetQueryGroup(ctx, req)
 }
 
+// Deprecated: use Client.WorkloadGroup.GetWorkloadGroup instead.
+func (c *Client) GetWorkloadGroup(ctx context.Context, req GetWorkloadGroupReq) (*GetWorkloadGroupResp, error) {
+	return c.WorkloadGroup.GetWorkloadGroup(ctx, req)
+}
+
 // Deprecated: use Client.QueryGroup.UpdateQueryGroup instead.
 func (c *Client) UpdateQueryGroup(ctx context.Context, req UpdateQueryGroupReq) (*UpdateQueryGroupResp, error) {
 	return c.QueryGroup.UpdateQueryGroup(ctx, req)
+}
+
+// Deprecated: use Client.WorkloadGroup.UpdateWorkloadGroup instead.
+func (c *Client) UpdateWorkloadGroup(ctx context.Context, req UpdateWorkloadGroupReq) (*UpdateWorkloadGroupResp, error) {
+	return c.WorkloadGroup.UpdateWorkloadGroup(ctx, req)
 }
 
 // noBody is a sentinel used when an operation returns no JSON body.

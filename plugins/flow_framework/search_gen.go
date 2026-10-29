@@ -15,7 +15,6 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
-	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -140,87 +139,24 @@ func (r SearchResp) RawBody() io.Reader {
 
 // FlowFrameworkCommonShards is a typed component of the flow_framework.search operation.
 type FlowFrameworkCommonShards struct {
-	// Failed is the number of shards where the deletion failed.
-	Failed *int `json:"failed,omitempty"`
-
-	// Skipped is the number of shards where the deletion was skipped.
-	Skipped *int `json:"skipped,omitempty"`
-
-	// Successful is the number of shards where the deletion was successful.
-	Successful *int `json:"successful,omitempty"`
-
-	// Total is the total number of shards involved in the deletion.
-	Total *int `json:"total,omitempty"`
+	Failed     int                                `json:"failed"`
+	Failures   []opensearchapi.ShardSearchFailure `json:"failures,omitempty"`
+	Skipped    *int                               `json:"skipped,omitempty"`
+	Successful int                                `json:"successful"`
+	Total      int                                `json:"total"`
 }
 
 // FlowFrameworkCommonHits is a typed component of the flow_framework.search operation.
 type FlowFrameworkCommonHits struct {
-	Hits     []FlowFrameworkCommonItemsObject `json:"hits,omitempty"`
-	MaxScore *float32                         `json:"max_score,omitempty"`
-	Total    *FlowFrameworkCommonTotal        `json:"total,omitempty"`
-}
-
-// FlowFrameworkCommonItemsObject is a typed component of the flow_framework.search operation.
-type FlowFrameworkCommonItemsObject struct {
-	// ID is the document ID.
-	ID *string `json:"_id,omitempty"`
-
-	// Index is the index name where the document resides.
-	Index *string `json:"_index,omitempty"`
-
-	// PrimaryTerm is the primary term of the document.
-	PrimaryTerm *int `json:"_primary_term,omitempty"`
-
-	// Score is the score of the search hit.
-	Score *float32 `json:"_score,omitempty"`
-
-	// SeqNo is the sequence number of the document.
-	SeqNo *int `json:"_seq_no,omitempty"`
-
-	Source *FlowFrameworkCommonGetResp `json:"_source,omitempty"`
-
-	// Version is the version of the document.
-	Version *int `json:"_version,omitempty"`
-}
-
-// FlowFrameworkCommonGetResp is a typed component of the flow_framework.search operation.
-type FlowFrameworkCommonGetResp struct {
-	// CreatedTime. When the workflow was created.
-	CreatedTime *int `json:"created_time,omitempty"`
-
-	// Description is the description of the workflow.
-	Description *string `json:"description,omitempty"`
-
-	// LastProvisionedTime. When the workflow was last provisioned.
-	LastProvisionedTime *float64 `json:"last_provisioned_time,omitempty"`
-
-	// LastUpdatedTime. When the workflow was last updated.
-	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
-
-	// Name is the name of the workflow.
-	Name *string `json:"name,omitempty"`
-
-	// UseCase is a use case ID, which can be used with the Search Workflow API
-	// to find related workflows.
-	UseCase *string `json:"use_case,omitempty"`
-
-	User *FlowFrameworkCommonUser `json:"user,omitempty"`
-
-	// Version is a key-value map with two fields, template, which identifies
-	// the template version, and compatibility, which identifies a list of
-	// minimum required OpenSearch versions.
-	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
-
-	Workflows json.RawMessage `json:"workflows,omitempty"`
+	Hits     []opensearchapi.SearchHit `json:"hits,omitempty"`
+	MaxScore *float32                  `json:"max_score,omitempty"`
+	Total    *FlowFrameworkCommonTotal `json:"total,omitempty"`
 }
 
 // FlowFrameworkCommonTotal is a typed component of the flow_framework.search operation.
 type FlowFrameworkCommonTotal struct {
-	// Relation is the relation of the total hits.
-	Relation *string `json:"relation,omitempty"`
-
-	// Value is the total number of matching documents.
-	Value *int `json:"value,omitempty"`
+	Relation opensearchapi.TotalHitsRelation `json:"relation"`
+	Value    int64                           `json:"value"`
 }
 
 // FlowFrameworkCommonSearchWorkflowRequest is a typed component of the flow_framework.search operation.

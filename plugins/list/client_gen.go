@@ -105,5 +105,22 @@ func (c *Client) Shards(ctx context.Context, req *ShardsReq) (*ShardsResp, error
 	return &resp, nil
 }
 
+// WLMStats returns paginated workload management statistics in tabular form.
+//
+// GET /_list/wlm_stats
+//
+// Available: >= 3.1.0.
+func (c *Client) WLMStats(ctx context.Context, req *WLMStatsReq) (*WLMStatsResp, error) {
+	if req == nil {
+		req = &WLMStatsReq{}
+	}
+	var resp WLMStatsResp
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
 // noBody is a sentinel used when an operation returns no JSON body.
 var noBody *struct{} //nolint:gochecknoglobals // package-level marker shared by all no-body operations

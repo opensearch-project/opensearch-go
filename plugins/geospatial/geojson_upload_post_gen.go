@@ -114,6 +114,10 @@ type GeojsonUploadPostResp struct {
 	// Failure. Number of features that failed to upload.
 	Failure int `json:"failure"`
 
+	// Failures. Details of individual feature upload failures. Only present
+	// when errors is true.
+	Failures []opensearchapi.GeospatialUploadFailure `json:"failures,omitempty"`
+
 	// Success. Number of features successfully uploaded.
 	Success int `json:"success"`
 

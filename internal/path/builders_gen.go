@@ -281,6 +281,7 @@ var (
 	_ builder = ListHelpPath{}
 	_ builder = ListIndicesPath{}
 	_ builder = ListShardsPath{}
+	_ builder = ListWLMStatsPath{}
 	_ builder = LTRAddFeaturesToSetPath{}
 	_ builder = LTRAddFeaturesToSetByQueryPath{}
 	_ builder = LTRCacheStatsPath{}
@@ -458,6 +459,7 @@ var (
 	_ builder = SearchRelevanceGetScheduledExperimentsPath{}
 	_ builder = SearchRelevanceGetSearchConfigurationsPath{}
 	_ builder = SearchRelevanceGetStatsPath{}
+	_ builder = SearchRelevancePatchExperimentPath{}
 	_ builder = SearchRelevancePostQuerySetsPath{}
 	_ builder = SearchRelevancePostScheduledExperimentsPath{}
 	_ builder = SearchRelevancePutExperimentsPath{}
@@ -587,9 +589,14 @@ var (
 	_ builder = UpdateByQueryPath{}
 	_ builder = UpdateByQueryRethrottlePath{}
 	_ builder = WLMCreateQueryGroupPath{}
+	_ builder = WLMCreateWorkloadGroupPath{}
 	_ builder = WLMDeleteQueryGroupPath{}
+	_ builder = WLMDeleteWorkloadGroupPath{}
 	_ builder = WLMGetQueryGroupPath{}
+	_ builder = WLMGetWorkloadGroupPath{}
+	_ builder = WLMStatsPath{}
 	_ builder = WLMUpdateQueryGroupPath{}
+	_ builder = WLMUpdateWorkloadGroupPath{}
 )
 
 // ---------------------------------------------------------------------------
@@ -4853,6 +4860,39 @@ func (p ListShardsPath) Build() (string, error) {
 	pb.writeLit("_list")
 	pb.writeLit("shards")
 	writeSegments(pb, p.Indices)
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
+// ListWLMStatsPath (list.wlm_stats)
+// ---------------------------------------------------------------------------
+
+// ListWLMStatsPath builds URL paths for the list.wlm_stats operation.
+//
+// Returns paginated workload management statistics in tabular form.
+//
+// Available: >= 3.1.0
+type ListWLMStatsPath struct {
+	NodeID          []string
+	WorkloadGroupID []string
+}
+
+func (p ListWLMStatsPath) Build() (string, error) {
+	pb := acquire()
+	pb.writeLit("_list")
+	pb.writeLit("wlm_stats")
+	switch {
+	case hasNonEmpty(p.NodeID) && hasNonEmpty(p.WorkloadGroupID):
+		writeSegments(pb, p.NodeID)
+		pb.writeLit("stats")
+		writeSegments(pb, p.WorkloadGroupID)
+	case hasNonEmpty(p.NodeID):
+		writeSegments(pb, p.NodeID)
+		pb.writeLit("stats")
+	case hasNonEmpty(p.WorkloadGroupID):
+		pb.writeLit("stats")
+		writeSegments(pb, p.WorkloadGroupID)
+	}
 	return pb.release(), nil
 }
 
@@ -9292,6 +9332,31 @@ func (p SearchRelevanceGetStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
+// SearchRelevancePatchExperimentPath (search_relevance.patch_experiment)
+// ---------------------------------------------------------------------------
+
+// SearchRelevancePatchExperimentPath builds URL paths for the search_relevance.patch_experiment operation.
+//
+// Partially updates an experiment's name or description.
+//
+// Available: >= 3.6.0
+type SearchRelevancePatchExperimentPath struct {
+	ExperimentID string
+}
+
+func (p SearchRelevancePatchExperimentPath) Build() (string, error) {
+	if p.ExperimentID == "" {
+		return "", fmt.Errorf("SearchRelevancePatchExperimentPath.ExperimentID: %w", errRequired)
+	}
+	pb := acquire()
+	pb.writeLit("_plugins")
+	pb.writeLit("_search_relevance")
+	pb.writeLit("experiments")
+	pb.writeReq(p.ExperimentID)
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
 // SearchRelevancePostQuerySetsPath (search_relevance.post_query_sets)
 // ---------------------------------------------------------------------------
 
@@ -12614,6 +12679,25 @@ func (p WLMCreateQueryGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
+// WLMCreateWorkloadGroupPath (wlm.create_workload_group)
+// ---------------------------------------------------------------------------
+
+// WLMCreateWorkloadGroupPath builds URL paths for the wlm.create_workload_group operation.
+//
+// Creates a new workload group and sets the resource limits for the new workload group.
+//
+// Available: >= 3.0.0
+type WLMCreateWorkloadGroupPath struct {
+}
+
+func (p WLMCreateWorkloadGroupPath) Build() (string, error) {
+	pb := acquire()
+	pb.writeLit("_wlm")
+	pb.writeLit("workload_group")
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
 // WLMDeleteQueryGroupPath (wlm.delete_query_group)
 // ---------------------------------------------------------------------------
 
@@ -12633,6 +12717,30 @@ func (p WLMDeleteQueryGroupPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_wlm")
 	pb.writeLit("query_group")
+	pb.writeReq(p.Name)
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
+// WLMDeleteWorkloadGroupPath (wlm.delete_workload_group)
+// ---------------------------------------------------------------------------
+
+// WLMDeleteWorkloadGroupPath builds URL paths for the wlm.delete_workload_group operation.
+//
+// Deletes the specified workload group.
+//
+// Available: >= 3.0.0
+type WLMDeleteWorkloadGroupPath struct {
+	Name string
+}
+
+func (p WLMDeleteWorkloadGroupPath) Build() (string, error) {
+	if p.Name == "" {
+		return "", fmt.Errorf("WLMDeleteWorkloadGroupPath.Name: %w", errRequired)
+	}
+	pb := acquire()
+	pb.writeLit("_wlm")
+	pb.writeLit("workload_group")
 	pb.writeReq(p.Name)
 	return pb.release(), nil
 }
@@ -12661,6 +12769,65 @@ func (p WLMGetQueryGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
+// WLMGetWorkloadGroupPath (wlm.get_workload_group)
+// ---------------------------------------------------------------------------
+
+// WLMGetWorkloadGroupPath builds URL paths for the wlm.get_workload_group operation.
+//
+// Retrieves the specified workload group. If no workload group is specified, all workload groups in the cluster are retrieved.
+//
+// Available: >= 3.0.0
+type WLMGetWorkloadGroupPath struct {
+	Name string
+}
+
+func (p WLMGetWorkloadGroupPath) Build() (string, error) {
+	pb := acquire()
+	pb.writeLit("_wlm")
+	pb.writeLit("workload_group")
+	if p.Name != "" {
+		pb.writeReq(p.Name)
+	}
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
+// WLMStatsPath (wlm.stats)
+// ---------------------------------------------------------------------------
+
+// WLMStatsPath builds URL paths for the wlm.stats operation.
+//
+// Retrieves workload management statistics for workload groups on one or more nodes.
+//
+// Available: >= 2.18.0
+//
+// See: https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/workload-management/wlm-feature-overview/
+type WLMStatsPath struct {
+	NodeID          []string
+	WorkloadGroupID []string
+}
+
+func (p WLMStatsPath) Build() (string, error) {
+	pb := acquire()
+	pb.writeLit("_wlm")
+	switch {
+	case hasNonEmpty(p.NodeID) && hasNonEmpty(p.WorkloadGroupID):
+		writeSegments(pb, p.NodeID)
+		pb.writeLit("stats")
+		writeSegments(pb, p.WorkloadGroupID)
+	case hasNonEmpty(p.NodeID):
+		writeSegments(pb, p.NodeID)
+		pb.writeLit("stats")
+	case hasNonEmpty(p.WorkloadGroupID):
+		pb.writeLit("stats")
+		writeSegments(pb, p.WorkloadGroupID)
+	default:
+		pb.writeLit("stats")
+	}
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
 // WLMUpdateQueryGroupPath (wlm.update_query_group)
 // ---------------------------------------------------------------------------
 
@@ -12680,6 +12847,30 @@ func (p WLMUpdateQueryGroupPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_wlm")
 	pb.writeLit("query_group")
+	pb.writeReq(p.Name)
+	return pb.release(), nil
+}
+
+// ---------------------------------------------------------------------------
+// WLMUpdateWorkloadGroupPath (wlm.update_workload_group)
+// ---------------------------------------------------------------------------
+
+// WLMUpdateWorkloadGroupPath builds URL paths for the wlm.update_workload_group operation.
+//
+// Updates the specified workload group.
+//
+// Available: >= 3.0.0
+type WLMUpdateWorkloadGroupPath struct {
+	Name string
+}
+
+func (p WLMUpdateWorkloadGroupPath) Build() (string, error) {
+	if p.Name == "" {
+		return "", fmt.Errorf("WLMUpdateWorkloadGroupPath.Name: %w", errRequired)
+	}
+	pb := acquire()
+	pb.writeLit("_wlm")
+	pb.writeLit("workload_group")
 	pb.writeReq(p.Name)
 	return pb.release(), nil
 }

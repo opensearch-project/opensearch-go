@@ -25788,7 +25788,7 @@ type SearchResultJSONValueSuggestValueItemCompletionOptionsType int
 
 const (
 	SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType SearchResultJSONValueSuggestValueItemCompletionOptionsType = iota
-	SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
+	SearchResultJSONValueSuggestValueItemCompletionOptionsTextType
 	SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
 )
 
@@ -25796,8 +25796,8 @@ const (
 // been decoded.
 func (t SearchResultJSONValueSuggestValueItemCompletionOptionsType) String() string {
 	switch t {
-	case SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType:
-		return "Source"
+	case SearchResultJSONValueSuggestValueItemCompletionOptionsTextType:
+		return "Text"
 	case SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType:
 		return "Array"
 	default:
@@ -25828,42 +25828,42 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) SetRaw(raw json
 	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
 }
 
-// Source returns the SearchResultJSONValueSuggestValueItemCompletionOptionsSource branch value. It returns a
+// Text returns the SearchCompletionSuggestOption branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero SearchResultJSONValueSuggestValueItemCompletionOptionsSource in that case,
+// that is set; the returned value is the zero SearchCompletionSuggestOption in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Source() (SearchResultJSONValueSuggestValueItemCompletionOptionsSource, error) {
-	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletionOptionsSource); ok {
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Text() (SearchCompletionSuggestOption, error) {
+	if v, ok := u.value.(*SearchCompletionSuggestOption); ok {
 		return *v, nil
 	}
-	var zero SearchResultJSONValueSuggestValueItemCompletionOptionsSource
-	return zero, &UnionBranchError{Union: "SearchResultJSONValueSuggestValueItemCompletionOptions", Want: "Source", Got: u.typ.String()}
+	var zero SearchCompletionSuggestOption
+	return zero, &UnionBranchError{Union: "SearchResultJSONValueSuggestValueItemCompletionOptions", Want: "Text", Got: u.typ.String()}
 }
 
-// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
-// on the Source branch.
-func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource(v SearchResultJSONValueSuggestValueItemCompletionOptionsSource) SearchResultJSONValueSuggestValueItemCompletionOptions {
+// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromText returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
+// on the Text branch.
+func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromText(v SearchCompletionSuggestOption) SearchResultJSONValueSuggestValueItemCompletionOptions {
 	return SearchResultJSONValueSuggestValueItemCompletionOptions{
-		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType,
+		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsTextType,
 		value: &v,
 	}
 }
 
-// Array returns the []SearchResultJSONValueSuggestValueItemCompletionOptionsItem branch value. It returns a
+// Array returns the []SearchCompletionSuggestOption branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []SearchResultJSONValueSuggestValueItemCompletionOptionsItem in that case,
+// that is set; the returned value is the zero []SearchCompletionSuggestOption in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Array() ([]SearchResultJSONValueSuggestValueItemCompletionOptionsItem, error) {
-	if v, ok := u.value.(*[]SearchResultJSONValueSuggestValueItemCompletionOptionsItem); ok {
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Array() ([]SearchCompletionSuggestOption, error) {
+	if v, ok := u.value.(*[]SearchCompletionSuggestOption); ok {
 		return *v, nil
 	}
-	var zero []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
+	var zero []SearchCompletionSuggestOption
 	return zero, &UnionBranchError{Union: "SearchResultJSONValueSuggestValueItemCompletionOptions", Want: "Array", Got: u.typ.String()}
 }
 
 // NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
 // on the Array branch.
-func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray(v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem) SearchResultJSONValueSuggestValueItemCompletionOptions {
+func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray(v []SearchCompletionSuggestOption) SearchResultJSONValueSuggestValueItemCompletionOptions {
 	return SearchResultJSONValueSuggestValueItemCompletionOptions{
 		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType,
 		value: &v,
@@ -25879,14 +25879,14 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSON(d
 	}
 	switch {
 	case data[0] == '{':
-		var v SearchResultJSONValueSuggestValueItemCompletionOptionsSource
+		var v SearchCompletionSuggestOption
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsTextType
 		u.value = &v
 	case data[0] == '[':
-		var v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
+		var v []SearchCompletionSuggestOption
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -25914,14 +25914,14 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSONFr
 		u.raw = mark.Consumed(dec)
 		return nil
 	case '{':
-		var v SearchResultJSONValueSuggestValueItemCompletionOptionsSource
+		var v SearchCompletionSuggestOption
 		if err := json.UnmarshalDecode(dec, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsTextType
 		u.value = &v
 	case '[':
-		var v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
+		var v []SearchCompletionSuggestOption
 		if err := json.UnmarshalDecode(dec, &v); err != nil {
 			return err
 		}
@@ -26020,6 +26020,15 @@ func (u *SearchResultJSONValueSuggestValueItem) AsCompletion() (SearchResultJSON
 	var v SearchResultJSONValueSuggestValueItemCompletion
 	if len(u.raw) == 0 {
 		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "length", "offset", "text", "options") {
+		return v, &UnionBranchError{
+			Union: "SearchResultJSONValueSuggestValueItem",
+			Want:  "Completion",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required properties %q",
+				[]string{"length", "offset", "text", "options"}),
+		}
 	}
 	if err := json.Unmarshal(u.raw, &v); err != nil {
 		return v, &UnionBranchError{
@@ -26156,6 +26165,194 @@ func (u SearchResultJSONValueSuggestValueItem) MarshalJSON() ([]byte, error) {
 // encoding the branch into bytes of its own first. The JSON codec the client
 // encodes with calls it in place of MarshalJSON.
 func (u SearchResultJSONValueSuggestValueItem) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
+// A paginated or complete tabular listing of workload management statistics.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type WLMStatsListResponse struct {
+	typ   WLMStatsListResponseType
+	raw   json.RawMessage
+	value any
+}
+
+// WLMStatsListResponseType names which branch of WLMStatsListResponse is set.
+type WLMStatsListResponseType int
+
+const (
+	WLMStatsListResponseUnknownType WLMStatsListResponseType = iota
+	WLMStatsListResponseArrayType
+	WLMStatsListResponseNextTokenWLMStatsType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t WLMStatsListResponseType) String() string {
+	switch t {
+	case WLMStatsListResponseArrayType:
+		return "Array"
+	case WLMStatsListResponseNextTokenWLMStatsType:
+		return "NextTokenWLMStats"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns WLMStatsListResponseUnknownType if the value has not been decoded.
+func (u *WLMStatsListResponse) Type() WLMStatsListResponseType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *WLMStatsListResponse) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewWLMStatsListResponseFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *WLMStatsListResponse) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = WLMStatsListResponseUnknownType
+}
+
+// Array returns the []WLMStatsRecord branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []WLMStatsRecord in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *WLMStatsListResponse) Array() ([]WLMStatsRecord, error) {
+	if v, ok := u.value.(*[]WLMStatsRecord); ok {
+		return *v, nil
+	}
+	var zero []WLMStatsRecord
+	return zero, &UnionBranchError{Union: "WLMStatsListResponse", Want: "Array", Got: u.typ.String()}
+}
+
+// NewWLMStatsListResponseFromArray returns a WLMStatsListResponse populated with v
+// on the Array branch.
+func NewWLMStatsListResponseFromArray(v []WLMStatsRecord) WLMStatsListResponse {
+	return WLMStatsListResponse{
+		typ:   WLMStatsListResponseArrayType,
+		value: &v,
+	}
+}
+
+// NextTokenWLMStats returns the WLMStatsListRespNextTokenWLMStats branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero WLMStatsListRespNextTokenWLMStats in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *WLMStatsListResponse) NextTokenWLMStats() (WLMStatsListRespNextTokenWLMStats, error) {
+	if v, ok := u.value.(*WLMStatsListRespNextTokenWLMStats); ok {
+		return *v, nil
+	}
+	var zero WLMStatsListRespNextTokenWLMStats
+	return zero, &UnionBranchError{Union: "WLMStatsListResponse", Want: "NextTokenWLMStats", Got: u.typ.String()}
+}
+
+// NewWLMStatsListResponseFromNextTokenWLMStats returns a WLMStatsListResponse populated with v
+// on the NextTokenWLMStats branch.
+func NewWLMStatsListResponseFromNextTokenWLMStats(v WLMStatsListRespNextTokenWLMStats) WLMStatsListResponse {
+	return WLMStatsListResponse{
+		typ:   WLMStatsListResponseNextTokenWLMStatsType,
+		value: &v,
+	}
+}
+
+func (u *WLMStatsListResponse) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = WLMStatsListResponseUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '[':
+		var v []WLMStatsRecord
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = WLMStatsListResponseArrayType
+		u.value = &v
+	case data[0] == '{':
+		var v WLMStatsListRespNextTokenWLMStats
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = WLMStatsListResponseNextTokenWLMStatsType
+		u.value = &v
+	default:
+		return fmt.Errorf("WLMStatsListResponse: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *WLMStatsListResponse) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = WLMStatsListResponseUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '[':
+		var v []WLMStatsRecord
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = WLMStatsListResponseArrayType
+		u.value = &v
+	case '{':
+		var v WLMStatsListRespNextTokenWLMStats
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = WLMStatsListResponseNextTokenWLMStatsType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("WLMStatsListResponse: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
+func (u WLMStatsListResponse) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u WLMStatsListResponse) MarshalJSONTo(enc *json.TextEncoder) error {
 	if u.value != nil {
 		return json.MarshalEncode(enc, u.value)
 	}
@@ -26691,10 +26888,9 @@ func (u MLSourceCreateTime) MarshalJSONTo(enc *json.TextEncoder) error {
 	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
-// NeuralStatMetadataValue is a oneOf union whose branches decode from different JSON tokens.
-// The spec declares no discriminator, but each branch is a different JSON token
-// class (object, array, string, number, boolean), so the payload's first byte
-// selects one.
+// NeuralStatMetadataValue is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
@@ -26710,6 +26906,7 @@ type NeuralStatMetadataValueType int
 const (
 	NeuralStatMetadataValueUnknownType NeuralStatMetadataValueType = iota
 	NeuralStatMetadataValueIntType
+	NeuralStatMetadataValueFloat64Type
 	NeuralStatMetadataValueStringType
 )
 
@@ -26719,6 +26916,8 @@ func (t NeuralStatMetadataValueType) String() string {
 	switch t {
 	case NeuralStatMetadataValueIntType:
 		return "Int"
+	case NeuralStatMetadataValueFloat64Type:
+		return "Float64"
 	case NeuralStatMetadataValueStringType:
 		return "String"
 	default:
@@ -26766,6 +26965,27 @@ func NewNeuralStatMetadataValueFromInt(v int) NeuralStatMetadataValue {
 	}
 }
 
+// Float64 returns the float64 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero float64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralStatMetadataValue) Float64() (float64, error) {
+	if v, ok := u.value.(*float64); ok {
+		return *v, nil
+	}
+	var zero float64
+	return zero, &UnionBranchError{Union: "NeuralStatMetadataValue", Want: "Float64", Got: u.typ.String()}
+}
+
+// NewNeuralStatMetadataValueFromFloat64 returns a NeuralStatMetadataValue populated with v
+// on the Float64 branch.
+func NewNeuralStatMetadataValueFromFloat64(v float64) NeuralStatMetadataValue {
+	return NeuralStatMetadataValue{
+		typ:   NeuralStatMetadataValueFloat64Type,
+		value: &v,
+	}
+}
+
 // String returns the string branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero string in that case,
@@ -26794,66 +27014,37 @@ func (u *NeuralStatMetadataValue) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required properties, tried newest-first.
+	{
 		var v int
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = NeuralStatMetadataValueIntType
+			u.value = &v
+			return nil
 		}
-		u.typ = NeuralStatMetadataValueIntType
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NeuralStatMetadataValueStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("NeuralStatMetadataValue: unexpected JSON token: %s", data[:1])
 	}
-	return nil
-}
-
-// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
-// dec rather than a parse of bytes dec has already scanned. The JSON codec the
-// client decodes with calls it in place of UnmarshalJSON.
-func (u *NeuralStatMetadataValue) UnmarshalJSONFrom(dec *json.TextDecoder) error {
-	u.raw = nil
-	u.value = nil
-	u.typ = NeuralStatMetadataValueUnknownType
-	mark := json.MarkOf(dec)
-	switch json.PeekKind(dec) {
-	case 'n':
-		if _, err := dec.ReadValue(); err != nil {
-			return err
+	{
+		var v float64
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = NeuralStatMetadataValueFloat64Type
+			u.value = &v
+			return nil
 		}
-		u.raw = mark.Consumed(dec)
-		return nil
-	case '0':
-		var v int
-		if err := json.UnmarshalDecode(dec, &v); err != nil {
-			return err
-		}
-		u.typ = NeuralStatMetadataValueIntType
-		u.value = &v
-	case '"':
-		var v string
-		if err := json.UnmarshalDecode(dec, &v); err != nil {
-			return err
-		}
-		u.typ = NeuralStatMetadataValueStringType
-		u.value = &v
-	default:
-		// Read the value, so that an invalid one reports its syntax error and a
-		// valid one of no branch's kind its first byte.
-		if _, err := dec.ReadValue(); err != nil {
-			return err
-		}
-		return fmt.Errorf("NeuralStatMetadataValue: unexpected JSON token: %s", mark.Consumed(dec)[:1])
 	}
-	u.raw = mark.Consumed(dec)
-	return nil
+	{
+		var v string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = NeuralStatMetadataValueStringType
+			u.value = &v
+			return nil
+		}
+	}
+	return fmt.Errorf("NeuralStatMetadataValue: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
 func (u NeuralStatMetadataValue) MarshalJSON() ([]byte, error) {
@@ -26870,6 +27061,194 @@ func (u NeuralStatMetadataValue) MarshalJSON() ([]byte, error) {
 // encoding the branch into bytes of its own first. The JSON codec the client
 // encodes with calls it in place of MarshalJSON.
 func (u NeuralStatMetadataValue) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
+// NeuralMemoryStat is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type NeuralMemoryStat struct {
+	typ   NeuralMemoryStatType
+	raw   json.RawMessage
+	value any
+}
+
+// NeuralMemoryStatType names which branch of NeuralMemoryStat is set.
+type NeuralMemoryStatType int
+
+const (
+	NeuralMemoryStatUnknownType NeuralMemoryStatType = iota
+	NeuralMemoryStatFloat64Type
+	NeuralMemoryStatStatTypeType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NeuralMemoryStatType) String() string {
+	switch t {
+	case NeuralMemoryStatFloat64Type:
+		return "Float64"
+	case NeuralMemoryStatStatTypeType:
+		return "StatType"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns NeuralMemoryStatUnknownType if the value has not been decoded.
+func (u *NeuralMemoryStat) Type() NeuralMemoryStatType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *NeuralMemoryStat) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNeuralMemoryStatFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NeuralMemoryStat) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NeuralMemoryStatUnknownType
+}
+
+// Float64 returns the float64 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero float64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralMemoryStat) Float64() (float64, error) {
+	if v, ok := u.value.(*float64); ok {
+		return *v, nil
+	}
+	var zero float64
+	return zero, &UnionBranchError{Union: "NeuralMemoryStat", Want: "Float64", Got: u.typ.String()}
+}
+
+// NewNeuralMemoryStatFromFloat64 returns a NeuralMemoryStat populated with v
+// on the Float64 branch.
+func NewNeuralMemoryStatFromFloat64(v float64) NeuralMemoryStat {
+	return NeuralMemoryStat{
+		typ:   NeuralMemoryStatFloat64Type,
+		value: &v,
+	}
+}
+
+// StatType returns the NeuralMemoryStatStatType branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero NeuralMemoryStatStatType in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralMemoryStat) StatType() (NeuralMemoryStatStatType, error) {
+	if v, ok := u.value.(*NeuralMemoryStatStatType); ok {
+		return *v, nil
+	}
+	var zero NeuralMemoryStatStatType
+	return zero, &UnionBranchError{Union: "NeuralMemoryStat", Want: "StatType", Got: u.typ.String()}
+}
+
+// NewNeuralMemoryStatFromStatType returns a NeuralMemoryStat populated with v
+// on the StatType branch.
+func NewNeuralMemoryStatFromStatType(v NeuralMemoryStatStatType) NeuralMemoryStat {
+	return NeuralMemoryStat{
+		typ:   NeuralMemoryStatStatTypeType,
+		value: &v,
+	}
+}
+
+func (u *NeuralMemoryStat) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = NeuralMemoryStatUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v float64
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralMemoryStatFloat64Type
+		u.value = &v
+	case data[0] == '{':
+		var v NeuralMemoryStatStatType
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralMemoryStatStatTypeType
+		u.value = &v
+	default:
+		return fmt.Errorf("NeuralMemoryStat: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *NeuralMemoryStat) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = NeuralMemoryStatUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '0':
+		var v float64
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralMemoryStatFloat64Type
+		u.value = &v
+	case '{':
+		var v NeuralMemoryStatStatType
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralMemoryStatStatTypeType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("NeuralMemoryStat: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
+func (u NeuralMemoryStat) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u NeuralMemoryStat) MarshalJSONTo(enc *json.TextEncoder) error {
 	if u.value != nil {
 		return json.MarshalEncode(enc, u.value)
 	}
@@ -27586,194 +27965,6 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 // encoding the branch into bytes of its own first. The JSON codec the client
 // encodes with calls it in place of MarshalJSON.
 func (u NeuralStats) MarshalJSONTo(enc *json.TextEncoder) error {
-	if u.value != nil {
-		return json.MarshalEncode(enc, u.value)
-	}
-	if len(u.raw) > 0 {
-		return enc.WriteValue(json.TextValue(u.raw))
-	}
-	return enc.WriteValue(json.TextValue(build.NullJSON))
-}
-
-// The cron schedule configuration for the rollup job.
-// The spec declares no discriminator, but each branch is a different JSON token
-// class (object, array, string, number, boolean), so the payload's first byte
-// selects one.
-//
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type RollupsIntervalCron struct {
-	typ   RollupsIntervalCronType
-	raw   json.RawMessage
-	value any
-}
-
-// RollupsIntervalCronType names which branch of RollupsIntervalCron is set.
-type RollupsIntervalCronType int
-
-const (
-	RollupsIntervalCronUnknownType RollupsIntervalCronType = iota
-	RollupsIntervalCronArrayType
-	RollupsIntervalCronCronType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t RollupsIntervalCronType) String() string {
-	switch t {
-	case RollupsIntervalCronArrayType:
-		return "Array"
-	case RollupsIntervalCronCronType:
-		return "Cron"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns RollupsIntervalCronUnknownType if the value has not been decoded.
-func (u *RollupsIntervalCron) Type() RollupsIntervalCronType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *RollupsIntervalCron) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewRollupsIntervalCronFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *RollupsIntervalCron) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = RollupsIntervalCronUnknownType
-}
-
-// Array returns the []RollupsCron branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []RollupsCron in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *RollupsIntervalCron) Array() ([]RollupsCron, error) {
-	if v, ok := u.value.(*[]RollupsCron); ok {
-		return *v, nil
-	}
-	var zero []RollupsCron
-	return zero, &UnionBranchError{Union: "RollupsIntervalCron", Want: "Array", Got: u.typ.String()}
-}
-
-// NewRollupsIntervalCronFromArray returns a RollupsIntervalCron populated with v
-// on the Array branch.
-func NewRollupsIntervalCronFromArray(v []RollupsCron) RollupsIntervalCron {
-	return RollupsIntervalCron{
-		typ:   RollupsIntervalCronArrayType,
-		value: &v,
-	}
-}
-
-// Cron returns the RollupsCron branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero RollupsCron in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *RollupsIntervalCron) Cron() (RollupsCron, error) {
-	if v, ok := u.value.(*RollupsCron); ok {
-		return *v, nil
-	}
-	var zero RollupsCron
-	return zero, &UnionBranchError{Union: "RollupsIntervalCron", Want: "Cron", Got: u.typ.String()}
-}
-
-// NewRollupsIntervalCronFromCron returns a RollupsIntervalCron populated with v
-// on the Cron branch.
-func NewRollupsIntervalCronFromCron(v RollupsCron) RollupsIntervalCron {
-	return RollupsIntervalCron{
-		typ:   RollupsIntervalCronCronType,
-		value: &v,
-	}
-}
-
-func (u *RollupsIntervalCron) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = RollupsIntervalCronUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '[':
-		var v []RollupsCron
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = RollupsIntervalCronArrayType
-		u.value = &v
-	case data[0] == '{':
-		var v RollupsCron
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = RollupsIntervalCronCronType
-		u.value = &v
-	default:
-		return fmt.Errorf("RollupsIntervalCron: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
-// dec rather than a parse of bytes dec has already scanned. The JSON codec the
-// client decodes with calls it in place of UnmarshalJSON.
-func (u *RollupsIntervalCron) UnmarshalJSONFrom(dec *json.TextDecoder) error {
-	u.raw = nil
-	u.value = nil
-	u.typ = RollupsIntervalCronUnknownType
-	mark := json.MarkOf(dec)
-	switch json.PeekKind(dec) {
-	case 'n':
-		if _, err := dec.ReadValue(); err != nil {
-			return err
-		}
-		u.raw = mark.Consumed(dec)
-		return nil
-	case '[':
-		var v []RollupsCron
-		if err := json.UnmarshalDecode(dec, &v); err != nil {
-			return err
-		}
-		u.typ = RollupsIntervalCronArrayType
-		u.value = &v
-	case '{':
-		var v RollupsCron
-		if err := json.UnmarshalDecode(dec, &v); err != nil {
-			return err
-		}
-		u.typ = RollupsIntervalCronCronType
-		u.value = &v
-	default:
-		// Read the value, so that an invalid one reports its syntax error and a
-		// valid one of no branch's kind its first byte.
-		if _, err := dec.ReadValue(); err != nil {
-			return err
-		}
-		return fmt.Errorf("RollupsIntervalCron: unexpected JSON token: %s", mark.Consumed(dec)[:1])
-	}
-	u.raw = mark.Consumed(dec)
-	return nil
-}
-
-func (u RollupsIntervalCron) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
-// encoding the branch into bytes of its own first. The JSON codec the client
-// encodes with calls it in place of MarshalJSON.
-func (u RollupsIntervalCron) MarshalJSONTo(enc *json.TextEncoder) error {
 	if u.value != nil {
 		return json.MarshalEncode(enc, u.value)
 	}
@@ -29837,6 +30028,124 @@ func (u WLMQueryGroupRespResourceLimits) MarshalJSON() ([]byte, error) {
 // encoding the branch into bytes of its own first. The JSON codec the client
 // encodes with calls it in place of MarshalJSON.
 func (u WLMQueryGroupRespResourceLimits) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
+// WLMWorkloadGroupResourceLimits is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type WLMWorkloadGroupResourceLimits struct {
+	typ   WLMWorkloadGroupResourceLimitsType
+	raw   json.RawMessage
+	value any
+}
+
+// WLMWorkloadGroupResourceLimitsType names which branch of WLMWorkloadGroupResourceLimits is set.
+type WLMWorkloadGroupResourceLimitsType int
+
+const (
+	WLMWorkloadGroupResourceLimitsUnknownType WLMWorkloadGroupResourceLimitsType = iota
+	WLMWorkloadGroupResourceLimitsJSONRawMessageMapType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t WLMWorkloadGroupResourceLimitsType) String() string {
+	switch t {
+	case WLMWorkloadGroupResourceLimitsJSONRawMessageMapType:
+		return "JSONRawMessageMap"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns WLMWorkloadGroupResourceLimitsUnknownType if the value has not been decoded.
+func (u *WLMWorkloadGroupResourceLimits) Type() WLMWorkloadGroupResourceLimitsType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *WLMWorkloadGroupResourceLimits) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewWLMWorkloadGroupResourceLimitsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *WLMWorkloadGroupResourceLimits) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = WLMWorkloadGroupResourceLimitsUnknownType
+}
+
+// JSONRawMessageMap returns the map[string]json.RawMessage branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *WLMWorkloadGroupResourceLimits) JSONRawMessageMap() (map[string]json.RawMessage, error) {
+	if v, ok := u.value.(*map[string]json.RawMessage); ok {
+		return *v, nil
+	}
+	var zero map[string]json.RawMessage
+	return zero, &UnionBranchError{Union: "WLMWorkloadGroupResourceLimits", Want: "JSONRawMessageMap", Got: u.typ.String()}
+}
+
+// NewWLMWorkloadGroupResourceLimitsFromJSONRawMessageMap returns a WLMWorkloadGroupResourceLimits populated with v
+// on the JSONRawMessageMap branch.
+func NewWLMWorkloadGroupResourceLimitsFromJSONRawMessageMap(v map[string]json.RawMessage) WLMWorkloadGroupResourceLimits {
+	return WLMWorkloadGroupResourceLimits{
+		typ:   WLMWorkloadGroupResourceLimitsJSONRawMessageMapType,
+		value: &v,
+	}
+}
+
+func (u *WLMWorkloadGroupResourceLimits) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = WLMWorkloadGroupResourceLimitsUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required properties, tried newest-first.
+	{
+		var v map[string]json.RawMessage
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = WLMWorkloadGroupResourceLimitsJSONRawMessageMapType
+			u.value = &v
+			return nil
+		}
+	}
+	return fmt.Errorf("WLMWorkloadGroupResourceLimits: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u WLMWorkloadGroupResourceLimits) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u WLMWorkloadGroupResourceLimits) MarshalJSONTo(enc *json.TextEncoder) error {
 	if u.value != nil {
 		return json.MarshalEncode(enc, u.value)
 	}

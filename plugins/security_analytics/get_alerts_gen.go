@@ -186,7 +186,7 @@ func (r GetAlertsParams) get() map[string]string {
 // See: https://docs.opensearch.org/docs/latest/security-analytics/api-tools/alert-finding-api/#get-alerts
 type GetAlertsResp struct {
 	Alerts      []SecurityAnalyticsAlertsAlert `json:"alerts"`
-	TotalAlerts int64                          `json:"total_alerts"`
+	TotalAlerts int                            `json:"total_alerts"`
 
 	response *opensearch.Response
 }

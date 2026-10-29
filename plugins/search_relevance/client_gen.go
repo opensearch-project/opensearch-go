@@ -273,6 +273,20 @@ func (c SearchConfigurationClient) GetSearchConfigurations(ctx context.Context, 
 	return &resp, nil
 }
 
+// PatchExperiment partially updates an experiment's name or description.
+//
+// PATCH /_plugins/_search_relevance/experiments/{experiment_id}
+//
+// Available: >= 3.6.0.
+func (c ExperimentClient) PatchExperiment(ctx context.Context, req PatchExperimentReq) (*PatchExperimentResp, error) {
+	var resp PatchExperimentResp
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+}
+
 // PostQuerySets creates a new query set by sampling queries from the user behavior data.
 //
 // POST /_plugins/_search_relevance/query_sets
@@ -423,6 +437,11 @@ func (c *Client) GetScheduledExperiments(ctx context.Context, req GetScheduledEx
 // Deprecated: use Client.SearchConfiguration.GetSearchConfigurations instead.
 func (c *Client) GetSearchConfigurations(ctx context.Context, req GetSearchConfigurationsReq) (*GetSearchConfigurationsResp, error) {
 	return c.SearchConfiguration.GetSearchConfigurations(ctx, req)
+}
+
+// Deprecated: use Client.Experiment.PatchExperiment instead.
+func (c *Client) PatchExperiment(ctx context.Context, req PatchExperimentReq) (*PatchExperimentResp, error) {
+	return c.Experiment.PatchExperiment(ctx, req)
 }
 
 // Deprecated: use Client.QuerySet.PostQuerySets instead.

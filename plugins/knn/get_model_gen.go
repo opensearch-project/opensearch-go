@@ -84,33 +84,48 @@ func (r GetModelParams) get() map[string]string {
 	return params
 }
 
-// GetModelResp represents the response for the GetModel operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// GetModelResp represents the response for the knn.get_model operation.
 //
 // Used to retrieve information about models present in the cluster.
 //
+// Available: >= 1.0.0.
+//
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#get-a-model
 type GetModelResp struct {
-	Body     json.RawMessage `json:"-"`
+	// Available: >= 2.17.0.
+	CompressionLevel *string `json:"compression_level,omitempty"`
+
+	// DataType is the vector data type.
+	//
+	// Available: >= 2.17.0.
+	DataType *string `json:"data_type,omitempty"`
+
+	Description *string `json:"description,omitempty"`
+	Dimension   *int    `json:"dimension,omitempty"`
+	Engine      *string `json:"engine,omitempty"`
+	Error       *string `json:"error,omitempty"`
+
+	// Available: >= 2.17.0.
+	Mode *string `json:"mode,omitempty"`
+
+	// ModelBlob is the base64-encoded model data.
+	ModelBlob *string `json:"model_blob,omitempty"`
+
+	ModelDefinition map[string]json.RawMessage `json:"model_definition,omitempty"`
+	ModelID         string                     `json:"model_id"`
+
+	// Available: >= 2.17.0.
+	ModelVersion *string `json:"model_version,omitempty"`
+
+	SpaceType *string `json:"space_type,omitempty"`
+	State     *string `json:"state,omitempty"`
+
+	// Timestamp is the timestamp when the model was created.
+	Timestamp *string `json:"timestamp,omitempty"`
+
+	TrainingNodeAssignment *string `json:"training_node_assignment,omitempty"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *GetModelResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r GetModelResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

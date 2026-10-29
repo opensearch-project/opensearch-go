@@ -173,6 +173,9 @@ type FlowFrameworkCommonFlowFrameworkCreate struct {
 	// Name is the name of the workflow.
 	Name string `json:"name"`
 
+	// UiMetadata is a map of UI metadata.
+	UiMetadata json.RawMessage `json:"ui_metadata,omitempty"`
+
 	// UseCase is a use case ID, which can be used with the Search Workflow API
 	// to find related workflows.
 	UseCase *string `json:"use_case,omitempty"`

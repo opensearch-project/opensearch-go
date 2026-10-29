@@ -12,12 +12,6 @@ import (
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
-type ClusterStatistics struct {
-	Skipped    int `json:"skipped"`
-	Successful int `json:"successful"`
-	Total      int `json:"total"`
-}
-
 type ShardFailure struct {
 	Index   *string    `json:"index,omitempty"`
 	Node    *string    `json:"node,omitempty"`
@@ -119,6 +113,12 @@ type ErrorCause struct {
 
 	// Type is the type of error.
 	Type string `json:"type"`
+}
+
+type ClusterStatistics struct {
+	Skipped    int `json:"skipped"`
+	Successful int `json:"successful"`
+	Total      int `json:"total"`
 }
 
 // Represents a failure to search on a specific shard. Used in search responses.
@@ -646,7 +646,7 @@ type SearchHit struct {
 	Node        *string               `json:"_node,omitempty"`
 	PrimaryTerm *int64                `json:"_primary_term,omitempty"`
 	Routing     *string               `json:"_routing,omitempty"`
-	Score       *float64              `json:"_score,omitempty"`
+	Score       *float32              `json:"_score,omitempty"`
 
 	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
@@ -657,11 +657,17 @@ type SearchHit struct {
 	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
-	Version            *int64                           `json:"_version,omitempty"`
-	Fields             map[string]json.RawMessage       `json:"fields,omitempty"`
-	Highlight          map[string][]string              `json:"highlight,omitempty"`
-	IgnoredFieldValues map[string][]string              `json:"ignored_field_values,omitempty"`
-	InnerHits          map[string]SearchInnerHitsResult `json:"inner_hits,omitempty"`
+	Version   *int64                     `json:"_version,omitempty"`
+	Fields    map[string]json.RawMessage `json:"fields,omitempty"`
+	Highlight map[string][]string        `json:"highlight,omitempty"`
+
+	// IgnoredFieldValues. Elasticsearch-only field: not present in OpenSearch
+	// server responses.
+	//
+	// Deprecated: since 1.0.0.
+	IgnoredFieldValues map[string][]string `json:"ignored_field_values,omitempty"`
+
+	InnerHits map[string]SearchInnerHitsResult `json:"inner_hits,omitempty"`
 
 	// MatchedQueries is the names of queries that matched the document. When
 	// `include_named_queries_score` is false (default), returns an array of
@@ -673,8 +679,8 @@ type SearchHit struct {
 }
 
 type SearchTotalHits struct {
-	Relation SearchTotalHitsRelation `json:"relation"`
-	Value    int64                   `json:"value"`
+	Relation TotalHitsRelation `json:"relation"`
+	Value    int64             `json:"value"`
 }
 
 type SearchHitsMetadata struct {
@@ -686,9 +692,14 @@ type SearchHitsMetadata struct {
 	Total *SearchHitsMetadataTotal `json:"total,omitempty"`
 }
 
+type SearchHitsMetadataJSONValue struct {
+	SearchHitsMetadata
+	Hits []SearchHit `json:"hits,omitempty"`
+}
+
 type CommonAggregationsTopHitsAggregate struct {
 	CommonAggregationsAggregateBase
-	Hits SearchHitsMetadata `json:"hits"`
+	Hits SearchHitsMetadataJSONValue `json:"hits"`
 }
 
 // Terms bucket for `unsigned_long` field type. The server returns 64-bit unsigned integer values
@@ -752,6 +763,11 @@ type CommonAggregationsVariableWidthHistogramBucket struct {
 type CommonAggregationsVariableWidthHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsVariableWidthHistogramAggregateBuckets `json:"buckets"`
+}
+
+type SearchResultHits struct {
+	SearchHitsMetadata
+	Hits []SearchHit `json:"hits,omitempty"`
 }
 
 // The time taken by different phases of the search.
@@ -976,7 +992,7 @@ type SearchSuggestCompletion struct {
 type SearchPhraseSuggestOption struct {
 	CollateMatch *bool   `json:"collate_match,omitempty"`
 	Highlighted  *string `json:"highlighted,omitempty"`
-	Score        float64 `json:"score"`
+	Score        float32 `json:"score"`
 	Text         string  `json:"text"`
 }
 
@@ -987,9 +1003,9 @@ type SearchPhraseSuggest struct {
 
 type SearchTermSuggestOption struct {
 	CollateMatch *bool   `json:"collate_match,omitempty"`
-	Freq         *int64  `json:"freq,omitempty"`
+	Freq         *int    `json:"freq,omitempty"`
 	Highlighted  *string `json:"highlighted,omitempty"`
-	Score        float64 `json:"score"`
+	Score        float32 `json:"score"`
 	Text         string  `json:"text"`
 }
 
@@ -1003,7 +1019,7 @@ type SearchResult struct {
 	ScrollID        *string                                `json:"_scroll_id,omitempty"`
 	Shards          ShardStatistics                        `json:"_shards"`
 	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
-	Hits            SearchHitsMetadata                     `json:"hits"`
+	Hits            SearchResultHits                       `json:"hits"`
 	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
 
 	// PhaseTook is the time taken by different phases of the search.
@@ -1031,12 +1047,12 @@ type SearchResult struct {
 }
 
 type AsynchronousSearchRespBody struct {
-	ExpirationTimeInMillis *float64      `json:"expiration_time_in_millis,omitempty"`
+	Error                  *ErrorCause   `json:"error,omitempty"`
+	ExpirationTimeInMillis *int64        `json:"expiration_time_in_millis,omitempty"`
 	ID                     *string       `json:"id,omitempty"`
 	Response               *SearchResult `json:"response,omitempty"`
-	StartTimeInMillis      *float64      `json:"start_time_in_millis,omitempty"`
+	StartTimeInMillis      *int64        `json:"start_time_in_millis,omitempty"`
 	State                  *string       `json:"state,omitempty"`
-	Took                   *float64      `json:"took,omitempty"`
 }
 
 // Contains statistics about the number of nodes selected by the request's node filters.
@@ -1064,15 +1080,15 @@ type NodesRespBase struct {
 }
 
 type AsynchronousSearchStats struct {
-	Cancelled       *int `json:"cancelled,omitempty"`
-	Initialized     *int `json:"initialized,omitempty"`
-	PersistFailed   *int `json:"persist_failed,omitempty"`
-	Persisted       *int `json:"persisted,omitempty"`
-	Rejected        *int `json:"rejected,omitempty"`
-	RunningCurrent  *int `json:"running_current,omitempty"`
-	SearchCompleted *int `json:"search_completed,omitempty"`
-	SearchFailed    *int `json:"search_failed,omitempty"`
-	Submitted       *int `json:"submitted,omitempty"`
+	Cancelled       *int64 `json:"cancelled,omitempty"`
+	Initialized     *int64 `json:"initialized,omitempty"`
+	PersistFailed   *int64 `json:"persist_failed,omitempty"`
+	Persisted       *int64 `json:"persisted,omitempty"`
+	Rejected        *int64 `json:"rejected,omitempty"`
+	RunningCurrent  *int64 `json:"running_current,omitempty"`
+	SearchCompleted *int64 `json:"search_completed,omitempty"`
+	SearchFailed    *int64 `json:"search_failed,omitempty"`
+	Submitted       *int64 `json:"submitted,omitempty"`
 }
 
 type AsynchronousSearchNodesStats struct {
@@ -1800,6 +1816,16 @@ type CatShardsRecord struct {
 
 	// SyncID is the sync identifier.
 	SyncID *string `json:"sync_id,omitempty"`
+
+	// System. Whether the index is a system index
+	//
+	// Available: >= 3.9.0.
+	System *string `json:"system,omitempty"`
+
+	// SystemDescription. Description from the matching system index descriptor
+	//
+	// Available: >= 3.9.0.
+	SystemDescription *string `json:"system.description,omitempty"`
 
 	// UnassignedAt is the time at which the shard became unassigned in
 	// Coordinated Universal Time (UTC).
@@ -5348,6 +5374,18 @@ type IndicesIngestionSource struct {
 	// AllActive. Indicates if all-active ingestion is enabled for this index.
 	AllActive *string `json:"all_active,omitempty"`
 
+	// DecoderSettings. Configuration settings for the selected decoder type,
+	// keyed by setting name. Index settings values are always strings.
+	//
+	// Available: >= 3.9.0.
+	DecoderSettings map[string]string `json:"decoder_settings,omitempty"`
+
+	// DecoderType is the type of payload decoder used to decode ingestion
+	// messages.
+	//
+	// Available: >= 3.9.0.
+	DecoderType *string `json:"decoder_type,omitempty"`
+
 	// ErrorStrategy. Defines the policy for error handling.
 	ErrorStrategy *string `json:"error_strategy,omitempty"`
 
@@ -7090,12 +7128,27 @@ type InlineGet struct {
 	Found bool `json:"found"`
 }
 
+type GeospatialUploadFailure struct {
+	// ID is the document ID that failed.
+	ID *string `json:"id,omitempty"`
+
+	// Message is the failure message.
+	Message *string `json:"message,omitempty"`
+
+	// Status is the HTTP status code of the failure.
+	Status *int `json:"status,omitempty"`
+}
+
 type GeospatialGeoSpatialGeojsonUploadResponse struct {
 	// Errors. Whether there were any errors.
 	Errors bool `json:"errors"`
 
 	// Failure. Number of features that failed to upload.
 	Failure int `json:"failure"`
+
+	// Failures. Details of individual feature upload failures. Only present
+	// when errors is true.
+	Failures []GeospatialUploadFailure `json:"failures,omitempty"`
 
 	// Success. Number of features successfully uploaded.
 	Success int `json:"success"`
@@ -7112,15 +7165,34 @@ type GeospatialDatabase struct {
 	Provider   *string  `json:"provider,omitempty"`
 	Sha256Hash *string  `json:"sha256_hash,omitempty"`
 
+	// UpdatedAt. Human-readable timestamp of when the database was updated.
+	UpdatedAt *string `json:"updated_at,omitempty"`
+
 	// UpdatedAtInEpochMillis is the time unit for milliseconds.
 	UpdatedAtInEpochMillis *int64 `json:"updated_at_in_epoch_millis,omitempty"`
 
-	ValidForInDays *int `json:"valid_for_in_days,omitempty"`
+	ValidForInDays *int64 `json:"valid_for_in_days,omitempty"`
 }
 
 type GeospatialUpdateStats struct {
-	// LastProcessingTimeInMillis is the time unit for milliseconds.
+	// LastFailedAt. Human-readable timestamp of the last failed update.
+	LastFailedAt *string `json:"last_failed_at,omitempty"`
+
+	// LastFailedAtInEpochMillis is the time unit for milliseconds.
+	LastFailedAtInEpochMillis *int64 `json:"last_failed_at_in_epoch_millis,omitempty"`
+
+	// LastProcessingTimeInMillis. Processing time of the last update in
+	// milliseconds.
 	LastProcessingTimeInMillis *int64 `json:"last_processing_time_in_millis,omitempty"`
+
+	// LastSkippedAt. Human-readable timestamp of the last skipped update.
+	LastSkippedAt *string `json:"last_skipped_at,omitempty"`
+
+	// LastSkippedAtInEpochMillis is the time unit for milliseconds.
+	LastSkippedAtInEpochMillis *int64 `json:"last_skipped_at_in_epoch_millis,omitempty"`
+
+	// LastSucceededAt. Human-readable timestamp of the last successful update.
+	LastSucceededAt *string `json:"last_succeeded_at,omitempty"`
 
 	// LastSucceededAtInEpochMillis is the time unit for milliseconds.
 	LastSucceededAtInEpochMillis *int64 `json:"last_succeeded_at_in_epoch_millis,omitempty"`
@@ -7152,11 +7224,11 @@ type GeospatialGetDataSourceResponse struct {
 }
 
 type GeospatialUploadStatsMetric struct {
-	// Duration is the time unit for milliseconds.
+	// Duration in milliseconds.
 	Duration int64 `json:"duration"`
 
 	// Failed. Number of failed features in this upload.
-	Failed int `json:"failed"`
+	Failed int64 `json:"failed"`
 
 	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
@@ -7165,30 +7237,30 @@ type GeospatialUploadStatsMetric struct {
 	NodeID string `json:"node_id"`
 
 	// Success. Number of successful features in this upload.
-	Success int `json:"success"`
+	Success int64 `json:"success"`
 
 	// Type of upload (such as "GeoJSON").
 	Type string `json:"type"`
 
 	// Upload. Number of features in this upload.
-	Upload int `json:"upload"`
+	Upload int64 `json:"upload"`
 }
 
 type GeospatialUploadStatsTotal struct {
-	// Duration is the time unit for milliseconds.
+	// Duration. Total duration in milliseconds.
 	Duration int64 `json:"duration"`
 
 	// Failed. Total failed uploads.
-	Failed int `json:"failed"`
+	Failed int64 `json:"failed"`
 
 	// RequestCount. Total number of upload requests.
-	RequestCount int `json:"request_count"`
+	RequestCount int64 `json:"request_count"`
 
 	// Success. Total successful uploads.
-	Success int `json:"success"`
+	Success int64 `json:"success"`
 
 	// Upload. Total number of uploads.
-	Upload int `json:"upload"`
+	Upload int64 `json:"upload"`
 }
 
 type GeospatialGeoSpatialUploadStats struct {
@@ -8799,9 +8871,9 @@ type IngestionResumeResponse struct {
 }
 
 type InsightsMeasurement struct {
-	AggregationType *string `json:"aggregationType,omitempty"`
-	Count           *int    `json:"count,omitempty"`
-	Number          *int    `json:"number,omitempty"`
+	AggregationType *string  `json:"aggregationType,omitempty"`
+	Count           *int     `json:"count,omitempty"`
+	Number          *float64 `json:"number,omitempty"`
 }
 
 type InsightsMeasurements struct {
@@ -8962,10 +9034,10 @@ type InsightsSource struct {
 
 type InsightsTaskResourceUsage struct {
 	// CPUTimeInNanos is the CPU time used in nanoseconds.
-	CPUTimeInNanos *int `json:"cpu_time_in_nanos,omitempty"`
+	CPUTimeInNanos *int64 `json:"cpu_time_in_nanos,omitempty"`
 
 	// MemoryInBytes is the memory usage in bytes.
-	MemoryInBytes *int `json:"memory_in_bytes,omitempty"`
+	MemoryInBytes *int64 `json:"memory_in_bytes,omitempty"`
 }
 
 type InsightsTaskResourceUsages struct {
@@ -8976,20 +9048,41 @@ type InsightsTaskResourceUsages struct {
 	NodeID *string `json:"nodeId,omitempty"`
 
 	// ParentTaskID is the parent task ID.
-	ParentTaskID *int `json:"parentTaskId,omitempty"`
+	ParentTaskID *int64 `json:"parentTaskId,omitempty"`
 
 	// TaskID is the task ID.
-	TaskID *int `json:"taskId,omitempty"`
+	TaskID *int64 `json:"taskId,omitempty"`
 
 	TaskResourceUsage *InsightsTaskResourceUsage `json:"taskResourceUsage,omitempty"`
 }
 
 type InsightsTopQuery struct {
+	// BackendRoles is the backend roles of the user who initiated the search
+	// query.
+	//
+	// Available: >= 3.5.0.
+	BackendRoles []string `json:"backend_roles,omitempty"`
+
+	// Description is a description of the search query.
+	//
+	// Available: >= 3.0.0.
+	Description *string `json:"description,omitempty"`
+
+	// Failed. Whether the search request failed during execution.
+	//
+	// Available: >= 3.6.0.
+	Failed *bool `json:"failed,omitempty"`
+
 	GroupBy *string `json:"group_by,omitempty"`
 	ID      *string `json:"id,omitempty"`
 
 	// Indices is the indexes involved in the query.
 	Indices []string `json:"indices,omitempty"`
+
+	// IsCancelled. Whether the search query was cancelled.
+	//
+	// Available: >= 3.1.0.
+	IsCancelled *bool `json:"is_cancelled,omitempty"`
 
 	// Labels. Additional labels for the query.
 	Labels json.RawMessage `json:"labels,omitempty"`
@@ -8999,22 +9092,44 @@ type InsightsTopQuery struct {
 	// NodeID is the node ID associated with the query.
 	NodeID *string `json:"node_id,omitempty"`
 
-	PhaseLatencyMap json.RawMessage `json:"phase_latency_map,omitempty"`
+	PhaseLatencyMap map[string]int64 `json:"phase_latency_map,omitempty"`
 
-	// QueryHashcode is the hash code of the query.
-	QueryHashcode *string `json:"query_hashcode,omitempty"`
+	// QueryGroupHashcode is the hash code of the query group.
+	QueryGroupHashcode *string `json:"query_group_hashcode,omitempty"`
 
 	// SearchType is the search query type (for example, `query_then_fetch`).
 	SearchType *string `json:"search_type,omitempty"`
 
-	Source             *InsightsSource              `json:"source,omitempty"`
+	Source *InsightsSource `json:"source,omitempty"`
+
+	// SourceTruncated. Whether the source was truncated due to length limits.
+	//
+	// Available: >= 3.5.0.
+	SourceTruncated *bool `json:"source_truncated,omitempty"`
+
 	TaskResourceUsages []InsightsTaskResourceUsages `json:"task_resource_usages,omitempty"`
 
 	// Timestamp is the timestamp of the query execution.
-	Timestamp *int `json:"timestamp,omitempty"`
+	Timestamp *int64 `json:"timestamp,omitempty"`
 
 	// TotalShards is the total number of shards involved in the query.
 	TotalShards *int `json:"total_shards,omitempty"`
+
+	// UserRoles is the roles of the user who initiated the search query.
+	//
+	// Available: >= 3.5.0.
+	UserRoles []string `json:"user_roles,omitempty"`
+
+	// Username is the username who initiated the search query.
+	//
+	// Available: >= 3.5.0.
+	Username *string `json:"username,omitempty"`
+
+	// WLMGroupID is the workload management group ID associated with the
+	// query.
+	//
+	// Available: >= 3.3.0.
+	WLMGroupID *string `json:"wlm_group_id,omitempty"`
 }
 
 type InsightsTopQueriesResponse struct {
@@ -9355,20 +9470,53 @@ type KNNDeletedModel struct {
 	Result  string `json:"result"`
 }
 
-type SearchResultJSONValueSuggestValueItemCompletionOptionsSource struct {
-	Source json.RawMessage `json:"_source,omitempty"`
+type KNNModelResponse struct {
+	// Available: >= 2.17.0.
+	CompressionLevel *string `json:"compression_level,omitempty"`
+
+	// DataType is the vector data type.
+	//
+	// Available: >= 2.17.0.
+	DataType *string `json:"data_type,omitempty"`
+
+	Description *string `json:"description,omitempty"`
+	Dimension   *int    `json:"dimension,omitempty"`
+	Engine      *string `json:"engine,omitempty"`
+	Error       *string `json:"error,omitempty"`
+
+	// Available: >= 2.17.0.
+	Mode *string `json:"mode,omitempty"`
+
+	// ModelBlob is the base64-encoded model data.
+	ModelBlob *string `json:"model_blob,omitempty"`
+
+	ModelDefinition map[string]json.RawMessage `json:"model_definition,omitempty"`
+	ModelID         string                     `json:"model_id"`
+
+	// Available: >= 2.17.0.
+	ModelVersion *string `json:"model_version,omitempty"`
+
+	SpaceType *string `json:"space_type,omitempty"`
+	State     *string `json:"state,omitempty"`
+
+	// Timestamp is the timestamp when the model was created.
+	Timestamp *string `json:"timestamp,omitempty"`
+
+	TrainingNodeAssignment *string `json:"training_node_assignment,omitempty"`
 }
 
-type SearchResultJSONValueSuggestValueItemCompletionOptionsItem struct {
-	Source json.RawMessage `json:"_source,omitempty"`
+type SearchResultJSONValueHits struct {
+	Hits []SearchHit `json:"hits,omitempty"`
 }
 
 type SearchResultJSONValueSuggestValueItemCompletion struct {
+	SearchCompletionSuggest
 	Options *SearchResultJSONValueSuggestValueItemCompletionOptions `json:"options,omitempty"`
 }
 
 type SearchResultJSONValue struct {
 	SearchResult
+	Hits    *SearchResultJSONValueHits                         `json:"hits,omitempty"`
 	Suggest map[string][]SearchResultJSONValueSuggestValueItem `json:"suggest,omitempty"`
 }
 
@@ -9420,10 +9568,18 @@ type KNNRemoteVectorIndexBuildStatsDetails struct {
 }
 
 type KNNRemoteVectorIndexClientStats struct {
-	BuildRequestFailureCount  *int64 `json:"build_request_failure_count,omitempty"`
-	BuildRequestSuccessCount  *int64 `json:"build_request_success_count,omitempty"`
-	IndexBuildFailureCount    *int64 `json:"index_build_failure_count,omitempty"`
-	IndexBuildSuccessCount    *int64 `json:"index_build_success_count,omitempty"`
+	BuildRequestFailureCount *int64 `json:"build_request_failure_count,omitempty"`
+	BuildRequestSuccessCount *int64 `json:"build_request_success_count,omitempty"`
+	IndexBuildFailureCount   *int64 `json:"index_build_failure_count,omitempty"`
+
+	// Available: >= 3.9.0.
+	IndexBuildMergeAbortException *int64 `json:"index_build_merge_abort_exception,omitempty"`
+
+	IndexBuildSuccessCount *int64 `json:"index_build_success_count,omitempty"`
+
+	// Available: >= 3.9.0.
+	IndexBuildTerminalException *int64 `json:"index_build_terminal_exception,omitempty"`
+
 	StatusRequestFailureCount *int64 `json:"status_request_failure_count,omitempty"`
 	StatusRequestSuccessCount *int64 `json:"status_request_success_count,omitempty"`
 
@@ -9458,7 +9614,8 @@ type KNNNodeStats struct {
 	GraphIndexErrors     *int64 `json:"graph_index_errors,omitempty"`
 	GraphIndexRequests   *int64 `json:"graph_index_requests,omitempty"`
 
-	// GraphMemoryUsage is the size in bytes.
+	// GraphMemoryUsage is the amount of native memory used by loaded graphs,
+	// in kilobytes.
 	GraphMemoryUsage *int64 `json:"graph_memory_usage,omitempty"`
 
 	// GraphMemoryUsagePercentage is the percentage value as a number.
@@ -9492,7 +9649,8 @@ type KNNNodeStats struct {
 
 	TrainingErrors *int64 `json:"training_errors,omitempty"`
 
-	// TrainingMemoryUsage is the size in bytes.
+	// TrainingMemoryUsage is the amount of native memory used by training
+	// data, in kilobytes.
 	TrainingMemoryUsage *int64 `json:"training_memory_usage,omitempty"`
 
 	// TrainingMemoryUsagePercentage is the percentage value as a number.
@@ -9510,6 +9668,42 @@ type KNNStats struct {
 
 	ModelIndexStatus *string                 `json:"model_index_status,omitempty"`
 	Nodes            map[string]KNNNodeStats `json:"nodes,omitempty"`
+}
+
+// A tabular row of workload management statistics for a node and workload group.
+type WLMStatsRecord struct {
+	// CPUUSAGE is the current CPU usage, or `NA` when CPU statistics are
+	// unavailable.
+	CPUUSAGE *string `json:"CPU_USAGE,omitempty"`
+
+	// MEMORYUSAGE is the current memory usage, or `NA` when memory statistics
+	// are unavailable.
+	MEMORYUSAGE *string `json:"MEMORY_USAGE,omitempty"`
+
+	// NODEID is the ID of the node that reported the statistics.
+	NODEID *string `json:"NODE_ID,omitempty"`
+
+	// TOTALCANCELLATIONS is the total number of cancelled requests as a
+	// string.
+	TOTALCANCELLATIONS *string `json:"TOTAL_CANCELLATIONS,omitempty"`
+
+	// TOTALCOMPLETIONS is the total number of completed requests as a string.
+	TOTALCOMPLETIONS *string `json:"TOTAL_COMPLETIONS,omitempty"`
+
+	// TOTALREJECTIONS is the total number of rejected requests as a string.
+	TOTALREJECTIONS *string `json:"TOTAL_REJECTIONS,omitempty"`
+
+	// WORKLOADGROUPID is the ID of the workload group.
+	WORKLOADGROUPID *string `json:"WORKLOAD_GROUP_ID,omitempty"`
+}
+
+type WLMStatsListRespNextTokenWLMStats struct {
+	// NextToken is the token used to retrieve the next page. `null` when there
+	// are no more pages.
+	NextToken *string `json:"next_token,omitempty"`
+
+	// WLMStats is the workload management statistics in the current page.
+	WLMStats []WLMStatsRecord `json:"wlm_stats,omitempty"`
 }
 
 type LTRCacheItemStats struct {
@@ -10589,56 +10783,19 @@ type MLSource struct {
 }
 
 type MLSearchHitsHit struct {
-	// ID is the unique identifier for a resource.
-	ID *string `json:"_id,omitempty"`
-
-	Index *string `json:"_index,omitempty"`
-
-	// PrimaryTerm is the primary term.
-	PrimaryTerm *int `json:"_primary_term,omitempty"`
-
-	// Score is the score.
-	Score *float64 `json:"_score"`
-
-	// SeqNo is the sequence number of the document.
-	SeqNo *int64 `json:"_seq_no,omitempty"`
-
-	Source  *MLSource `json:"_source,omitempty"`
-	Version *int64    `json:"_version,omitempty"`
+	SearchHit
 
 	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
-
-	// Sort is the sort values.
-	Sort []float32 `json:"sort,omitempty"`
 }
 
-type MLHitsTotal struct {
-	// Relation is the relation.
-	Relation string `json:"relation"`
-
-	// Value is the total number of hits.
-	Value int64 `json:"value"`
-}
-
-type MLSearchHits struct {
-	Hits []MLSearchHitsHit `json:"hits"`
-
-	// MaxScore is the maximum score.
-	MaxScore *float64 `json:"max_score,omitempty"`
-
-	Total MLHitsTotal `json:"total"`
+type MLSearchRespHits struct {
+	Hits []MLSearchHitsHit `json:"hits,omitempty"`
 }
 
 type MLSearchResponse struct {
-	Shards *ShardStatistics `json:"_shards,omitempty"`
-	Hits   MLSearchHits     `json:"hits"`
-
-	// TimedOut. Whether the search timed out.
-	TimedOut *bool `json:"timed_out,omitempty"`
-
-	// Took is the time taken to execute the search.
-	Took *int `json:"took,omitempty"`
+	SearchResult
+	Hits *MLSearchRespHits `json:"hits,omitempty"`
 }
 
 type MLTrainResponse struct {
@@ -10682,6 +10839,29 @@ type NeuralStatMetadata struct {
 	Value    NeuralStatMetadataValue `json:"value"`
 }
 
+type NeuralMemoryStatStatType struct {
+	NeuralStatMetadata
+	StatType *string `json:"stat_type,omitempty"`
+}
+
+type NeuralNestedNodeStatsMemorySparse struct {
+	// Available: >= 3.3.0.
+	ClusteredPostingUsage *NeuralMemoryStat `json:"clustered_posting_usage,omitempty"`
+
+	// Available: >= 3.3.0.
+	ForwardIndexUsage *NeuralMemoryStat `json:"forward_index_usage,omitempty"`
+
+	// Available: >= 3.3.0.
+	SparseMemoryUsage *NeuralMemoryStat `json:"sparse_memory_usage,omitempty"`
+
+	// Available: >= 3.3.0.
+	SparseMemoryUsagePercentage *NeuralMemoryStat `json:"sparse_memory_usage_percentage,omitempty"`
+}
+
+type NeuralNestedNodeStatsMemory struct {
+	Sparse *NeuralNestedNodeStatsMemorySparse `json:"sparse,omitempty"`
+}
+
 type NeuralTimestampedEventCounterStatStatType struct {
 	NeuralStatMetadata
 	MinutesSinceLastEvent *int    `json:"minutes_since_last_event,omitempty"`
@@ -10702,6 +10882,9 @@ type NeuralNestedNodeStatsProcessorsIngest struct {
 	// Available: >= 3.1.0.
 	SparseEncodingExecutions *NeuralTimestampedEventCounterStat `json:"sparse_encoding_executions,omitempty"`
 
+	// Available: >= 3.5.0.
+	SparseEncodingSeismicExecutions *NeuralTimestampedEventCounterStat `json:"sparse_encoding_seismic_executions,omitempty"`
+
 	// Available: >= 3.1.0.
 	TextChunkingDelimiterExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_delimiter_executions,omitempty"`
 
@@ -10719,6 +10902,14 @@ type NeuralNestedNodeStatsProcessorsIngest struct {
 
 	// Available: >= 3.1.0.
 	TextImageEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"text_image_embedding_executions,omitempty"`
+}
+
+type NeuralNestedNodeStatsProcessorsSearchAgentic struct {
+	// Available: >= 3.3.0.
+	AgenticContextExecutions *NeuralTimestampedEventCounterStat `json:"agentic_context_executions,omitempty"`
+
+	// Available: >= 3.2.0.
+	AgenticQueryTranslatorExecutions *NeuralTimestampedEventCounterStat `json:"agentic_query_translator_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessorsSearchHybrid struct {
@@ -10751,7 +10942,11 @@ type NeuralNestedNodeStatsProcessorsSearchHybrid struct {
 }
 
 type NeuralNestedNodeStatsProcessorsSearch struct {
-	Hybrid *NeuralNestedNodeStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
+	Agentic *NeuralNestedNodeStatsProcessorsSearchAgentic `json:"agentic,omitempty"`
+	Hybrid  *NeuralNestedNodeStatsProcessorsSearchHybrid  `json:"hybrid,omitempty"`
+
+	// Available: >= 3.3.0.
+	MmrNeuralQueryTransformerExecutions *NeuralTimestampedEventCounterStat `json:"mmr_neural_query_transformer_executions,omitempty"`
 
 	// Available: >= 3.1.0.
 	NeuralQueryEnricherExecutions *NeuralTimestampedEventCounterStat `json:"neural_query_enricher_executions,omitempty"`
@@ -10769,6 +10964,11 @@ type NeuralNestedNodeStatsProcessorsSearch struct {
 type NeuralNestedNodeStatsProcessors struct {
 	Ingest *NeuralNestedNodeStatsProcessorsIngest `json:"ingest,omitempty"`
 	Search *NeuralNestedNodeStatsProcessorsSearch `json:"search,omitempty"`
+}
+
+type NeuralNestedNodeStatsQueryAgentic struct {
+	// Available: >= 3.2.0.
+	AgenticQueryRequests *NeuralTimestampedEventCounterStat `json:"agentic_query_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQueryHybrid struct {
@@ -10802,20 +11002,28 @@ type NeuralNestedNodeStatsQueryNeural struct {
 type NeuralNestedNodeStatsQueryNeuralSparse struct {
 	// Available: >= 3.1.0.
 	NeuralSparseQueryRequests *NeuralTimestampedEventCounterStat `json:"neural_sparse_query_requests,omitempty"`
+
+	// Available: >= 3.3.0.
+	SeismicQueryRequests *NeuralTimestampedEventCounterStat `json:"seismic_query_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQuery struct {
+	Agentic      *NeuralNestedNodeStatsQueryAgentic      `json:"agentic,omitempty"`
 	Hybrid       *NeuralNestedNodeStatsQueryHybrid       `json:"hybrid,omitempty"`
 	Neural       *NeuralNestedNodeStatsQueryNeural       `json:"neural,omitempty"`
 	NeuralSparse *NeuralNestedNodeStatsQueryNeuralSparse `json:"neural_sparse,omitempty"`
 }
 
 type NeuralNestedNodeStatsSemanticHighlighting struct {
+	// Available: >= 3.3.0.
+	SemanticHighlightingBatchRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting_batch_request_count,omitempty"`
+
 	// Available: >= 3.1.0.
 	SemanticHighlightingRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting_request_count,omitempty"`
 }
 
 type NeuralNestedNodeStats struct {
+	Memory               *NeuralNestedNodeStatsMemory               `json:"memory,omitempty"`
 	Processors           *NeuralNestedNodeStatsProcessors           `json:"processors,omitempty"`
 	Query                *NeuralNestedNodeStatsQuery                `json:"query,omitempty"`
 	SemanticHighlighting *NeuralNestedNodeStatsSemanticHighlighting `json:"semantic_highlighting,omitempty"`
@@ -10857,6 +11065,14 @@ type NeuralNestedInfoStatsProcessorsIngest struct {
 	TextImageEmbeddingProcessors *NeuralInfoCounterStat `json:"text_image_embedding_processors,omitempty"`
 }
 
+type NeuralNestedInfoStatsProcessorsSearchAgentic struct {
+	// Available: >= 3.3.0.
+	AgenticContextProcessors *NeuralInfoCounterStat `json:"agentic_context_processors,omitempty"`
+
+	// Available: >= 3.2.0.
+	AgenticQueryTranslatorProcessors *NeuralInfoCounterStat `json:"agentic_query_translator_processors,omitempty"`
+}
+
 type NeuralNestedInfoStatsProcessorsSearchHybrid struct {
 	// Available: >= 3.1.0.
 	CombArithmeticProcessors *NeuralInfoCounterStat `json:"comb_arithmetic_processors,omitempty"`
@@ -10887,7 +11103,8 @@ type NeuralNestedInfoStatsProcessorsSearchHybrid struct {
 }
 
 type NeuralNestedInfoStatsProcessorsSearch struct {
-	Hybrid *NeuralNestedInfoStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
+	Agentic *NeuralNestedInfoStatsProcessorsSearchAgentic `json:"agentic,omitempty"`
+	Hybrid  *NeuralNestedInfoStatsProcessorsSearchHybrid  `json:"hybrid,omitempty"`
 
 	// Available: >= 3.1.0.
 	NeuralQueryEnricherProcessors *NeuralInfoCounterStat `json:"neural_query_enricher_processors,omitempty"`
@@ -10923,6 +11140,18 @@ type NeuralNestedStats struct {
 }
 
 type NeuralFlatNodeStats struct {
+	// Available: >= 3.3.0.
+	MemorySparseClusteredPostingUsage *NeuralMemoryStat `json:"memory.sparse.clustered_posting_usage,omitempty"`
+
+	// Available: >= 3.3.0.
+	MemorySparseForwardIndexUsage *NeuralMemoryStat `json:"memory.sparse.forward_index_usage,omitempty"`
+
+	// Available: >= 3.3.0.
+	MemorySparseSparseMemoryUsage *NeuralMemoryStat `json:"memory.sparse.sparse_memory_usage,omitempty"`
+
+	// Available: >= 3.3.0.
+	MemorySparseSparseMemoryUsagePercentage *NeuralMemoryStat `json:"memory.sparse.sparse_memory_usage_percentage,omitempty"`
+
 	// Available: >= 3.1.0.
 	ProcessorsIngestSemanticFieldChunkingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.semantic_field_chunking_executions,omitempty"`
 
@@ -10934,6 +11163,9 @@ type NeuralFlatNodeStats struct {
 
 	// Available: >= 3.1.0.
 	ProcessorsIngestSparseEncodingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.sparse_encoding_executions,omitempty"`
+
+	// Available: >= 3.5.0.
+	ProcessorsIngestSparseEncodingSeismicExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.sparse_encoding_seismic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
 	ProcessorsIngestTextChunkingDelimiterExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_delimiter_executions,omitempty"`
@@ -10952,6 +11184,12 @@ type NeuralFlatNodeStats struct {
 
 	// Available: >= 3.1.0.
 	ProcessorsIngestTextImageEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_image_embedding_executions,omitempty"`
+
+	// Available: >= 3.3.0.
+	ProcessorsSearchAgenticAgenticContextExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.agentic.agentic_context_executions,omitempty"`
+
+	// Available: >= 3.2.0.
+	ProcessorsSearchAgenticAgenticQueryTranslatorExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.agentic.agentic_query_translator_executions,omitempty"`
 
 	// Available: >= 3.1.0.
 	ProcessorsSearchHybridCombArithmeticExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_arithmetic_executions,omitempty"`
@@ -10980,6 +11218,9 @@ type NeuralFlatNodeStats struct {
 	// Available: >= 3.1.0.
 	ProcessorsSearchHybridRankBasedNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.rank_based_normalization_processor_executions,omitempty"`
 
+	// Available: >= 3.3.0.
+	ProcessorsSearchMmrNeuralQueryTransformerExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.mmr_neural_query_transformer_executions,omitempty"`
+
 	// Available: >= 3.1.0.
 	ProcessorsSearchNeuralQueryEnricherExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.neural_query_enricher_executions,omitempty"`
 
@@ -10991,6 +11232,9 @@ type NeuralFlatNodeStats struct {
 
 	// Available: >= 3.1.0.
 	ProcessorsSearchRerankMLExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.rerank_ml_executions,omitempty"`
+
+	// Available: >= 3.2.0.
+	QueryAgenticAgenticQueryRequests *NeuralTimestampedEventCounterStat `json:"query.agentic.agentic_query_requests,omitempty"`
 
 	// Available: >= 3.1.0.
 	QueryHybridHybridQueryRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_requests,omitempty"`
@@ -11018,6 +11262,12 @@ type NeuralFlatNodeStats struct {
 
 	// Available: >= 3.1.0.
 	QueryNeuralSparseNeuralSparseQueryRequests *NeuralTimestampedEventCounterStat `json:"query.neural_sparse.neural_sparse_query_requests,omitempty"`
+
+	// Available: >= 3.3.0.
+	QueryNeuralSparseSeismicQueryRequests *NeuralTimestampedEventCounterStat `json:"query.neural_sparse.seismic_query_requests,omitempty"`
+
+	// Available: >= 3.3.0.
+	SemanticHighlightingSemanticHighlightingBatchRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting.semantic_highlighting_batch_request_count,omitempty"`
 
 	// Available: >= 3.1.0.
 	SemanticHighlightingSemanticHighlightingRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting.semantic_highlighting_request_count,omitempty"`
@@ -11050,6 +11300,12 @@ type NeuralFlatInfoStats struct {
 
 	// Available: >= 3.1.0.
 	ProcessorsIngestTextImageEmbeddingProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_image_embedding_processors,omitempty"`
+
+	// Available: >= 3.3.0.
+	ProcessorsSearchAgenticAgenticContextProcessors *NeuralInfoCounterStat `json:"processors.search.agentic.agentic_context_processors,omitempty"`
+
+	// Available: >= 3.2.0.
+	ProcessorsSearchAgenticAgenticQueryTranslatorProcessors *NeuralInfoCounterStat `json:"processors.search.agentic.agentic_query_translator_processors,omitempty"`
 
 	// Available: >= 3.1.0.
 	ProcessorsSearchHybridCombArithmeticProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_arithmetic_processors,omitempty"`
@@ -11148,9 +11404,9 @@ type NotificationsSNSItem struct {
 }
 
 type NotificationsWebhook struct {
-	HeaderParams map[string]int `json:"header_params,omitempty"`
-	Method       *string        `json:"method,omitempty"`
-	URL          string         `json:"url"`
+	HeaderParams map[string]string `json:"header_params,omitempty"`
+	Method       *string           `json:"method,omitempty"`
+	URL          string            `json:"url"`
 }
 
 type NotificationsConfigItem struct {
@@ -11182,7 +11438,7 @@ type NotificationsConfigsOutputItem struct {
 type NotificationsGetConfigsResponse struct {
 	ConfigList       []NotificationsConfigsOutputItem `json:"config_list,omitempty"`
 	StartIndex       *int64                           `json:"start_index,omitempty"`
-	TotalHitRelation *string                          `json:"total_hit_relation,omitempty"`
+	TotalHitRelation *TotalHitsRelation               `json:"total_hit_relation,omitempty"`
 	TotalHits        *int64                           `json:"total_hits,omitempty"`
 }
 
@@ -11345,8 +11601,18 @@ type ObservabilitySavedQuery struct {
 
 // The configuration for a saved visualization.
 type ObservabilitySavedVisualization struct {
+	// ApplicationID is the identifier of the associated application.
+	//
+	// Available: >= 1.3.0.
+	ApplicationID *string `json:"application_id,omitempty"`
+
 	// Description is the description of the saved visualization.
 	Description string `json:"description"`
+
+	// MetricType is the metric type for the visualization.
+	//
+	// Available: >= 1.3.0.
+	MetricType *string `json:"metric_type,omitempty"`
 
 	// Name is the name of the saved visualization.
 	Name string `json:"name"`
@@ -11360,20 +11626,45 @@ type ObservabilitySavedVisualization struct {
 	// SelectedFields is the field selection configuration.
 	SelectedFields ObservabilitySelectedFields `json:"selected_fields"`
 
+	// SelectedLabels is the field selection configuration.
+	//
+	// Available: >= 1.3.0.
+	SelectedLabels *ObservabilitySelectedFields `json:"selected_labels,omitempty"`
+
 	// SelectedTimestamp is the timestamp field selection configuration.
 	SelectedTimestamp ObservabilitySelectedTimestamp `json:"selected_timestamp"`
 
+	// SubType is the sub-type of the visualization.
+	//
+	// Available: >= 1.3.0.
+	SubType *string `json:"sub_type,omitempty"`
+
 	// Type is the type of visualization.
 	Type string `json:"type"`
+
+	// UnitsOfMeasure is the units of measure for the visualization.
+	//
+	// Available: >= 1.3.0.
+	UnitsOfMeasure *string `json:"units_of_measure,omitempty"`
+
+	// UserConfigs. User-specific configuration for the visualization.
+	//
+	// Available: >= 1.3.0.
+	UserConfigs *string `json:"user_configs,omitempty"`
 }
 
 // The core observability object containing visualization and query data.
 type ObservabilityObject struct {
+	// Access is the access control list for the observability object.
+	//
+	// Available: >= 1.2.0.
+	Access []string `json:"access,omitempty"`
+
 	// CreatedTimeMs. When the object was created in milliseconds.
-	CreatedTimeMs *int `json:"createdTimeMs,omitempty"`
+	CreatedTimeMs *int64 `json:"createdTimeMs,omitempty"`
 
 	// LastUpdatedTimeMs. When the object was last updated in milliseconds.
-	LastUpdatedTimeMs *int `json:"lastUpdatedTimeMs,omitempty"`
+	LastUpdatedTimeMs *int64 `json:"lastUpdatedTimeMs,omitempty"`
 
 	// ObjectID is the unique identifier of the observability object.
 	ObjectID string `json:"objectId"`
@@ -11398,13 +11689,13 @@ type ObservabilityObjectList struct {
 	ObservabilityObjectList []ObservabilityObject `json:"observabilityObjectList"`
 
 	// StartIndex is the starting index of the returned objects.
-	StartIndex int `json:"startIndex"`
+	StartIndex int64 `json:"startIndex"`
 
 	// TotalHitRelation is the relationship of total hits to the query.
-	TotalHitRelation string `json:"totalHitRelation"`
+	TotalHitRelation TotalHitsRelation `json:"totalHitRelation"`
 
 	// TotalHits is the total number of matching objects.
-	TotalHits int `json:"totalHits"`
+	TotalHits int64 `json:"totalHits"`
 }
 
 type SQLExplainBody struct {
@@ -11736,21 +12027,57 @@ type ReplicationLeaderStatus struct {
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`
 }
 
+type ReplicationRestoreDetails struct {
+	// BytesPercent is the percentage of bytes recovered.
+	BytesPercent *float32 `json:"bytes_percent,omitempty"`
+
+	// BytesRecovered is the number of bytes recovered so far.
+	BytesRecovered *int64 `json:"bytes_recovered,omitempty"`
+
+	// BytesTotal is the total number of bytes to restore.
+	BytesTotal *int64 `json:"bytes_total,omitempty"`
+
+	// FilesPercent is the percentage of files recovered.
+	FilesPercent *float32 `json:"files_percent,omitempty"`
+
+	// FilesRecovered is the number of files recovered so far.
+	FilesRecovered *int `json:"files_recovered,omitempty"`
+
+	// FilesTotal is the total number of files to restore.
+	FilesTotal *int `json:"files_total,omitempty"`
+
+	// RunningTime is the elapsed restore time in milliseconds.
+	RunningTime *int64 `json:"running_time,omitempty"`
+
+	// StartTime. When the restore started, in epoch milliseconds.
+	StartTime *int64 `json:"start_time,omitempty"`
+}
+
 type ReplicationSyncingDetails struct {
 	// FollowerCheckpoint is the checkpoint of the follower index in the
 	// replication process.
-	FollowerCheckpoint *int `json:"follower_checkpoint,omitempty"`
+	FollowerCheckpoint *int64 `json:"follower_checkpoint,omitempty"`
 
 	// LeaderCheckpoint is the checkpoint of the leader index in the
 	// replication process.
-	LeaderCheckpoint *int `json:"leader_checkpoint,omitempty"`
+	LeaderCheckpoint *int64 `json:"leader_checkpoint,omitempty"`
 
 	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"seq_no,omitempty"`
 }
 
+type ReplicationShardInfoResponse struct {
+	BootstrapTaskDetails *ReplicationRestoreDetails `json:"bootstrap_task_details,omitempty"`
+
+	// ShardID is the shard identifier.
+	ShardID *string `json:"shard_id,omitempty"`
+
+	SyncingTaskDetails *ReplicationSyncingDetails `json:"syncing_task_details,omitempty"`
+}
+
 type ReplicationStatus struct {
-	FollowerIndex *string `json:"follower_index,omitempty"`
+	BootstrapDetails *ReplicationRestoreDetails `json:"bootstrap_details,omitempty"`
+	FollowerIndex    *string                    `json:"follower_index,omitempty"`
 
 	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
@@ -11759,6 +12086,10 @@ type ReplicationStatus struct {
 
 	// Reason is the reason for the current replication status.
 	Reason *string `json:"reason,omitempty"`
+
+	// ShardReplicationDetails. Per-shard replication details. Only present in
+	// verbose status responses.
+	ShardReplicationDetails []ReplicationShardInfoResponse `json:"shard_replication_details,omitempty"`
 
 	// Status is the current status of the replication process.
 	Status *string `json:"status,omitempty"`
@@ -11874,32 +12205,40 @@ type RollupsCron struct {
 	// Expression is the cron expression that defines the schedule.
 	Expression *string `json:"expression,omitempty"`
 
+	// ScheduleDelay is the delay in milliseconds before starting the rollup
+	// process.
+	//
+	// Available: >= 1.3.0.
+	ScheduleDelay *int64 `json:"schedule_delay,omitempty"`
+
 	// Timezone is the timezone for interpreting the cron expression.
 	Timezone *string `json:"timezone,omitempty"`
 }
 
 // Specifies the timing details for rollup job execution.
 type RollupsInterval struct {
-	// Cron is the cron schedule configuration for the rollup job.
-	Cron *RollupsIntervalCron `json:"cron,omitempty"`
-
 	// Period is the numerical value for the execution interval.
-	Period *float64 `json:"period,omitempty"`
+	Period *int `json:"period,omitempty"`
 
 	// ScheduleDelay is the delay in milliseconds before starting the rollup
 	// process.
-	ScheduleDelay *float64 `json:"schedule_delay,omitempty"`
+	//
+	// Available: >= 1.3.0.
+	ScheduleDelay *int64 `json:"schedule_delay,omitempty"`
 
 	// StartTime. When the rollup job should start, in epoch milliseconds.
-	StartTime *float64 `json:"start_time,omitempty"`
+	StartTime *int64 `json:"start_time,omitempty"`
 
 	// Unit is the time unit for the execution interval, such as `MINUTES` or
 	// `HOURS`.
 	Unit *string `json:"unit,omitempty"`
 }
 
-// Defines the execution schedule for a rollup job.
+// Defines the execution schedule for a rollup job. Exactly one of `interval` or `cron` must be specified.
 type RollupsSchedule struct {
+	// Cron. Defines a cron schedule for the rollup job execution.
+	Cron *RollupsCron `json:"cron,omitempty"`
+
 	// Interval. Specifies the timing details for rollup job execution.
 	Interval *RollupsInterval `json:"interval,omitempty"`
 }
@@ -11945,7 +12284,8 @@ type RollupsRollup struct {
 	// RollupID is the ID for the rollup job.
 	RollupID *string `json:"rollup_id,omitempty"`
 
-	// Schedule. Defines the execution schedule for a rollup job.
+	// Schedule. Defines the execution schedule for a rollup job. Exactly one
+	// of `interval` or `cron` must be specified.
 	Schedule *RollupsSchedule `json:"schedule,omitempty"`
 
 	// SchemaVersion is the schema version for the rollup job.
@@ -12217,6 +12557,15 @@ type SearchPipelineStructure struct {
 	Version                *int                                  `json:"version,omitempty"`
 }
 
+type SearchRelevancePatchExperimentResponse struct {
+	// ExperimentID is the ID of the updated experiment.
+	ExperimentID *string `json:"experiment_id,omitempty"`
+
+	// ExperimentResult is the lowercase write result of the update, for
+	// example `updated`.
+	ExperimentResult *string `json:"experiment_result,omitempty"`
+}
+
 type SearchRelevancePostQuerySetsResponse struct {
 	QuerySetID     *string `json:"query_set_id,omitempty"`
 	QuerySetResult *string `json:"query_set_result,omitempty"`
@@ -12418,10 +12767,23 @@ type SecurityActionGroup struct {
 }
 
 type SecurityCertificatesDetail struct {
+	// Available: >= 3.0.0.
+	Alias *string `json:"alias,omitempty"`
+
+	// Available: >= 3.0.0.
+	Format *string `json:"format,omitempty"`
+
+	// Available: >= 3.0.0.
+	HasPrivateKey *bool `json:"has_private_key,omitempty"`
+
 	IssuerDN  *string `json:"issuer_dn,omitempty"`
 	NotAfter  *string `json:"not_after,omitempty"`
 	NotBefore *string `json:"not_before,omitempty"`
 	San       *string `json:"san,omitempty"`
+
+	// Available: >= 3.0.0.
+	SerialNumber *string `json:"serial_number,omitempty"`
+
 	SubjectDN *string `json:"subject_dn,omitempty"`
 }
 
@@ -12684,6 +13046,7 @@ type SecurityHealthInfo struct {
 type SecurityWhoAmI struct {
 	DN                       *string `json:"dn,omitempty"`
 	IsAdmin                  *bool   `json:"is_admin,omitempty"`
+	IsAuthenticated          *bool   `json:"is_authenticated,omitempty"`
 	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 }
 
@@ -13339,6 +13702,40 @@ type WLMQueryGroupResponse struct {
 
 	// UpdatedAt is the time at which the query group was last updated.
 	UpdatedAt int64 `json:"updated_at"`
+}
+
+type WLMWorkloadGroupResponse struct {
+	// ID is the ID of the workload group, which can be used to associate query
+	// requests with the group and enforce the group's resource limits.
+	ID string `json:"_id"`
+
+	// Name is the name of the workload group.
+	Name string `json:"name"`
+
+	// ResiliencyMode is the resiliency mode of the workload group.
+	ResiliencyMode string `json:"resiliency_mode"`
+
+	// ResourceLimits is the resource limits for query requests in the workload
+	// group.
+	ResourceLimits WLMWorkloadGroupResourceLimits `json:"resource_limits"`
+
+	// Settings is the settings for the workload group.
+	//
+	// Available: >= 3.7.0.
+	Settings map[string]string `json:"settings,omitempty"`
+
+	// UpdatedAt is the time at which the workload group was last updated.
+	UpdatedAt int64 `json:"updated_at"`
+}
+
+// Cluster-level workload management statistics keyed by node ID.
+type WLMStatsResponse struct {
+	// Nodes. Contains statistics about the number of nodes selected by the
+	// request.
+	Nodes *NodeStatistics `json:"_nodes,omitempty"`
+
+	// ClusterName is the name of the cluster.
+	ClusterName *string `json:"cluster_name,omitempty"`
 }
 
 type CommonAggregationsAggregation struct {
@@ -14789,16 +15186,37 @@ type KNNMethod struct {
 }
 
 type KNNTrainedModel struct {
-	CompressionLevel       *string    `json:"compression_level,omitempty"`
-	Description            *string    `json:"description,omitempty"`
-	Dimension              int        `json:"dimension"`
+	CompressionLevel *string `json:"compression_level,omitempty"`
+
+	// DataType is the vector data type.
+	//
+	// Available: >= 2.16.0.
+	DataType *string `json:"data_type,omitempty"`
+
+	Description *string `json:"description,omitempty"`
+	Dimension   int     `json:"dimension"`
+
+	// Engine is the k-NN engine to use.
+	//
+	// Available: >= 2.17.0.
+	Engine *string `json:"engine,omitempty"`
+
 	MaxTrainingVectorCount *int       `json:"max_training_vector_count,omitempty"`
 	Method                 *KNNMethod `json:"method,omitempty"`
 	Mode                   *string    `json:"mode,omitempty"`
 	SearchSize             *int       `json:"search_size,omitempty"`
-	SpaceType              *string    `json:"spaceType,omitempty"`
-	TrainingField          string     `json:"training_field"`
-	TrainingIndex          string     `json:"training_index"`
+
+	// SpaceType is the space type for distance calculation (alias for
+	// space_type).
+	SpaceType *string `json:"spaceType,omitempty"`
+
+	// SpaceTypeRaw is the space type for distance calculation.
+	//
+	// Available: >= 2.17.0.
+	SpaceTypeRaw *string `json:"space_type,omitempty"`
+
+	TrainingField string `json:"training_field"`
+	TrainingIndex string `json:"training_index"`
 }
 
 type MLClientConfig struct {
@@ -15008,12 +15426,19 @@ type DerivedField struct {
 	Type            string          `json:"type"`
 }
 
+// Partially updates an experiment's name or description.
+type SearchRelevancePatchExperimentRequest struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
 // The schema for creating a query set.
 type SearchRelevancePostQuerySetsRequest struct {
-	Description  *string `json:"description,omitempty"`
-	Name         *string `json:"name,omitempty"`
-	QuerySetSize *int    `json:"querySetSize,omitempty"`
-	Sampling     *string `json:"sampling,omitempty"`
+	Description     *string `json:"description,omitempty"`
+	Name            *string `json:"name,omitempty"`
+	QuerySetSize    *int    `json:"querySetSize,omitempty"`
+	Sampling        *string `json:"sampling,omitempty"`
+	UBIQueriesIndex *string `json:"ubiQueriesIndex,omitempty"`
 }
 
 // The schema for scheduling experiments.
@@ -15211,6 +15636,20 @@ type WLMQueryGroupCreate struct {
 	ResourceLimits WLMQueryGroupCreateResourceLimits `json:"resource_limits"`
 }
 
+type WLMWorkloadGroupCreate struct {
+	Name           string `json:"name"`
+	ResiliencyMode string `json:"resiliency_mode"`
+
+	// ResourceLimits. Resource limits for a workload group. At least one of
+	// `memory` or `cpu` is required.
+	ResourceLimits WLMWorkloadGroupResourceLimits `json:"resource_limits"`
+
+	// Settings is the settings for the workload group.
+	//
+	// Available: >= 3.7.0.
+	Settings map[string]string `json:"settings,omitempty"`
+}
+
 type WLMResourceLimitsSchema struct {
 	CPU    *float64 `json:"cpu,omitempty"`
 	Memory *float64 `json:"memory,omitempty"`
@@ -15219,4 +15658,14 @@ type WLMResourceLimitsSchema struct {
 type WLMQueryGroupUpdate struct {
 	ResiliencyMode *string                  `json:"resiliency_mode,omitempty"`
 	ResourceLimits *WLMResourceLimitsSchema `json:"resource_limits,omitempty"`
+}
+
+type WLMWorkloadGroupUpdate struct {
+	ResiliencyMode *string                  `json:"resiliency_mode,omitempty"`
+	ResourceLimits *WLMResourceLimitsSchema `json:"resource_limits,omitempty"`
+
+	// Settings is the settings for the workload group.
+	//
+	// Available: >= 3.7.0.
+	Settings map[string]string `json:"settings,omitempty"`
 }

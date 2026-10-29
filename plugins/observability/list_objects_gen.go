@@ -87,13 +87,13 @@ type ListObjectsResp struct {
 	ObservabilityObjectList []opensearchapi.ObservabilityObject `json:"observabilityObjectList"`
 
 	// StartIndex is the starting index of the returned objects.
-	StartIndex int `json:"startIndex"`
+	StartIndex int64 `json:"startIndex"`
 
 	// TotalHitRelation is the relationship of total hits to the query.
-	TotalHitRelation string `json:"totalHitRelation"`
+	TotalHitRelation opensearchapi.TotalHitsRelation `json:"totalHitRelation"`
 
 	// TotalHits is the total number of matching objects.
-	TotalHits int `json:"totalHits"`
+	TotalHits int64 `json:"totalHits"`
 
 	response *opensearch.Response
 }

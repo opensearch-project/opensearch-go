@@ -146,12 +146,12 @@ func (r SearchParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#rest-api
 type SearchResp struct {
-	ExpirationTimeInMillis *float64                    `json:"expiration_time_in_millis,omitempty"`
+	Error                  *opensearchapi.ErrorCause   `json:"error,omitempty"`
+	ExpirationTimeInMillis *int64                      `json:"expiration_time_in_millis,omitempty"`
 	ID                     *string                     `json:"id,omitempty"`
 	Response               *opensearchapi.SearchResult `json:"response,omitempty"`
-	StartTimeInMillis      *float64                    `json:"start_time_in_millis,omitempty"`
+	StartTimeInMillis      *int64                      `json:"start_time_in_millis,omitempty"`
 	State                  *string                     `json:"state,omitempty"`
-	Took                   *float64                    `json:"took,omitempty"`
 
 	response *opensearch.Response
 }
