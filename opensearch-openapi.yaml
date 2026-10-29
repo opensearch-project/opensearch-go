@@ -13059,6 +13059,7 @@ paths:
       operationId: wlm.get_query_group.0
       x-operation-group: wlm.get_query_group
       x-version-added: '2.17'
+      x-version-removed: 3.0.0
       description: Retrieves the specified query group. If no query group is specified, all query groups in the cluster are retrieved.
       responses:
         '200':
@@ -55119,6 +55120,18 @@ components:
         search.throttled:
           description: indicates if the index is search throttled
           type: string
+        system:
+          description: whether the index is a system index
+          type:
+            - 'null'
+            - string
+          x-version-added: 3.9.0
+        system.description:
+          description: description from the matching system index descriptor
+          type:
+            - 'null'
+            - string
+          x-version-added: 3.9.0
     cat.master___MasterRecord:
       type: object
       properties:
@@ -55996,18 +56009,6 @@ components:
           type:
             - 'null'
             - string
-        system:
-          description: whether the index is a system index
-          type:
-            - 'null'
-            - string
-          x-version-added: 3.9.0
-        system.description:
-          description: description from the matching system index descriptor
-          type:
-            - 'null'
-            - string
-          x-version-added: 3.9.0
         search.concurrent_query_current:
           type:
             - 'null'
@@ -58402,10 +58403,8 @@ components:
         next_update_at_in_epoch_millis:
           $ref: '#/components/schemas/_common___EpochTimeUnitMillis'
         database:
-          type: object
           $ref: '#/components/schemas/geospatial._common___Database'
         update_stats:
-          type: object
           $ref: '#/components/schemas/geospatial._common___UpdateStats'
       required:
         - database
@@ -64251,15 +64250,12 @@ components:
           format: int64
           description: The model count.
         ml_connector_index_status:
-          type: string
           description: The connector index status.
           $ref: '#/components/schemas/ml._common___MlIndexStatus'
         ml_config_index_status:
-          type: string
           description: The config index status.
           $ref: '#/components/schemas/ml._common___MlIndexStatus'
         ml_task_index_status:
-          type: string
           description: The task index status.
           $ref: '#/components/schemas/ml._common___MlIndexStatus'
         ml_connector_count:
@@ -64267,11 +64263,9 @@ components:
           format: int64
           description: The connector count.
         ml_model_index_status:
-          type: string
           description: The model index status.
           $ref: '#/components/schemas/ml._common___MlIndexStatus'
         ml_controller_index_status:
-          type: string
           description: The controller index status.
           $ref: '#/components/schemas/ml._common___MlIndexStatus'
         nodes:
@@ -71204,6 +71198,10 @@ components:
         password_validation_regex:
           type: string
           description: The regular expression used perform password validation.
+        resource_sharing_enabled:
+          type: boolean
+          description: Indicates whether resource sharing is enabled.
+          x-version-added: 3.3.0
     security._common___DistinguishedNames:
       type: object
       properties:
