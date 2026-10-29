@@ -496,7 +496,7 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: ir.TokenArray, VersionAdded: versionAdded}
 	}
 
-	branchName := deriveBranchName(ref, goTypeName, key)
+	branchName := deriveBranchName(ref, goTypeName, parentKey, key)
 	required := flattenRequired(ref.Value)
 
 	return unionBranch{
@@ -756,6 +756,24 @@ func mapValueTypeName(goType string) string {
 	}
 }
 
+// unionBranchKey identifies a $ref branch of a union by both schema keys.
+type unionBranchKey struct {
+	union  string
+	branch string
+}
+
+// releasedBranchNames pins the names of released union branches that the spec
+// would otherwise rename. A branch name is its accessor, its constructor and its
+// type constant, so a new or changed spec title on a released branch would break
+// every caller of them.
+//
+//nolint:gochecknoglobals // small immutable lookup table
+var releasedBranchNames = map[unionBranchKey]string{
+	// The spec titles this branch "status"; v5.0.0 shipped it as
+	// BulkByScrollTaskStatus, which guides/usage-tasks.md documents.
+	{union: "_common___BulkByScrollTaskStatusOrException", branch: "_common___BulkByScrollTaskStatus"}: "BulkByScrollTaskStatus",
+}
+
 // deriveBranchName extracts the branch name from a $ref or spec title.
 // The fallback to goTypeName runs through baseGoName so cross-package
 // type strings ("subpkg.Foo") or hyphenated names yield valid Go
@@ -778,7 +796,13 @@ func mapValueTypeName(goType string) string {
 //
 // Branches whose local names collide within one union are disambiguated by
 // deduplicateAccessorNames, which is why this can safely discard the qualifier.
-func deriveBranchName(ref *openapi3.SchemaRef, goTypeName, schemaKey string) string {
+//
+// unionKey is the union's own schema key; a branch listed in
+// releasedBranchNames for it keeps that name ahead of everything else.
+func deriveBranchName(ref *openapi3.SchemaRef, goTypeName, unionKey, schemaKey string) string {
+	if name, ok := releasedBranchNames[unionBranchKey{union: unionKey, branch: schemaKey}]; ok {
+		return name
+	}
 	// Prefer the spec title if available.
 	if ref.Value != nil && ref.Value.Title != "" {
 		return baseGoName(ref.Value.Title)

@@ -9,6 +9,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"slices"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -183,6 +184,34 @@ func refExtensionString(ref *openapi3.SchemaRef, key string) string {
 		return ""
 	}
 	return extensionString(ref.Value.Extensions, key)
+}
+
+// dropRedundantRefTypeConjuncts removes the allOf entry kin-openapi adds for a
+// $ref's sibling keywords when that entry only restates the referenced type.
+//
+// Under OpenAPI 3.1 kin-openapi applies annotation siblings such as description
+// to the resolved schema, but appends every other sibling as one more allOf
+// entry, so `type: string` next to a $ref to a string enum resolves to the enum
+// plus allOf: [{type: string}]. The generator reads any allOf as a composed
+// object and would emit an empty struct for it. Entries that add a real
+// constraint are kept, so they still surface in the generated diff.
+func dropRedundantRefTypeConjuncts(spec *openapi3.T) error {
+	return spec.WalkSchemas(func(_ string, ref *openapi3.SchemaRef) error {
+		s := ref.Value
+		if ref.Ref == "" || len(s.AllOf) == 0 {
+			return nil
+		}
+		last := s.AllOf[len(s.AllOf)-1]
+		if last.Ref != "" || last.Value == nil || !slices.Equal(last.Value.Type.Slice(), s.Type.Slice()) {
+			return nil
+		}
+		conjunct := *last.Value
+		conjunct.Type = nil
+		if conjunct.IsEmpty() {
+			s.AllOf = s.AllOf[:len(s.AllOf)-1]
+		}
+		return nil
+	})
 }
 
 // extensionBool reads a bool-valued extension from a map.

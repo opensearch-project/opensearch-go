@@ -455,3 +455,47 @@ components:
 	// The description is overlaid, which is why descriptions never regressed.
 	require.Equal(t, "target description", prop.Value.Description)
 }
+
+func TestDropRedundantRefTypeConjuncts(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		siblings  string // YAML lines written next to the $ref
+		wantAllOf int
+	}{
+		{name: "type repeating the target's is dropped", siblings: "type: string", wantAllOf: 0},
+		{name: "a real constraint is kept", siblings: "maxLength: 3", wantAllOf: 1},
+		{name: "type plus a constraint is kept", siblings: "type: string\n          maxLength: 3", wantAllOf: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    Status:
+      type: string
+      enum: [green, red]
+    Probe:
+      type: object
+      properties:
+        status:
+          description: The probe status.
+          $ref: '#/components/schemas/Status'
+          ` + tt.siblings + "\n"
+
+			spec, err := openapi3.NewLoader().LoadFromData([]byte(doc))
+			require.NoError(t, err)
+			require.NoError(t, dropRedundantRefTypeConjuncts(spec))
+
+			prop := spec.Components.Schemas["Probe"].Value.Properties["status"]
+			require.Len(t, prop.Value.AllOf, tt.wantAllOf)
+			require.Equal(t, []string{"string"}, prop.Value.Type.Slice())
+			require.Equal(t, "The probe status.", prop.Value.Description)
+		})
+	}
+}

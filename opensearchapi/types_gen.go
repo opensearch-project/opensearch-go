@@ -2438,11 +2438,13 @@ type ScriptField struct {
 
 // The nested path sort options.
 type NestedSortValue struct {
+	// Filter is the filter to apply to nested objects.
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 
 	// MaxChildren is the maximum number of children to consider for sorting.
 	MaxChildren *int `json:"max_children,omitempty"`
 
+	// Nested. How to sort hierarchical nested objects.
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
 	// Path is the path to the nested objects.
@@ -2757,6 +2759,7 @@ type CommonQueryDSLKNNQuery struct {
 	// Available: >= 2.19.0.
 	ExpandNestedDocs *bool `json:"expand_nested_docs,omitempty"`
 
+	// Filter is the filter for the k-NN search query.
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 
 	// K is the total number of nearest neighbors to return as top hits.

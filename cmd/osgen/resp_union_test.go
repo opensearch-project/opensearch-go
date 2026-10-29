@@ -196,6 +196,34 @@ func TestResolveUnionType(t *testing.T) {
 			wantCount:         2,
 			wantBranch:        []string{"Object0", "Object1"},
 		},
+		{
+			// A pinned branch keeps its released name over the spec title; an
+			// unpinned sibling still takes its title.
+			name: "pinned branch name overrides title",
+			schema: &openapi3.Schema{
+				OneOf: openapi3.SchemaRefs{
+					{
+						Ref: "#/components/schemas/_common___BulkByScrollTaskStatus",
+						Value: &openapi3.Schema{
+							Title: "status", Type: &openapi3.Types{"object"},
+							Properties: openapi3.Schemas{"a": {Value: openapi3.NewStringSchema()}},
+						},
+					},
+					{
+						Ref: "#/components/schemas/_common___ErrorCause",
+						Value: &openapi3.Schema{
+							Title: "exception", Type: &openapi3.Types{"object"},
+							Properties: openapi3.Schemas{"b": {Value: openapi3.NewStringSchema()}},
+						},
+					},
+				},
+			},
+			schemaKey:         "_common___BulkByScrollTaskStatusOrException",
+			wantName:          "BulkByScrollTaskStatusOrException",
+			wantAmbiguousWire: true,
+			wantCount:         2,
+			wantBranch:        []string{"BulkByScrollTaskStatus", "Exception"},
+		},
 	}
 
 	for _, tt := range tests {
