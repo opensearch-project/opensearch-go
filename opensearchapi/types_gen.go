@@ -692,14 +692,9 @@ type SearchHitsMetadata struct {
 	Total *SearchHitsMetadataTotal `json:"total,omitempty"`
 }
 
-type SearchHitsMetadataJSONValue struct {
-	SearchHitsMetadata
-	Hits []SearchHit `json:"hits,omitempty"`
-}
-
 type CommonAggregationsTopHitsAggregate struct {
 	CommonAggregationsAggregateBase
-	Hits SearchHitsMetadataJSONValue `json:"hits"`
+	Hits SearchHitsMetadata `json:"hits"`
 }
 
 // Terms bucket for `unsigned_long` field type. The server returns 64-bit unsigned integer values
@@ -9495,19 +9490,8 @@ type KNNModelResponse struct {
 	TrainingNodeAssignment *string `json:"training_node_assignment,omitempty"`
 }
 
-type SearchResultJSONValueHits struct {
-	SearchHitsMetadata
-	Hits []SearchHit `json:"hits,omitempty"`
-}
-
-type SearchResultJSONValueSuggestValueItemCompletion struct {
-	SearchCompletionSuggest
-	Options *SearchResultJSONValueSuggestValueItemCompletionOptions `json:"options,omitempty"`
-}
-
 type SearchResultJSONValue struct {
 	SearchResult
-	Hits    *SearchResultJSONValueHits                         `json:"hits,omitempty"`
 	Suggest map[string][]SearchResultJSONValueSuggestValueItem `json:"suggest,omitempty"`
 }
 

@@ -25582,198 +25582,6 @@ func (u ISMPolicyTemplate) MarshalJSONTo(enc *json.TextEncoder) error {
 	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
-// SearchResultJSONValueSuggestValueItemCompletionOptions is a oneOf union whose branches decode from different JSON tokens.
-// The spec declares no discriminator, but each branch is a different JSON token
-// class (object, array, string, number, boolean), so the payload's first byte
-// selects one.
-//
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type SearchResultJSONValueSuggestValueItemCompletionOptions struct {
-	typ   SearchResultJSONValueSuggestValueItemCompletionOptionsType
-	raw   json.RawMessage
-	value any
-}
-
-// SearchResultJSONValueSuggestValueItemCompletionOptionsType names which branch of SearchResultJSONValueSuggestValueItemCompletionOptions is set.
-type SearchResultJSONValueSuggestValueItemCompletionOptionsType int
-
-const (
-	SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType SearchResultJSONValueSuggestValueItemCompletionOptionsType = iota
-	SearchResultJSONValueSuggestValueItemCompletionOptionsTextType
-	SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t SearchResultJSONValueSuggestValueItemCompletionOptionsType) String() string {
-	switch t {
-	case SearchResultJSONValueSuggestValueItemCompletionOptionsTextType:
-		return "Text"
-	case SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType if the value has not been decoded.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Type() SearchResultJSONValueSuggestValueItemCompletionOptionsType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) RawJSON() json.RawMessage {
-	return u.raw
-}
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchResultJSONValueSuggestValueItemCompletionOptionsFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
-}
-
-// Text returns the SearchCompletionSuggestOption branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero SearchCompletionSuggestOption in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Text() (SearchCompletionSuggestOption, error) {
-	if v, ok := u.value.(*SearchCompletionSuggestOption); ok {
-		return *v, nil
-	}
-	var zero SearchCompletionSuggestOption
-	return zero, &UnionBranchError{Union: "SearchResultJSONValueSuggestValueItemCompletionOptions", Want: "Text", Got: u.typ.String()}
-}
-
-// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromText returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
-// on the Text branch.
-func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromText(v SearchCompletionSuggestOption) SearchResultJSONValueSuggestValueItemCompletionOptions {
-	return SearchResultJSONValueSuggestValueItemCompletionOptions{
-		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsTextType,
-		value: &v,
-	}
-}
-
-// Array returns the []SearchCompletionSuggestOption branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []SearchCompletionSuggestOption in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Array() ([]SearchCompletionSuggestOption, error) {
-	if v, ok := u.value.(*[]SearchCompletionSuggestOption); ok {
-		return *v, nil
-	}
-	var zero []SearchCompletionSuggestOption
-	return zero, &UnionBranchError{Union: "SearchResultJSONValueSuggestValueItemCompletionOptions", Want: "Array", Got: u.typ.String()}
-}
-
-// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
-// on the Array branch.
-func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray(v []SearchCompletionSuggestOption) SearchResultJSONValueSuggestValueItemCompletionOptions {
-	return SearchResultJSONValueSuggestValueItemCompletionOptions{
-		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType,
-		value: &v,
-	}
-}
-
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '{':
-		var v SearchCompletionSuggestOption
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsTextType
-		u.value = &v
-	case data[0] == '[':
-		var v []SearchCompletionSuggestOption
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("SearchResultJSONValueSuggestValueItemCompletionOptions: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
-// dec rather than a parse of bytes dec has already scanned. The JSON codec the
-// client decodes with calls it in place of UnmarshalJSON.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSONFrom(dec *json.TextDecoder) error {
-	u.raw = nil
-	u.value = nil
-	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
-	mark := json.MarkOf(dec)
-	switch json.PeekKind(dec) {
-	case 'n':
-		if _, err := dec.ReadValue(); err != nil {
-			return err
-		}
-		u.raw = mark.Consumed(dec)
-		return nil
-	case '{':
-		var v SearchCompletionSuggestOption
-		if err := json.UnmarshalDecode(dec, &v); err != nil {
-			return err
-		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsTextType
-		u.value = &v
-	case '[':
-		var v []SearchCompletionSuggestOption
-		if err := json.UnmarshalDecode(dec, &v); err != nil {
-			return err
-		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
-		u.value = &v
-	default:
-		// Read the value, so that an invalid one reports its syntax error and a
-		// valid one of no branch's kind its first byte.
-		if _, err := dec.ReadValue(); err != nil {
-			return err
-		}
-		return fmt.Errorf("SearchResultJSONValueSuggestValueItemCompletionOptions: unexpected JSON token: %s", mark.Consumed(dec)[:1])
-	}
-	u.raw = mark.Consumed(dec)
-	return nil
-}
-
-func (u SearchResultJSONValueSuggestValueItemCompletionOptions) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
-// encoding the branch into bytes of its own first. The JSON codec the client
-// encodes with calls it in place of MarshalJSON.
-func (u SearchResultJSONValueSuggestValueItemCompletionOptions) MarshalJSONTo(enc *json.TextEncoder) error {
-	if u.value != nil {
-		return json.MarshalEncode(enc, u.value)
-	}
-	if len(u.raw) > 0 {
-		return enc.WriteValue(json.TextValue(u.raw))
-	}
-	return enc.WriteValue(json.TextValue(build.NullJSON))
-}
-
 // SearchResultJSONValueSuggestValueItem is a oneOf union whose branch the request selects.
 //
 // The spec declares no discriminator because the response payload carries no
@@ -25813,23 +25621,23 @@ func (u *SearchResultJSONValueSuggestValueItem) IsZero() bool {
 	return u.value == nil && len(u.raw) == 0
 }
 
-// AsCompletion decodes the union as SearchResultJSONValueSuggestValueItemCompletion, the branch the caller
+// AsCompletion decodes the union as SearchCompletionSuggest, the branch the caller
 // requested. It returns (zero, nil) when the union holds nothing -- test IsZero
 // to tell that from a branch that decoded to a zero value.
 //
 // It returns a *UnionBranchError when the retained bytes cannot be a
-// SearchResultJSONValueSuggestValueItemCompletion: either they fail to decode, or they lack a property the
+// SearchCompletionSuggest: either they fail to decode, or they lack a property the
 // branch requires. encoding/json ignores unknown properties, so the required-key
 // probe is what catches a payload of the wrong shape entirely (asking a bucket
 // aggregate for a single-metric one).
 //
 // It cannot catch a DIFFERENT branch that shares this one's wire shape; see
 // SearchResultJSONValueSuggestValueItem for why nothing in the payload could.
-func (u *SearchResultJSONValueSuggestValueItem) AsCompletion() (SearchResultJSONValueSuggestValueItemCompletion, error) {
-	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletion); ok {
+func (u *SearchResultJSONValueSuggestValueItem) AsCompletion() (SearchCompletionSuggest, error) {
+	if v, ok := u.value.(*SearchCompletionSuggest); ok {
 		return *v, nil
 	}
-	var v SearchResultJSONValueSuggestValueItemCompletion
+	var v SearchCompletionSuggest
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -25855,7 +25663,7 @@ func (u *SearchResultJSONValueSuggestValueItem) AsCompletion() (SearchResultJSON
 
 // NewSearchResultJSONValueSuggestValueItemFromCompletion returns a SearchResultJSONValueSuggestValueItem populated with v
 // on the Completion branch.
-func NewSearchResultJSONValueSuggestValueItemFromCompletion(v SearchResultJSONValueSuggestValueItemCompletion) SearchResultJSONValueSuggestValueItem {
+func NewSearchResultJSONValueSuggestValueItemFromCompletion(v SearchCompletionSuggest) SearchResultJSONValueSuggestValueItem {
 	return SearchResultJSONValueSuggestValueItem{
 		value: &v,
 	}
