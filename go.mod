@@ -6,7 +6,7 @@ toolchain go1.26.9
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.4
-	github.com/aws/aws-sdk-go-v2/config v1.33.9
+	github.com/aws/aws-sdk-go-v2/config v1.33.10
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.10
 	github.com/stretchr/testify v1.12.1
 	github.com/wI2L/jsondiff v0.7.1
