@@ -6,7 +6,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add the workload management operations `wlm.Client.Stats`, `CreateWorkloadGroup`, `GetWorkloadGroup`, `UpdateWorkloadGroup` and `DeleteWorkloadGroup`, `list.Client.WLMStats` for `GET /_list/wlm_stats`, and `search_relevance.Client.PatchExperiment`, from the spec corrections in opensearch-api-specification#1113.
+- `cmd/osapilint`: migrate code written against v5.0 or v5.1 to v5.2. Hops are keyed by release line instead of major, so a break within one major gets its own hop; the source line is read from the imports and the opensearch-go version `go.mod` requires, and `-src`/`-dst` accept a minor (`v5.1`, `v5.2`). The v5 -> v5.2 hop renames `SearchSuggestCompletion` and `MLSearchHits`, renames `InsightsTopQuery.QueryHashcode` to `QueryGroupHashcode`, drops the removed asynchronous search `Took` fields, and lists the rest as manual follow-ups. `MigrateSDK` keeps its signature, and `SDKResult` gains `FromVersion` and `ToVersion`.
+
 ### Changed
+
+- **BREAKING**: Regenerate `opensearchapi` and the plugin packages from a spec checked against the OpenSearch server and plugin source (opensearch-api-specification#1113). Search hit scores are `float32`, ML and flow framework search hits compose with `SearchHit` and decode a typed `_source`, `SearchSuggestCompletion` becomes `SearchCompletionSuggest`, histogram bounds are typed, and plugin fields take the types the server sends. Code written against v5.0 or v5.1 may not compile; run `osapilint rewrite -w ./...` and see [`UPGRADING_V5.md`](UPGRADING_V5.md#generated-types-corrected-against-the-server-in-52) for the rest.
 
 ### Deprecated
 
@@ -14,6 +19,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- `cmd/osgen`: keep the base's fields when an `allOf` member narrows a property the base declares. A concrete `_source` override no longer collapses a hit to `SearchHit`, an override that restates the base exactly no longer creates a separate type, and an inline object override of an object property embeds the base, so ML search hits keep `total` and `max_score`.
+- `cmd/osapilint`: rename a type reference in place, so a renamed type that ends a parameter list no longer prints as `T,)`.
 - Keep nodes available when a transport attempt returns an error while the caller's context is canceled or its deadline has expired, including seed fallback. These failures no longer demote the node, invalidate shard placement, or trigger a retry. ([#1254](https://github.com/opensearch-project/opensearch-go/pull/1254))
 - `cmd/osapilint`: classify four v4 params fields that v5 dropped from the same-named params types, so the v4 -> v5 run no longer aborts with an `osapilint bug` error on code that uses them. `SearchParams.Query` and `UpdateByQueryParams.Query` are renamed to `Q`, which v4 already sent as `q`. `SearchParams.MinCompatibleShardNode` and `UpdateByQueryParams.VersionType` have no v5 param and are reported `MANUAL`, because dropping them would change the request ([#1256](https://github.com/opensearch-project/opensearch-go/pull/1256))
 - `cmd/osgen`: generate the same types under kin-openapi 0.152.0 as under 0.151.0. A `type` next to a `$ref` that only repeats the referenced schema's type no longer turns the property into an empty struct, so the `MLGetStatsResponse` index status fields stay `*string`. `BulkByScrollTaskStatusOrException` keeps the `BulkByScrollTaskStatus()` accessor, `NewBulkByScrollTaskStatusOrExceptionFromBulkByScrollTaskStatus` and `BulkByScrollTaskStatusOrExceptionBulkByScrollTaskStatusType` from v5.0.0 instead of being renamed after the spec's `status` title. Three fields on reference cycles get the descriptions the spec gives them. ([#1258](https://github.com/opensearch-project/opensearch-go/pull/1258))
