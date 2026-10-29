@@ -40,10 +40,26 @@ CommonAggregationsUnsignedLongTermsAggregate/buckets/CommonAggregationsMultiBuck
 CommonAggregationsVariableWidthHistogramAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsVariableWidthHistogramAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 
 # --- _core.search ---
+SearchHitsMetadataJSONValue/hits/SearchHitsMetadata # redundant redeclaration: []SearchHit shadows SearchHitsMetadata.hits []SearchHit; makes a required field optional
+SearchResultHits/hits/SearchHitsMetadata # redundant redeclaration: []SearchHit shadows SearchHitsMetadata.hits []SearchHit; makes a required field optional
+SearchResultJSONValue/hits/SearchResult # intentional narrowing: *SearchResultJSONValueHits shadows SearchResult.hits SearchResultHits; makes a required field optional
 SearchResultJSONValue/suggest/SearchResult # intentional narrowing: map[string][]SearchResultJSONValueSuggestValueItem shadows SearchResult.suggest map[string][]SearchSuggest
+SearchResultJSONValueSuggestValueItemCompletion/options/SearchCompletionSuggest # intentional narrowing: *SearchResultJSONValueSuggestValueItemCompletionOptions shadows SearchCompletionSuggest.options SearchCompletionSuggestOptions; makes a required field optional
 SearchSuggestCompletion/options/SearchCompletionSuggest # intentional narrowing: *SearchSuggestCompletionOptions shadows SearchCompletionSuggest.options SearchCompletionSuggestOptions; makes a required field optional
+
+# --- ml._common ---
+MLSearchResponse/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchAgenticMemoryResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchAgentsResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchConnectorsResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchMemoryContainerResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchMemoryResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchMessageResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchModelGroupResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
+SearchTasksResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchResultHits; makes a required field optional
 
 # --- neural._common ---
 NeuralInfoCounterStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
 NeuralInfoStringStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
+NeuralMemoryStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
 NeuralTimestampedEventCounterStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string

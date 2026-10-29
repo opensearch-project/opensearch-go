@@ -3031,6 +3031,98 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/list.shards___200'
+  /_list/wlm_stats:
+    get:
+      operationId: list.wlm_stats.0
+      x-operation-group: list.wlm_stats
+      x-version-added: '3.1'
+      description: Returns paginated workload management statistics in tabular form.
+      parameters:
+        - $ref: '#/components/parameters/list.wlm_stats___query.breach'
+        - $ref: '#/components/parameters/list.wlm_stats___query.format'
+        - $ref: '#/components/parameters/list.wlm_stats___query.next_token'
+        - $ref: '#/components/parameters/list.wlm_stats___query.order'
+        - $ref: '#/components/parameters/list.wlm_stats___query.size'
+        - $ref: '#/components/parameters/list.wlm_stats___query.sort'
+        - $ref: '#/components/parameters/list.wlm_stats___query.v'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/list.wlm_stats___200'
+  /_list/wlm_stats/{node_id}/stats:
+    get:
+      operationId: list.wlm_stats.2
+      x-operation-group: list.wlm_stats
+      x-version-added: '3.1'
+      description: Returns paginated workload management statistics in tabular form.
+      parameters:
+        - $ref: '#/components/parameters/list.wlm_stats___path.node_id'
+        - $ref: '#/components/parameters/list.wlm_stats___query.breach'
+        - $ref: '#/components/parameters/list.wlm_stats___query.format'
+        - $ref: '#/components/parameters/list.wlm_stats___query.next_token'
+        - $ref: '#/components/parameters/list.wlm_stats___query.order'
+        - $ref: '#/components/parameters/list.wlm_stats___query.size'
+        - $ref: '#/components/parameters/list.wlm_stats___query.sort'
+        - $ref: '#/components/parameters/list.wlm_stats___query.v'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/list.wlm_stats___200'
+  /_list/wlm_stats/{node_id}/stats/{workload_group_id}:
+    get:
+      operationId: list.wlm_stats.3
+      x-operation-group: list.wlm_stats
+      x-version-added: '3.1'
+      description: Returns paginated workload management statistics in tabular form.
+      parameters:
+        - $ref: '#/components/parameters/list.wlm_stats___path.node_id'
+        - $ref: '#/components/parameters/list.wlm_stats___path.workload_group_id'
+        - $ref: '#/components/parameters/list.wlm_stats___query.breach'
+        - $ref: '#/components/parameters/list.wlm_stats___query.format'
+        - $ref: '#/components/parameters/list.wlm_stats___query.next_token'
+        - $ref: '#/components/parameters/list.wlm_stats___query.order'
+        - $ref: '#/components/parameters/list.wlm_stats___query.size'
+        - $ref: '#/components/parameters/list.wlm_stats___query.sort'
+        - $ref: '#/components/parameters/list.wlm_stats___query.v'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/list.wlm_stats___200'
+  /_list/wlm_stats/stats/{workload_group_id}:
+    get:
+      operationId: list.wlm_stats.1
+      x-operation-group: list.wlm_stats
+      x-version-added: '3.1'
+      description: Returns paginated workload management statistics in tabular form.
+      parameters:
+        - $ref: '#/components/parameters/list.wlm_stats___path.workload_group_id'
+        - $ref: '#/components/parameters/list.wlm_stats___query.breach'
+        - $ref: '#/components/parameters/list.wlm_stats___query.format'
+        - $ref: '#/components/parameters/list.wlm_stats___query.next_token'
+        - $ref: '#/components/parameters/list.wlm_stats___query.order'
+        - $ref: '#/components/parameters/list.wlm_stats___query.size'
+        - $ref: '#/components/parameters/list.wlm_stats___query.sort'
+        - $ref: '#/components/parameters/list.wlm_stats___query.v'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/list.wlm_stats___200'
   /_ltr:
     delete:
       operationId: ltr.delete_default_store.0
@@ -8217,6 +8309,23 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/search_relevance.get_experiments___200'
+    patch:
+      operationId: search_relevance.patch_experiment.0
+      x-operation-group: search_relevance.patch_experiment
+      x-version-added: '3.6'
+      description: Partially updates an experiment's name or description.
+      parameters:
+        - $ref: '#/components/parameters/search_relevance.patch_experiment___path.experiment_id'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      requestBody:
+        $ref: '#/components/requestBodies/search_relevance.patch_experiment'
+      responses:
+        '200':
+          $ref: '#/components/responses/search_relevance.patch_experiment___200'
   /_plugins/_search_relevance/experiments/schedule:
     get:
       operationId: search_relevance.get_scheduled_experiments.0
@@ -12906,6 +13015,45 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/indices.validate_query___200'
+  /_wlm/{node_id}/stats:
+    get:
+      operationId: wlm.stats.2
+      x-operation-group: wlm.stats
+      x-version-added: '2.18'
+      description: Retrieves workload management statistics for workload groups on one or more nodes.
+      externalDocs:
+        url: https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/workload-management/wlm-feature-overview/
+      parameters:
+        - $ref: '#/components/parameters/wlm.stats___path.node_id'
+        - $ref: '#/components/parameters/wlm.stats___query.breach'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.stats___200'
+  /_wlm/{node_id}/stats/{workload_group_id}:
+    get:
+      operationId: wlm.stats.3
+      x-operation-group: wlm.stats
+      x-version-added: '2.18'
+      description: Retrieves workload management statistics for workload groups on one or more nodes.
+      externalDocs:
+        url: https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/workload-management/wlm-feature-overview/
+      parameters:
+        - $ref: '#/components/parameters/wlm.stats___path.node_id'
+        - $ref: '#/components/parameters/wlm.stats___path.workload_group_id'
+        - $ref: '#/components/parameters/wlm.stats___query.breach'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.stats___200'
   /_wlm/query_group:
     get:
       operationId: wlm.get_query_group.0
@@ -12925,6 +13073,7 @@ paths:
       operationId: wlm.create_query_group.0
       x-operation-group: wlm.create_query_group
       x-version-added: '2.17'
+      x-version-removed: 3.0.0
       description: Creates a new query group and sets the resource limits for the new query group.
       requestBody:
         $ref: '#/components/requestBodies/wlm.create_query_group'
@@ -12942,6 +13091,7 @@ paths:
       operationId: wlm.delete_query_group.0
       x-operation-group: wlm.delete_query_group
       x-version-added: '2.17'
+      x-version-removed: 3.0.0
       description: Deletes the specified query group.
       parameters:
         - $ref: '#/components/parameters/wlm.delete_query_group___path.name'
@@ -12957,6 +13107,7 @@ paths:
       operationId: wlm.get_query_group.1
       x-operation-group: wlm.get_query_group
       x-version-added: '2.17'
+      x-version-removed: 3.0.0
       description: Retrieves the specified query group. If no query group is specified, all query groups in the cluster are retrieved.
       parameters:
         - $ref: '#/components/parameters/wlm.get_query_group___path.name'
@@ -12972,6 +13123,7 @@ paths:
       operationId: wlm.update_query_group.0
       x-operation-group: wlm.update_query_group
       x-version-added: '2.17'
+      x-version-removed: 3.0.0
       description: Updates the specified query group.
       parameters:
         - $ref: '#/components/parameters/wlm.update_query_group___path.name'
@@ -12985,6 +13137,122 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/wlm.update_query_group___200'
+  /_wlm/stats:
+    get:
+      operationId: wlm.stats.0
+      x-operation-group: wlm.stats
+      x-version-added: '2.18'
+      description: Retrieves workload management statistics for workload groups on one or more nodes.
+      externalDocs:
+        url: https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/workload-management/wlm-feature-overview/
+      parameters:
+        - $ref: '#/components/parameters/wlm.stats___query.breach'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.stats___200'
+  /_wlm/stats/{workload_group_id}:
+    get:
+      operationId: wlm.stats.1
+      x-operation-group: wlm.stats
+      x-version-added: '2.18'
+      description: Retrieves workload management statistics for workload groups on one or more nodes.
+      externalDocs:
+        url: https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/workload-management/wlm-feature-overview/
+      parameters:
+        - $ref: '#/components/parameters/wlm.stats___path.workload_group_id'
+        - $ref: '#/components/parameters/wlm.stats___query.breach'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.stats___200'
+  /_wlm/workload_group:
+    get:
+      operationId: wlm.get_workload_group.0
+      x-operation-group: wlm.get_workload_group
+      x-version-added: 3.0.0
+      description: Retrieves the specified workload group. If no workload group is specified, all workload groups in the cluster are retrieved.
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.get_workload_group___200'
+      parameters:
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+    put:
+      operationId: wlm.create_workload_group.0
+      x-operation-group: wlm.create_workload_group
+      x-version-added: 3.0.0
+      description: Creates a new workload group and sets the resource limits for the new workload group.
+      requestBody:
+        $ref: '#/components/requestBodies/wlm.create_workload_group'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.create_workload_group___200'
+      parameters:
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+  /_wlm/workload_group/{name}:
+    delete:
+      operationId: wlm.delete_workload_group.0
+      x-operation-group: wlm.delete_workload_group
+      x-version-added: 3.0.0
+      description: Deletes the specified workload group.
+      parameters:
+        - $ref: '#/components/parameters/wlm.delete_workload_group___path.name'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.delete_workload_group___200'
+    get:
+      operationId: wlm.get_workload_group.1
+      x-operation-group: wlm.get_workload_group
+      x-version-added: 3.0.0
+      description: Retrieves the specified workload group. If no workload group is specified, all workload groups in the cluster are retrieved.
+      parameters:
+        - $ref: '#/components/parameters/wlm.get_workload_group___path.name'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.get_workload_group___200'
+    put:
+      operationId: wlm.update_workload_group.0
+      x-operation-group: wlm.update_workload_group
+      x-version-added: 3.0.0
+      description: Updates the specified workload group.
+      parameters:
+        - $ref: '#/components/parameters/wlm.update_workload_group___path.name'
+        - $ref: '#/components/parameters/_global___query.pretty'
+        - $ref: '#/components/parameters/_global___query.human'
+        - $ref: '#/components/parameters/_global___query.error_trace'
+        - $ref: '#/components/parameters/_global___query.source'
+        - $ref: '#/components/parameters/_global___query.filter_path'
+      requestBody:
+        $ref: '#/components/requestBodies/wlm.update_workload_group'
+      responses:
+        '200':
+          $ref: '#/components/responses/wlm.update_workload_group___200'
   /{alias}/_rollover:
     post:
       operationId: indices.rollover.0
@@ -26103,6 +26371,74 @@ components:
         type: boolean
         default: false
         description: Verbose mode. Display column headers.
+    list.wlm_stats___path.node_id:
+      in: path
+      name: node_id
+      description: A comma-separated list of node IDs or names used to limit the returned statistics.
+      required: true
+      schema:
+        $ref: '#/components/schemas/_common___NodeIds'
+      style: simple
+    list.wlm_stats___path.workload_group_id:
+      in: path
+      name: workload_group_id
+      description: A comma-separated list of workload group IDs used to limit the returned statistics. Use `_all` to return statistics for every workload group.
+      required: true
+      schema:
+        $ref: '#/components/schemas/wlm._common___WorkloadGroupIds'
+      style: simple
+    list.wlm_stats___query.breach:
+      name: breach
+      in: query
+      description: When `true`, returns only workload groups that have breached their resource limits.
+      schema:
+        type: boolean
+      style: form
+    list.wlm_stats___query.format:
+      name: format
+      in: query
+      description: A short version of the Accept header, such as `JSON`, `YAML`.
+      schema:
+        $ref: '#/components/schemas/list._common___ResponseFormat'
+    list.wlm_stats___query.next_token:
+      name: next_token
+      in: query
+      description: Token used to retrieve the next page of workload management statistics.
+      schema:
+        type:
+          - 'null'
+          - string
+        description: Token used to retrieve the next page of workload management statistics.
+    list.wlm_stats___query.order:
+      name: order
+      in: query
+      description: The sort direction of the page. Allowed values are `asc` and `desc`. Defaults to `asc`.
+      schema:
+        $ref: '#/components/schemas/_common___SortOrder'
+    list.wlm_stats___query.size:
+      name: size
+      in: query
+      description: The maximum number of node and workload group combinations to return in a page. Allowed range is 1 to 100.
+      schema:
+        type: integer
+        format: int32
+        default: 10
+        minimum: 1
+        maximum: 100
+    list.wlm_stats___query.sort:
+      name: sort
+      in: query
+      description: The field used to sort results. Allowed values are `node_id` and `workload_group`. Defaults to `node_id`.
+      schema:
+        $ref: '#/components/schemas/wlm._common___WlmStatsSortBy'
+    list.wlm_stats___query.v:
+      name: v
+      in: query
+      description: Verbose mode. Display column headers.
+      schema:
+        type: boolean
+        default: false
+        description: Verbose mode. Display column headers.
     ltr.add_features_to_set_by_query___path.name:
       name: name
       in: path
@@ -28524,6 +28860,13 @@ components:
       in: query
       required: false
       description: Whether to include metadata
+      schema:
+        type: string
+    search_relevance.patch_experiment___path.experiment_id:
+      name: experiment_id
+      in: path
+      required: true
+      description: The experiment id.
       schema:
         type: string
     search_shards___path.index:
@@ -31051,6 +31394,13 @@ components:
       schema:
         type: string
       required: true
+    wlm.delete_workload_group___path.name:
+      name: name
+      in: path
+      description: The name of the workload group.
+      schema:
+        type: string
+      required: true
     wlm.get_query_group___path.name:
       name: name
       in: path
@@ -31058,10 +31408,47 @@ components:
       schema:
         type: string
       required: true
+    wlm.get_workload_group___path.name:
+      name: name
+      in: path
+      description: The name of the workload group.
+      schema:
+        type: string
+      required: true
+    wlm.stats___path.node_id:
+      name: node_id
+      in: path
+      description: A comma-separated list of node IDs or names used to limit the returned statistics.
+      required: true
+      schema:
+        $ref: '#/components/schemas/_common___NodeIds'
+      style: simple
+    wlm.stats___path.workload_group_id:
+      name: workload_group_id
+      in: path
+      description: A comma-separated list of workload group IDs used to limit the returned statistics. Use `_all` to return statistics for every workload group.
+      required: true
+      schema:
+        $ref: '#/components/schemas/wlm._common___WorkloadGroupIds'
+      style: simple
+    wlm.stats___query.breach:
+      name: breach
+      in: query
+      description: When `true`, returns only workload groups that have breached their resource limits.
+      schema:
+        type: boolean
+      style: form
     wlm.update_query_group___path.name:
       name: name
       in: path
       description: The name of the query group.
+      schema:
+        type: string
+      required: true
+    wlm.update_workload_group___path.name:
+      name: name
+      in: path
+      description: The name of the workload group.
       schema:
         type: string
       required: true
@@ -33163,6 +33550,11 @@ components:
           schema:
             $ref: '#/components/schemas/search_pipeline._common___SearchPipelineStructure'
       required: true
+    search_relevance.patch_experiment:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/search_relevance._common___PatchExperimentRequest'
     search_relevance.post_query_sets:
       content:
         application/json:
@@ -33726,11 +34118,23 @@ components:
           schema:
             $ref: '#/components/schemas/wlm._common___QueryGroupCreate'
       required: true
+    wlm.create_workload_group:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupCreate'
+      required: true
     wlm.update_query_group:
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/wlm._common___QueryGroupUpdate'
+      required: true
+    wlm.update_workload_group:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupUpdate'
       required: true
   responses:
     asynchronous_search.delete___200:
@@ -35716,7 +36120,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
+            $ref: '#/components/schemas/knn._common___ModelResponse'
       description: ''
     knn.search_models___200:
       content:
@@ -35863,6 +36267,24 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/cat.shards___ShardsRecord'
+      description: ''
+    list.wlm_stats___200:
+      content:
+        text/plain:
+          schema:
+            type: string
+        application/json:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WlmStatsListResponse'
+        application/yaml:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WlmStatsListResponse'
+        application/cbor:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WlmStatsListResponse'
+        application/smile:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WlmStatsListResponse'
       description: ''
     ltr.add_features_to_set_by_query___200:
       description: Successfully updated the feature set with filtered features.
@@ -36961,7 +37383,7 @@ components:
                 type: integer
                 format: int64
               total_hit_relation:
-                $ref: '#/components/schemas/notifications._common___TotalHitRelation'
+                $ref: '#/components/schemas/_common___TotalHitsRelation'
               channel_list:
                 type: array
                 items:
@@ -37491,6 +37913,12 @@ components:
                     type: object
                 required:
                   - nodes
+      description: ''
+    search_relevance.patch_experiment___200:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/search_relevance._common___PatchExperimentResponse'
       description: ''
     search_relevance.post_query_sets___200:
       content:
@@ -38827,7 +39255,22 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/wlm._common___QueryGroupResponse'
+    wlm.create_workload_group___200:
+      description: ''
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupResponse'
     wlm.delete_query_group___200:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              acknowledged:
+                type: boolean
+    wlm.delete_workload_group___200:
       description: ''
       content:
         application/json:
@@ -38847,12 +39290,35 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/wlm._common___QueryGroupResponse'
+    wlm.get_workload_group___200:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              workload_groups:
+                type: array
+                items:
+                  $ref: '#/components/schemas/wlm._common___WorkloadGroupResponse'
+    wlm.stats___200:
+      description: ''
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WlmStatsResponse'
     wlm.update_query_group___200:
       description: ''
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/wlm._common___QueryGroupResponse'
+    wlm.update_workload_group___200:
+      description: ''
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupResponse'
   schemas:
     _common.errors___BroadcastShards:
       description: |-
@@ -41872,6 +42338,14 @@ components:
       required:
         - bottom_left
         - top_right
+    _common___TotalHitsRelation:
+      oneOf:
+        - type: string
+          const: eq
+          description: Accurate.
+        - type: string
+          const: gte
+          description: Lower bound, including returned events or sequences.
     _common___TranslogStats:
       type: object
       description: The statistics about translog operations.
@@ -52634,7 +53108,7 @@ components:
           oneOf:
             - type: 'null'
             - type: number
-              format: double
+              format: float
         _explanation:
           $ref: '#/components/schemas/_core.explain___Explanation'
         fields:
@@ -52663,7 +53137,7 @@ components:
               type: object
               additionalProperties:
                 type: number
-                format: double
+                format: float
         _nested:
           $ref: '#/components/schemas/_core.search___NestedIdentity'
         _ignored:
@@ -52671,6 +53145,9 @@ components:
           items:
             type: string
         ignored_field_values:
+          deprecated: true
+          x-version-deprecated: 1.0.0
+          description: 'Elasticsearch-only field: not present in OpenSearch server responses.'
           type: object
           additionalProperties:
             type: array
@@ -52730,9 +53207,11 @@ components:
             hits:
               type: array
               items:
-                type: object
-                properties:
-                  _source: {}
+                allOf:
+                  - $ref: '#/components/schemas/_core.search___Hit'
+                  - type: object
+                    properties:
+                      _source: {}
     _core.search___InnerHits:
       type: object
       properties:
@@ -52910,7 +53389,7 @@ components:
           type: string
         score:
           type: number
-          format: double
+          format: float
         highlighted:
           type: string
         collate_match:
@@ -53128,10 +53607,12 @@ components:
                 hits:
                   type: array
                   items:
-                    type: object
-                    properties:
-                      _source:
-                        $ref: '#/components/schemas/_core.search___TDocument'
+                    allOf:
+                      - $ref: '#/components/schemas/_core.search___Hit'
+                      - type: object
+                        properties:
+                          _source:
+                            $ref: '#/components/schemas/_core.search___TDocument'
         processor_results:
           x-version-added: '3.0'
           type: array
@@ -53176,9 +53657,11 @@ components:
                 hits:
                   type: array
                   items:
-                    type: object
-                    properties:
-                      _source: {}
+                    allOf:
+                      - $ref: '#/components/schemas/_core.search___Hit'
+                      - type: object
+                        properties:
+                          _source: {}
             suggest:
               type: object
               additionalProperties:
@@ -53186,18 +53669,24 @@ components:
                 items:
                   oneOf:
                     - title: completion
-                      type: object
-                      properties:
-                        options:
-                          oneOf:
-                            - type: object
-                              properties:
-                                _source: {}
-                            - type: array
-                              items:
-                                type: object
-                                properties:
-                                  _source: {}
+                      allOf:
+                        - $ref: '#/components/schemas/_core.search___CompletionSuggest'
+                        - type: object
+                          properties:
+                            options:
+                              oneOf:
+                                - allOf:
+                                    - $ref: '#/components/schemas/_core.search___CompletionSuggestOption'
+                                    - type: object
+                                      properties:
+                                        _source: {}
+                                - type: array
+                                  items:
+                                    allOf:
+                                      - $ref: '#/components/schemas/_core.search___CompletionSuggestOption'
+                                      - type: object
+                                        properties:
+                                          _source: {}
                     - title: phrase
                       $ref: '#/components/schemas/_core.search___PhraseSuggest'
                     - title: term
@@ -53424,10 +53913,10 @@ components:
           type: string
         score:
           type: number
-          format: double
+          format: float
         freq:
           type: integer
-          format: int64
+          format: int32
         highlighted:
           type: string
         collate_match:
@@ -53439,21 +53928,13 @@ components:
       type: object
       properties:
         relation:
-          $ref: '#/components/schemas/_core.search___TotalHitsRelation'
+          $ref: '#/components/schemas/_common___TotalHitsRelation'
         value:
           type: integer
           format: int64
       required:
         - relation
         - value
-    _core.search___TotalHitsRelation:
-      oneOf:
-        - type: string
-          const: eq
-          description: Accurate.
-        - type: string
-          const: gte
-          description: Lower bound, including returned events or sequences.
     _core.search___TrackHits:
       description: |-
         The number of hits matching the query. When `true`, the exact
@@ -53594,22 +54075,31 @@ components:
       properties:
         submitted:
           type: integer
+          format: int64
         initialized:
           type: integer
+          format: int64
         search_failed:
           type: integer
+          format: int64
         search_completed:
           type: integer
+          format: int64
         rejected:
           type: integer
+          format: int64
         persist_failed:
           type: integer
+          format: int64
         cancelled:
           type: integer
+          format: int64
         running_current:
           type: integer
+          format: int64
         persisted:
           type: integer
+          format: int64
     asynchronous_search._common___NodesStats:
       type: object
       properties:
@@ -53623,13 +54113,15 @@ components:
         state:
           type: string
         start_time_in_millis:
-          type: number
+          type: integer
+          format: int64
         expiration_time_in_millis:
-          type: number
-        took:
-          type: number
+          type: integer
+          format: int64
         response:
           $ref: '#/components/schemas/_core.search___SearchResponse'
+        error:
+          $ref: '#/components/schemas/_common___ErrorCause'
     asynchronous_search._common___Search:
       type: object
       properties:
@@ -55504,6 +55996,18 @@ components:
           type:
             - 'null'
             - string
+        system:
+          description: whether the index is a system index
+          type:
+            - 'null'
+            - string
+          x-version-added: 3.9.0
+        system.description:
+          description: description from the matching system index descriptor
+          type:
+            - 'null'
+            - string
+          x-version-added: 3.9.0
         search.concurrent_query_current:
           type:
             - 'null'
@@ -57368,6 +57872,9 @@ components:
         workflows:
           type: object
           description: A map of workflows. Presently, only the provision key is supported. The value for the workflow key is a key-value map that includes fields for `user_params` and lists of nodes and edges.
+        ui_metadata:
+          type: object
+          description: A map of UI metadata.
       required:
         - name
     flow_framework.common___FlowFrameworkGetResponse:
@@ -57390,13 +57897,29 @@ components:
           $ref: '#/components/schemas/flow_framework.common___user'
         created_time:
           type: integer
+          format: int64
           description: When the workflow was created.
         last_updated_time:
           type: integer
+          format: int64
           description: When the workflow was last updated.
         last_provisioned_time:
-          type: number
+          type: integer
+          format: int64
           description: When the workflow was last provisioned.
+        ui_metadata:
+          type: object
+          description: A map of UI metadata.
+        tenant_id:
+          type: string
+          description: The tenant ID of the workflow.
+          x-version-added: 3.0.0
+        all_shared_principals:
+          type: array
+          items:
+            type: string
+          description: The entities this workflow is shared with.
+          x-version-added: 3.4.0
     flow_framework.common___FlowFrameworkUpdate:
       type: object
       properties:
@@ -57411,6 +57934,9 @@ components:
           description: A use case ID, which can be used with the Search Workflow API to find related workflows.
         workflows:
           type: object
+        ui_metadata:
+          type: object
+          description: A map of UI metadata.
         version:
           $ref: '#/components/schemas/flow_framework.common___version'
       minProperties: 1
@@ -57430,29 +57956,12 @@ components:
           items:
             $ref: '#/components/schemas/flow_framework.common___itemsObject'
     flow_framework.common___itemsObject:
-      type: object
-      properties:
-        _index:
-          type: string
-          description: The index name where the document resides.
-        _id:
-          type: string
-          description: The document ID.
-        _version:
-          type: integer
-          description: The version of the document.
-        _seq_no:
-          type: integer
-          description: The sequence number of the document.
-        _primary_term:
-          type: integer
-          description: The primary term of the document.
-        _score:
-          type: number
-          format: float
-          description: The score of the search hit.
-        _source:
-          $ref: '#/components/schemas/flow_framework.common___FlowFrameworkGetResponse'
+      allOf:
+        - $ref: '#/components/schemas/_core.search___Hit'
+        - type: object
+          properties:
+            _source:
+              $ref: '#/components/schemas/flow_framework.common___FlowFrameworkGetResponse'
     flow_framework.common___Provision:
       description: Whether to provision the workflow as part of the request.
       type: boolean
@@ -57509,20 +58018,7 @@ components:
           $ref: '#/components/schemas/_common.query_dsl___QueryContainer'
           description: The query used to search for workflows.
     flow_framework.common___shards:
-      type: object
-      properties:
-        total:
-          type: integer
-          description: The total number of shards involved in the deletion.
-        successful:
-          type: integer
-          description: The number of shards where the deletion was successful.
-        failed:
-          type: integer
-          description: The number of shards where the deletion failed.
-        skipped:
-          type: integer
-          description: The number of shards where the deletion was skipped.
+      $ref: '#/components/schemas/_common___ShardStatistics'
     flow_framework.common___StateHits:
       type: object
       properties:
@@ -57540,38 +58036,14 @@ components:
           items:
             $ref: '#/components/schemas/flow_framework.common___StateItems'
     flow_framework.common___StateItems:
-      type: object
-      properties:
-        _index:
-          type: string
-          description: The index name where the document resides.
-        _id:
-          type: string
-          description: The document ID.
-        _version:
-          type: integer
-          description: The version of the document.
-        _seq_no:
-          type: integer
-          description: The sequence number of the document.
-        _primary_term:
-          type: integer
-          description: The primary term of the document.
-        _score:
-          type: number
-          format: float
-          description: The score of the search hit.
-        _source:
-          $ref: '#/components/schemas/flow_framework.common___SearchStateResponse'
+      allOf:
+        - $ref: '#/components/schemas/_core.search___Hit'
+        - type: object
+          properties:
+            _source:
+              $ref: '#/components/schemas/flow_framework.common___SearchStateResponse'
     flow_framework.common___total:
-      type: object
-      properties:
-        value:
-          type: integer
-          description: The total number of matching documents.
-        relation:
-          type: string
-          description: The relation of the total hits.
+      $ref: '#/components/schemas/_core.search___TotalHits'
     flow_framework.common___UpdateFields:
       description: Whether to update only the fields included in the request body..
       type: boolean
@@ -57684,8 +58156,8 @@ components:
         resources_created:
           type: array
           items:
-            type: string
-          description: A list of resources created by the workflow
+            $ref: '#/components/schemas/flow_framework.common___ResourcesCreated'
+          description: A list of resources created by the workflow.
     flow_framework.common___WorkFlowStatusFullResponse:
       type: object
       properties:
@@ -57702,27 +58174,36 @@ components:
         resources_created:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/flow_framework.common___ResourcesCreated'
           description: A list of resources created by the workflow.
         provisioning_progress:
           type: string
           description: The current progress of the provisioning process.
           nullable: true
         provision_start_time:
-          type: string
-          format: date-time
-          description: When the provisioning process started.
+          type: integer
+          format: int64
+          description: When the provisioning process started, in epoch milliseconds.
         provision_end_time:
-          type: string
-          format: date-time
-          description: When the provisioning process completed.
+          type: integer
+          format: int64
+          description: When the provisioning process completed, in epoch milliseconds.
         user:
           $ref: '#/components/schemas/flow_framework.common___user'
         user_outputs:
+          type: object
+          additionalProperties: true
+          description: A map of essential API responses for backend use and lookup.
+        tenant_id:
+          type: string
+          description: The tenant ID of the workflow.
+          x-version-added: 3.0.0
+        all_shared_principals:
           type: array
           items:
             type: string
-          description: The list of outputs generated by the user.
+          description: The entities this workflow is shared with.
+          x-version-added: 3.4.0
     flow_framework.common___WorkflowStep:
       type: object
       description: A map of workflow steps and their configurations.
@@ -57757,17 +58238,12 @@ components:
       properties:
         error:
           type: string
-        status:
-          type: integer
-          description: The HTTP status code for the error.
     flow_framework.errors___ConflictError:
       type: object
       description: Indicates that conflicting parameters were provided in the request.
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___DeprovisioningError:
       type: object
       description: Indicates that some resources could not be deprovisioned and names the resources.
@@ -57791,25 +58267,18 @@ components:
         error:
           type: string
           description: Error message when a duplicate key is found in the request.
-        status:
-          type: integer
-          description: The HTTP status code for the error.
     flow_framework.errors___FlowFrameworkAPIDisabledError:
       type: object
       description: Indicates that the Flow Framework API is disabled.
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___InvalidParameterError:
       type: object
       description: Indicates that invalid parameters were provided in the request.
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___InvalidRequestBodyFieldError:
       type: object
       description: Indicates that a field in the request body has an invalid type.
@@ -57817,9 +58286,6 @@ components:
         error:
           type: string
           description: Error message when a request body field is not a string.
-        status:
-          type: integer
-          description: HTTP status code for the error.
     flow_framework.errors___InvalidTemplateVersionError:
       type: object
       description: Indicates that the template version is invalid or missing.
@@ -57832,24 +58298,18 @@ components:
       properties:
         error:
           type: string
-        code:
-          type: integer
     flow_framework.errors___MissingParameterError:
       type: object
       description: Indicates that required parameters are missing from the request.
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___ParameterConflictError:
       type: object
       description: Indicates that mutually exclusive parameters were provided in the request.
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___RequestBodyParsingFailedError:
       type: object
       description: Indicates that the request body could not be parsed.
@@ -57857,18 +58317,12 @@ components:
         error:
           type: string
           description: Error message when request body parsing fails.
-        status:
-          type: integer
-          description: HTTP status code for the error.
     flow_framework.errors___RequestTimeoutError:
       type: object
       properties:
         error:
           type: string
           description: Indicates that the request exceeded the time limit.
-        status:
-          type: integer
-          description: HTTP status code for the error.
     flow_framework.errors___TemplateNameRequiredError:
       type: object
       description: Indicates that the template name is missing from the request.
@@ -57882,8 +58336,6 @@ components:
       properties:
         error:
           type: string
-        code:
-          type: integer
     flow_framework.errors___UnsupportedFieldUpdateError:
       type: object
       description: Indicates an attempt to update a field that cannot be modified independently.
@@ -57896,8 +58348,6 @@ components:
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___WorkflowParsingError:
       type: object
       description: Indicates that the workflow template could not be parsed.
@@ -57910,16 +58360,12 @@ components:
       properties:
         error:
           type: string
-        status:
-          type: integer
     flow_framework.errors___WorkflowStepsRetrieveError:
       type: object
       description: Indicates that the workflow steps could not be retrieved.
       properties:
         error:
           type: string
-        code:
-          type: integer
     geospatial._common___Database:
       type: object
       properties:
@@ -57929,8 +58375,12 @@ components:
           type: string
         updated_at_in_epoch_millis:
           $ref: '#/components/schemas/_common___EpochTimeUnitMillis'
+        updated_at:
+          type: string
+          description: Human-readable timestamp of when the database was updated.
         valid_for_in_days:
           type: integer
+          format: int64
         fields:
           type: array
           items:
@@ -58074,6 +58524,11 @@ components:
         failure:
           type: integer
           description: Number of features that failed to upload.
+        failures:
+          type: array
+          description: Details of individual feature upload failures. Only present when errors is true.
+          items:
+            $ref: '#/components/schemas/geospatial._common___UploadFailure'
       required:
         - errors
         - failure
@@ -58233,8 +58688,36 @@ components:
       properties:
         last_succeeded_at_in_epoch_millis:
           $ref: '#/components/schemas/_common___EpochTimeUnitMillis'
+        last_succeeded_at:
+          type: string
+          description: Human-readable timestamp of the last successful update.
         last_processing_time_in_millis:
+          type: integer
+          format: int64
+          description: Processing time of the last update in milliseconds.
+        last_failed_at_in_epoch_millis:
           $ref: '#/components/schemas/_common___EpochTimeUnitMillis'
+        last_failed_at:
+          type: string
+          description: Human-readable timestamp of the last failed update.
+        last_skipped_at_in_epoch_millis:
+          $ref: '#/components/schemas/_common___EpochTimeUnitMillis'
+        last_skipped_at:
+          type: string
+          description: Human-readable timestamp of the last skipped update.
+    geospatial._common___UploadFailure:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The document ID that failed.
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status code of the failure.
+        message:
+          type: string
+          description: The failure message.
     geospatial._common___UploadStatsMetric:
       type: object
       properties:
@@ -58247,15 +58730,20 @@ components:
           description: Type of upload (such as "GeoJSON").
         upload:
           type: integer
+          format: int64
           description: Number of features in this upload.
         success:
           type: integer
+          format: int64
           description: Number of successful features in this upload.
         failed:
           type: integer
+          format: int64
           description: Number of failed features in this upload.
         duration:
-          $ref: '#/components/schemas/_common___DurationValueUnitMillis'
+          type: integer
+          format: int64
+          description: Duration in milliseconds.
       required:
         - duration
         - failed
@@ -58269,18 +58757,24 @@ components:
       properties:
         request_count:
           type: integer
+          format: int64
           description: Total number of upload requests.
         upload:
           type: integer
+          format: int64
           description: Total number of uploads.
         success:
           type: integer
+          format: int64
           description: Total successful uploads.
         failed:
           type: integer
+          format: int64
           description: Total failed uploads.
         duration:
-          $ref: '#/components/schemas/_common___DurationValueUnitMillis'
+          type: integer
+          format: int64
+          description: Total duration in milliseconds.
       required:
         - duration
         - failed
@@ -59479,6 +59973,16 @@ components:
         all_active:
           description: Indicates if all-active ingestion is enabled for this index.
           $ref: '#/components/schemas/_common___StringifiedBoolean'
+        decoder_type:
+          type: string
+          description: The type of payload decoder used to decode ingestion messages.
+          x-version-added: 3.9.0
+        decoder_settings:
+          type: object
+          description: Configuration settings for the selected decoder type, keyed by setting name. Index settings values are always strings.
+          additionalProperties:
+            type: string
+          x-version-added: 3.9.0
     indices._common___IngestionSourcePointer:
       type: object
       properties:
@@ -61907,33 +62411,35 @@ components:
         batch_start_pointer:
           type: string
           description: Indicates the shard pointer from where the poller will resume during shard recovery.
+    insights._common___AggregationType:
+      type: string
+      enum:
+        - AVERAGE
+        - NONE
+        - SUM
     insights._common___GroupingType:
       type: string
       enum:
         - NONE
         - SIMILARITY
-        - none
-        - similarity
     insights._common___Measurement:
       type: object
       properties:
         number:
-          type: integer
+          type: number
         count:
           type: integer
+          format: int32
         aggregationType:
-          type: string
+          $ref: '#/components/schemas/insights._common___AggregationType'
     insights._common___Measurements:
       type: object
       properties:
         latency:
-          type: object
           $ref: '#/components/schemas/insights._common___Measurement'
         cpu:
-          type: object
           $ref: '#/components/schemas/insights._common___Measurement'
         memory:
-          type: object
           $ref: '#/components/schemas/insights._common___Measurement'
     insights._common___MetricType:
       type: string
@@ -62068,9 +62574,11 @@ components:
       properties:
         cpu_time_in_nanos:
           type: integer
+          format: int64
           description: The CPU time used in nanoseconds.
         memory_in_bytes:
           type: integer
+          format: int64
           description: The memory usage in bytes.
     insights._common___TaskResourceUsages:
       type: object
@@ -62080,15 +62588,16 @@ components:
           description: The action type of the task.
         taskId:
           type: integer
+          format: int64
           description: The task ID.
         parentTaskId:
           type: integer
+          format: int64
           description: The parent task ID.
         nodeId:
           type: string
           description: The node ID where the task was executed.
         taskResourceUsage:
-          type: object
           $ref: '#/components/schemas/insights._common___TaskResourceUsage'
     insights._common___TopQueriesResponse:
       type: object
@@ -62096,7 +62605,6 @@ components:
         top_queries:
           type: array
           items:
-            type: object
             $ref: '#/components/schemas/insights._common___TopQuery'
       required:
         - top_queries
@@ -62109,18 +62617,19 @@ components:
           $ref: '#/components/schemas/insights._common___GroupingType'
         timestamp:
           type: integer
+          format: int64
           description: The timestamp of the query execution.
         total_shards:
           type: integer
+          format: int32
           description: The total number of shards involved in the query.
         task_resource_usages:
           type: array
           items:
-            type: object
             $ref: '#/components/schemas/insights._common___TaskResourceUsages'
-        query_hashcode:
+        query_group_hashcode:
           type: string
-          description: The hash code of the query.
+          description: The hash code of the query group.
         labels:
           type: object
           description: Additional labels for the query.
@@ -62140,9 +62649,47 @@ components:
           description: The indexes involved in the query.
         phase_latency_map:
           type: object
+          additionalProperties:
+            type: integer
+            format: int64
         measurements:
-          type: object
           $ref: '#/components/schemas/insights._common___Measurements'
+        description:
+          type: string
+          description: A description of the search query.
+          x-version-added: 3.0.0
+        is_cancelled:
+          type: boolean
+          description: Whether the search query was cancelled.
+          x-version-added: 3.1.0
+        wlm_group_id:
+          type: string
+          description: The workload management group ID associated with the query.
+          x-version-added: 3.3.0
+        username:
+          type: string
+          description: The username who initiated the search query.
+          x-version-added: 3.5.0
+        user_roles:
+          type: array
+          items:
+            type: string
+          description: The roles of the user who initiated the search query.
+          x-version-added: 3.5.0
+        backend_roles:
+          type: array
+          items:
+            type: string
+          description: The backend roles of the user who initiated the search query.
+          x-version-added: 3.5.0
+        source_truncated:
+          type: boolean
+          description: Whether the source was truncated due to length limits.
+          x-version-added: 3.5.0
+        failed:
+          type: boolean
+          description: Whether the search request failed during execution.
+          x-version-added: 3.6.0
     ism._common___Action:
       type: object
       description: An action to perform.
@@ -62744,6 +63291,7 @@ components:
         - miss_count
         - model_index_status
         - nmslib_initialized
+        - remote_vector_index_build_stats
         - script_compilation_errors
         - script_compilations
         - script_query_errors
@@ -62753,6 +63301,56 @@ components:
         - training_memory_usage
         - training_memory_usage_percentage
         - training_requests
+    knn._common___ModelResponse:
+      type: object
+      properties:
+        model_id:
+          type: string
+        model_blob:
+          type: string
+          description: The base64-encoded model data.
+        state:
+          $ref: '#/components/schemas/knn._common___ModelState'
+        timestamp:
+          type: string
+          description: The timestamp when the model was created.
+        description:
+          type: string
+        error:
+          type: string
+        space_type:
+          type: string
+        dimension:
+          type: integer
+          format: int32
+        engine:
+          type: string
+        training_node_assignment:
+          type: string
+        model_definition:
+          type: object
+          additionalProperties: true
+        data_type:
+          type: string
+          description: The vector data type.
+          x-version-added: 2.17.0
+        mode:
+          type: string
+          x-version-added: 2.17.0
+        compression_level:
+          type: string
+          x-version-added: 2.17.0
+        model_version:
+          type: string
+          x-version-added: 2.17.0
+      required:
+        - model_id
+    knn._common___ModelState:
+      type: string
+      enum:
+        - created
+        - failed
+        - training
     knn._common___NodeStats:
       type: object
       properties:
@@ -62765,14 +63363,18 @@ components:
           type: integer
           format: int64
         graph_memory_usage:
-          $ref: '#/components/schemas/_common___ByteCount'
+          type: integer
+          format: int64
+          description: The amount of native memory used by loaded graphs, in kilobytes.
         cache_capacity_reached:
           type: boolean
         load_success_count:
           type: integer
           format: int64
         training_memory_usage:
-          $ref: '#/components/schemas/_common___ByteCount'
+          type: integer
+          format: int64
+          description: The amount of native memory used by training data, in kilobytes.
         indices_in_cache:
           type: object
           additionalProperties: true
@@ -62884,9 +63486,17 @@ components:
         index_build_failure_count:
           type: integer
           format: int64
+        index_build_merge_abort_exception:
+          type: integer
+          format: int64
+          x-version-added: 3.9.0
         index_build_success_count:
           type: integer
           format: int64
+        index_build_terminal_exception:
+          type: integer
+          format: int64
+          x-version-added: 3.9.0
         status_request_failure_count:
           type: integer
           format: int64
@@ -62955,12 +63565,37 @@ components:
           type: string
         method:
           $ref: '#/components/schemas/knn._common___KnnMethod'
+        data_type:
+          type: string
+          description: The vector data type.
+          x-version-added: 2.16.0
+        space_type:
+          type: string
+          description: The space type for distance calculation.
+          x-version-added: 2.17.0
+        engine:
+          type: string
+          description: The k-NN engine to use.
+          x-version-added: 2.17.0
         spaceType:
           type: string
+          description: The space type for distance calculation (alias for space_type).
       required:
         - dimension
         - training_field
         - training_index
+    list._common___ResponseFormat:
+      type: string
+      description: |-
+        The response format returned by `_list` operations. Equivalent to the HTTP `Accept` header but expressed as a query parameter.
+        When the parameter is omitted the server responds with `text`.
+      default: text
+      enum:
+        - cbor
+        - json
+        - smile
+        - text
+        - yaml
     ltr._common___AcknowledgedResponse:
       type: object
       properties:
@@ -63689,19 +64324,6 @@ components:
         content_type:
           type: string
       additionalProperties: true
-    ml._common___HitsTotal:
-      type: object
-      properties:
-        value:
-          type: integer
-          format: int64
-          description: The total number of hits.
-        relation:
-          type: string
-          description: The relation.
-      required:
-        - relation
-        - value
     ml._common___Index:
       type: object
       properties:
@@ -64418,54 +65040,15 @@ components:
       $ref: '#/components/schemas/ml._common___SearchResponse'
     ml._common___SearchConnectorsResponse:
       $ref: '#/components/schemas/ml._common___SearchResponse'
-    ml._common___SearchHits:
-      type: object
-      properties:
-        total:
-          $ref: '#/components/schemas/ml._common___HitsTotal'
-        hits:
-          type: array
-          items:
-            $ref: '#/components/schemas/ml._common___SearchHitsHit'
-        max_score:
-          type:
-            - 'null'
-            - number
-          description: The maximum score.
-      required:
-        - hits
-        - total
     ml._common___SearchHitsHit:
-      type: object
-      properties:
-        _version:
-          $ref: '#/components/schemas/_common___VersionNumber'
-        _seq_no:
-          $ref: '#/components/schemas/_common___SequenceNumber'
-        _primary_term:
-          type: integer
-          description: The primary term.
-        _index:
-          $ref: '#/components/schemas/_common___IndexName'
-        _id:
-          $ref: '#/components/schemas/_common___Id'
-        _score:
-          type:
-            - 'null'
-            - number
-          description: The score.
-        _source:
-          $ref: '#/components/schemas/ml._common___Source'
-        model_id:
-          $ref: '#/components/schemas/_common___Name'
-        sort:
-          type: array
-          items:
-            type: number
-            format: float
-          description: The sort values.
-      required:
-        - _score
+      allOf:
+        - $ref: '#/components/schemas/_core.search___Hit'
+        - type: object
+          properties:
+            _source:
+              $ref: '#/components/schemas/ml._common___Source'
+            model_id:
+              $ref: '#/components/schemas/_common___Name'
     ml._common___SearchMemoryResponse:
       $ref: '#/components/schemas/ml._common___SearchResponse'
     ml._common___SearchMessageResponse:
@@ -64475,20 +65058,17 @@ components:
     ml._common___SearchModelsResponse:
       $ref: '#/components/schemas/ml._common___SearchResponse'
     ml._common___SearchResponse:
-      type: object
-      properties:
-        took:
-          type: integer
-          description: The time taken to execute the search.
-        timed_out:
-          type: boolean
-          description: Whether the search timed out.
-        _shards:
-          $ref: '#/components/schemas/_common___ShardStatistics'
-        hits:
-          $ref: '#/components/schemas/ml._common___SearchHits'
-      required:
-        - hits
+      allOf:
+        - $ref: '#/components/schemas/_core.search___SearchResult'
+        - type: object
+          properties:
+            hits:
+              type: object
+              properties:
+                hits:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ml._common___SearchHitsHit'
     ml._common___SearchTasksResponse:
       $ref: '#/components/schemas/ml._common___SearchResponse'
     ml._common___Source:
@@ -64998,6 +65578,12 @@ components:
         processors.search.neural_query_enricher_processors:
           $ref: '#/components/schemas/neural._common___InfoCounterStat'
           x-version-added: '3.1'
+        processors.search.agentic.agentic_query_translator_processors:
+          $ref: '#/components/schemas/neural._common___InfoCounterStat'
+          x-version-added: 3.2.0
+        processors.search.agentic.agentic_context_processors:
+          $ref: '#/components/schemas/neural._common___InfoCounterStat'
+          x-version-added: 3.3.0
     neural._common___FlatNeuralNodeStats:
       type: object
       properties:
@@ -65031,6 +65617,9 @@ components:
         processors.ingest.semantic_field_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        processors.ingest.sparse_encoding_seismic_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.5.0
         processors.search.hybrid.normalization_processor_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
@@ -65064,12 +65653,21 @@ components:
         processors.search.rerank_by_field_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        processors.search.mmr_neural_query_transformer_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
         processors.search.neural_sparse_two_phase_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
         processors.search.neural_query_enricher_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        processors.search.agentic.agentic_query_translator_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.2.0
+        processors.search.agentic.agentic_context_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
         query.hybrid.hybrid_query_requests:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
@@ -65082,6 +65680,9 @@ components:
         query.hybrid.hybrid_query_with_inner_hits_requests:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        query.agentic.agentic_query_requests:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.2.0
         query.neural.neural_query_requests:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
@@ -65097,9 +65698,27 @@ components:
         query.neural_sparse.neural_sparse_query_requests:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        query.neural_sparse.seismic_query_requests:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
         semantic_highlighting.semantic_highlighting_request_count:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        semantic_highlighting.semantic_highlighting_batch_request_count:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
+        memory.sparse.sparse_memory_usage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
+        memory.sparse.sparse_memory_usage_percentage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
+        memory.sparse.forward_index_usage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
+        memory.sparse.clustered_posting_usage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
     neural._common___FlatNeuralStats:
       allOf:
         - $ref: '#/components/schemas/nodes._common___NodesResponseBase'
@@ -65135,6 +65754,16 @@ components:
                 stat_type:
                   type: string
                   const: info_string
+    neural._common___MemoryStat:
+      oneOf:
+        - type: number
+        - allOf:
+            - $ref: '#/components/schemas/neural._common___StatMetadata'
+            - type: object
+              properties:
+                stat_type:
+                  type: string
+                  const: memory
     neural._common___NestedNeuralInfoStats:
       type: object
       properties:
@@ -65182,6 +65811,8 @@ components:
       properties:
         hybrid:
           $ref: '#/components/schemas/neural._common___NestedNeuralInfoStatsProcessorsSearchHybrid'
+        agentic:
+          $ref: '#/components/schemas/neural._common___NestedNeuralInfoStatsProcessorsSearchAgentic'
         rerank_ml_processors:
           $ref: '#/components/schemas/neural._common___InfoCounterStat'
           x-version-added: '3.1'
@@ -65194,6 +65825,15 @@ components:
         neural_query_enricher_processors:
           $ref: '#/components/schemas/neural._common___InfoCounterStat'
           x-version-added: '3.1'
+    neural._common___NestedNeuralInfoStatsProcessorsSearchAgentic:
+      type: object
+      properties:
+        agentic_query_translator_processors:
+          $ref: '#/components/schemas/neural._common___InfoCounterStat'
+          x-version-added: 3.2.0
+        agentic_context_processors:
+          $ref: '#/components/schemas/neural._common___InfoCounterStat'
+          x-version-added: 3.3.0
     neural._common___NestedNeuralInfoStatsProcessorsSearchHybrid:
       type: object
       properties:
@@ -65233,6 +65873,28 @@ components:
           $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsSemanticHighlighting'
         processors:
           $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsProcessors'
+        memory:
+          $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsMemory'
+    neural._common___NestedNeuralNodeStatsMemory:
+      type: object
+      properties:
+        sparse:
+          $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsMemorySparse'
+    neural._common___NestedNeuralNodeStatsMemorySparse:
+      type: object
+      properties:
+        sparse_memory_usage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
+        sparse_memory_usage_percentage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
+        forward_index_usage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
+        clustered_posting_usage:
+          $ref: '#/components/schemas/neural._common___MemoryStat'
+          x-version-added: 3.3.0
     neural._common___NestedNeuralNodeStatsProcessors:
       type: object
       properties:
@@ -65273,11 +65935,16 @@ components:
         semantic_field_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        sparse_encoding_seismic_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.5.0
     neural._common___NestedNeuralNodeStatsProcessorsSearch:
       type: object
       properties:
         hybrid:
           $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsProcessorsSearchHybrid'
+        agentic:
+          $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsProcessorsSearchAgentic'
         neural_sparse_two_phase_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
@@ -65290,6 +65957,18 @@ components:
         rerank_ml_executions:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        mmr_neural_query_transformer_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
+    neural._common___NestedNeuralNodeStatsProcessorsSearchAgentic:
+      type: object
+      properties:
+        agentic_query_translator_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.2.0
+        agentic_context_executions:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
     neural._common___NestedNeuralNodeStatsProcessorsSearchHybrid:
       type: object
       properties:
@@ -65329,6 +66008,14 @@ components:
           $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsQueryNeural'
         neural_sparse:
           $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsQueryNeuralSparse'
+        agentic:
+          $ref: '#/components/schemas/neural._common___NestedNeuralNodeStatsQueryAgentic'
+    neural._common___NestedNeuralNodeStatsQueryAgentic:
+      type: object
+      properties:
+        agentic_query_requests:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.2.0
     neural._common___NestedNeuralNodeStatsQueryHybrid:
       type: object
       properties:
@@ -65365,12 +66052,18 @@ components:
         neural_sparse_query_requests:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        seismic_query_requests:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
     neural._common___NestedNeuralNodeStatsSemanticHighlighting:
       type: object
       properties:
         semantic_highlighting_request_count:
           $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
           x-version-added: '3.1'
+        semantic_highlighting_batch_request_count:
+          $ref: '#/components/schemas/neural._common___TimestampedEventCounterStat'
+          x-version-added: 3.3.0
     neural._common___NestedNeuralStats:
       allOf:
         - $ref: '#/components/schemas/nodes._common___NodesResponseBase'
@@ -65389,7 +66082,13 @@ components:
     neural._common___NeuralStatName:
       type: string
       enum:
+        - agentic_context_executions
+        - agentic_context_processors
+        - agentic_query_requests
+        - agentic_query_translator_executions
+        - agentic_query_translator_processors
         - cluster_version
+        - clustered_posting_usage
         - comb_arithmetic_executions
         - comb_arithmetic_processors
         - comb_geometric_executions
@@ -65398,10 +66097,12 @@ components:
         - comb_harmonic_processors
         - comb_rrf_executions
         - comb_rrf_processors
+        - forward_index_usage
         - hybrid_query_requests
         - hybrid_query_with_filter_requests
         - hybrid_query_with_inner_hits_requests
         - hybrid_query_with_pagination_requests
+        - mmr_neural_query_transformer_executions
         - neural_query_against_knn_requests
         - neural_query_against_semantic_dense_requests
         - neural_query_against_semantic_sparse_requests
@@ -65425,13 +66126,18 @@ components:
         - rerank_by_field_processors
         - rerank_ml_executions
         - rerank_ml_processors
+        - seismic_query_requests
         - semantic_field_chunking_executions
         - semantic_field_executions
+        - semantic_highlighting_batch_request_count
         - semantic_highlighting_request_count
         - skip_existing_executions
         - skip_existing_processors
         - sparse_encoding_executions
         - sparse_encoding_processors
+        - sparse_encoding_seismic_executions
+        - sparse_memory_usage
+        - sparse_memory_usage_percentage
         - text_chunking_delimiter_executions
         - text_chunking_delimiter_processors
         - text_chunking_executions
@@ -65457,6 +66163,7 @@ components:
         value:
           oneOf:
             - type: integer
+            - type: number
             - type: string
         stat_type:
           type: string
@@ -68090,7 +68797,7 @@ components:
           type: integer
           format: int64
         total_hit_relation:
-          $ref: '#/components/schemas/notifications._common___TotalHitRelation'
+          $ref: '#/components/schemas/_common___TotalHitsRelation'
         config_list:
           type: array
           maxItems: 1
@@ -68099,8 +68806,7 @@ components:
     notifications._common___HeaderParamsMap:
       type: object
       additionalProperties:
-        type: integer
-        format: int32
+        type: string
     notifications._common___HttpMethodType:
       type: string
       enum:
@@ -68265,11 +68971,6 @@ components:
           type: string
       required:
         - topic_arn
-    notifications._common___TotalHitRelation:
-      type: string
-      enum:
-        - eq
-        - gte
     notifications._common___Webhook:
       type: object
       properties:
@@ -68290,13 +68991,21 @@ components:
           description: The unique identifier of the observability object.
         lastUpdatedTimeMs:
           type: integer
+          format: int64
           description: When the object was last updated in milliseconds.
         createdTimeMs:
           type: integer
+          format: int64
           description: When the object was created in milliseconds.
         tenant:
           type: string
           description: The tenant associated with the observability object.
+        access:
+          type: array
+          items:
+            type: string
+          description: The access control list for the observability object.
+          x-version-added: 1.2.0
         operationalPanel:
           $ref: '#/components/schemas/observability._common___OperationalPanel'
         savedVisualization:
@@ -68311,12 +69020,14 @@ components:
       properties:
         startIndex:
           type: integer
+          format: int64
           description: The starting index of the returned objects.
         totalHits:
           type: integer
+          format: int64
           description: The total number of matching objects.
         totalHitRelation:
-          type: string
+          $ref: '#/components/schemas/_common___TotalHitsRelation'
           description: The relationship of total hits to the query.
         observabilityObjectList:
           type: array
@@ -68414,6 +69125,29 @@ components:
           $ref: '#/components/schemas/observability._common___SelectedTimestamp'
         selected_fields:
           $ref: '#/components/schemas/observability._common___SelectedFields'
+        application_id:
+          type: string
+          description: The identifier of the associated application.
+          x-version-added: 1.3.0
+        user_configs:
+          type: string
+          description: User-specific configuration for the visualization.
+          x-version-added: 1.3.0
+        sub_type:
+          type: string
+          description: The sub-type of the visualization.
+          x-version-added: 1.3.0
+        metric_type:
+          type: string
+          description: The metric type for the visualization.
+          x-version-added: 1.3.0
+        units_of_measure:
+          type: string
+          description: The units of measure for the visualization.
+          x-version-added: 1.3.0
+        selected_labels:
+          $ref: '#/components/schemas/observability._common___SelectedFields'
+          x-version-added: 1.3.0
       required:
         - description
         - name
@@ -68864,11 +69598,56 @@ components:
         - REPLICATION NOT IN PROGRESS
         - RUNNING
         - SYNCING
+    replication._common___RestoreDetails:
+      type: object
+      properties:
+        bytes_total:
+          type: integer
+          format: int64
+          description: The total number of bytes to restore.
+        bytes_recovered:
+          type: integer
+          format: int64
+          description: The number of bytes recovered so far.
+        bytes_percent:
+          type: number
+          format: float
+          description: The percentage of bytes recovered.
+        files_total:
+          type: integer
+          format: int32
+          description: The total number of files to restore.
+        files_recovered:
+          type: integer
+          format: int32
+          description: The number of files recovered so far.
+        files_percent:
+          type: number
+          format: float
+          description: The percentage of files recovered.
+        start_time:
+          type: integer
+          format: int64
+          description: When the restore started, in epoch milliseconds.
+        running_time:
+          type: integer
+          format: int64
+          description: The elapsed restore time in milliseconds.
     replication._common___SettingsBody:
       type: object
       properties:
         index:
           $ref: '#/components/schemas/replication._common___IndexSchema'
+    replication._common___ShardInfoResponse:
+      type: object
+      properties:
+        shard_id:
+          type: string
+          description: The shard identifier.
+        syncing_task_details:
+          $ref: '#/components/schemas/replication._common___SyncingDetails'
+        bootstrap_task_details:
+          $ref: '#/components/schemas/replication._common___RestoreDetails'
     replication._common___Status:
       type: object
       properties:
@@ -68886,14 +69665,23 @@ components:
           $ref: '#/components/schemas/_common___IndexName'
         syncing_details:
           $ref: '#/components/schemas/replication._common___SyncingDetails'
+        bootstrap_details:
+          $ref: '#/components/schemas/replication._common___RestoreDetails'
+        shard_replication_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/replication._common___ShardInfoResponse'
+          description: Per-shard replication details. Only present in verbose status responses.
     replication._common___SyncingDetails:
       type: object
       properties:
         leader_checkpoint:
           type: integer
+          format: int64
           description: The checkpoint of the leader index in the replication process.
         follower_checkpoint:
           type: integer
+          format: int64
           description: The checkpoint of the follower index in the replication process.
         seq_no:
           $ref: '#/components/schemas/_common___SequenceNumber'
@@ -68930,6 +69718,11 @@ components:
         timezone:
           type: string
           description: The timezone for interpreting the cron expression.
+        schedule_delay:
+          type: integer
+          format: int64
+          description: The delay in milliseconds before starting the rollup process.
+          x-version-added: 1.3.0
     rollups._common___DateHistogramDimension:
       description: Configures a date histogram dimension for rollup aggregation.
       type: object
@@ -69003,24 +69796,21 @@ components:
       type: object
       properties:
         start_time:
-          type: number
+          type: integer
+          format: int64
           description: When the rollup job should start, in epoch milliseconds.
         period:
-          type: number
+          type: integer
+          format: int32
           description: The numerical value for the execution interval.
         unit:
           type: string
           description: The time unit for the execution interval, such as `MINUTES` or `HOURS`.
-        cron:
-          oneOf:
-            - type: array
-              items:
-                $ref: '#/components/schemas/rollups._common___Cron'
-            - $ref: '#/components/schemas/rollups._common___Cron'
-          description: The cron schedule configuration for the rollup job.
         schedule_delay:
-          type: number
+          type: integer
+          format: int64
           description: The delay in milliseconds before starting the rollup process.
+          x-version-added: 1.3.0
     rollups._common___MetricsConfigItem:
       description: Defines metric aggregations for a field in a rollup job.
       type: object
@@ -69134,11 +69924,15 @@ components:
         rollup:
           $ref: '#/components/schemas/rollups._common___Rollup'
     rollups._common___Schedule:
-      description: Defines the execution schedule for a rollup job.
+      description: Defines the execution schedule for a rollup job. Exactly one of `interval` or `cron` must be specified.
       type: object
       properties:
         interval:
           $ref: '#/components/schemas/rollups._common___Interval'
+        cron:
+          $ref: '#/components/schemas/rollups._common___Cron'
+      minProperties: 1
+      maxProperties: 1
     rollups._common___TermsDimension:
       description: Configures a terms dimension for rollup aggregation.
       type: object
@@ -69604,6 +70398,24 @@ components:
           format: int32
         context_prefix:
           type: string
+    search_relevance._common___PatchExperimentRequest:
+      type: object
+      description: Partially updates an experiment's name or description.
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      minProperties: 1
+    search_relevance._common___PatchExperimentResponse:
+      type: object
+      properties:
+        experiment_id:
+          type: string
+          description: The ID of the updated experiment.
+        experiment_result:
+          type: string
+          description: The lowercase write result of the update, for example `updated`.
     search_relevance._common___PostQuerySetsRequest:
       type: object
       description: The schema for creating a query set.
@@ -69616,6 +70428,8 @@ components:
           type: string
         querySetSize:
           type: integer
+        ubiQueriesIndex:
+          type: string
     search_relevance._common___PostQuerySetsResponse:
       type: object
       properties:
@@ -69892,7 +70706,7 @@ components:
           $ref: '#/components/schemas/security_analytics.alerts___Alerts'
         total_alerts:
           type: integer
-          format: int64
+          format: int32
       required:
         - alerts
         - total_alerts
@@ -69949,7 +70763,7 @@ components:
           type: string
         score:
           type: number
-          format: float
+          format: double
         rules:
           type: array
           items:
@@ -69959,7 +70773,7 @@ components:
       properties:
         total_findings:
           type: integer
-          format: int64
+          format: int32
         findings:
           $ref: '#/components/schemas/security_analytics.findings___Findings'
       required:
@@ -70187,12 +71001,24 @@ components:
     security._common___CertificatesDetail:
       type: object
       properties:
-        issuer_dn:
+        format:
           type: string
+          x-version-added: 3.0.0
+        alias:
+          type: string
+          x-version-added: 3.0.0
         subject_dn:
           type: string
         san:
           type: string
+        serial_number:
+          type: string
+          x-version-added: 3.0.0
+        issuer_dn:
+          type: string
+        has_private_key:
+          type: boolean
+          x-version-added: 3.0.0
         not_before:
           type: string
         not_after:
@@ -70892,6 +71718,8 @@ components:
         is_admin:
           type: boolean
         is_node_certificate_request:
+          type: boolean
+        is_authenticated:
           type: boolean
     sm._common___CreateUpdatePolicyRequest:
       type: object
@@ -72058,6 +72886,22 @@ components:
             $ref: '#/components/schemas/transforms._common___TransformResponse'
     ubi._common___Initialize:
       type: string
+    wlm._common___NodeWlmStats:
+      type: object
+      description: Workload management statistics for every workload group on a node.
+      properties:
+        query_groups:
+          description: A map of query group ID to statistics for that group.
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupStats'
+          x-version-removed: 3.0.0
+        workload_groups:
+          description: A map of workload group ID to statistics for that group.
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupStats'
+          x-version-added: 3.0.0
     wlm._common___QueryGroupCreate:
       type: object
       properties:
@@ -72158,3 +73002,188 @@ components:
         cpu:
           type: number
           format: double
+    wlm._common___WlmResourceStats:
+      type: object
+      description: Point-in-time resource usage statistics for a workload group on a node.
+      properties:
+        current_usage:
+          description: The last recorded usage for this resource, updated on the workload management enforcement interval.
+          type: number
+          format: double
+        cancellations:
+          description: The number of cancellations caused by this resource reaching its cancellation threshold.
+          type: integer
+          format: int64
+        rejections:
+          description: The number of rejections caused by this resource reaching its rejection threshold.
+          type: integer
+          format: int64
+    wlm._common___WlmStatsListResponse:
+      description: A paginated or complete tabular listing of workload management statistics.
+      anyOf:
+        - type: array
+          items:
+            $ref: '#/components/schemas/wlm._common___WlmStatsRecord'
+        - type: object
+          properties:
+            next_token:
+              description: The token used to retrieve the next page. `null` when there are no more pages.
+              type:
+                - 'null'
+                - string
+            wlm_stats:
+              description: The workload management statistics in the current page.
+              type: array
+              items:
+                $ref: '#/components/schemas/wlm._common___WlmStatsRecord'
+    wlm._common___WlmStatsRecord:
+      type: object
+      description: A tabular row of workload management statistics for a node and workload group.
+      properties:
+        NODE_ID:
+          description: The ID of the node that reported the statistics.
+          type: string
+        WORKLOAD_GROUP_ID:
+          description: The ID of the workload group.
+          type: string
+        TOTAL_COMPLETIONS:
+          description: The total number of completed requests as a string.
+          type: string
+        TOTAL_REJECTIONS:
+          description: The total number of rejected requests as a string.
+          type: string
+        TOTAL_CANCELLATIONS:
+          description: The total number of cancelled requests as a string.
+          type: string
+        CPU_USAGE:
+          description: The current CPU usage, or `NA` when CPU statistics are unavailable.
+          type: string
+        MEMORY_USAGE:
+          description: The current memory usage, or `NA` when memory statistics are unavailable.
+          type: string
+      additionalProperties:
+        description: The server repeats a `|` column separator key with the value `|` between the columns of every row.
+        type: string
+    wlm._common___WlmStatsResponse:
+      type: object
+      description: Cluster-level workload management statistics keyed by node ID.
+      properties:
+        _nodes:
+          description: Contains statistics about the number of nodes selected by the request.
+          $ref: '#/components/schemas/_common___NodeStatistics'
+        cluster_name:
+          description: The name of the cluster.
+          $ref: '#/components/schemas/_common___Name'
+      additionalProperties:
+        $ref: '#/components/schemas/wlm._common___NodeWlmStats'
+    wlm._common___WlmStatsSortBy:
+      type: string
+      description: The field used to sort paginated workload management statistics.
+      enum:
+        - node_id
+        - workload_group
+    wlm._common___WorkloadGroupCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        resiliency_mode:
+          $ref: '#/components/schemas/wlm._common___ResiliencyMode'
+        resource_limits:
+          $ref: '#/components/schemas/wlm._common___WorkloadGroupResourceLimits'
+        settings:
+          description: The settings for the workload group.
+          $ref: '#/components/schemas/wlm._common___WorkloadGroupSettings'
+          x-version-added: 3.7.0
+      required:
+        - name
+        - resiliency_mode
+        - resource_limits
+    wlm._common___WorkloadGroupId:
+      type: string
+      description: The unique identifier of a workload group.
+    wlm._common___WorkloadGroupIds:
+      description: A comma-separated list of workload group IDs used to filter results. Use `_all` to select every workload group.
+      oneOf:
+        - $ref: '#/components/schemas/wlm._common___WorkloadGroupId'
+        - type: array
+          items:
+            $ref: '#/components/schemas/wlm._common___WorkloadGroupId'
+    wlm._common___WorkloadGroupResourceLimits:
+      description: Resource limits for a workload group. At least one of `memory` or `cpu` is required.
+      allOf:
+        - $ref: '#/components/schemas/wlm._common___ResourceLimitsSchema'
+        - anyOf:
+            - type: object
+              required:
+                - memory
+            - type: object
+              required:
+                - cpu
+    wlm._common___WorkloadGroupResponse:
+      type: object
+      properties:
+        _id:
+          description: The ID of the workload group, which can be used to associate query requests with the group and enforce the group's resource limits.
+          type: string
+        name:
+          description: The name of the workload group.
+          type: string
+        resiliency_mode:
+          description: The resiliency mode of the workload group.
+          $ref: '#/components/schemas/wlm._common___ResiliencyMode'
+        updated_at:
+          description: The time at which the workload group was last updated.
+          type: integer
+          format: int64
+        resource_limits:
+          description: The resource limits for query requests in the workload group.
+          $ref: '#/components/schemas/wlm._common___WorkloadGroupResourceLimits'
+        settings:
+          description: The settings for the workload group.
+          $ref: '#/components/schemas/wlm._common___WorkloadGroupSettings'
+          x-version-added: 3.7.0
+      required:
+        - _id
+        - name
+        - resiliency_mode
+        - resource_limits
+        - updated_at
+    wlm._common___WorkloadGroupSettings:
+      type: object
+      description: Search settings applied to requests in the workload group.
+      additionalProperties:
+        type: string
+    wlm._common___WorkloadGroupStats:
+      type: object
+      description: Workload group statistics collected on a single node.
+      properties:
+        total_completions:
+          description: The total number of completed shard-level and coordinator-level requests for the workload group on the node.
+          type: integer
+          format: int64
+        total_rejections:
+          description: The total number of rejected shard-level and coordinator-level requests for the workload group on the node.
+          type: integer
+          format: int64
+        total_cancellations:
+          description: The total number of cancelled requests for the workload group on the node.
+          type: integer
+          format: int64
+        cpu:
+          description: CPU resource statistics for the workload group.
+          $ref: '#/components/schemas/wlm._common___WlmResourceStats'
+        memory:
+          description: Memory resource statistics for the workload group.
+          $ref: '#/components/schemas/wlm._common___WlmResourceStats'
+    wlm._common___WorkloadGroupUpdate:
+      type: object
+      properties:
+        resiliency_mode:
+          $ref: '#/components/schemas/wlm._common___ResiliencyMode'
+        resource_limits:
+          $ref: '#/components/schemas/wlm._common___ResourceLimitsSchema'
+        settings:
+          description: The settings for the workload group.
+          $ref: '#/components/schemas/wlm._common___WorkloadGroupSettings'
+          x-version-added: 3.7.0
