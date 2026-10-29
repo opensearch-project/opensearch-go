@@ -88,12 +88,9 @@ var hopV5toV5_2 = hop{
 	SemanticFollowups: []string{
 		"search scores are float32 in v5.2, as the server computes them: SearchHit.Score and the phrase and term " +
 			"suggest option scores; convert where a float64 is stored or compared",
-		"SearchTotalHitsRelation is now TotalHitsRelation, with TotalHitsRelationEq and TotalHitsRelationGte, " +
-			"and the plugin responses' total hits relations use it instead of a string",
+		"the plugin responses' total hits relations use TotalHitsRelation instead of a string",
 		"SearchTermSuggestOption.Freq is an int (the server's int32), no longer an int64",
-		"SearchSuggestCompletionOptions and SearchResultJSONValueSuggestValueItemCompletionOptions are now " +
-			"SearchCompletionSuggestOptions, and SearchCompletionSuggest.Options is a value, not a pointer: " +
-			"drop nil checks on it and rename the type where it is named",
+		"SearchCompletionSuggest.Options is a value, not a pointer: drop nil checks on it",
 		"histogram and date_histogram extended_bounds and hard_bounds are typed (CommonAggregationsExtendedBoundsDouble, " +
 			"CommonAggregationsExtendedBoundsFieldDateMath) instead of raw JSON min/max",
 		"ML and flow framework search hits embed SearchHit, so ID, Index, Score, SeqNo, Version and Sort ([]FieldValue) " +

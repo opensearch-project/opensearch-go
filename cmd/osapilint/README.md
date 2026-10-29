@@ -77,7 +77,7 @@ for _, h := range hops {
 
 ## How it works
 
-Each release line has a committed API surface: `surface_vN.json` for a major's first line, `surface_vN_M.json` for a later line that broke compatibility within the major (v5.2). A line covers every release up to the next line of its major, so v5 covers v5.0 and v5.1. Each transition from one line to the next is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against the two surfaces. A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
+Each release line has a committed API surface: `surface_vN.json` for a major's first line, `surface_vN_M.json` for a later line that broke compatibility within the major (v5.2). A line covers every release up to the next line of its major, so v5 covers v5.0 and v5.1. Each transition from one line to the next is a `hop`: hand-authored tables of type renames, symbol renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against the two surfaces. A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
 
 | File                           | Responsibility                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------- |
@@ -102,6 +102,14 @@ A vanished field with no disposition fails the run with an `osapilint bug` error
 A field that keeps its name but becomes a pointer is classified from the surfaces and needs no table entry. If it now points to the same type, a composite-literal value gets `&` and any other value becomes `new(x)`. The exception is a constant whose own type differs from the field's, such as `Created: 1` on an `int64` field (`new(1)` is an `*int`), which is reported `MANUAL`. A raw `Body io.Reader` moves to `BodyReader` when the target has a typed `Body` and a `BodyReader io.Reader`. If the field now points to a different type (`int` -> `*int64`), the tool reports `MANUAL` wherever it is set or read, since even a read that still compiles can change behavior: printing a `*string` prints the pointer.
 
 A regrouped call can also change how the request is passed. When v5 takes a `*Req` where v4 took a `Req`, the argument gains `&`. When v5 takes a `Req` where v4 took a `*Req` (as on `client.IndexTemplate.Get`), `nil` becomes an empty request, `&Req{...}` and `&x` lose the `&`, and any other pointer expression is replaced with an `_OSAPILINT_RESOLVE` marker and reported `MANUAL`, because the pointer may be nil and v5 has no value for it. The empty request needs the v5 `opensearchapi` import, which the tool adds when the file has none.
+
+### Symbol renames
+
+A hop's `SymbolRenames` table holds renamed package-level constants, functions, non-struct types and structs with no exported field (such as unions). `TypeRenames` holds structs with exported fields. Both feed one rename index.
+
+Each `SymbolRenames` pair is checked against the surfaces by `apirev.EquivalentSymbol` in `TestHopSymbolRenamesAgainstSurfaces`. The two symbols must have the same kind, underlying type or signature, constant value, and methods (compared by name, signature and receiver kind). Types in the symbol's own package are rendered with the `@` qualifier (`ownPkgQualifier`), so only those references are mapped through the renames; field names, method names and tags are not.
+
+The rewriter renames qualified references in place. It leaves methods, fields, variables and unqualified references to the package's own symbols alone. A use through a dot import is not rewritten and is reported `MANUAL`.
 
 ### Source detection
 
@@ -194,12 +202,15 @@ go test ./...
 | `linter/hop_v2_to_v3_test.go`              | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings              |
 | `linter/detect_test.go`                    | Source detection, version parsing, directory resolution                                     |
 | `internal/apirev/delta_internal_test.go`   | Surface diffing internals                                                                   |
+| `internal/apirev/symbol_internal_test.go`  | `EquivalentSymbol`: kind, type, value and method equivalence under renames                  |
+| `linter/symbolrename_test.go`              | Drift guard over every hop's symbol renames (`TestHopSymbolRenamesAgainstSurfaces`)         |
+| `linter/applydelta_symbolref_test.go`      | Qualified symbol rewrites and the dot-import `MANUAL` report                                |
 | `internal/apirev/extract_internal_test.go` | Surface extraction: embedded aliases, symbol shape, method receivers                        |
 | `linter/surface_fresh_test.go`             | Regenerates the v5.2 surfaces from the tree and requires them equal to the committed files  |
 
 ### Rewrite corpus
 
-`linter/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules staged from `linter/testdata/corpus/v2.txtar` and its siblings, and diffs the output against `.golden` sections in the same archive. Each fixture compiles against a hand-written stub of the source-version API (`linter/testdata/corpus/stubs.txtar`), so the test needs no opensearch-go download. Fixtures live in `txtar` archives rather than as loose files so repo-wide Go tooling does not walk into them. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./linter -run TestRewriteCorpus`.
+`linter/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules staged from `linter/testdata/corpus/v2.txtar` and its siblings, and diffs the output against `.golden` sections in the same archive. Each fixture compiles against a hand-written stub of the source-version API (`linter/testdata/corpus/stubs.txtar`), so the test needs no opensearch-go download. Fixtures live in `txtar` archives rather than as loose files so repo-wide Go tooling does not walk into them. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. The v5 corpus covers the v5 -> v5.2 symbol renames, including a dot-imported use (`editCounts` pins how many times each report line appears). Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./linter -run TestRewriteCorpus`.
 
 ## Limitations
 

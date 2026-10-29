@@ -907,7 +907,7 @@ osapilint rewrite -w ./...
 go get github.com/opensearch-project/opensearch-go/v5@v5.2.0 && go build ./...
 ```
 
-It renames the types and fields below, drops the removed fields from literals, and lists the rest as manual follow-ups. A width change such as `float64` to `float32` is left to the compiler.
+It renames the types, fields, constants, union types and constructors below, drops the removed fields from literals, and lists the rest as manual follow-ups. A use through a dot import is reported `MANUAL` and not rewritten. A width change such as `float64` to `float32` is left to the compiler.
 
 ### Search
 

@@ -23,7 +23,7 @@ const ownRefPrefix = ownPkgQualifier + "."
 // version segment inside a struct tag is consumed by the quoted alternative
 // and left alone.
 var canonTokens = regexp.MustCompile("\"(?:\\\\.|[^\"\\\\])*\"|`[^`]*`|" +
-	regexp.QuoteMeta(ownRefPrefix) + `[\pL_][\pL\pN_]*|/v[0-9]+[/.]`)
+	regexp.QuoteMeta(ownRefPrefix) + `[\pL_][\pL\pN_]*|` + majorVersionPattern + `[/.]`)
 
 // canonType maps the own-package type references of a rendered type through
 // renamed and strips module-major-version segments, so two spellings of one
