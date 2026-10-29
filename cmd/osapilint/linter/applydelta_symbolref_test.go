@@ -153,3 +153,78 @@ func TestRewriteSymbolRef(t *testing.T) {
 		})
 	}
 }
+
+// TestFlagUnqualifiedSymbolRef pins which unqualified identifiers are reported
+// as MANUAL: only a use that resolves to a renamed package-level symbol of
+// another package, which in practice means a dot import. The AST is never
+// mutated.
+func TestFlagUnqualifiedSymbolRef(t *testing.T) {
+	t.Parallel()
+
+	renames := map[string]apirev.TypeRename{"strings.Compare": {FromPkgPath: "strings", FromName: "Compare", ToName: "Cmp"}}
+
+	tests := []struct {
+		name    string
+		src     string
+		renames map[string]apirev.TypeRename
+		want    []string
+	}{
+		{
+			name:    "dot imported func flagged",
+			src:     "package p\nimport . \"strings\"\nvar _ = Compare(\"a\", \"b\")\n",
+			renames: renames,
+			want:    []string{"MANUAL func Compare -> Cmp: unqualified use (dot import) is not rewritten; rename it by hand"},
+		},
+		{
+			name:    "dot imported const flagged",
+			src:     "package p\nimport . \"io\"\nvar _ = SeekStart\n",
+			renames: map[string]apirev.TypeRename{"io.SeekStart": {FromPkgPath: "io", FromName: "SeekStart", ToName: "Start"}},
+			want:    []string{"MANUAL const SeekStart -> Start: unqualified use (dot import) is not rewritten; rename it by hand"},
+		},
+		{
+			name:    "dot imported type flagged",
+			src:     "package p\nimport . \"bytes\"\nvar _ Buffer\n",
+			renames: map[string]apirev.TypeRename{"bytes.Buffer": {FromPkgPath: "bytes", FromName: "Buffer", ToName: "Buf"}},
+			want:    []string{"MANUAL type Buffer -> Buf: unqualified use (dot import) is not rewritten; rename it by hand"},
+		},
+		{
+			name:    "own func silent",
+			src:     "package p\nfunc Compare(a, b string) int { return 0 }\nvar _ = Compare(\"a\", \"b\")\n",
+			renames: renames,
+		},
+		{
+			name:    "local var silent",
+			src:     "package p\nfunc f() int {\n\tCompare := 1\n\treturn Compare\n}\n",
+			renames: renames,
+		},
+		{
+			name:    "dot import without entry silent",
+			src:     "package p\nimport . \"strings\"\nvar _ = Compare(\"a\", \"b\")\n",
+			renames: map[string]apirev.TypeRename{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "src.go", tt.src, 0)
+			require.NoError(t, err)
+			info := &types.Info{Uses: map[*ast.Ident]types.Object{}}
+			_, err = (&types.Config{Importer: importer.Default()}).Check("example.com/p", fset, []*ast.File{file}, info)
+			require.NoError(t, err)
+
+			var got []string
+			ast.Inspect(file, func(n ast.Node) bool {
+				if id, ok := n.(*ast.Ident); ok {
+					if e := flagUnqualifiedSymbolRef(id, info, tt.renames); e != "" {
+						got = append(got, e)
+					}
+				}
+				return true
+			})
+			require.Equal(t, tt.want, got)
+		})
+	}
+}

@@ -95,7 +95,8 @@ package corpus
 import . "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 
 // dotImported uses a renamed constant through a dot import. The rewriter keys
-// on the qualified selector, so the unqualified use is left alone.
+// on the qualified selector, so the unqualified use is left alone and is
+// reported MANUAL.
 func dotImported(t SearchTotalHits) bool { return t.Relation == SearchTotalHitsRelationEq }
 -- own/own.go --
 // SPDX-License-Identifier: Apache-2.0
@@ -163,7 +164,8 @@ package corpus
 import . "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 
 // dotImported uses a renamed constant through a dot import. The rewriter keys
-// on the qualified selector, so the unqualified use is left alone.
+// on the qualified selector, so the unqualified use is left alone and is
+// reported MANUAL.
 func dotImported(t SearchTotalHits) bool { return t.Relation == SearchTotalHitsRelationEq }
 -- own/own.go.golden --
 // SPDX-License-Identifier: Apache-2.0

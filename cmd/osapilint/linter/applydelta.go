@@ -162,6 +162,16 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			} else if edit != "" {
 				res.edits = append(res.edits, edit)
 			}
+		case *ast.Ident:
+			// A selector's Sel belongs to the SelectorExpr case, which renames it in place;
+			// info.Uses still maps it to the old object, so flagging it here would
+			// double-report a rewritten use.
+			if _, isSel := c.Parent().(*ast.SelectorExpr); isSel && c.Name() == "Sel" {
+				break
+			}
+			if e := flagUnqualifiedSymbolRef(n, info, rules.renameByFrom); e != "" {
+				res.edits = append(res.edits, e)
+			}
 		}
 		return true
 	}, nil)
@@ -955,7 +965,20 @@ func isOpenSearchAPIClient(t types.Type) bool {
 // resolved object so only the intended symbol is touched: the package-scope
 // check excludes methods and fields, and variables are not renamed at all.
 func rewriteSymbolRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
-	obj := info.Uses[sel.Sel]
+	kind, r, ok := lookupSymbolRename(info.Uses[sel.Sel], renameByFrom)
+	if !ok {
+		return ""
+	}
+	old := sel.Sel.Name
+	// Rename in place: a fresh identifier has no position, and the printer then
+	// misplaces what follows it (a closing parenthesis prints as ",)").
+	sel.Sel.Name = r.ToName
+	return fmt.Sprintf("%s %s -> %s", kind, old, r.ToName)
+}
+
+// lookupSymbolRename reports whether obj is a package-level type, constant or
+// function that was renamed on the target, with its kind and ruling.
+func lookupSymbolRename(obj types.Object, renameByFrom map[string]apirev.TypeRename) (string, apirev.TypeRename, bool) {
 	var kind string
 	switch obj.(type) {
 	case *types.TypeName:
@@ -965,20 +988,28 @@ func rewriteSymbolRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[
 	case *types.Func:
 		kind = "func"
 	default:
-		return ""
+		return "", apirev.TypeRename{}, false
 	}
 	if obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
-		return ""
+		return "", apirev.TypeRename{}, false
 	}
 	r, ok := renameByFrom[obj.Pkg().Path()+"."+obj.Name()]
+	return kind, r, ok
+}
+
+// flagUnqualifiedSymbolRef reports an unqualified use of a renamed symbol of
+// another package, i.e. one reached through a dot import, as a MANUAL worklist
+// item. rewriteSymbolRef follows only qualified selectors, so the use would
+// otherwise become an undefined name on the target. An own declaration with the
+// same name resolves to its own package and never matches. Report-only: it never
+// mutates the AST. Returns "" if not applicable.
+func flagUnqualifiedSymbolRef(id *ast.Ident, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
+	kind, r, ok := lookupSymbolRename(info.Uses[id], renameByFrom)
 	if !ok {
 		return ""
 	}
-	old := sel.Sel.Name
-	// Rename in place: a fresh identifier has no position, and the printer then
-	// misplaces what follows it (a closing parenthesis prints as ",)").
-	sel.Sel.Name = r.ToName
-	return fmt.Sprintf("%s %s -> %s", kind, old, r.ToName)
+	return fmt.Sprintf("MANUAL %s %s -> %s: unqualified use (dot import) is not rewritten; rename it by hand",
+		kind, id.Name, r.ToName)
 }
 
 // flagRemovedTypeRef reports a reference to a source type that was removed

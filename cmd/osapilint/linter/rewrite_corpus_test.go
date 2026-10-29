@@ -50,7 +50,8 @@ func TestRewriteCorpus(t *testing.T) {
 		// where a rewrite leaves an import dangling - e.g. the root import going
 		// dead once *opensearch.Client is repointed to *opensearchapi.Client.
 		compileClean []string
-		edits        []string // substrings that must appear in the report
+		edits        []string       // substrings that must appear in the report
+		editCounts   map[string]int // report substring -> exact occurrence count
 	}{
 		{
 			name:   "v2_to_v3",
@@ -92,8 +93,8 @@ func TestRewriteCorpus(t *testing.T) {
 			// The hop within v5 keeps the import path, so the report carries no
 			// import edit: only the type, field and symbol rulings. symbols.go
 			// covers the package-level symbol renames. dotimport.go uses an API
-			// name unqualified through a dot import: it is the API symbol, but the
-			// rewriter follows only qualified selectors, so it stays unchanged.
+			// name unqualified through a dot import: the rewriter follows only
+			// qualified selectors, so it stays unchanged and is reported MANUAL.
 			// own/own.go imports opensearchapi and uses one renamed constant
 			// qualified, which is rewritten, beside its own same-named const and
 			// func used unqualified, which stay.
@@ -117,6 +118,11 @@ func TestRewriteCorpus(t *testing.T) {
 				`InsightsTopQuery": field QueryHashcode -> QueryGroupHashcode`,
 				`AsynchronousSearchRespBody": field Took removed`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v5/opensearchapi.RollupsInterval": access .Cron`,
+			},
+			editCounts: map[string]int{
+				// Only dotimport.go's one use is reported: qualified renames (symbols.go)
+				// are rewritten, not flagged, and own/own.go's same-named symbols stay silent.
+				"MANUAL const SearchTotalHitsRelationEq -> TotalHitsRelationEq: unqualified use (dot import)": 1,
 			},
 		},
 		{
@@ -213,6 +219,10 @@ func TestRewriteCorpus(t *testing.T) {
 			report := reportText(results)
 			for _, want := range tt.edits {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
+			}
+
+			for s, n := range tt.editCounts {
+				require.Equal(t, n, strings.Count(report, s), "report must mention %q exactly %d time(s)\nfull report:\n%s", s, n, report)
 			}
 
 			archivePath := filepath.Join("testdata", "corpus", tt.corpus+".txtar")
