@@ -100,9 +100,9 @@ type Delta struct {
 	RemovedTypes map[string]bool `json:"removedTypes,omitempty"`
 }
 
-// TypeRename identifies a source type that was renamed in the target version, by
-// unqualified name within a package pair. The linter resolves the source struct
-// in FromPkgPath and its counterpart in ToPkgPath.
+// TypeRename identifies a source type, constant or function that was renamed in
+// the target version, by unqualified name within a package pair. The linter
+// resolves the source symbol in FromPkgPath and its counterpart in ToPkgPath.
 type TypeRename struct {
 	FromPkgPath string
 	FromName    string

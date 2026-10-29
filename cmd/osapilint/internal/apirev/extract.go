@@ -102,10 +102,15 @@ func hasExportedField(st *types.Struct) bool {
 }
 
 // extractSymbol records a package-level type, constant or function, rendering
-// types relative to pkg. Variables are not recorded: the generated packages
-// export none that a migration renames.
+// types with pkg's own types marked (see Symbol). Variables are not recorded:
+// the generated packages export none that a migration renames.
 func extractSymbol(pkg *types.Package, obj types.Object) (Symbol, bool) {
-	qualify := types.RelativeTo(pkg)
+	qualify := func(p *types.Package) string {
+		if p == pkg {
+			return ownPkgQualifier
+		}
+		return p.Path()
+	}
 	sym := Symbol{PkgPath: pkg.Path(), Name: obj.Name()}
 	switch o := obj.(type) {
 	case *types.TypeName:

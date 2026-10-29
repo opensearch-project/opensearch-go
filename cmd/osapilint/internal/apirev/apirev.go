@@ -85,12 +85,19 @@ const (
 	SymbolFunc  SymbolKind = "func"
 )
 
+// ownPkgQualifier is the package qualifier extractSymbol gives the symbol's own
+// package, so types.TypeString renders its types as "@.Name". Field names,
+// method names and tags never carry that marker, which is what lets a
+// comparison map own-package names safely.
+const ownPkgQualifier = "@"
+
 // Symbol is one exported package-level type, constant or function, with enough
 // of its shape to tell whether a symbol of another name is the same thing: a
 // type's underlying type (unexported fields included) and declared methods, a
 // constant's type and exact value, a function's signature. Struct types with
-// exported fields are in Structs instead. Types are rendered relative to
-// PkgPath, so a name in the same package carries no package qualifier.
+// exported fields are in Structs instead. A type from PkgPath itself is
+// rendered with ownPkgQualifier; a type from any other package keeps its full
+// package path.
 type Symbol struct {
 	PkgPath string     `json:"pkgPath"`
 	Name    string     `json:"name"`

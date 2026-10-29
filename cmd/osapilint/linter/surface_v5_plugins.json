@@ -35854,17 +35854,17 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/asynchronous_search",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkCommonSearchStateRespResourcesCreated",
       "kind": "type",
-      "type": "struct{typ FlowFrameworkCommonSearchStateRespResourcesCreatedType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
+      "type": "struct{typ @.FlowFrameworkCommonSearchStateRespResourcesCreatedType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
       "methods": [
         {
           "name": "Array",
-          "signature": "func() ([]FlowFrameworkCommonResourcesCreated, error)",
+          "signature": "func() ([]@.FlowFrameworkCommonResourcesCreated, error)",
           "pointerReceiver": true
         },
         {
@@ -35882,7 +35882,7 @@
         },
         {
           "name": "ResourcesCreated",
-          "signature": "func() (FlowFrameworkCommonResourcesCreated, error)",
+          "signature": "func() (@.FlowFrameworkCommonResourcesCreated, error)",
           "pointerReceiver": true
         },
         {
@@ -35892,7 +35892,7 @@
         },
         {
           "name": "Type",
-          "signature": "func() FlowFrameworkCommonSearchStateRespResourcesCreatedType",
+          "signature": "func() @.FlowFrameworkCommonSearchStateRespResourcesCreatedType",
           "pointerReceiver": true
         },
         {
@@ -35911,14 +35911,14 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType",
       "kind": "const",
-      "type": "FlowFrameworkCommonSearchStateRespResourcesCreatedType",
+      "type": "@.FlowFrameworkCommonSearchStateRespResourcesCreatedType",
       "value": "2"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType",
       "kind": "const",
-      "type": "FlowFrameworkCommonSearchStateRespResourcesCreatedType",
+      "type": "@.FlowFrameworkCommonSearchStateRespResourcesCreatedType",
       "value": "1"
     },
     {
@@ -35937,14 +35937,14 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType",
       "kind": "const",
-      "type": "FlowFrameworkCommonSearchStateRespResourcesCreatedType",
+      "type": "@.FlowFrameworkCommonSearchStateRespResourcesCreatedType",
       "value": "0"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkGetStatusRespBody",
       "kind": "type",
-      "type": "struct{typ FlowFrameworkGetStatusRespBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
+      "type": "struct{typ @.FlowFrameworkGetStatusRespBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
       "methods": [
         {
           "name": "MarshalJSON",
@@ -35966,7 +35966,7 @@
         },
         {
           "name": "Type",
-          "signature": "func() FlowFrameworkGetStatusRespBodyType",
+          "signature": "func() @.FlowFrameworkGetStatusRespBodyType",
           "pointerReceiver": true
         },
         {
@@ -35976,12 +35976,12 @@
         },
         {
           "name": "WorkFlowStatusDefaultResponse",
-          "signature": "func() (FlowFrameworkCommonWorkFlowStatusDefaultResponse, error)",
+          "signature": "func() (@.FlowFrameworkCommonWorkFlowStatusDefaultResponse, error)",
           "pointerReceiver": true
         },
         {
           "name": "WorkFlowStatusFullResponse",
-          "signature": "func() (FlowFrameworkCommonWorkFlowStatusFullResponse, error)",
+          "signature": "func() (@.FlowFrameworkCommonWorkFlowStatusFullResponse, error)",
           "pointerReceiver": true
         }
       ]
@@ -36002,21 +36002,21 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkGetStatusRespBodyUnknownType",
       "kind": "const",
-      "type": "FlowFrameworkGetStatusRespBodyType",
+      "type": "@.FlowFrameworkGetStatusRespBodyType",
       "value": "0"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkGetStatusRespBodyWorkFlowStatusDefaultResponseType",
       "kind": "const",
-      "type": "FlowFrameworkGetStatusRespBodyType",
+      "type": "@.FlowFrameworkGetStatusRespBodyType",
       "value": "2"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "FlowFrameworkGetStatusRespBodyWorkFlowStatusFullResponseType",
       "kind": "const",
-      "type": "FlowFrameworkGetStatusRespBodyType",
+      "type": "@.FlowFrameworkGetStatusRespBodyType",
       "value": "1"
     },
     {
@@ -36029,49 +36029,49 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromArray",
       "kind": "func",
-      "type": "func(v []FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated"
+      "type": "func(v []@.FlowFrameworkCommonResourcesCreated) @.FlowFrameworkCommonSearchStateRespResourcesCreated"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromResourcesCreated",
       "kind": "func",
-      "type": "func(v FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated"
+      "type": "func(v @.FlowFrameworkCommonResourcesCreated) @.FlowFrameworkCommonSearchStateRespResourcesCreated"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "NewFlowFrameworkGetStatusRespBodyFromWorkFlowStatusDefaultResponse",
       "kind": "func",
-      "type": "func(v FlowFrameworkCommonWorkFlowStatusDefaultResponse) FlowFrameworkGetStatusRespBody"
+      "type": "func(v @.FlowFrameworkCommonWorkFlowStatusDefaultResponse) @.FlowFrameworkGetStatusRespBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/flow_framework",
       "name": "NewFlowFrameworkGetStatusRespBodyFromWorkFlowStatusFullResponse",
       "kind": "func",
-      "type": "func(v FlowFrameworkCommonWorkFlowStatusFullResponse) FlowFrameworkGetStatusRespBody"
+      "type": "func(v @.FlowFrameworkCommonWorkFlowStatusFullResponse) @.FlowFrameworkGetStatusRespBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/geospatial",
       "name": "IP2GeoDatasourceClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteIP2GeoDatasource",
-          "signature": "func(ctx context.Context, req DeleteIP2GeoDatasourceReq) (*DeleteIP2GeoDatasourceResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteIP2GeoDatasourceReq) (*@.DeleteIP2GeoDatasourceResp, error)"
         },
         {
           "name": "GetIP2GeoDatasource",
-          "signature": "func(ctx context.Context, req *GetIP2GeoDatasourceReq) (*GetIP2GeoDatasourceResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetIP2GeoDatasourceReq) (*@.GetIP2GeoDatasourceResp, error)"
         },
         {
           "name": "PutIP2GeoDatasource",
-          "signature": "func(ctx context.Context, req PutIP2GeoDatasourceReq) (*PutIP2GeoDatasourceResp, error)"
+          "signature": "func(ctx context.Context, req @.PutIP2GeoDatasourceReq) (*@.PutIP2GeoDatasourceResp, error)"
         }
       ]
     },
@@ -36085,7 +36085,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/geospatial",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ingestion",
@@ -36097,7 +36097,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ingestion",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/insights",
@@ -36109,7 +36109,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/insights",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
@@ -36121,41 +36121,41 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ism",
       "name": "PolicyClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "AddPolicy",
-          "signature": "func(ctx context.Context, req *AddPolicyReq) (*AddPolicyResp, error)"
+          "signature": "func(ctx context.Context, req *@.AddPolicyReq) (*@.AddPolicyResp, error)"
         },
         {
           "name": "ChangePolicy",
-          "signature": "func(ctx context.Context, req *ChangePolicyReq) (*ChangePolicyResp, error)"
+          "signature": "func(ctx context.Context, req *@.ChangePolicyReq) (*@.ChangePolicyResp, error)"
         },
         {
           "name": "DeletePolicy",
-          "signature": "func(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.DeletePolicyReq) (*@.DeletePolicyResp, error)"
         },
         {
           "name": "GetPolicies",
-          "signature": "func(ctx context.Context, req *GetPoliciesReq) (*GetPoliciesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetPoliciesReq) (*@.GetPoliciesResp, error)"
         },
         {
           "name": "GetPolicy",
-          "signature": "func(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.GetPolicyReq) (*@.GetPolicyResp, error)"
         },
         {
           "name": "PutPolicies",
-          "signature": "func(ctx context.Context, req *PutPoliciesReq) (*PutPoliciesResp, error)"
+          "signature": "func(ctx context.Context, req *@.PutPoliciesReq) (*@.PutPoliciesResp, error)"
         },
         {
           "name": "PutPolicy",
-          "signature": "func(ctx context.Context, req PutPolicyReq) (*PutPolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.PutPolicyReq) (*@.PutPolicyResp, error)"
         }
       ]
     },
@@ -36169,23 +36169,23 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/knn",
       "name": "ModelClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteModel",
-          "signature": "func(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteModelReq) (*@.DeleteModelResp, error)"
         },
         {
           "name": "GetModel",
-          "signature": "func(ctx context.Context, req GetModelReq) (*GetModelResp, error)"
+          "signature": "func(ctx context.Context, req @.GetModelReq) (*@.GetModelResp, error)"
         },
         {
           "name": "SearchModels",
-          "signature": "func(ctx context.Context, req *SearchModelsReq) (*SearchModelsResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchModelsReq) (*@.SearchModelsResp, error)"
         },
         {
           "name": "TrainModel",
-          "signature": "func(ctx context.Context, req TrainModelReq) (*TrainModelResp, error)"
+          "signature": "func(ctx context.Context, req @.TrainModelReq) (*@.TrainModelResp, error)"
         }
       ]
     },
@@ -36193,7 +36193,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/knn",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/list",
@@ -36203,7 +36203,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -36221,21 +36221,21 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/list",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ltr",
       "name": "DefaultStoreClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateDefaultStore",
-          "signature": "func(ctx context.Context, req *CreateDefaultStoreReq) (*CreateDefaultStoreResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateDefaultStoreReq) (*@.CreateDefaultStoreResp, error)"
         },
         {
           "name": "DeleteDefaultStore",
-          "signature": "func(ctx context.Context, req *DeleteDefaultStoreReq) (*DeleteDefaultStoreResp, error)"
+          "signature": "func(ctx context.Context, req *@.DeleteDefaultStoreReq) (*@.DeleteDefaultStoreResp, error)"
         }
       ]
     },
@@ -36243,27 +36243,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ltr",
       "name": "FeatureClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateFeature",
-          "signature": "func(ctx context.Context, req CreateFeatureReq) (*CreateFeatureResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateFeatureReq) (*@.CreateFeatureResp, error)"
         },
         {
           "name": "DeleteFeature",
-          "signature": "func(ctx context.Context, req DeleteFeatureReq) (*DeleteFeatureResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteFeatureReq) (*@.DeleteFeatureResp, error)"
         },
         {
           "name": "GetFeature",
-          "signature": "func(ctx context.Context, req GetFeatureReq) (*GetFeatureResp, error)"
+          "signature": "func(ctx context.Context, req @.GetFeatureReq) (*@.GetFeatureResp, error)"
         },
         {
           "name": "SearchFeatures",
-          "signature": "func(ctx context.Context, req SearchFeaturesReq) (*SearchFeaturesResp, error)"
+          "signature": "func(ctx context.Context, req @.SearchFeaturesReq) (*@.SearchFeaturesResp, error)"
         },
         {
           "name": "UpdateFeature",
-          "signature": "func(ctx context.Context, req UpdateFeatureReq) (*UpdateFeatureResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateFeatureReq) (*@.UpdateFeatureResp, error)"
         }
       ]
     },
@@ -36271,27 +36271,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ltr",
       "name": "FeaturesetClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateFeatureset",
-          "signature": "func(ctx context.Context, req CreateFeaturesetReq) (*CreateFeaturesetResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateFeaturesetReq) (*@.CreateFeaturesetResp, error)"
         },
         {
           "name": "DeleteFeatureset",
-          "signature": "func(ctx context.Context, req DeleteFeaturesetReq) (*DeleteFeaturesetResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteFeaturesetReq) (*@.DeleteFeaturesetResp, error)"
         },
         {
           "name": "GetFeatureset",
-          "signature": "func(ctx context.Context, req GetFeaturesetReq) (*GetFeaturesetResp, error)"
+          "signature": "func(ctx context.Context, req @.GetFeaturesetReq) (*@.GetFeaturesetResp, error)"
         },
         {
           "name": "SearchFeaturesets",
-          "signature": "func(ctx context.Context, req SearchFeaturesetsReq) (*SearchFeaturesetsResp, error)"
+          "signature": "func(ctx context.Context, req @.SearchFeaturesetsReq) (*@.SearchFeaturesetsResp, error)"
         },
         {
           "name": "UpdateFeatureset",
-          "signature": "func(ctx context.Context, req UpdateFeaturesetReq) (*UpdateFeaturesetResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateFeaturesetReq) (*@.UpdateFeaturesetResp, error)"
         }
       ]
     },
@@ -36305,23 +36305,23 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ltr",
       "name": "ModelClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateModel",
-          "signature": "func(ctx context.Context, req CreateModelReq) (*CreateModelResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateModelReq) (*@.CreateModelResp, error)"
         },
         {
           "name": "DeleteModel",
-          "signature": "func(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteModelReq) (*@.DeleteModelResp, error)"
         },
         {
           "name": "GetModel",
-          "signature": "func(ctx context.Context, req GetModelReq) (*GetModelResp, error)"
+          "signature": "func(ctx context.Context, req @.GetModelReq) (*@.GetModelResp, error)"
         },
         {
           "name": "SearchModels",
-          "signature": "func(ctx context.Context, req SearchModelsReq) (*SearchModelsResp, error)"
+          "signature": "func(ctx context.Context, req @.SearchModelsReq) (*@.SearchModelsResp, error)"
         }
       ]
     },
@@ -36329,29 +36329,29 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ltr",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ltr",
       "name": "StoreClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateStore",
-          "signature": "func(ctx context.Context, req CreateStoreReq) (*CreateStoreResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateStoreReq) (*@.CreateStoreResp, error)"
         },
         {
           "name": "DeleteStore",
-          "signature": "func(ctx context.Context, req DeleteStoreReq) (*DeleteStoreResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteStoreReq) (*@.DeleteStoreResp, error)"
         },
         {
           "name": "GetStore",
-          "signature": "func(ctx context.Context, req GetStoreReq) (*GetStoreResp, error)"
+          "signature": "func(ctx context.Context, req @.GetStoreReq) (*@.GetStoreResp, error)"
         },
         {
           "name": "ListStores",
-          "signature": "func(ctx context.Context, req *ListStoresReq) (*ListStoresResp, error)"
+          "signature": "func(ctx context.Context, req *@.ListStoresReq) (*@.ListStoresResp, error)"
         }
       ]
     },
@@ -36359,27 +36359,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "AgentClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteAgent",
-          "signature": "func(ctx context.Context, req DeleteAgentReq) (*DeleteAgentResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteAgentReq) (*@.DeleteAgentResp, error)"
         },
         {
           "name": "ExecuteAgent",
-          "signature": "func(ctx context.Context, req ExecuteAgentReq) (*ExecuteAgentResp, error)"
+          "signature": "func(ctx context.Context, req @.ExecuteAgentReq) (*@.ExecuteAgentResp, error)"
         },
         {
           "name": "GetAgent",
-          "signature": "func(ctx context.Context, req GetAgentReq) (*GetAgentResp, error)"
+          "signature": "func(ctx context.Context, req @.GetAgentReq) (*@.GetAgentResp, error)"
         },
         {
           "name": "RegisterAgents",
-          "signature": "func(ctx context.Context, req *RegisterAgentsReq) (*RegisterAgentsResp, error)"
+          "signature": "func(ctx context.Context, req *@.RegisterAgentsReq) (*@.RegisterAgentsResp, error)"
         },
         {
           "name": "SearchAgents",
-          "signature": "func(ctx context.Context, req *SearchAgentsReq) (*SearchAgentsResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchAgentsReq) (*@.SearchAgentsResp, error)"
         }
       ]
     },
@@ -36387,27 +36387,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "AgenticMemoryClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "AddAgenticMemory",
-          "signature": "func(ctx context.Context, req AddAgenticMemoryReq) (*AddAgenticMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.AddAgenticMemoryReq) (*@.AddAgenticMemoryResp, error)"
         },
         {
           "name": "DeleteAgenticMemory",
-          "signature": "func(ctx context.Context, req DeleteAgenticMemoryReq) (*DeleteAgenticMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteAgenticMemoryReq) (*@.DeleteAgenticMemoryResp, error)"
         },
         {
           "name": "GetAgenticMemory",
-          "signature": "func(ctx context.Context, req GetAgenticMemoryReq) (*GetAgenticMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.GetAgenticMemoryReq) (*@.GetAgenticMemoryResp, error)"
         },
         {
           "name": "SearchAgenticMemory",
-          "signature": "func(ctx context.Context, req SearchAgenticMemoryReq) (*SearchAgenticMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.SearchAgenticMemoryReq) (*@.SearchAgenticMemoryResp, error)"
         },
         {
           "name": "UpdateAgenticMemory",
-          "signature": "func(ctx context.Context, req UpdateAgenticMemoryReq) (*UpdateAgenticMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateAgenticMemoryReq) (*@.UpdateAgenticMemoryResp, error)"
         }
       ]
     },
@@ -36415,27 +36415,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "ConnectorClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateConnector",
-          "signature": "func(ctx context.Context, req *CreateConnectorReq) (*CreateConnectorResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateConnectorReq) (*@.CreateConnectorResp, error)"
         },
         {
           "name": "DeleteConnector",
-          "signature": "func(ctx context.Context, req DeleteConnectorReq) (*DeleteConnectorResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteConnectorReq) (*@.DeleteConnectorResp, error)"
         },
         {
           "name": "GetConnector",
-          "signature": "func(ctx context.Context, req GetConnectorReq) (*GetConnectorResp, error)"
+          "signature": "func(ctx context.Context, req @.GetConnectorReq) (*@.GetConnectorResp, error)"
         },
         {
           "name": "SearchConnectors",
-          "signature": "func(ctx context.Context, req *SearchConnectorsReq) (*SearchConnectorsResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchConnectorsReq) (*@.SearchConnectorsResp, error)"
         },
         {
           "name": "UpdateConnector",
-          "signature": "func(ctx context.Context, req UpdateConnectorReq) (*UpdateConnectorResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateConnectorReq) (*@.UpdateConnectorResp, error)"
         }
       ]
     },
@@ -36443,23 +36443,23 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "ControllerClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateController",
-          "signature": "func(ctx context.Context, req CreateControllerReq) (*CreateControllerResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateControllerReq) (*@.CreateControllerResp, error)"
         },
         {
           "name": "DeleteController",
-          "signature": "func(ctx context.Context, req DeleteControllerReq) (*DeleteControllerResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteControllerReq) (*@.DeleteControllerResp, error)"
         },
         {
           "name": "GetController",
-          "signature": "func(ctx context.Context, req GetControllerReq) (*GetControllerResp, error)"
+          "signature": "func(ctx context.Context, req @.GetControllerReq) (*@.GetControllerResp, error)"
         },
         {
           "name": "UpdateController",
-          "signature": "func(ctx context.Context, req UpdateControllerReq) (*UpdateControllerResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateControllerReq) (*@.UpdateControllerResp, error)"
         }
       ]
     },
@@ -36471,7 +36471,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -36489,31 +36489,31 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "MemoryClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateMemory",
-          "signature": "func(ctx context.Context, req *CreateMemoryReq) (*CreateMemoryResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateMemoryReq) (*@.CreateMemoryResp, error)"
         },
         {
           "name": "DeleteMemory",
-          "signature": "func(ctx context.Context, req DeleteMemoryReq) (*DeleteMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteMemoryReq) (*@.DeleteMemoryResp, error)"
         },
         {
           "name": "GetAllMemories",
-          "signature": "func(ctx context.Context, req *GetAllMemoriesReq) (*GetAllMemoriesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetAllMemoriesReq) (*@.GetAllMemoriesResp, error)"
         },
         {
           "name": "GetMemory",
-          "signature": "func(ctx context.Context, req GetMemoryReq) (*GetMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.GetMemoryReq) (*@.GetMemoryResp, error)"
         },
         {
           "name": "SearchMemory",
-          "signature": "func(ctx context.Context, req *SearchMemoryReq) (*SearchMemoryResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchMemoryReq) (*@.SearchMemoryResp, error)"
         },
         {
           "name": "UpdateMemory",
-          "signature": "func(ctx context.Context, req UpdateMemoryReq) (*UpdateMemoryResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateMemoryReq) (*@.UpdateMemoryResp, error)"
         }
       ]
     },
@@ -36521,27 +36521,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "MemoryContainerClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateMemoryContainer",
-          "signature": "func(ctx context.Context, req *CreateMemoryContainerReq) (*CreateMemoryContainerResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateMemoryContainerReq) (*@.CreateMemoryContainerResp, error)"
         },
         {
           "name": "DeleteMemoryContainer",
-          "signature": "func(ctx context.Context, req DeleteMemoryContainerReq) (*DeleteMemoryContainerResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteMemoryContainerReq) (*@.DeleteMemoryContainerResp, error)"
         },
         {
           "name": "GetMemoryContainer",
-          "signature": "func(ctx context.Context, req GetMemoryContainerReq) (*GetMemoryContainerResp, error)"
+          "signature": "func(ctx context.Context, req @.GetMemoryContainerReq) (*@.GetMemoryContainerResp, error)"
         },
         {
           "name": "SearchMemoryContainer",
-          "signature": "func(ctx context.Context, req *SearchMemoryContainerReq) (*SearchMemoryContainerResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchMemoryContainerReq) (*@.SearchMemoryContainerResp, error)"
         },
         {
           "name": "UpdateMemoryContainer",
-          "signature": "func(ctx context.Context, req UpdateMemoryContainerReq) (*UpdateMemoryContainerResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateMemoryContainerReq) (*@.UpdateMemoryContainerResp, error)"
         }
       ]
     },
@@ -36549,27 +36549,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "MessageClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateMessage",
-          "signature": "func(ctx context.Context, req CreateMessageReq) (*CreateMessageResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateMessageReq) (*@.CreateMessageResp, error)"
         },
         {
           "name": "GetAllMessages",
-          "signature": "func(ctx context.Context, req GetAllMessagesReq) (*GetAllMessagesResp, error)"
+          "signature": "func(ctx context.Context, req @.GetAllMessagesReq) (*@.GetAllMessagesResp, error)"
         },
         {
           "name": "GetMessage",
-          "signature": "func(ctx context.Context, req GetMessageReq) (*GetMessageResp, error)"
+          "signature": "func(ctx context.Context, req @.GetMessageReq) (*@.GetMessageResp, error)"
         },
         {
           "name": "SearchMessage",
-          "signature": "func(ctx context.Context, req SearchMessageReq) (*SearchMessageResp, error)"
+          "signature": "func(ctx context.Context, req @.SearchMessageReq) (*@.SearchMessageResp, error)"
         },
         {
           "name": "UpdateMessage",
-          "signature": "func(ctx context.Context, req UpdateMessageReq) (*UpdateMessageResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateMessageReq) (*@.UpdateMessageResp, error)"
         }
       ]
     },
@@ -36577,55 +36577,55 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "ModelClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "ChunkModel",
-          "signature": "func(ctx context.Context, req ChunkModelReq) (*ChunkModelResp, error)"
+          "signature": "func(ctx context.Context, req @.ChunkModelReq) (*@.ChunkModelResp, error)"
         },
         {
           "name": "DeleteModel",
-          "signature": "func(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteModelReq) (*@.DeleteModelResp, error)"
         },
         {
           "name": "DeployModel",
-          "signature": "func(ctx context.Context, req DeployModelReq) (*DeployModelResp, error)"
+          "signature": "func(ctx context.Context, req @.DeployModelReq) (*@.DeployModelResp, error)"
         },
         {
           "name": "GetModel",
-          "signature": "func(ctx context.Context, req GetModelReq) (*GetModelResp, error)"
+          "signature": "func(ctx context.Context, req @.GetModelReq) (*@.GetModelResp, error)"
         },
         {
           "name": "LoadModel",
-          "signature": "func(ctx context.Context, req LoadModelReq) (*LoadModelResp, error)"
+          "signature": "func(ctx context.Context, req @.LoadModelReq) (*@.LoadModelResp, error)"
         },
         {
           "name": "PredictModel",
-          "signature": "func(ctx context.Context, req PredictModelReq) (*PredictModelResp, error)"
+          "signature": "func(ctx context.Context, req @.PredictModelReq) (*@.PredictModelResp, error)"
         },
         {
           "name": "RegisterModel",
-          "signature": "func(ctx context.Context, req *RegisterModelReq) (*RegisterModelResp, error)"
+          "signature": "func(ctx context.Context, req *@.RegisterModelReq) (*@.RegisterModelResp, error)"
         },
         {
           "name": "SearchModels",
-          "signature": "func(ctx context.Context, req *SearchModelsReq) (*SearchModelsResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchModelsReq) (*@.SearchModelsResp, error)"
         },
         {
           "name": "UndeployModel",
-          "signature": "func(ctx context.Context, req UndeployModelReq) (*UndeployModelResp, error)"
+          "signature": "func(ctx context.Context, req @.UndeployModelReq) (*@.UndeployModelResp, error)"
         },
         {
           "name": "UnloadModel",
-          "signature": "func(ctx context.Context, req UnloadModelReq) (*UnloadModelResp, error)"
+          "signature": "func(ctx context.Context, req @.UnloadModelReq) (*@.UnloadModelResp, error)"
         },
         {
           "name": "UpdateModel",
-          "signature": "func(ctx context.Context, req UpdateModelReq) (*UpdateModelResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateModelReq) (*@.UpdateModelResp, error)"
         },
         {
           "name": "UploadModel",
-          "signature": "func(ctx context.Context, req *UploadModelReq) (*UploadModelResp, error)"
+          "signature": "func(ctx context.Context, req *@.UploadModelReq) (*@.UploadModelResp, error)"
         }
       ]
     },
@@ -36633,27 +36633,27 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "ModelGroupClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteModelGroup",
-          "signature": "func(ctx context.Context, req DeleteModelGroupReq) (*DeleteModelGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteModelGroupReq) (*@.DeleteModelGroupResp, error)"
         },
         {
           "name": "GetModelGroup",
-          "signature": "func(ctx context.Context, req GetModelGroupReq) (*GetModelGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.GetModelGroupReq) (*@.GetModelGroupResp, error)"
         },
         {
           "name": "RegisterModelGroup",
-          "signature": "func(ctx context.Context, req *RegisterModelGroupReq) (*RegisterModelGroupResp, error)"
+          "signature": "func(ctx context.Context, req *@.RegisterModelGroupReq) (*@.RegisterModelGroupResp, error)"
         },
         {
           "name": "SearchModelGroup",
-          "signature": "func(ctx context.Context, req *SearchModelGroupReq) (*SearchModelGroupResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchModelGroupReq) (*@.SearchModelGroupResp, error)"
         },
         {
           "name": "UpdateModelGroup",
-          "signature": "func(ctx context.Context, req UpdateModelGroupReq) (*UpdateModelGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateModelGroupReq) (*@.UpdateModelGroupResp, error)"
         }
       ]
     },
@@ -36661,15 +36661,15 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "ModelMetaClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateModelMeta",
-          "signature": "func(ctx context.Context, req *CreateModelMetaReq) (*CreateModelMetaResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateModelMetaReq) (*@.CreateModelMetaResp, error)"
         },
         {
           "name": "RegisterModelMeta",
-          "signature": "func(ctx context.Context, req *RegisterModelMetaReq) (*RegisterModelMetaResp, error)"
+          "signature": "func(ctx context.Context, req *@.RegisterModelMetaReq) (*@.RegisterModelMetaResp, error)"
         }
       ]
     },
@@ -36677,7 +36677,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
@@ -36687,7 +36687,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -36699,19 +36699,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "TaskClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteTask",
-          "signature": "func(ctx context.Context, req DeleteTaskReq) (*DeleteTaskResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteTaskReq) (*@.DeleteTaskResp, error)"
         },
         {
           "name": "GetTask",
-          "signature": "func(ctx context.Context, req GetTaskReq) (*GetTaskResp, error)"
+          "signature": "func(ctx context.Context, req @.GetTaskReq) (*@.GetTaskResp, error)"
         },
         {
           "name": "SearchTasks",
-          "signature": "func(ctx context.Context, req *SearchTasksReq) (*SearchTasksResp, error)"
+          "signature": "func(ctx context.Context, req *@.SearchTasksReq) (*@.SearchTasksResp, error)"
         }
       ]
     },
@@ -36719,19 +36719,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ml",
       "name": "ToolClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "ExecuteTool",
-          "signature": "func(ctx context.Context, req ExecuteToolReq) (*ExecuteToolResp, error)"
+          "signature": "func(ctx context.Context, req @.ExecuteToolReq) (*@.ExecuteToolResp, error)"
         },
         {
           "name": "GetAllTools",
-          "signature": "func(ctx context.Context, req *GetAllToolsReq) (*GetAllToolsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetAllToolsReq) (*@.GetAllToolsResp, error)"
         },
         {
           "name": "GetTool",
-          "signature": "func(ctx context.Context, req GetToolReq) (*GetToolResp, error)"
+          "signature": "func(ctx context.Context, req @.GetToolReq) (*@.GetToolResp, error)"
         }
       ]
     },
@@ -36745,37 +36745,37 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/neural",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/notifications",
       "name": "ConfigClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateConfig",
-          "signature": "func(ctx context.Context, req *CreateConfigReq) (*CreateConfigResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateConfigReq) (*@.CreateConfigResp, error)"
         },
         {
           "name": "DeleteConfig",
-          "signature": "func(ctx context.Context, req DeleteConfigReq) (*DeleteConfigResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteConfigReq) (*@.DeleteConfigResp, error)"
         },
         {
           "name": "DeleteConfigs",
-          "signature": "func(ctx context.Context, req *DeleteConfigsReq) (*DeleteConfigsResp, error)"
+          "signature": "func(ctx context.Context, req *@.DeleteConfigsReq) (*@.DeleteConfigsResp, error)"
         },
         {
           "name": "GetConfig",
-          "signature": "func(ctx context.Context, req GetConfigReq) (*GetConfigResp, error)"
+          "signature": "func(ctx context.Context, req @.GetConfigReq) (*@.GetConfigResp, error)"
         },
         {
           "name": "GetConfigs",
-          "signature": "func(ctx context.Context, req *GetConfigsReq) (*GetConfigsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetConfigsReq) (*@.GetConfigsResp, error)"
         },
         {
           "name": "UpdateConfig",
-          "signature": "func(ctx context.Context, req UpdateConfigReq) (*UpdateConfigResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateConfigReq) (*@.UpdateConfigResp, error)"
         }
       ]
     },
@@ -36789,7 +36789,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/notifications",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/observability",
@@ -36799,7 +36799,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -36817,37 +36817,37 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/observability",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/observability",
       "name": "ObjectClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateObject",
-          "signature": "func(ctx context.Context, req *CreateObjectReq) (*CreateObjectResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateObjectReq) (*@.CreateObjectResp, error)"
         },
         {
           "name": "DeleteObject",
-          "signature": "func(ctx context.Context, req DeleteObjectReq) (*DeleteObjectResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteObjectReq) (*@.DeleteObjectResp, error)"
         },
         {
           "name": "DeleteObjects",
-          "signature": "func(ctx context.Context, req *DeleteObjectsReq) (*DeleteObjectsResp, error)"
+          "signature": "func(ctx context.Context, req *@.DeleteObjectsReq) (*@.DeleteObjectsResp, error)"
         },
         {
           "name": "GetObject",
-          "signature": "func(ctx context.Context, req GetObjectReq) (*GetObjectResp, error)"
+          "signature": "func(ctx context.Context, req @.GetObjectReq) (*@.GetObjectResp, error)"
         },
         {
           "name": "ListObjects",
-          "signature": "func(ctx context.Context, req *ListObjectsReq) (*ListObjectsResp, error)"
+          "signature": "func(ctx context.Context, req *@.ListObjectsReq) (*@.ListObjectsResp, error)"
         },
         {
           "name": "UpdateObject",
-          "signature": "func(ctx context.Context, req UpdateObjectReq) (*UpdateObjectResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateObjectReq) (*@.UpdateObjectResp, error)"
         }
       ]
     },
@@ -36859,7 +36859,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -36877,7 +36877,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ppl",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ppl",
@@ -36887,7 +36887,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -36899,15 +36899,15 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ppl",
       "name": "StatClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "GetStats",
-          "signature": "func(ctx context.Context, req *GetStatsReq) (*GetStatsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetStatsReq) (*@.GetStatsResp, error)"
         },
         {
           "name": "PostStats",
-          "signature": "func(ctx context.Context, req *PostStatsReq) (*PostStatsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PostStatsReq) (*@.PostStatsResp, error)"
         }
       ]
     },
@@ -36921,7 +36921,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/query",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/replication",
@@ -36933,21 +36933,21 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/replication",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/replication",
       "name": "ReplicationRuleClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateReplicationRule",
-          "signature": "func(ctx context.Context, req *CreateReplicationRuleReq) (*CreateReplicationRuleResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateReplicationRuleReq) (*@.CreateReplicationRuleResp, error)"
         },
         {
           "name": "DeleteReplicationRule",
-          "signature": "func(ctx context.Context, req *DeleteReplicationRuleReq) (*DeleteReplicationRuleResp, error)"
+          "signature": "func(ctx context.Context, req *@.DeleteReplicationRuleReq) (*@.DeleteReplicationRuleResp, error)"
         }
       ]
     },
@@ -36961,25 +36961,25 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/rollups",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "ExperimentClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteExperiments",
-          "signature": "func(ctx context.Context, req DeleteExperimentsReq) (*DeleteExperimentsResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteExperimentsReq) (*@.DeleteExperimentsResp, error)"
         },
         {
           "name": "GetExperiments",
-          "signature": "func(ctx context.Context, req GetExperimentsReq) (*GetExperimentsResp, error)"
+          "signature": "func(ctx context.Context, req @.GetExperimentsReq) (*@.GetExperimentsResp, error)"
         },
         {
           "name": "PutExperiments",
-          "signature": "func(ctx context.Context, req *PutExperimentsReq) (*PutExperimentsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PutExperimentsReq) (*@.PutExperimentsResp, error)"
         }
       ]
     },
@@ -36993,19 +36993,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "JudgmentClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteJudgments",
-          "signature": "func(ctx context.Context, req DeleteJudgmentsReq) (*DeleteJudgmentsResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteJudgmentsReq) (*@.DeleteJudgmentsResp, error)"
         },
         {
           "name": "GetJudgments",
-          "signature": "func(ctx context.Context, req GetJudgmentsReq) (*GetJudgmentsResp, error)"
+          "signature": "func(ctx context.Context, req @.GetJudgmentsReq) (*@.GetJudgmentsResp, error)"
         },
         {
           "name": "PutJudgments",
-          "signature": "func(ctx context.Context, req *PutJudgmentsReq) (*PutJudgmentsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PutJudgmentsReq) (*@.PutJudgmentsResp, error)"
         }
       ]
     },
@@ -37013,65 +37013,65 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) @.SearchRelevancePutExperimentsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutPairwiseExperimentRequest) @.SearchRelevancePutExperimentsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutPointwiseExperimentRequest) @.SearchRelevancePutExperimentsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutImportJudgmentsRequest) SearchRelevancePutJudgmentsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutImportJudgmentsRequest) @.SearchRelevancePutJudgmentsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutLLMJudgmentsRequest) SearchRelevancePutJudgmentsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutLLMJudgmentsRequest) @.SearchRelevancePutJudgmentsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutUBIJudgmentsRequest) SearchRelevancePutJudgmentsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchRelevancePutUBIJudgmentsRequest) @.SearchRelevancePutJudgmentsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "QuerySetClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteQuerySets",
-          "signature": "func(ctx context.Context, req DeleteQuerySetsReq) (*DeleteQuerySetsResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteQuerySetsReq) (*@.DeleteQuerySetsResp, error)"
         },
         {
           "name": "GetQuerySets",
-          "signature": "func(ctx context.Context, req GetQuerySetsReq) (*GetQuerySetsResp, error)"
+          "signature": "func(ctx context.Context, req @.GetQuerySetsReq) (*@.GetQuerySetsResp, error)"
         },
         {
           "name": "PostQuerySets",
-          "signature": "func(ctx context.Context, req *PostQuerySetsReq) (*PostQuerySetsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PostQuerySetsReq) (*@.PostQuerySetsResp, error)"
         },
         {
           "name": "PutQuerySets",
-          "signature": "func(ctx context.Context, req *PutQuerySetsReq) (*PutQuerySetsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PutQuerySetsReq) (*@.PutQuerySetsResp, error)"
         }
       ]
     },
@@ -37079,19 +37079,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "ScheduledExperimentClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteScheduledExperiments",
-          "signature": "func(ctx context.Context, req DeleteScheduledExperimentsReq) (*DeleteScheduledExperimentsResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteScheduledExperimentsReq) (*@.DeleteScheduledExperimentsResp, error)"
         },
         {
           "name": "GetScheduledExperiments",
-          "signature": "func(ctx context.Context, req GetScheduledExperimentsReq) (*GetScheduledExperimentsResp, error)"
+          "signature": "func(ctx context.Context, req @.GetScheduledExperimentsReq) (*@.GetScheduledExperimentsResp, error)"
         },
         {
           "name": "PostScheduledExperiments",
-          "signature": "func(ctx context.Context, req *PostScheduledExperimentsReq) (*PostScheduledExperimentsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PostScheduledExperimentsReq) (*@.PostScheduledExperimentsResp, error)"
         }
       ]
     },
@@ -37099,19 +37099,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchConfigurationClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteSearchConfigurations",
-          "signature": "func(ctx context.Context, req DeleteSearchConfigurationsReq) (*DeleteSearchConfigurationsResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteSearchConfigurationsReq) (*@.DeleteSearchConfigurationsResp, error)"
         },
         {
           "name": "GetSearchConfigurations",
-          "signature": "func(ctx context.Context, req GetSearchConfigurationsReq) (*GetSearchConfigurationsResp, error)"
+          "signature": "func(ctx context.Context, req @.GetSearchConfigurationsReq) (*@.GetSearchConfigurationsResp, error)"
         },
         {
           "name": "PutSearchConfigurations",
-          "signature": "func(ctx context.Context, req *PutSearchConfigurationsReq) (*PutSearchConfigurationsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PutSearchConfigurationsReq) (*@.PutSearchConfigurationsResp, error)"
         }
       ]
     },
@@ -37119,7 +37119,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutExperimentsBody",
       "kind": "type",
-      "type": "struct{typ SearchRelevancePutExperimentsBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
+      "type": "struct{typ @.SearchRelevancePutExperimentsBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
       "methods": [
         {
           "name": "MarshalJSON",
@@ -37156,7 +37156,7 @@
         },
         {
           "name": "Type",
-          "signature": "func() SearchRelevancePutExperimentsBodyType",
+          "signature": "func() @.SearchRelevancePutExperimentsBodyType",
           "pointerReceiver": true
         },
         {
@@ -37170,21 +37170,21 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType",
       "kind": "const",
-      "type": "SearchRelevancePutExperimentsBodyType",
+      "type": "@.SearchRelevancePutExperimentsBodyType",
       "value": "1"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType",
       "kind": "const",
-      "type": "SearchRelevancePutExperimentsBodyType",
+      "type": "@.SearchRelevancePutExperimentsBodyType",
       "value": "3"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType",
       "kind": "const",
-      "type": "SearchRelevancePutExperimentsBodyType",
+      "type": "@.SearchRelevancePutExperimentsBodyType",
       "value": "2"
     },
     {
@@ -37203,14 +37203,14 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutExperimentsBodyUnknownType",
       "kind": "const",
-      "type": "SearchRelevancePutExperimentsBodyType",
+      "type": "@.SearchRelevancePutExperimentsBodyType",
       "value": "0"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutJudgmentsBody",
       "kind": "type",
-      "type": "struct{typ SearchRelevancePutJudgmentsBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
+      "type": "struct{typ @.SearchRelevancePutJudgmentsBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
       "methods": [
         {
           "name": "MarshalJSON",
@@ -37247,7 +37247,7 @@
         },
         {
           "name": "Type",
-          "signature": "func() SearchRelevancePutJudgmentsBodyType",
+          "signature": "func() @.SearchRelevancePutJudgmentsBodyType",
           "pointerReceiver": true
         },
         {
@@ -37261,21 +37261,21 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType",
       "kind": "const",
-      "type": "SearchRelevancePutJudgmentsBodyType",
+      "type": "@.SearchRelevancePutJudgmentsBodyType",
       "value": "3"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType",
       "kind": "const",
-      "type": "SearchRelevancePutJudgmentsBodyType",
+      "type": "@.SearchRelevancePutJudgmentsBodyType",
       "value": "1"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType",
       "kind": "const",
-      "type": "SearchRelevancePutJudgmentsBodyType",
+      "type": "@.SearchRelevancePutJudgmentsBodyType",
       "value": "2"
     },
     {
@@ -37294,38 +37294,38 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance",
       "name": "SearchRelevancePutJudgmentsBodyUnknownType",
       "kind": "const",
-      "type": "SearchRelevancePutJudgmentsBodyType",
+      "type": "@.SearchRelevancePutJudgmentsBodyType",
       "value": "0"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ActionGroupClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateActionGroup",
-          "signature": "func(ctx context.Context, req CreateActionGroupReq) (*CreateActionGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateActionGroupReq) (*@.CreateActionGroupResp, error)"
         },
         {
           "name": "DeleteActionGroup",
-          "signature": "func(ctx context.Context, req DeleteActionGroupReq) (*DeleteActionGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteActionGroupReq) (*@.DeleteActionGroupResp, error)"
         },
         {
           "name": "GetActionGroup",
-          "signature": "func(ctx context.Context, req GetActionGroupReq) (*GetActionGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.GetActionGroupReq) (*@.GetActionGroupResp, error)"
         },
         {
           "name": "GetActionGroups",
-          "signature": "func(ctx context.Context, req *GetActionGroupsReq) (*GetActionGroupsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetActionGroupsReq) (*@.GetActionGroupsResp, error)"
         },
         {
           "name": "PatchActionGroup",
-          "signature": "func(ctx context.Context, req PatchActionGroupReq) (*PatchActionGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.PatchActionGroupReq) (*@.PatchActionGroupResp, error)"
         },
         {
           "name": "PatchActionGroups",
-          "signature": "func(ctx context.Context, req *PatchActionGroupsReq) (*PatchActionGroupsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchActionGroupsReq) (*@.PatchActionGroupsResp, error)"
         }
       ]
     },
@@ -37333,19 +37333,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "AllowlistClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateAllowlist",
-          "signature": "func(ctx context.Context, req *CreateAllowlistReq) (*CreateAllowlistResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateAllowlistReq) (*@.CreateAllowlistResp, error)"
         },
         {
           "name": "GetAllowlist",
-          "signature": "func(ctx context.Context, req *GetAllowlistReq) (*GetAllowlistResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetAllowlistReq) (*@.GetAllowlistResp, error)"
         },
         {
           "name": "PatchAllowlist",
-          "signature": "func(ctx context.Context, req *PatchAllowlistReq) (*PatchAllowlistResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchAllowlistReq) (*@.PatchAllowlistResp, error)"
         }
       ]
     },
@@ -37353,19 +37353,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "AuditConfigurationClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "GetAuditConfiguration",
-          "signature": "func(ctx context.Context, req *GetAuditConfigurationReq) (*GetAuditConfigurationResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetAuditConfigurationReq) (*@.GetAuditConfigurationResp, error)"
         },
         {
           "name": "PatchAuditConfiguration",
-          "signature": "func(ctx context.Context, req *PatchAuditConfigurationReq) (*PatchAuditConfigurationResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchAuditConfigurationReq) (*@.PatchAuditConfigurationResp, error)"
         },
         {
           "name": "UpdateAuditConfiguration",
-          "signature": "func(ctx context.Context, req *UpdateAuditConfigurationReq) (*UpdateAuditConfigurationResp, error)"
+          "signature": "func(ctx context.Context, req *@.UpdateAuditConfigurationReq) (*@.UpdateAuditConfigurationResp, error)"
         }
       ]
     },
@@ -37373,15 +37373,15 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "CertificateClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "GetAllCertificates",
-          "signature": "func(ctx context.Context, req *GetAllCertificatesReq) (*GetAllCertificatesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetAllCertificatesReq) (*@.GetAllCertificatesResp, error)"
         },
         {
           "name": "GetCertificates",
-          "signature": "func(ctx context.Context, req *GetCertificatesReq) (*GetCertificatesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetCertificatesReq) (*@.GetCertificatesResp, error)"
         }
       ]
     },
@@ -37389,19 +37389,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "ConfigurationClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "GetConfiguration",
-          "signature": "func(ctx context.Context, req *GetConfigurationReq) (*GetConfigurationResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetConfigurationReq) (*@.GetConfigurationResp, error)"
         },
         {
           "name": "PatchConfiguration",
-          "signature": "func(ctx context.Context, req *PatchConfigurationReq) (*PatchConfigurationResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchConfigurationReq) (*@.PatchConfigurationResp, error)"
         },
         {
           "name": "UpdateConfiguration",
-          "signature": "func(ctx context.Context, req *UpdateConfigurationReq) (*UpdateConfigurationResp, error)"
+          "signature": "func(ctx context.Context, req *@.UpdateConfigurationReq) (*@.UpdateConfigurationResp, error)"
         }
       ]
     },
@@ -37409,15 +37409,15 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DashboardInfoClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "GetDashboardsInfo",
-          "signature": "func(ctx context.Context, req *GetDashboardsInfoReq) (*GetDashboardsInfoResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetDashboardsInfoReq) (*@.GetDashboardsInfoResp, error)"
         },
         {
           "name": "PostDashboardsInfo",
-          "signature": "func(ctx context.Context, req *PostDashboardsInfoReq) (*PostDashboardsInfoResp, error)"
+          "signature": "func(ctx context.Context, req *@.PostDashboardsInfoReq) (*@.PostDashboardsInfoResp, error)"
         }
       ]
     },
@@ -37425,31 +37425,31 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "DistinguishedNameClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "DeleteDistinguishedName",
-          "signature": "func(ctx context.Context, req DeleteDistinguishedNameReq) (*DeleteDistinguishedNameResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteDistinguishedNameReq) (*@.DeleteDistinguishedNameResp, error)"
         },
         {
           "name": "GetDistinguishedName",
-          "signature": "func(ctx context.Context, req GetDistinguishedNameReq) (*GetDistinguishedNameResp, error)"
+          "signature": "func(ctx context.Context, req @.GetDistinguishedNameReq) (*@.GetDistinguishedNameResp, error)"
         },
         {
           "name": "GetDistinguishedNames",
-          "signature": "func(ctx context.Context, req *GetDistinguishedNamesReq) (*GetDistinguishedNamesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetDistinguishedNamesReq) (*@.GetDistinguishedNamesResp, error)"
         },
         {
           "name": "PatchDistinguishedName",
-          "signature": "func(ctx context.Context, req PatchDistinguishedNameReq) (*PatchDistinguishedNameResp, error)"
+          "signature": "func(ctx context.Context, req @.PatchDistinguishedNameReq) (*@.PatchDistinguishedNameResp, error)"
         },
         {
           "name": "PatchDistinguishedNames",
-          "signature": "func(ctx context.Context, req *PatchDistinguishedNamesReq) (*PatchDistinguishedNamesResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchDistinguishedNamesReq) (*@.PatchDistinguishedNamesResp, error)"
         },
         {
           "name": "UpdateDistinguishedName",
-          "signature": "func(ctx context.Context, req UpdateDistinguishedNameReq) (*UpdateDistinguishedNameResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateDistinguishedNameReq) (*@.UpdateDistinguishedNameResp, error)"
         }
       ]
     },
@@ -37461,7 +37461,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -37479,37 +37479,37 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "RoleClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateRole",
-          "signature": "func(ctx context.Context, req CreateRoleReq) (*CreateRoleResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateRoleReq) (*@.CreateRoleResp, error)"
         },
         {
           "name": "DeleteRole",
-          "signature": "func(ctx context.Context, req DeleteRoleReq) (*DeleteRoleResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteRoleReq) (*@.DeleteRoleResp, error)"
         },
         {
           "name": "GetRole",
-          "signature": "func(ctx context.Context, req GetRoleReq) (*GetRoleResp, error)"
+          "signature": "func(ctx context.Context, req @.GetRoleReq) (*@.GetRoleResp, error)"
         },
         {
           "name": "GetRoles",
-          "signature": "func(ctx context.Context, req *GetRolesReq) (*GetRolesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetRolesReq) (*@.GetRolesResp, error)"
         },
         {
           "name": "PatchRole",
-          "signature": "func(ctx context.Context, req PatchRoleReq) (*PatchRoleResp, error)"
+          "signature": "func(ctx context.Context, req @.PatchRoleReq) (*@.PatchRoleResp, error)"
         },
         {
           "name": "PatchRoles",
-          "signature": "func(ctx context.Context, req *PatchRolesReq) (*PatchRolesResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchRolesReq) (*@.PatchRolesResp, error)"
         }
       ]
     },
@@ -37517,31 +37517,31 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "RoleMappingClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateRoleMapping",
-          "signature": "func(ctx context.Context, req CreateRoleMappingReq) (*CreateRoleMappingResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateRoleMappingReq) (*@.CreateRoleMappingResp, error)"
         },
         {
           "name": "DeleteRoleMapping",
-          "signature": "func(ctx context.Context, req DeleteRoleMappingReq) (*DeleteRoleMappingResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteRoleMappingReq) (*@.DeleteRoleMappingResp, error)"
         },
         {
           "name": "GetRoleMapping",
-          "signature": "func(ctx context.Context, req GetRoleMappingReq) (*GetRoleMappingResp, error)"
+          "signature": "func(ctx context.Context, req @.GetRoleMappingReq) (*@.GetRoleMappingResp, error)"
         },
         {
           "name": "GetRoleMappings",
-          "signature": "func(ctx context.Context, req *GetRoleMappingsReq) (*GetRoleMappingsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetRoleMappingsReq) (*@.GetRoleMappingsResp, error)"
         },
         {
           "name": "PatchRoleMapping",
-          "signature": "func(ctx context.Context, req PatchRoleMappingReq) (*PatchRoleMappingResp, error)"
+          "signature": "func(ctx context.Context, req @.PatchRoleMappingReq) (*@.PatchRoleMappingResp, error)"
         },
         {
           "name": "PatchRoleMappings",
-          "signature": "func(ctx context.Context, req *PatchRoleMappingsReq) (*PatchRoleMappingsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchRoleMappingsReq) (*@.PatchRoleMappingsResp, error)"
         }
       ]
     },
@@ -37549,15 +37549,15 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "TenancyConfigClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateUpdateTenancyConfig",
-          "signature": "func(ctx context.Context, req *CreateUpdateTenancyConfigReq) (*CreateUpdateTenancyConfigResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateUpdateTenancyConfigReq) (*@.CreateUpdateTenancyConfigResp, error)"
         },
         {
           "name": "GetTenancyConfig",
-          "signature": "func(ctx context.Context, req *GetTenancyConfigReq) (*GetTenancyConfigResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetTenancyConfigReq) (*@.GetTenancyConfigResp, error)"
         }
       ]
     },
@@ -37565,31 +37565,31 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "TenantClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateTenant",
-          "signature": "func(ctx context.Context, req CreateTenantReq) (*CreateTenantResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateTenantReq) (*@.CreateTenantResp, error)"
         },
         {
           "name": "DeleteTenant",
-          "signature": "func(ctx context.Context, req DeleteTenantReq) (*DeleteTenantResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteTenantReq) (*@.DeleteTenantResp, error)"
         },
         {
           "name": "GetTenant",
-          "signature": "func(ctx context.Context, req GetTenantReq) (*GetTenantResp, error)"
+          "signature": "func(ctx context.Context, req @.GetTenantReq) (*@.GetTenantResp, error)"
         },
         {
           "name": "GetTenants",
-          "signature": "func(ctx context.Context, req *GetTenantsReq) (*GetTenantsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetTenantsReq) (*@.GetTenantsResp, error)"
         },
         {
           "name": "PatchTenant",
-          "signature": "func(ctx context.Context, req PatchTenantReq) (*PatchTenantResp, error)"
+          "signature": "func(ctx context.Context, req @.PatchTenantReq) (*@.PatchTenantResp, error)"
         },
         {
           "name": "PatchTenants",
-          "signature": "func(ctx context.Context, req *PatchTenantsReq) (*PatchTenantsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchTenantsReq) (*@.PatchTenantsResp, error)"
         }
       ]
     },
@@ -37597,31 +37597,31 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "UserClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateUser",
-          "signature": "func(ctx context.Context, req CreateUserReq) (*CreateUserResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateUserReq) (*@.CreateUserResp, error)"
         },
         {
           "name": "DeleteUser",
-          "signature": "func(ctx context.Context, req DeleteUserReq) (*DeleteUserResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteUserReq) (*@.DeleteUserResp, error)"
         },
         {
           "name": "GetUser",
-          "signature": "func(ctx context.Context, req GetUserReq) (*GetUserResp, error)"
+          "signature": "func(ctx context.Context, req @.GetUserReq) (*@.GetUserResp, error)"
         },
         {
           "name": "GetUsers",
-          "signature": "func(ctx context.Context, req *GetUsersReq) (*GetUsersResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetUsersReq) (*@.GetUsersResp, error)"
         },
         {
           "name": "PatchUser",
-          "signature": "func(ctx context.Context, req PatchUserReq) (*PatchUserResp, error)"
+          "signature": "func(ctx context.Context, req @.PatchUserReq) (*@.PatchUserResp, error)"
         },
         {
           "name": "PatchUsers",
-          "signature": "func(ctx context.Context, req *PatchUsersReq) (*PatchUsersResp, error)"
+          "signature": "func(ctx context.Context, req *@.PatchUsersReq) (*@.PatchUsersResp, error)"
         }
       ]
     },
@@ -37629,23 +37629,23 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security",
       "name": "UserLegacyClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateUserLegacy",
-          "signature": "func(ctx context.Context, req CreateUserLegacyReq) (*CreateUserLegacyResp, error)"
+          "signature": "func(ctx context.Context, req @.CreateUserLegacyReq) (*@.CreateUserLegacyResp, error)"
         },
         {
           "name": "DeleteUserLegacy",
-          "signature": "func(ctx context.Context, req DeleteUserLegacyReq) (*DeleteUserLegacyResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteUserLegacyReq) (*@.DeleteUserLegacyResp, error)"
         },
         {
           "name": "GetUserLegacy",
-          "signature": "func(ctx context.Context, req GetUserLegacyReq) (*GetUserLegacyResp, error)"
+          "signature": "func(ctx context.Context, req @.GetUserLegacyReq) (*@.GetUserLegacyResp, error)"
         },
         {
           "name": "GetUsersLegacy",
-          "signature": "func(ctx context.Context, req *GetUsersLegacyReq) (*GetUsersLegacyResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetUsersLegacyReq) (*@.GetUsersLegacyResp, error)"
         }
       ]
     },
@@ -37659,7 +37659,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/security_analytics",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sm",
@@ -37671,33 +37671,33 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sm",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sm",
       "name": "PolicyClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreatePolicy",
-          "signature": "func(ctx context.Context, req CreatePolicyReq) (*CreatePolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.CreatePolicyReq) (*@.CreatePolicyResp, error)"
         },
         {
           "name": "DeletePolicy",
-          "signature": "func(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.DeletePolicyReq) (*@.DeletePolicyResp, error)"
         },
         {
           "name": "GetPolicies",
-          "signature": "func(ctx context.Context, req *GetPoliciesReq) (*GetPoliciesResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetPoliciesReq) (*@.GetPoliciesResp, error)"
         },
         {
           "name": "GetPolicy",
-          "signature": "func(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.GetPolicyReq) (*@.GetPolicyResp, error)"
         },
         {
           "name": "UpdatePolicy",
-          "signature": "func(ctx context.Context, req UpdatePolicyReq) (*UpdatePolicyResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdatePolicyReq) (*@.UpdatePolicyResp, error)"
         }
       ]
     },
@@ -37709,7 +37709,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -37727,19 +37727,19 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "NewSQLSettingsBodyFromSQLSettings",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SQLSettings) SQLSettingsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SQLSettings) @.SQLSettingsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "NewSQLSettingsBodyFromSQLSettingsPlain",
       "kind": "func",
-      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SQLSettingsPlain) SQLSettingsBody"
+      "type": "func(v github.com/opensearch-project/opensearch-go/v5/opensearchapi.SQLSettingsPlain) @.SQLSettingsBody"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
@@ -37749,7 +37749,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -37761,7 +37761,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "SQLSettingsBody",
       "kind": "type",
-      "type": "struct{typ SQLSettingsBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
+      "type": "struct{typ @.SQLSettingsBodyType; raw github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage; value any}",
       "methods": [
         {
           "name": "MarshalJSON",
@@ -37793,7 +37793,7 @@
         },
         {
           "name": "Type",
-          "signature": "func() SQLSettingsBodyType",
+          "signature": "func() @.SQLSettingsBodyType",
           "pointerReceiver": true
         },
         {
@@ -37807,14 +37807,14 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "SQLSettingsBodySQLSettingsPlainType",
       "kind": "const",
-      "type": "SQLSettingsBodyType",
+      "type": "@.SQLSettingsBodyType",
       "value": "1"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "SQLSettingsBodySQLSettingsType",
       "kind": "const",
-      "type": "SQLSettingsBodyType",
+      "type": "@.SQLSettingsBodyType",
       "value": "2"
     },
     {
@@ -37833,22 +37833,22 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "SQLSettingsBodyUnknownType",
       "kind": "const",
-      "type": "SQLSettingsBodyType",
+      "type": "@.SQLSettingsBodyType",
       "value": "0"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/sql",
       "name": "StatClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "GetStats",
-          "signature": "func(ctx context.Context, req *GetStatsReq) (*GetStatsResp, error)"
+          "signature": "func(ctx context.Context, req *@.GetStatsReq) (*@.GetStatsResp, error)"
         },
         {
           "name": "PostStats",
-          "signature": "func(ctx context.Context, req *PostStatsReq) (*PostStatsResp, error)"
+          "signature": "func(ctx context.Context, req *@.PostStatsReq) (*@.PostStatsResp, error)"
         }
       ]
     },
@@ -37862,7 +37862,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/transforms",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ubi",
@@ -37872,7 +37872,7 @@
       "methods": [
         {
           "name": "Inspect",
-          "signature": "func() Inspect"
+          "signature": "func() @.Inspect"
         },
         {
           "name": "RawBody",
@@ -37890,7 +37890,7 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/ubi",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/wlm",
@@ -37902,29 +37902,29 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/wlm",
       "name": "NewClient",
       "kind": "func",
-      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *Client"
+      "type": "func(client *github.com/opensearch-project/opensearch-go/v5.Client) *@.Client"
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/plugins/wlm",
       "name": "QueryGroupClient",
       "kind": "type",
-      "type": "struct{client *Client}",
+      "type": "struct{client *@.Client}",
       "methods": [
         {
           "name": "CreateQueryGroup",
-          "signature": "func(ctx context.Context, req *CreateQueryGroupReq) (*CreateQueryGroupResp, error)"
+          "signature": "func(ctx context.Context, req *@.CreateQueryGroupReq) (*@.CreateQueryGroupResp, error)"
         },
         {
           "name": "DeleteQueryGroup",
-          "signature": "func(ctx context.Context, req DeleteQueryGroupReq) (*DeleteQueryGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.DeleteQueryGroupReq) (*@.DeleteQueryGroupResp, error)"
         },
         {
           "name": "GetQueryGroup",
-          "signature": "func(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.GetQueryGroupReq) (*@.GetQueryGroupResp, error)"
         },
         {
           "name": "UpdateQueryGroup",
-          "signature": "func(ctx context.Context, req UpdateQueryGroupReq) (*UpdateQueryGroupResp, error)"
+          "signature": "func(ctx context.Context, req @.UpdateQueryGroupReq) (*@.UpdateQueryGroupResp, error)"
         }
       ]
     }

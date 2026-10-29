@@ -116,18 +116,18 @@ func TestExtractSymbol(t *testing.T) {
 		want Symbol
 	}{
 		{name: "Relation", want: Symbol{PkgPath: "p", Name: "Relation", Kind: SymbolType, Type: "string"}},
-		{name: "RelationEq", want: Symbol{PkgPath: "p", Name: "RelationEq", Kind: SymbolConst, Type: "Relation", Value: `"eq"`}},
-		{name: "OptionsTextType", want: Symbol{PkgPath: "p", Name: "OptionsTextType", Kind: SymbolConst, Type: "OptionsType", Value: "1"}},
+		{name: "RelationEq", want: Symbol{PkgPath: "p", Name: "RelationEq", Kind: SymbolConst, Type: "@.Relation", Value: `"eq"`}},
+		{name: "OptionsTextType", want: Symbol{PkgPath: "p", Name: "OptionsTextType", Kind: SymbolConst, Type: "@.OptionsType", Value: "1"}},
 		{name: "Options", want: Symbol{
 			PkgPath: "p", Name: "Options", Kind: SymbolType,
-			Type: "struct{typ OptionsType; raw encoding/json.RawMessage}",
+			Type: "struct{typ @.OptionsType; raw encoding/json.RawMessage}",
 			Methods: []Method{
 				{Name: "Raw", Signature: "func() []byte"},
 				{Name: "Text", Signature: "func() (string, error)", PointerReceiver: true},
 			},
 		}},
-		{name: "Opts", want: Symbol{PkgPath: "p", Name: "Opts", Kind: SymbolAlias, Type: "Options"}},
-		{name: "NewOptionsFromText", want: Symbol{PkgPath: "p", Name: "NewOptionsFromText", Kind: SymbolFunc, Type: "func(v string) Options"}},
+		{name: "Opts", want: Symbol{PkgPath: "p", Name: "Opts", Kind: SymbolAlias, Type: "@.Options"}},
+		{name: "NewOptionsFromText", want: Symbol{PkgPath: "p", Name: "NewOptionsFromText", Kind: SymbolFunc, Type: "func(v string) @.Options"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

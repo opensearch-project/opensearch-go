@@ -166,6 +166,9 @@ const (
 //
 //   - TypeRenames:       types whose NAME changed across the hop (surface diffing
 //     handles same-name survivors automatically; this is only for renames).
+//   - SymbolRenames:     package-level constants, functions and non-struct types
+//     whose NAME changed across the hop (TypeRenames covers structs). Each pair
+//     is checked equivalent against the surfaces (see apirev.EquivalentSymbol).
 //   - FieldDispositions: rulings for struct fields that vanish on the target -
 //     rename, remove, or manual, matched by (source pkg + type + field). A
 //     closed, discrete table; a vanished field with no ruling is "unclassified"
@@ -179,6 +182,7 @@ const (
 type hop struct {
 	From, To          version
 	TypeRenames       []apirev.TypeRename
+	SymbolRenames     []apirev.TypeRename
 	FieldDispositions []apirev.FieldDisposition
 	MethodRegroups    []methodRegroup
 	RemovedHelpers    map[string]string

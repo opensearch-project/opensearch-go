@@ -35,6 +35,34 @@ var hopV5toV5_2 = hop{
 		{FromPkgPath: v5api, FromName: "MLSearchHits", ToPkgPath: v5api, ToName: "MLSearchRespHits"},
 	},
 
+	SymbolRenames: []apirev.TypeRename{
+		{FromPkgPath: v5api, FromName: "SearchTotalHitsRelation", ToPkgPath: v5api, ToName: "TotalHitsRelation"},
+		{FromPkgPath: v5api, FromName: "SearchTotalHitsRelationEq", ToPkgPath: v5api, ToName: "TotalHitsRelationEq"},
+		{FromPkgPath: v5api, FromName: "SearchTotalHitsRelationGte", ToPkgPath: v5api, ToName: "TotalHitsRelationGte"},
+		{FromPkgPath: v5api, FromName: "SearchSuggestCompletionOptions", ToPkgPath: v5api, ToName: "SearchCompletionSuggestOptions"},
+		{FromPkgPath: v5api, FromName: "SearchSuggestCompletionOptionsType", ToPkgPath: v5api, ToName: "SearchCompletionSuggestOptionsType"},
+		{
+			FromPkgPath: v5api, FromName: "SearchSuggestCompletionOptionsUnknownType",
+			ToPkgPath: v5api, ToName: "SearchCompletionSuggestOptionsUnknownType",
+		},
+		{
+			FromPkgPath: v5api, FromName: "SearchSuggestCompletionOptionsTextType",
+			ToPkgPath: v5api, ToName: "SearchCompletionSuggestOptionsTextType",
+		},
+		{
+			FromPkgPath: v5api, FromName: "SearchSuggestCompletionOptionsArrayType",
+			ToPkgPath: v5api, ToName: "SearchCompletionSuggestOptionsArrayType",
+		},
+		{
+			FromPkgPath: v5api, FromName: "NewSearchSuggestCompletionOptionsFromText",
+			ToPkgPath: v5api, ToName: "NewSearchCompletionSuggestOptionsFromText",
+		},
+		{
+			FromPkgPath: v5api, FromName: "NewSearchSuggestCompletionOptionsFromArray",
+			ToPkgPath: v5api, ToName: "NewSearchCompletionSuggestOptionsFromArray",
+		},
+	},
+
 	FieldDispositions: []apirev.FieldDisposition{
 		// The server never sent a top-level took on an asynchronous search; the
 		// search's own took is on Response.
