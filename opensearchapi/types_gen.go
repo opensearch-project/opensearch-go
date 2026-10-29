@@ -1576,6 +1576,16 @@ type CatIndicesRecord struct {
 	// SuggestTotal. Number of suggest ops
 	SuggestTotal *string `json:"suggest.total,omitempty"`
 
+	// System. Whether the index is a system index
+	//
+	// Available: >= 3.9.0.
+	System *string `json:"system,omitempty"`
+
+	// SystemDescription. Description from the matching system index descriptor
+	//
+	// Available: >= 3.9.0.
+	SystemDescription *string `json:"system.description,omitempty"`
+
 	// UUID. Index UUID
 	UUID *string `json:"uuid,omitempty"`
 
@@ -1816,16 +1826,6 @@ type CatShardsRecord struct {
 
 	// SyncID is the sync identifier.
 	SyncID *string `json:"sync_id,omitempty"`
-
-	// System. Whether the index is a system index
-	//
-	// Available: >= 3.9.0.
-	System *string `json:"system,omitempty"`
-
-	// SystemDescription. Description from the matching system index descriptor
-	//
-	// Available: >= 3.9.0.
-	SystemDescription *string `json:"system.description,omitempty"`
 
 	// UnassignedAt is the time at which the shard became unassigned in
 	// Coordinated Universal Time (UTC).
@@ -12910,6 +12910,11 @@ type SecurityDashboardsInfo struct {
 	// PrivateTenantEnabled. Indicates whether a private tenant is enabled for
 	// all users.
 	PrivateTenantEnabled *bool `json:"private_tenant_enabled,omitempty"`
+
+	// ResourceSharingEnabled. Indicates whether resource sharing is enabled.
+	//
+	// Available: >= 3.3.0.
+	ResourceSharingEnabled *bool `json:"resource_sharing_enabled,omitempty"`
 
 	// SignInOptions is a list of available sign-in options.
 	SignInOptions []string `json:"sign_in_options,omitempty"`
