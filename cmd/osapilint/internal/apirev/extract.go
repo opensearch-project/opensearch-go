@@ -7,9 +7,11 @@
 package apirev
 
 import (
+	"cmp"
 	"errors"
 	"go/types"
 	"reflect"
+	"slices"
 	"sort"
 
 	"golang.org/x/tools/go/packages"
@@ -25,8 +27,9 @@ var errLoad = errors.New("surface: package load reported errors")
 // independently, since each is its own module.
 //
 // It uses full type information (go/types), so field types are the checker's
-// canonical strings and pointer-ness is exact.
-func ExtractFromDir(dir, version string, patterns ...string) (*Snapshot, error) {
+// canonical strings and pointer-ness is exact. withSymbols also records the
+// package-level Symbols.
+func ExtractFromDir(dir, version string, withSymbols bool, patterns ...string) (*Snapshot, error) {
 	cfg := &packages.Config{
 		Dir:  dir,
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps | packages.NeedImports,
@@ -47,30 +50,94 @@ func ExtractFromDir(dir, version string, patterns ...string) (*Snapshot, error) 
 		scope := pkg.Types.Scope()
 		for _, name := range scope.Names() {
 			obj := scope.Lookup(name)
-			tn, ok := obj.(*types.TypeName)
-			if !ok || !obj.Exported() {
+			if !obj.Exported() {
 				continue
 			}
-			named, ok := tn.Type().(*types.Named)
-			if !ok {
-				continue
+			st, isStruct := structOf(obj)
+			if isStruct {
+				out.Structs = append(out.Structs, extractStruct(pkg.PkgPath, name, st))
 			}
-			st, ok := named.Underlying().(*types.Struct)
-			if !ok {
-				continue
+			if withSymbols && (!isStruct || !hasExportedField(st)) {
+				if sym, ok := extractSymbol(pkg.Types, obj); ok {
+					out.Symbols = append(out.Symbols, sym)
+				}
 			}
-			out.Structs = append(out.Structs, extractStruct(pkg.PkgPath, name, st))
 		}
 	}
 
 	// Deterministic order (pkg then name) so the committed JSON is stable.
-	sort.Slice(out.Structs, func(i, j int) bool {
-		if out.Structs[i].PkgPath != out.Structs[j].PkgPath {
-			return out.Structs[i].PkgPath < out.Structs[j].PkgPath
-		}
-		return out.Structs[i].Name < out.Structs[j].Name
+	slices.SortFunc(out.Structs, func(a, b Struct) int {
+		return cmp.Or(cmp.Compare(a.PkgPath, b.PkgPath), cmp.Compare(a.Name, b.Name))
+	})
+	slices.SortFunc(out.Symbols, func(a, b Symbol) int {
+		return cmp.Or(cmp.Compare(a.PkgPath, b.PkgPath), cmp.Compare(a.Name, b.Name))
 	})
 	return out, nil
+}
+
+// structOf returns the struct a named type declares.
+func structOf(obj types.Object) (*types.Struct, bool) {
+	tn, ok := obj.(*types.TypeName)
+	if !ok {
+		return nil, false
+	}
+	named, ok := tn.Type().(*types.Named)
+	if !ok {
+		return nil, false
+	}
+	st, ok := named.Underlying().(*types.Struct)
+	return st, ok
+}
+
+// hasExportedField reports whether st has a field a caller can name. Such a
+// struct is renamed through a TypeRename against Structs; one without, such as
+// a union, is recorded as a Symbol too.
+func hasExportedField(st *types.Struct) bool {
+	for f := range st.Fields() {
+		if f.Exported() {
+			return true
+		}
+	}
+	return false
+}
+
+// extractSymbol records a package-level type, constant or function, rendering
+// types relative to pkg. Variables are not recorded: the generated packages
+// export none that a migration renames.
+func extractSymbol(pkg *types.Package, obj types.Object) (Symbol, bool) {
+	qualify := types.RelativeTo(pkg)
+	sym := Symbol{PkgPath: pkg.Path(), Name: obj.Name()}
+	switch o := obj.(type) {
+	case *types.TypeName:
+		if o.IsAlias() {
+			sym.Kind = SymbolAlias
+			sym.Type = types.TypeString(types.Unalias(o.Type()), qualify)
+			break
+		}
+		sym.Kind = SymbolType
+		sym.Type = types.TypeString(o.Type().Underlying(), qualify)
+		if named, ok := o.Type().(*types.Named); ok {
+			for m := range named.Methods() {
+				_, ptr := m.Type().(*types.Signature).Recv().Type().(*types.Pointer)
+				sym.Methods = append(sym.Methods, Method{
+					Name:            m.Name(),
+					Signature:       types.TypeString(m.Type(), qualify),
+					PointerReceiver: ptr,
+				})
+			}
+			slices.SortFunc(sym.Methods, func(a, b Method) int { return cmp.Compare(a.Name, b.Name) })
+		}
+	case *types.Const:
+		sym.Kind = SymbolConst
+		sym.Type = types.TypeString(o.Type(), qualify)
+		sym.Value = o.Val().ExactString()
+	case *types.Func:
+		sym.Kind = SymbolFunc
+		sym.Type = types.TypeString(o.Type(), qualify)
+	default:
+		return Symbol{}, false
+	}
+	return sym, true
 }
 
 // extractStruct records every exported field of st, flattening embedded structs

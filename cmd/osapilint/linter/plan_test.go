@@ -254,3 +254,34 @@ func TestDeriveDelta_FieldDispositions(t *testing.T) {
 		require.NotEqual(t, "Kept", ch.From, "unchanged field must not appear in the delta")
 	}
 }
+
+// TestDecodeSurface_MergesPluginSymbols verifies decodeSurface carries the
+// plugin snapshot's package-level symbols alongside its structs.
+func TestDecodeSurface_MergesPluginSymbols(t *testing.T) {
+	const corePkg = "github.com/opensearch-project/opensearch-go/v7/opensearchapi"
+	const pluginPkg = "github.com/opensearch-project/opensearch-go/v7/plugins/foo"
+
+	sym := func(pkg, name string) []byte {
+		b, err := json.Marshal(apirev.Snapshot{
+			Version: "v7",
+			Symbols: []apirev.Symbol{{PkgPath: pkg, Name: name, Kind: apirev.SymbolType}},
+		})
+		require.NoError(t, err)
+		return b
+	}
+	core, plugin := sym(corePkg, "CoreType"), sym(pluginPkg, "PluginType")
+
+	// Swaps package-level maps, so this test must not be parallel.
+	origSurfaces, origPlugins := surfaces, pluginSurfaces
+	surfaces = map[version][]byte{majorLine(7): core}
+	pluginSurfaces = map[version][]byte{majorLine(7): plugin}
+	t.Cleanup(func() { surfaces, pluginSurfaces = origSurfaces, origPlugins })
+
+	snap, err := decodeSurface(majorLine(7))
+	require.NoError(t, err)
+
+	for _, tc := range []struct{ pkg, name string }{{corePkg, "CoreType"}, {pluginPkg, "PluginType"}} {
+		_, ok := snap.LookupSymbol(tc.pkg, tc.name)
+		require.True(t, ok, "symbol %q in %q", tc.name, tc.pkg)
+	}
+}

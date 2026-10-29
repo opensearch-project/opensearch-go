@@ -100,6 +100,7 @@ func decodeSurface(v version) (*apirev.Snapshot, error) {
 			return nil, fmt.Errorf("decode plugin surface %q: %w", v, err)
 		}
 		s.Structs = append(s.Structs, ps.Structs...)
+		s.Symbols = append(s.Symbols, ps.Symbols...)
 	}
 	return &s, nil
 }

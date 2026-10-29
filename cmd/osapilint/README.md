@@ -118,10 +118,10 @@ The minor is then read from the version of that major's module the module graph 
        -patterns ./opensearchapi,.,./opensearchtransport -out surface_v3.json
    ```
 
-   The v4, v5 and v5.2 surfaces each have a plugin companion, generated with the same command over the plugin packages. v4 covers `./plugins/security` and `./plugins/ism`; v5 and v5.2 cover every plugin:
+   v2 to v4 surfaces are struct-only. From v5 on, pass `-symbols` to also record package-level types, constants and functions. The v4, v5 and v5.2 surfaces each have a plugin companion, generated with the same command over the plugin packages. v4 covers `./plugins/security` and `./plugins/ism`; v5 and v5.2 cover every plugin:
 
    ```sh
-   go run ./cmd/gensurface -dir <v5-module-dir> -version v5 \
+   go run ./cmd/gensurface -dir <v5-module-dir> -version v5 -symbols \
        -patterns "$(cd <v5-module-dir> && ls -d plugins/*/ | sed 's|/$||;s|^|./|' | paste -sd, -)" \
        -out linter/surface_v5_plugins.json
    ```
@@ -184,16 +184,18 @@ After `osapilint rewrite -w`, `go build` fails at each marker, and `grep -r _OSA
 go test ./...
 ```
 
-| File                                     | Covers                                                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `linter/plan_test.go`                    | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces           |
-| `linter/delta_test.go`                   | Drift guards over every hop's type renames and field dispositions                           |
-| `linter/rewrite_corpus_test.go`          | End-to-end rewrite over fixture modules (`testdata/corpus/*.txtar`), diffed against goldens |
-| `linter/hop_v3_to_v4_test.go`            | v3 -> v4 version-specific facts                                                             |
-| `linter/hop_v4_to_v5_test.go`            | v4 -> v5 version-specific facts                                                             |
-| `linter/hop_v2_to_v3_test.go`            | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings              |
-| `linter/detect_test.go`                  | Source detection, version parsing, directory resolution                                     |
-| `internal/apirev/delta_internal_test.go` | Surface diffing internals                                                                   |
+| File                                       | Covers                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `linter/plan_test.go`                      | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces           |
+| `linter/delta_test.go`                     | Drift guards over every hop's type renames and field dispositions                           |
+| `linter/rewrite_corpus_test.go`            | End-to-end rewrite over fixture modules (`testdata/corpus/*.txtar`), diffed against goldens |
+| `linter/hop_v3_to_v4_test.go`              | v3 -> v4 version-specific facts                                                             |
+| `linter/hop_v4_to_v5_test.go`              | v4 -> v5 version-specific facts                                                             |
+| `linter/hop_v2_to_v3_test.go`              | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings              |
+| `linter/detect_test.go`                    | Source detection, version parsing, directory resolution                                     |
+| `internal/apirev/delta_internal_test.go`   | Surface diffing internals                                                                   |
+| `internal/apirev/extract_internal_test.go` | Surface extraction: embedded aliases, symbol shape, method receivers                        |
+| `linter/surface_fresh_test.go`             | Regenerates the v5.2 surfaces from the tree and requires them equal to the committed files  |
 
 ### Rewrite corpus
 
