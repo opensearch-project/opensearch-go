@@ -35,7 +35,7 @@ func TestRewriteUsageErrors(t *testing.T) {
 		{"unknown flag", []string{"-nope"}, ""},
 		{"bad dst value", []string{"-dst=v"}, `-dst: invalid version "v" (want e.g. v4 or v5.2)`},
 		{"bad src value", []string{"-src=x"}, `-src: invalid version "x" (want e.g. v4 or v5.2)`},
-		{"unknown dst version", []string{"-dst=v12"}, `-dst: no embedded surface for v12`},
+		{"unknown dst version", []string{"-dst=v12"}, `-dst: no embedded surface for "v12"`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

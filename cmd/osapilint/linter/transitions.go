@@ -8,6 +8,7 @@ package linter
 
 import (
 	"fmt"
+	"math"
 	"slices"
 
 	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
@@ -115,7 +116,7 @@ func lineOf(m major, minor int) (version, bool) {
 
 // newestLineOf returns the newest line of major m, and false when m has none.
 func newestLineOf(m major) (version, bool) {
-	return lineOf(m, int(^uint(0)>>1))
+	return lineOf(m, math.MaxInt)
 }
 
 // nextLineOf returns the line of the same major that follows v, and false when v

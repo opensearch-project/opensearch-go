@@ -215,7 +215,7 @@ func parseLine(s string, forMajor func(major) (version, bool)) (version, error) 
 		v, ok = forMajor(m)
 	}
 	if !ok {
-		return version{}, fmt.Errorf("no embedded surface for %s", s)
+		return version{}, fmt.Errorf("no embedded surface for %q", s)
 	}
 	return v, nil
 }
