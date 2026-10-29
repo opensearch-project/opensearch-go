@@ -43,7 +43,17 @@ func TestHopV5toV5_2_KeepsImportPath(t *testing.T) {
 
 	p := planV5toV5_2(t)
 	require.Equal(t, [][2]string{{modulePath(5), modulePath(5)}}, p.importPrefixes)
-	require.True(t, p.delta.RemovedTypes[v5api+".MLHitsTotal"], "MLHitsTotal has no v5.2 counterpart")
+}
+
+// TestHopV5toV5_2_RemovedTypes checks the types v5.2 drops with no rename are
+// recorded, so a reference to one is reported MANUAL.
+func TestHopV5toV5_2_RemovedTypes(t *testing.T) {
+	t.Parallel()
+
+	removed := planV5toV5_2(t).delta.RemovedTypes
+	for _, typ := range []string{"MLHitsTotal", "RollupsIntervalCron"} {
+		require.Truef(t, removed[v5api+"."+typ], "%q has no v5.2 counterpart", typ)
+	}
 }
 
 // TestDetectSourceReadsMinor checks the source line comes from the version of

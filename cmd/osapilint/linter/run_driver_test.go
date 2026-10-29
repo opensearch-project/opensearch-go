@@ -184,7 +184,7 @@ func TestRewriteHopLoadError(t *testing.T) {
 	})
 	err := Rewrite([]string{"-src=v2", "-dst=v3", dir})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "v2 -> v3")
+	require.Contains(t, err.Error(), `"v2" -> "v3"`)
 }
 
 // TestBumpAndBuildError covers bumpAndBuild's command-failure path without a

@@ -164,17 +164,51 @@ func TestReleaseLines(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
 
-	next, ok := nextLineOf(majorLine(5))
-	require.True(t, ok)
-	require.Equal(t, v52, next)
-	_, ok = nextLineOf(v52)
-	require.False(t, ok, "v5.2 is the newest v5 line")
-	newest, ok := newestLineOf(5)
-	require.True(t, ok)
-	require.Equal(t, v52, newest)
-	require.Equal(t, "v5", majorLine(5).String())
-	require.Equal(t, "v5.2", v52.String())
+// TestLineNeighbors pins the lookups that walk the lines of one major.
+func TestLineNeighbors(t *testing.T) {
+	t.Parallel()
+
+	v52 := version{major: 5, minor: 2}
+	tests := []struct {
+		name   string
+		lookup func() (version, bool)
+		want   version
+		wantOK bool
+	}{
+		{name: "next line after v5", lookup: func() (version, bool) { return nextLineOf(majorLine(5)) }, want: v52, wantOK: true},
+		{name: "no line after the newest", lookup: func() (version, bool) { return nextLineOf(v52) }},
+		{name: "newest line of v5", lookup: func() (version, bool) { return newestLineOf(5) }, want: v52, wantOK: true},
+		{name: "first line of v5", lookup: func() (version, bool) { return firstLineOf(5) }, want: majorLine(5), wantOK: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := tt.lookup()
+			require.Equal(t, tt.wantOK, ok)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestVersionString pins the labels versions print as.
+func TestVersionString(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in   version
+		want string
+	}{
+		{in: majorLine(5), want: "v5"},
+		{in: version{major: 5, minor: 2}, want: "v5.2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, tt.in.String())
+		})
+	}
 }
 
 // TestDeriveDelta_FieldDispositions covers each disposition action plus the

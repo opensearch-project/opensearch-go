@@ -57,7 +57,7 @@ func detectSource(ctx context.Context, dir string) (version, []string, error) {
 	}
 	v, ok := lineOf(m, minor)
 	if !ok {
-		return version{}, nil, fmt.Errorf("no embedded surface for v%d", m)
+		return version{}, nil, noSurfaceError(fmt.Sprintf("v%d", m))
 	}
 	return v, warnings, nil
 }
@@ -71,7 +71,7 @@ func requiredMinor(ctx context.Context, dir string, m major) (int, error) {
 	list.Dir = dir
 	out, err := list.Output()
 	if err != nil {
-		return 0, fmt.Errorf("go list -m %s: %w", modulePath(m), err)
+		return 0, fmt.Errorf("go list -m %q: %w", modulePath(m), err)
 	}
 	ver := strings.TrimSpace(string(out))
 	sub := moduleMinorRe.FindStringSubmatch(ver)

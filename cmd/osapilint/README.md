@@ -79,15 +79,15 @@ for _, h := range hops {
 
 Each release line has a committed API surface: `surface_vN.json` for a major's first line, `surface_vN_M.json` for a later line that broke compatibility within the major (v5.2). A line covers every release up to the next line of its major, so v5 covers v5.0 and v5.1. Each transition from one line to the next is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against the two surfaces. A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
 
-| File                      | Responsibility                                                                           |
-| ------------------------- | ---------------------------------------------------------------------------------------- |
-| `linter/transitions.go`   | Version-neutral types (`major`, `version`, `hop`) and the `surfaces` / `hops` registries |
-| `linter/hop_vN_to_vN1.go` | Hand-authored migration data for one hop                                                 |
-| `linter/plan.go`          | `planChain(src, dst)` -> the ordered per-hop plans                                       |
-| `linter/detect.go`        | Source line from the module's imports and its required version                           |
-| `linter/applydelta.go`    | Type-aware AST rewriter                                                                  |
-| `internal/apirev`         | Surface model and `DeriveDelta` between two surfaces                                     |
-| `cmd/gensurface`          | Generates a version's committed surface JSON                                             |
+| File                           | Responsibility                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `linter/transitions.go`        | Version-neutral types (`major`, `version`, `hop`) and the `surfaces` / `hops` registries |
+| `linter/hop_<from>_to_<to>.go` | Hand-authored migration data for one hop (`hop_v4_to_v5.go`, `hop_v5_to_v5_2.go`)        |
+| `linter/plan.go`               | `planChain(src, dst)` -> the ordered per-hop plans                                       |
+| `linter/detect.go`             | Source line from the module's imports and its required version                           |
+| `linter/applydelta.go`         | Type-aware AST rewriter                                                                  |
+| `internal/apirev`              | Surface model and `DeriveDelta` between two surfaces                                     |
+| `cmd/gensurface`               | Generates a version's committed surface JSON                                             |
 
 ### Field dispositions
 

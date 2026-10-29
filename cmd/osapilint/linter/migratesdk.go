@@ -21,6 +21,8 @@ type SDKConfig struct {
 
 // SDKResult is the outcome of one adjacent hop within the migration chain.
 type SDKResult struct {
+	// From and To are the majors of the lines the hop joins, so they are equal for
+	// a hop within one major; FromVersion and ToVersion tell such hops apart.
 	From, To Major
 	// FromVersion and ToVersion label the release lines the hop joins, such as
 	// "v4" and "v5", or "v5" and "v5.2" for a hop within one major.
@@ -50,7 +52,7 @@ func MigrateSDK(ctx context.Context, cfg SDKConfig) ([]SDKResult, error) {
 	if cfg.Dst != 0 {
 		v, ok := newestLineOf(cfg.Dst)
 		if !ok {
-			return nil, fmt.Errorf("no embedded surface for v%d", cfg.Dst)
+			return nil, noSurfaceError(fmt.Sprintf("v%d", cfg.Dst))
 		}
 		dst = v
 	}
@@ -58,15 +60,15 @@ func MigrateSDK(ctx context.Context, cfg SDKConfig) ([]SDKResult, error) {
 	var src version
 	var warnings []string
 	if cfg.Src == 0 {
-		v, w, err := detectSource(ctx, cfg.Dir)
+		var err error
+		src, warnings, err = detectSource(ctx, cfg.Dir)
 		if err != nil {
 			return nil, err
 		}
-		src, warnings = v, w
 	} else {
-		v, ok := lineOf(cfg.Src, 0)
+		v, ok := firstLineOf(cfg.Src)
 		if !ok {
-			return nil, fmt.Errorf("no embedded surface for v%d", cfg.Src)
+			return nil, noSurfaceError(fmt.Sprintf("v%d", cfg.Src))
 		}
 		src = v
 	}
@@ -97,7 +99,7 @@ func migrate(ctx context.Context, dir string, src, dst version, write bool, warn
 			write:          write,
 		})
 		if err != nil {
-			return results, fmt.Errorf("%s -> %s: %w", p.from, p.to, err)
+			return results, fmt.Errorf("%q -> %q: %w", p.from, p.to, err)
 		}
 
 		files := make([]Result, len(rr))
@@ -118,7 +120,7 @@ func migrate(ctx context.Context, dir string, src, dst version, write bool, warn
 		isLast := i == len(plans)-1
 		if write && !isLast {
 			if err := bumpAndBuild(ctx, dir, p.to); err != nil {
-				return results, fmt.Errorf("preparing %s before the next hop: %w", p.to, err)
+				return results, fmt.Errorf("preparing %q before the next hop: %w", p.to, err)
 			}
 		}
 	}

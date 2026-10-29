@@ -48,14 +48,14 @@ type hopPlan struct {
 // dst. The plans are meant to be applied in order, rebuilding between them.
 func planChain(src, dst version) ([]hopPlan, error) {
 	if !src.less(dst) {
-		return nil, fmt.Errorf("source %s is not older than target %s", src, dst)
+		return nil, fmt.Errorf("source %q is not older than target %q", src, dst)
 	}
 
 	var plans []hopPlan
 	for v := src; v.less(dst); {
 		h, ok := hops[v]
 		if !ok {
-			return nil, fmt.Errorf("no registered transition from %s (needed to migrate %s -> %s); "+
+			return nil, fmt.Errorf("no registered transition from %q (needed to migrate %q -> %q); "+
 				"add a hop file for it and register it in hops", v, src, dst)
 		}
 
@@ -88,16 +88,16 @@ func planChain(src, dst version) ([]hopPlan, error) {
 func decodeSurface(v version) (*apirev.Snapshot, error) {
 	data, ok := surfaces[v]
 	if !ok {
-		return nil, fmt.Errorf("no embedded surface for %s (regenerate with cmd/gensurface and register it in surfaces)", v)
+		return nil, fmt.Errorf("%w (regenerate with cmd/gensurface and register it in surfaces)", noSurfaceError(v.String()))
 	}
 	var s apirev.Snapshot
 	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, fmt.Errorf("decode surface %s: %w", v, err)
+		return nil, fmt.Errorf("decode surface %q: %w", v, err)
 	}
 	if pdata, ok := pluginSurfaces[v]; ok {
 		var ps apirev.Snapshot
 		if err := json.Unmarshal(pdata, &ps); err != nil {
-			return nil, fmt.Errorf("decode plugin surface %s: %w", v, err)
+			return nil, fmt.Errorf("decode plugin surface %q: %w", v, err)
 		}
 		s.Structs = append(s.Structs, ps.Structs...)
 	}

@@ -26,11 +26,12 @@ var hopV5toV5_2 = hop{
 	From: version{major: 5},
 	To:   version{major: 5, minor: 2},
 
-	// Both wrappers redeclared their base's fields; v5.2 resolves them to the
-	// base (SearchCompletionSuggest) or to a struct embedding it (MLSearchRespHits
+	// The wrappers redeclared their base's fields; v5.2 resolves them to the base
+	// (SearchCompletionSuggest) or to a struct embedding it (MLSearchRespHits
 	// embeds SearchHitsMetadata, which carries total and max_score).
 	TypeRenames: []apirev.TypeRename{
 		{FromPkgPath: v5api, FromName: "SearchSuggestCompletion", ToPkgPath: v5api, ToName: "SearchCompletionSuggest"},
+		{FromPkgPath: v5api, FromName: "SearchResultJSONValueSuggestValueItemCompletion", ToPkgPath: v5api, ToName: "SearchCompletionSuggest"},
 		{FromPkgPath: v5api, FromName: "MLSearchHits", ToPkgPath: v5api, ToName: "MLSearchRespHits"},
 	},
 
@@ -62,15 +63,25 @@ var hopV5toV5_2 = hop{
 		"SearchTotalHitsRelation is now TotalHitsRelation, with TotalHitsRelationEq and TotalHitsRelationGte, " +
 			"and the plugin responses' total hits relations use it instead of a string",
 		"SearchTermSuggestOption.Freq is an int (the server's int32), no longer an int64",
-		"SearchSuggestCompletionOptions is now SearchCompletionSuggestOptions and SearchCompletionSuggest.Options is a value, " +
-			"not a pointer: drop nil checks on it and rename the type where it is named",
+		"SearchSuggestCompletionOptions and SearchResultJSONValueSuggestValueItemCompletionOptions are now " +
+			"SearchCompletionSuggestOptions, and SearchCompletionSuggest.Options is a value, not a pointer: " +
+			"drop nil checks on it and rename the type where it is named",
 		"histogram and date_histogram extended_bounds and hard_bounds are typed (CommonAggregationsExtendedBoundsDouble, " +
 			"CommonAggregationsExtendedBoundsFieldDateMath) instead of raw JSON min/max",
-		"ML and flow framework search hits decode _source into typed structs (MLSource, FlowFrameworkCommonGetResp, " +
-			"FlowFrameworkCommonSearchStateResponse) instead of raw JSON",
+		"ML and flow framework search hits embed SearchHit, so ID, Index, Score, SeqNo, Version and Sort ([]FieldValue) " +
+			"come from it, set through the SearchHit field in a literal, and _source decodes into a typed struct " +
+			"(MLSource, FlowFrameworkCommonGetResp, FlowFrameworkCommonSearchStateResponse) instead of raw JSON",
 		"ML search responses hold hits as a *MLSearchRespHits: literals gain & automatically, " +
-			"but a read of Hits into a value needs a dereference",
-		"flow framework user_outputs is a map of raw JSON values, and created/updated/provisioned times are int64 epoch millis",
+			"but a read of Hits into a value needs a dereference; Took is an int64, TimedOut a bool and Shards a value",
+		"MLHitsTotal is gone: the ML hits total is the SearchHitsMetadataTotal union, read with TotalHits()",
+		"flow framework user_outputs is a map of raw JSON values, created/updated/provisioned times are int64 epoch millis, " +
+			"_shards counts are ints and hits.total is a TotalHitsRelation and an int64",
 		"notifications webhook header_params values are strings, as the server stores them",
+		"insights measurement numbers are float64, phase_latency_map is a map[string]int64, and timestamps and task IDs are int64",
+		"security analytics finding scores are float64, and the alert and finding totals are ints",
+		"asynchronous search stats counters and start/expiration times are int64; rollups interval period is an int " +
+			"and start_time and schedule_delay are int64",
+		"neural stat metadata values gain a Float64 branch, which renumbers NeuralStatMetadataValueStringType; " +
+			"compare branch types by name, not by stored number",
 	},
 }

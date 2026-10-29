@@ -15,26 +15,25 @@ import (
 )
 
 func TestParseLine(t *testing.T) {
-	firstLine := func(m major) (version, bool) { return lineOf(m, 0) }
 	tests := []struct {
 		in       string
-		forMajor func(major) (version, bool)
+		forMajor lineResolver
 		want     version
 		wantErr  bool
 	}{
-		{in: "v4", forMajor: firstLine, want: version{major: 4}},
-		{in: "V4", forMajor: firstLine, want: version{major: 4}},
-		{in: "4", forMajor: firstLine, want: version{major: 4}},
-		{in: "v5", forMajor: firstLine, want: version{major: 5}},
+		{in: "v4", forMajor: firstLineOf, want: version{major: 4}},
+		{in: "V4", forMajor: firstLineOf, want: version{major: 4}},
+		{in: "4", forMajor: firstLineOf, want: version{major: 4}},
+		{in: "v5", forMajor: firstLineOf, want: version{major: 5}},
 		{in: "v5", forMajor: newestLineOf, want: version{major: 5, minor: 2}},
 		{in: "v5.1", forMajor: newestLineOf, want: version{major: 5}},
-		{in: "v5.2", forMajor: firstLine, want: version{major: 5, minor: 2}},
-		{in: "v12", forMajor: firstLine, wantErr: true},
-		{in: "", forMajor: firstLine, wantErr: true},
-		{in: "v0", forMajor: firstLine, wantErr: true},
-		{in: "vx", forMajor: firstLine, wantErr: true},
-		{in: "-1", forMajor: firstLine, wantErr: true},
-		{in: "v5.x", forMajor: firstLine, wantErr: true},
+		{in: "v5.2", forMajor: firstLineOf, want: version{major: 5, minor: 2}},
+		{in: "v12", forMajor: firstLineOf, wantErr: true},
+		{in: "", forMajor: firstLineOf, wantErr: true},
+		{in: "v0", forMajor: firstLineOf, wantErr: true},
+		{in: "vx", forMajor: firstLineOf, wantErr: true},
+		{in: "-1", forMajor: firstLineOf, wantErr: true},
+		{in: "v5.x", forMajor: firstLineOf, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {

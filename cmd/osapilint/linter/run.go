@@ -89,17 +89,17 @@ func Rewrite(args []string) error {
 	var src version
 	var warnings []string
 	if *srcFlag == "auto" {
-		v, w, err := detectSource(context.Background(), dir)
+		var err error
+		src, warnings, err = detectSource(context.Background(), dir)
 		if err != nil {
 			return err
 		}
-		for _, n := range w {
+		for _, n := range warnings {
 			fmt.Fprintln(os.Stderr, "note:", n)
 		}
-		src, warnings = v, w
 		fmt.Printf("detected source %s (target %s)\n", src, dst)
 	} else {
-		v, err := parseLine(*srcFlag, func(m major) (version, bool) { return lineOf(m, 0) })
+		v, err := parseLine(*srcFlag, firstLineOf)
 		if err != nil {
 			return &UsageError{Msg: "-src: " + err.Error()}
 		}
@@ -167,12 +167,12 @@ func bumpAndBuild(ctx context.Context, dir string, to version) error {
 	get := exec.CommandContext(ctx, "go", "get", target)
 	get.Dir = dir
 	if out, err := get.CombinedOutput(); err != nil {
-		return fmt.Errorf("go get %s: %w\n%s", target, err, out)
+		return fmt.Errorf("go get %q: %w\n%s", target, err, out)
 	}
 	build := exec.CommandContext(ctx, "go", "build", "./...")
 	build.Dir = dir
 	if out, err := build.CombinedOutput(); err != nil {
-		return fmt.Errorf("go build after bumping to %s: %w\n%s", to, err, out)
+		return fmt.Errorf("go build after bumping to %q: %w\n%s", to, err, out)
 	}
 	return nil
 }
@@ -194,7 +194,7 @@ func dedupe(s []string) []string {
 // parseLine parses a version label like "v4", "4", "v5.1" or "V5.2" into the
 // release line it names. A label with a minor names the line that release is on;
 // a bare major is resolved by forMajor.
-func parseLine(s string, forMajor func(major) (version, bool)) (version, error) {
+func parseLine(s string, forMajor lineResolver) (version, error) {
 	t := strings.TrimPrefix(strings.TrimPrefix(s, "v"), "V")
 	majorPart, minorPart, hasMinor := strings.Cut(t, ".")
 	n, err := strconv.Atoi(majorPart)
@@ -215,7 +215,7 @@ func parseLine(s string, forMajor func(major) (version, bool)) (version, error) 
 		v, ok = forMajor(m)
 	}
 	if !ok {
-		return version{}, fmt.Errorf("no embedded surface for %q", s)
+		return version{}, noSurfaceError(s)
 	}
 	return v, nil
 }

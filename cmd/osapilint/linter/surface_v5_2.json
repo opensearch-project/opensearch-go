@@ -15325,7 +15325,7 @@
       "fields": [
         {
           "name": "Hits",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHitsMetadataJSONValue",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHitsMetadata",
           "jsonTag": "hits"
         },
         {
@@ -60343,32 +60343,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchHitsMetadataJSONValue",
-      "fields": [
-        {
-          "name": "Hits",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHit",
-          "jsonTag": "hits"
-        },
-        {
-          "name": "Hits",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHit",
-          "jsonTag": "hits,omitempty"
-        },
-        {
-          "name": "MaxScore",
-          "type": "*float32",
-          "jsonTag": "max_score"
-        },
-        {
-          "name": "Total",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHitsMetadataTotal",
-          "jsonTag": "total,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchHitsMetadataTotal",
       "fields": null
     },
@@ -62731,11 +62705,6 @@
         },
         {
           "name": "Hits",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultJSONValueHits",
-          "jsonTag": "hits,omitempty"
-        },
-        {
-          "name": "Hits",
           "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHitsMetadata",
           "jsonTag": "hits"
         },
@@ -62803,69 +62772,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchResultJSONValueHits",
-      "fields": [
-        {
-          "name": "Hits",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHit",
-          "jsonTag": "hits"
-        },
-        {
-          "name": "Hits",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHit",
-          "jsonTag": "hits,omitempty"
-        },
-        {
-          "name": "MaxScore",
-          "type": "*float32",
-          "jsonTag": "max_score"
-        },
-        {
-          "name": "Total",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHitsMetadataTotal",
-          "jsonTag": "total,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchResultJSONValueSuggestValueItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchResultJSONValueSuggestValueItemCompletion",
-      "fields": [
-        {
-          "name": "Length",
-          "type": "int",
-          "jsonTag": "length"
-        },
-        {
-          "name": "Offset",
-          "type": "int",
-          "jsonTag": "offset"
-        },
-        {
-          "name": "Options",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchCompletionSuggestOptions",
-          "jsonTag": "options"
-        },
-        {
-          "name": "Options",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultJSONValueSuggestValueItemCompletionOptions",
-          "jsonTag": "options,omitempty"
-        },
-        {
-          "name": "Text",
-          "type": "string",
-          "jsonTag": "text"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchResultJSONValueSuggestValueItemCompletionOptions",
       "fields": null
     },
     {

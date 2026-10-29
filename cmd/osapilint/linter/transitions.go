@@ -7,6 +7,7 @@
 package linter
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"slices"
@@ -82,23 +83,22 @@ var pluginSurfaces = map[version][]byte{
 	{major: 5, minor: 2}: surfaceV5_2PluginsJSON,
 }
 
-// lines returns every line with a surface, oldest first.
+// lines returns every line with a surface, oldest first. It reads surfaces on
+// every call rather than once, because tests swap the registry.
 func lines() []version {
 	out := make([]version, 0, len(surfaces))
 	for v := range surfaces {
 		out = append(out, v)
 	}
 	slices.SortFunc(out, func(a, b version) int {
-		switch {
-		case a.less(b):
-			return -1
-		case b.less(a):
-			return 1
-		}
-		return 0
+		return cmp.Or(cmp.Compare(a.major, b.major), cmp.Compare(a.minor, b.minor))
 	})
 	return out
 }
+
+// lineResolver resolves a major to one of its release lines, reporting false
+// when the major has none.
+type lineResolver func(major) (version, bool)
 
 // lineOf returns the line a release of major m with the given minor belongs to:
 // the newest line of m that starts at or before minor. It reports false when m
@@ -114,9 +114,19 @@ func lineOf(m major, minor int) (version, bool) {
 	return found, ok
 }
 
+// firstLineOf returns the first line of major m, and false when m has none.
+func firstLineOf(m major) (version, bool) {
+	return lineOf(m, 0)
+}
+
 // newestLineOf returns the newest line of major m, and false when m has none.
 func newestLineOf(m major) (version, bool) {
 	return lineOf(m, math.MaxInt)
+}
+
+// noSurfaceError reports that no embedded surface covers the version label.
+func noSurfaceError(label string) error {
+	return fmt.Errorf("no embedded surface for %q", label)
 }
 
 // nextLineOf returns the line of the same major that follows v, and false when v
