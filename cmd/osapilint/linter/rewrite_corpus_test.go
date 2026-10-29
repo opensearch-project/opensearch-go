@@ -39,8 +39,8 @@ import (
 func TestRewriteCorpus(t *testing.T) {
 	tests := []struct {
 		name    string
-		src     major
-		dst     major
+		src     version
+		dst     version
 		corpus  string   // txtar archive under testdata/corpus holding go.mod + fixtures
 		goldens []string // fixture files diffed against <file>.golden
 		// compileClean lists goldens that must be pure compiling target-version
@@ -54,8 +54,8 @@ func TestRewriteCorpus(t *testing.T) {
 	}{
 		{
 			name:   "v2_to_v3",
-			src:    2,
-			dst:    3,
+			src:    majorLine(2),
+			dst:    majorLine(3),
 			corpus: "v2",
 			// seedops: idiom-2 seed ops -> compiling v3. aliasedimport: aliased
 			// opensearchapi import stays single. paramsemit: destParams nests under
@@ -80,12 +80,28 @@ func TestRewriteCorpus(t *testing.T) {
 		},
 		{
 			name:    "v3_to_v4",
-			src:     3,
-			dst:     4,
+			src:     majorLine(3),
+			dst:     majorLine(4),
 			corpus:  "v3",
 			goldens: []string{"client.go"}, // quiet hop: only the import path bumps
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v3",
+			},
+		},
+		{
+			// The hop within v5 keeps the import path, so the report carries no
+			// import edit: only the type and field rulings.
+			name:    "v5_to_v5_2",
+			src:     majorLine(5),
+			dst:     version{major: 5, minor: 2},
+			corpus:  "v5",
+			goldens: []string{"minor.go"},
+			edits: []string{
+				"type SearchSuggestCompletion -> SearchCompletionSuggest",
+				"type MLSearchHits -> MLSearchRespHits",
+				`InsightsTopQuery": field QueryHashcode -> QueryGroupHashcode`,
+				`AsynchronousSearchRespBody": field Took removed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v5/opensearchapi.RollupsInterval": access .Cron`,
 			},
 		},
 		{
@@ -112,8 +128,8 @@ func TestRewriteCorpus(t *testing.T) {
 			// a bare sub-client read is reported MANUAL. plugins: the removed plugin
 			// Config types and the regrouped plugin Client fields are reported MANUAL.
 			name:   "v4_to_v5",
-			src:    4,
-			dst:    5,
+			src:    majorLine(4),
+			dst:    majorLine(5),
 			corpus: "v4",
 			// removedtype: import bumps, the removed-type ref stays put.
 			goldens: []string{

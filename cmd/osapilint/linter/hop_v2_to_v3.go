@@ -105,8 +105,8 @@ func rootClientDispositionsV2toV3() []apirev.FieldDisposition {
 //
 //nolint:gochecknoglobals // immutable data table; mirrors hopV3toV4/hopV4toV5
 var hopV2toV3 = hop{
-	From: 2,
-	To:   3,
+	From: version{major: 2},
+	To:   version{major: 3},
 
 	// TypeRenames: none. The 16 surviving types keep their names and packages;
 	// the 166 removed opensearchapi.*Request types are NOT renamed to the v3

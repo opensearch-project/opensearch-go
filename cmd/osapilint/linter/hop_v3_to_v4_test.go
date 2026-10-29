@@ -23,7 +23,7 @@ import (
 // planV3toV4 returns the single hop plan for v3->v4.
 func planV3toV4(t *testing.T) hopPlan {
 	t.Helper()
-	plans, err := planChain(3, 4)
+	plans, err := planChain(majorLine(3), majorLine(4))
 	require.NoError(t, err)
 	require.Len(t, plans, 1, "v3->v4 is a single hop")
 	return plans[0]
@@ -78,11 +78,11 @@ func TestHopV3toV4_FailLoudForRedesignedFields(t *testing.T) {
 // TestHopV3toV4_ChainsToV5 verifies the registered hop composes: a v3->v5 request
 // yields the two adjacent hops in order, applied serially by the driver.
 func TestHopV3toV4_ChainsToV5(t *testing.T) {
-	plans, err := planChain(3, 5)
+	plans, err := planChain(majorLine(3), majorLine(5))
 	require.NoError(t, err)
 	require.Len(t, plans, 2, "v3->v5 chains v3->v4 then v4->v5")
-	require.Equal(t, [2]major{3, 4}, [2]major{plans[0].from, plans[0].to})
-	require.Equal(t, [2]major{4, 5}, [2]major{plans[1].from, plans[1].to})
+	require.Equal(t, [2]version{majorLine(3), majorLine(4)}, [2]version{plans[0].from, plans[0].to})
+	require.Equal(t, [2]version{majorLine(4), majorLine(5)}, [2]version{plans[1].from, plans[1].to})
 }
 
 // containsSubstr reports whether any element of s contains sub.

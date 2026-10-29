@@ -165,6 +165,10 @@
           "type": "time.Duration"
         },
         {
+          "name": "NodeStatsInterval",
+          "type": "time.Duration"
+        },
+        {
           "name": "Observer",
           "type": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport.ConnectionObserver"
         },
@@ -195,6 +199,10 @@
         {
           "name": "RetryBackoff",
           "type": "func(attempt int) time.Duration"
+        },
+        {
+          "name": "RetryBudget",
+          "type": "time.Duration"
         },
         {
           "name": "RetryOnStatus",
@@ -491,7 +499,7 @@
         },
         {
           "name": "Ext",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "ext,omitempty"
         },
         {
@@ -687,6 +695,11 @@
           "jsonTag": "nodes,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "BaseMGetObserver",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -7141,7 +7154,7 @@
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -7172,7 +7185,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -7888,17 +7901,17 @@
       "fields": [
         {
           "name": "Defaults",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "defaults,omitempty"
         },
         {
           "name": "Persistent",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "persistent"
         },
         {
           "name": "Transient",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "transient"
         }
       ]
@@ -8579,7 +8592,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -8790,12 +8803,12 @@
       "fields": [
         {
           "name": "Persistent",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "persistent,omitempty"
         },
         {
           "name": "Transient",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "transient,omitempty"
         }
       ]
@@ -8895,12 +8908,12 @@
         },
         {
           "name": "Persistent",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "persistent"
         },
         {
           "name": "Transient",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "transient"
         }
       ]
@@ -9506,7 +9519,7 @@
         },
         {
           "name": "State",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "state,omitempty"
         }
       ]
@@ -9625,7 +9638,7 @@
       "fields": [
         {
           "name": "Body",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "-"
         }
       ]
@@ -10691,7 +10704,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -10700,6 +10713,17 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsAdjacencyMatrixAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAdjacencyMatrixAggregationFields",
+      "fields": [
+        {
+          "name": "Filters",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainer",
+          "jsonTag": "filters,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10728,10 +10752,15 @@
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAggregateOrder",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10739,7 +10768,7 @@
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -10749,11 +10778,377 @@
       "name": "CommonAggregationsAggregationContainer",
       "fields": [
         {
+          "name": "AdjacencyMatrix",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAdjacencyMatrixAggregationFields",
+          "jsonTag": "adjacency_matrix,omitempty"
+        },
+        {
+          "name": "Aggregations",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregationContainer",
+          "jsonTag": "aggregations,omitempty"
+        },
+        {
+          "name": "Aggs",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregationContainer",
+          "jsonTag": "aggs,omitempty"
+        },
+        {
+          "name": "AutoDateHistogram",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAutoDateHistogramAggregationFields",
+          "jsonTag": "auto_date_histogram,omitempty"
+        },
+        {
+          "name": "Avg",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsFormatMetricAggregationBase",
+          "jsonTag": "avg,omitempty"
+        },
+        {
+          "name": "AvgBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "avg_bucket,omitempty"
+        },
+        {
+          "name": "Boxplot",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBoxplotAggregation",
+          "jsonTag": "boxplot,omitempty"
+        },
+        {
+          "name": "BucketScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketScriptAggregation",
+          "jsonTag": "bucket_script,omitempty"
+        },
+        {
+          "name": "BucketSelector",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketSelectorAggregation",
+          "jsonTag": "bucket_selector,omitempty"
+        },
+        {
+          "name": "BucketSort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketSortAggregation",
+          "jsonTag": "bucket_sort,omitempty"
+        },
+        {
+          "name": "Cardinality",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCardinalityAggregation",
+          "jsonTag": "cardinality,omitempty"
+        },
+        {
+          "name": "Children",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsChildrenAggregationFields",
+          "jsonTag": "children,omitempty"
+        },
+        {
+          "name": "Composite",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeAggregationFields",
+          "jsonTag": "composite,omitempty"
+        },
+        {
+          "name": "CumulativeCardinality",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "cumulative_cardinality,omitempty"
+        },
+        {
+          "name": "CumulativeSum",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "cumulative_sum,omitempty"
+        },
+        {
+          "name": "DateHistogram",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsDateHistogramAggregationFields",
+          "jsonTag": "date_histogram,omitempty"
+        },
+        {
+          "name": "DateRange",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsDateRangeAggregationFields",
+          "jsonTag": "date_range,omitempty"
+        },
+        {
+          "name": "Derivative",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "derivative,omitempty"
+        },
+        {
+          "name": "DiversifiedSampler",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsDiversifiedSamplerAggregationFields",
+          "jsonTag": "diversified_sampler,omitempty"
+        },
+        {
+          "name": "ExtendedStats",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsExtendedStatsAggregation",
+          "jsonTag": "extended_stats,omitempty"
+        },
+        {
+          "name": "ExtendedStatsBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsExtendedStatsBucketAggregation",
+          "jsonTag": "extended_stats_bucket,omitempty"
+        },
+        {
+          "name": "Filter",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainer",
+          "jsonTag": "filter,omitempty"
+        },
+        {
+          "name": "Filters",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsFiltersAggregationFields",
+          "jsonTag": "filters,omitempty"
+        },
+        {
+          "name": "GeoBounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoBoundsAggregation",
+          "jsonTag": "geo_bounds,omitempty"
+        },
+        {
+          "name": "GeoCentroid",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoCentroidAggregation",
+          "jsonTag": "geo_centroid,omitempty"
+        },
+        {
+          "name": "GeoDistance",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoDistanceAggregationFields",
+          "jsonTag": "geo_distance,omitempty"
+        },
+        {
+          "name": "GeohashGrid",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoHashGridAggregationFields",
+          "jsonTag": "geohash_grid,omitempty"
+        },
+        {
+          "name": "GeotileGrid",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoTileGridAggregationFields",
+          "jsonTag": "geotile_grid,omitempty"
+        },
+        {
+          "name": "Global",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGlobalAggregationFields",
+          "jsonTag": "global,omitempty"
+        },
+        {
+          "name": "Histogram",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHistogramAggregationFields",
+          "jsonTag": "histogram,omitempty"
+        },
+        {
+          "name": "IPRange",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsIPRangeAggregationFields",
+          "jsonTag": "ip_range,omitempty"
+        },
+        {
+          "name": "MatrixStats",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMatrixStatsAggregation",
+          "jsonTag": "matrix_stats,omitempty"
+        },
+        {
+          "name": "Max",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMaxAggregation",
+          "jsonTag": "max,omitempty"
+        },
+        {
+          "name": "MaxBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "max_bucket,omitempty"
+        },
+        {
+          "name": "MedianAbsoluteDeviation",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMedianAbsoluteDeviationAggregation",
+          "jsonTag": "median_absolute_deviation,omitempty"
+        },
+        {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        },
+        {
+          "name": "Min",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMinAggregation",
+          "jsonTag": "min,omitempty"
+        },
+        {
+          "name": "MinBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "min_bucket,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMissingAggregationFields",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "MovingAvg",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMovingAverageAggregation",
+          "jsonTag": "moving_avg,omitempty"
+        },
+        {
+          "name": "MovingFn",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMovingFunctionAggregation",
+          "jsonTag": "moving_fn,omitempty"
+        },
+        {
+          "name": "MovingPercentiles",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMovingPercentilesAggregation",
+          "jsonTag": "moving_percentiles,omitempty"
+        },
+        {
+          "name": "MultiTerms",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMultiTermsAggregationFields",
+          "jsonTag": "multi_terms,omitempty"
+        },
+        {
+          "name": "Nested",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsNestedAggregationFields",
+          "jsonTag": "nested,omitempty"
+        },
+        {
+          "name": "Normalize",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsNormalizeAggregation",
+          "jsonTag": "normalize,omitempty"
+        },
+        {
+          "name": "Parent",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsParentAggregationFields",
+          "jsonTag": "parent,omitempty"
+        },
+        {
+          "name": "PercentileRanks",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentileRanksAggregation",
+          "jsonTag": "percentile_ranks,omitempty"
+        },
+        {
+          "name": "Percentiles",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentilesAggregation",
+          "jsonTag": "percentiles,omitempty"
+        },
+        {
+          "name": "PercentilesBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentilesBucketAggregation",
+          "jsonTag": "percentiles_bucket,omitempty"
+        },
+        {
+          "name": "Range",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsRangeAggregationFields",
+          "jsonTag": "range,omitempty"
+        },
+        {
+          "name": "RareTerms",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsRareTermsAggregationFields",
+          "jsonTag": "rare_terms,omitempty"
+        },
+        {
+          "name": "Rate",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsRateAggregation",
+          "jsonTag": "rate,omitempty"
+        },
+        {
+          "name": "ReverseNested",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsReverseNestedAggregationFields",
+          "jsonTag": "reverse_nested,omitempty"
+        },
+        {
+          "name": "Sampler",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsSamplerAggregationFields",
+          "jsonTag": "sampler,omitempty"
+        },
+        {
+          "name": "ScriptedMetric",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsScriptedMetricAggregation",
+          "jsonTag": "scripted_metric,omitempty"
+        },
+        {
+          "name": "SerialDiff",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsSerialDifferencingAggregation",
+          "jsonTag": "serial_diff,omitempty"
+        },
+        {
+          "name": "SignificantTerms",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsSignificantTermsAggregationFields",
+          "jsonTag": "significant_terms,omitempty"
+        },
+        {
+          "name": "SignificantText",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsSignificantTextAggregationFields",
+          "jsonTag": "significant_text,omitempty"
+        },
+        {
+          "name": "Stats",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsFormatMetricAggregationBase",
+          "jsonTag": "stats,omitempty"
+        },
+        {
+          "name": "StatsBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "stats_bucket,omitempty"
+        },
+        {
+          "name": "Sum",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsFormatMetricAggregationBase",
+          "jsonTag": "sum,omitempty"
+        },
+        {
+          "name": "SumBucket",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPipelineAggregationBase",
+          "jsonTag": "sum_bucket,omitempty"
+        },
+        {
+          "name": "TTest",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTTestAggregation",
+          "jsonTag": "t_test,omitempty"
+        },
+        {
+          "name": "Terms",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsAggregationFields",
+          "jsonTag": "terms,omitempty"
+        },
+        {
+          "name": "TopHits",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTopHitsAggregation",
+          "jsonTag": "top_hits,omitempty"
+        },
+        {
+          "name": "ValueCount",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsValueCountAggregation",
+          "jsonTag": "value_count,omitempty"
+        },
+        {
+          "name": "VariableWidthHistogram",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsVariableWidthHistogramAggregation",
+          "jsonTag": "variable_width_histogram,omitempty"
+        },
+        {
+          "name": "WeightedAvg",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsWeightedAverageAggregation",
+          "jsonTag": "weighted_avg,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAggregationRange",
+      "fields": [
+        {
+          "name": "From",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregationRangeFrom",
+          "jsonTag": "from,omitempty"
+        },
+        {
+          "name": "Key",
+          "type": "*string",
+          "jsonTag": "key,omitempty"
+        },
+        {
+          "name": "To",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregationRangeTo",
+          "jsonTag": "to,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAggregationRangeFrom",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAggregationRangeTo",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10797,8 +11192,59 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAutoDateHistogramAggregationFields",
+      "fields": [
+        {
+          "name": "Buckets",
+          "type": "*int",
+          "jsonTag": "buckets,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "MinimumInterval",
+          "type": "*string",
+          "jsonTag": "minimum_interval,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*string",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Offset",
+          "type": "*string",
+          "jsonTag": "offset,omitempty"
+        },
+        {
+          "name": "Params",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
+          "jsonTag": "params,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "TimeZone",
+          "type": "*string",
+          "jsonTag": "time_zone,omitempty"
         }
       ]
     },
@@ -10828,7 +11274,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -10885,6 +11331,32 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBoxplotAggregation",
+      "fields": [
+        {
+          "name": "Compression",
+          "type": "*float64",
+          "jsonTag": "compression,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsBucketMetricValueAggregate",
       "fields": [
         {
@@ -10894,7 +11366,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -10911,17 +11383,174 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBucketPathAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBucketScriptAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBucketSelectorAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBucketSortAggregation",
+      "fields": [
+        {
+          "name": "From",
+          "type": "*int",
+          "jsonTag": "from,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        },
+        {
+          "name": "Sort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
+          "jsonTag": "sort,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBucketsPath",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsBucketsQueryContainer",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsCardinalityAggregate",
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
           "name": "Value",
           "type": "int64",
           "jsonTag": "value"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCardinalityAggregation",
+      "fields": [
+        {
+          "name": "ExecutionHint",
+          "type": "*string",
+          "jsonTag": "execution_hint,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "PrecisionThreshold",
+          "type": "*int",
+          "jsonTag": "precision_threshold,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsChiSquareHeuristic",
+      "fields": [
+        {
+          "name": "BackgroundIsSuperset",
+          "type": "bool",
+          "jsonTag": "background_is_superset"
+        },
+        {
+          "name": "IncludeNegatives",
+          "type": "bool",
+          "jsonTag": "include_negatives"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsChildrenAggregationFields",
+      "fields": [
+        {
+          "name": "Type",
+          "type": "*string",
+          "jsonTag": "type,omitempty"
         }
       ]
     },
@@ -10946,8 +11575,55 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCompositeAggregationFields",
+      "fields": [
+        {
+          "name": "After",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "after,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        },
+        {
+          "name": "Sources",
+          "type": "[]map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeAggregationSource",
+          "jsonTag": "sources,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCompositeAggregationSource",
+      "fields": [
+        {
+          "name": "DateHistogram",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeDateHistogramAggregationSource",
+          "jsonTag": "date_histogram,omitempty"
+        },
+        {
+          "name": "GeotileGrid",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeGeoTileGridAggregationSource",
+          "jsonTag": "geotile_grid,omitempty"
+        },
+        {
+          "name": "Histogram",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeHistogramAggregationSource",
+          "jsonTag": "histogram,omitempty"
+        },
+        {
+          "name": "Terms",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeValuesSource",
+          "jsonTag": "terms,omitempty"
         }
       ]
     },
@@ -10969,11 +11645,195 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCompositeDateHistogramAggregationSource",
+      "fields": [
+        {
+          "name": "CalendarInterval",
+          "type": "*string",
+          "jsonTag": "calendar_interval,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "FixedInterval",
+          "type": "*string",
+          "jsonTag": "fixed_interval,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "MissingBucket",
+          "type": "*bool",
+          "jsonTag": "missing_bucket,omitempty"
+        },
+        {
+          "name": "MissingOrder",
+          "type": "*string",
+          "jsonTag": "missing_order,omitempty"
+        },
+        {
+          "name": "Offset",
+          "type": "*string",
+          "jsonTag": "offset,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*string",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "TimeZone",
+          "type": "*string",
+          "jsonTag": "time_zone,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCompositeGeoTileGridAggregationSource",
+      "fields": [
+        {
+          "name": "Bounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoBounds",
+          "jsonTag": "bounds,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "MissingBucket",
+          "type": "*bool",
+          "jsonTag": "missing_bucket,omitempty"
+        },
+        {
+          "name": "MissingOrder",
+          "type": "*string",
+          "jsonTag": "missing_order,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*string",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Precision",
+          "type": "*int",
+          "jsonTag": "precision,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCompositeHistogramAggregationSource",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Interval",
+          "type": "float64",
+          "jsonTag": "interval"
+        },
+        {
+          "name": "MissingBucket",
+          "type": "*bool",
+          "jsonTag": "missing_bucket,omitempty"
+        },
+        {
+          "name": "MissingOrder",
+          "type": "*string",
+          "jsonTag": "missing_order,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*string",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsCompositeValuesSource",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "MissingBucket",
+          "type": "*bool",
+          "jsonTag": "missing_bucket,omitempty"
+        },
+        {
+          "name": "MissingOrder",
+          "type": "*string",
+          "jsonTag": "missing_order,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*string",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsCumulativeCardinalityAggregate",
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11004,7 +11864,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11013,6 +11873,87 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsDateHistogramAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsDateHistogramAggregationFields",
+      "fields": [
+        {
+          "name": "CalendarInterval",
+          "type": "*string",
+          "jsonTag": "calendar_interval,omitempty"
+        },
+        {
+          "name": "ExtendedBounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsExtendedBounds",
+          "jsonTag": "extended_bounds,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "FixedInterval",
+          "type": "*string",
+          "jsonTag": "fixed_interval,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "HardBounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsExtendedBounds",
+          "jsonTag": "hard_bounds,omitempty"
+        },
+        {
+          "name": "Interval",
+          "type": "*string",
+          "jsonTag": "interval,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "*int",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*string",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Offset",
+          "type": "*string",
+          "jsonTag": "offset,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHistogramOrder",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Params",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
+          "jsonTag": "params,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "TimeZone",
+          "type": "*string",
+          "jsonTag": "time_zone,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11037,11 +11978,68 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsDateRangeAggregationFields",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Ranges",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsDateRangeExpression",
+          "jsonTag": "ranges,omitempty"
+        },
+        {
+          "name": "TimeZone",
+          "type": "*string",
+          "jsonTag": "time_zone,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsDateRangeExpression",
+      "fields": [
+        {
+          "name": "From",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsFieldDateMath",
+          "jsonTag": "from,omitempty"
+        },
+        {
+          "name": "Key",
+          "type": "*string",
+          "jsonTag": "key,omitempty"
+        },
+        {
+          "name": "To",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsFieldDateMath",
+          "jsonTag": "to,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsDerivativeAggregate",
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11068,6 +12066,37 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsDiversifiedSamplerAggregationFields",
+      "fields": [
+        {
+          "name": "ExecutionHint",
+          "type": "*string",
+          "jsonTag": "execution_hint,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "MaxDocsPerValue",
+          "type": "*int",
+          "jsonTag": "max_docs_per_value,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsDoubleTermsAggregate",
       "fields": [
         {
@@ -11087,7 +12116,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11125,6 +12154,79 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsEwmaModelSettings",
+      "fields": [
+        {
+          "name": "Alpha",
+          "type": "*float32",
+          "jsonTag": "alpha,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsEwmaMovingAverageAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Minimize",
+          "type": "*bool",
+          "jsonTag": "minimize,omitempty"
+        },
+        {
+          "name": "Model",
+          "type": "string",
+          "jsonTag": "model"
+        },
+        {
+          "name": "Predict",
+          "type": "*int",
+          "jsonTag": "predict,omitempty"
+        },
+        {
+          "name": "Settings",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsEwmaModelSettings",
+          "jsonTag": "settings"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsExtendedBounds",
+      "fields": [
+        {
+          "name": "Max",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
+          "jsonTag": "max"
+        },
+        {
+          "name": "Min",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
+          "jsonTag": "min"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsExtendedStatsAggregateBase",
       "fields": [
         {
@@ -11154,7 +12256,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11251,6 +12353,68 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsExtendedStatsAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "Sigma",
+          "type": "*float64",
+          "jsonTag": "sigma,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsExtendedStatsBucketAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Sigma",
+          "type": "*float64",
+          "jsonTag": "sigma,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsFieldDateMath",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsFiltersAggregate",
       "fields": [
         {
@@ -11265,7 +12429,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11274,6 +12438,58 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsFiltersAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsFiltersAggregationFields",
+      "fields": [
+        {
+          "name": "Filters",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsQueryContainer",
+          "jsonTag": "filters,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "OtherBucket",
+          "type": "*bool",
+          "jsonTag": "other_bucket,omitempty"
+        },
+        {
+          "name": "OtherBucketKey",
+          "type": "*string",
+          "jsonTag": "other_bucket_key,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsFormatMetricAggregationBase",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11286,8 +12502,34 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGeoBoundsAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "WrapLongitude",
+          "type": "*bool",
+          "jsonTag": "wrap_longitude,omitempty"
         }
       ]
     },
@@ -11307,8 +12549,70 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGeoCentroidAggregation",
+      "fields": [
+        {
+          "name": "Count",
+          "type": "*int64",
+          "jsonTag": "count,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Location",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
+          "jsonTag": "location,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGeoDistanceAggregationFields",
+      "fields": [
+        {
+          "name": "DistanceType",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoDistanceType",
+          "jsonTag": "distance_type,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Origin",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
+          "jsonTag": "origin,omitempty"
+        },
+        {
+          "name": "Ranges",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregationRange",
+          "jsonTag": "ranges,omitempty"
+        },
+        {
+          "name": "Unit",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.DistanceUnit",
+          "jsonTag": "unit,omitempty"
         }
       ]
     },
@@ -11328,7 +12632,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11337,6 +12641,37 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsGeoHashGridAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGeoHashGridAggregationFields",
+      "fields": [
+        {
+          "name": "Bounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoBounds",
+          "jsonTag": "bounds,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Precision",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoHashPrecision",
+          "jsonTag": "precision,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11370,7 +12705,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11379,6 +12714,37 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsGeoTileGridAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGeoTileGridAggregationFields",
+      "fields": [
+        {
+          "name": "Bounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoBounds",
+          "jsonTag": "bounds,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Precision",
+          "type": "*float64",
+          "jsonTag": "precision,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11398,6 +12764,33 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGlobalAggregationFields",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsGoogleNormalizedDistanceHeuristic",
+      "fields": [
+        {
+          "name": "BackgroundIsSuperset",
+          "type": "*bool",
+          "jsonTag": "background_is_superset,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHDRMethod",
+      "fields": [
+        {
+          "name": "NumberOfSignificantValueDigits",
+          "type": "*int",
+          "jsonTag": "number_of_significant_value_digits,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsHistogramAggregate",
       "fields": [
         {
@@ -11412,7 +12805,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11421,6 +12814,67 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsHistogramAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHistogramAggregationFields",
+      "fields": [
+        {
+          "name": "ExtendedBounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsExtendedBounds",
+          "jsonTag": "extended_bounds,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "HardBounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsExtendedBounds",
+          "jsonTag": "hard_bounds,omitempty"
+        },
+        {
+          "name": "Interval",
+          "type": "*float64",
+          "jsonTag": "interval,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "*int",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*float64",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Offset",
+          "type": "*float64",
+          "jsonTag": "offset,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHistogramOrder",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11445,6 +12899,166 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHistogramOrder",
+      "fields": [
+        {
+          "name": "Count",
+          "type": "*string",
+          "jsonTag": "_count,omitempty"
+        },
+        {
+          "name": "Key",
+          "type": "*string",
+          "jsonTag": "_key,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHoltLinearModelSettings",
+      "fields": [
+        {
+          "name": "Alpha",
+          "type": "*float32",
+          "jsonTag": "alpha,omitempty"
+        },
+        {
+          "name": "Beta",
+          "type": "*float32",
+          "jsonTag": "beta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHoltMovingAverageAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Minimize",
+          "type": "*bool",
+          "jsonTag": "minimize,omitempty"
+        },
+        {
+          "name": "Model",
+          "type": "string",
+          "jsonTag": "model"
+        },
+        {
+          "name": "Predict",
+          "type": "*int",
+          "jsonTag": "predict,omitempty"
+        },
+        {
+          "name": "Settings",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHoltLinearModelSettings",
+          "jsonTag": "settings"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHoltWintersModelSettings",
+      "fields": [
+        {
+          "name": "Alpha",
+          "type": "*float32",
+          "jsonTag": "alpha,omitempty"
+        },
+        {
+          "name": "Beta",
+          "type": "*float32",
+          "jsonTag": "beta,omitempty"
+        },
+        {
+          "name": "Gamma",
+          "type": "*float32",
+          "jsonTag": "gamma,omitempty"
+        },
+        {
+          "name": "Pad",
+          "type": "*bool",
+          "jsonTag": "pad,omitempty"
+        },
+        {
+          "name": "Period",
+          "type": "*int",
+          "jsonTag": "period,omitempty"
+        },
+        {
+          "name": "Type",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHoltWintersType",
+          "jsonTag": "type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsHoltWintersMovingAverageAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Minimize",
+          "type": "*bool",
+          "jsonTag": "minimize,omitempty"
+        },
+        {
+          "name": "Model",
+          "type": "string",
+          "jsonTag": "model"
+        },
+        {
+          "name": "Predict",
+          "type": "*int",
+          "jsonTag": "predict,omitempty"
+        },
+        {
+          "name": "Settings",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHoltWintersModelSettings",
+          "jsonTag": "settings"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsIPRangeAggregate",
       "fields": [
         {
@@ -11459,7 +13073,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11468,6 +13082,43 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsIPRangeAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsIPRangeAggregationFields",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Ranges",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsIPRangeAggregationRange",
+          "jsonTag": "ranges,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsIPRangeAggregationRange",
+      "fields": [
+        {
+          "name": "From",
+          "type": "*string",
+          "jsonTag": "from,omitempty"
+        },
+        {
+          "name": "Mask",
+          "type": "*string",
+          "jsonTag": "mask,omitempty"
+        },
+        {
+          "name": "To",
+          "type": "*string",
+          "jsonTag": "to,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11502,6 +13153,52 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsLinearMovingAverageAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Minimize",
+          "type": "*bool",
+          "jsonTag": "minimize,omitempty"
+        },
+        {
+          "name": "Model",
+          "type": "string",
+          "jsonTag": "model"
+        },
+        {
+          "name": "Predict",
+          "type": "*int",
+          "jsonTag": "predict,omitempty"
+        },
+        {
+          "name": "Settings",
+          "type": "struct{}",
+          "jsonTag": "settings"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsLongRareTermsAggregate",
       "fields": [
         {
@@ -11516,7 +13213,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11568,7 +13265,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11611,6 +13308,22 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMatrixAggregation",
+      "fields": [
+        {
+          "name": "Fields",
+          "type": "*string",
+          "jsonTag": "fields,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "map[string]float64",
+          "jsonTag": "missing,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsMatrixStatsAggregate",
       "fields": [
         {
@@ -11625,8 +13338,29 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMatrixStatsAggregation",
+      "fields": [
+        {
+          "name": "Fields",
+          "type": "*string",
+          "jsonTag": "fields,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "map[string]float64",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Mode",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SortMode",
+          "jsonTag": "mode,omitempty"
         }
       ]
     },
@@ -11678,6 +13412,249 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMaxAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMedianAbsoluteDeviationAggregation",
+      "fields": [
+        {
+          "name": "Compression",
+          "type": "*float64",
+          "jsonTag": "compression,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMetricAggregationBase",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMinAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMissingAggregationFields",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMovingAverageAggregation",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMovingAverageAggregationBase",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Minimize",
+          "type": "*bool",
+          "jsonTag": "minimize,omitempty"
+        },
+        {
+          "name": "Predict",
+          "type": "*int",
+          "jsonTag": "predict,omitempty"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMovingFunctionAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*string",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "Shift",
+          "type": "*int",
+          "jsonTag": "shift,omitempty"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMovingPercentilesAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "Shift",
+          "type": "*int",
+          "jsonTag": "shift,omitempty"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsMultiBucketAggregateBase",
       "fields": [
         {
@@ -11687,7 +13664,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11713,7 +13690,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11739,7 +13716,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -11757,6 +13734,22 @@
           "name": "DocCount",
           "type": "int64",
           "jsonTag": "doc_count"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMultiTermLookup",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "string",
+          "jsonTag": "field"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
         }
       ]
     },
@@ -11781,7 +13774,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11795,6 +13788,52 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsMultiTermsAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMultiTermsAggregationFields",
+      "fields": [
+        {
+          "name": "CollectMode",
+          "type": "*string",
+          "jsonTag": "collect_mode,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "*int",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHistogramOrder",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "ShardMinDocCount",
+          "type": "*int",
+          "jsonTag": "shard_min_doc_count,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        },
+        {
+          "name": "ShowTermDocCountError",
+          "type": "*bool",
+          "jsonTag": "show_term_doc_count_error,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        },
+        {
+          "name": "Terms",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMultiTermLookup",
+          "jsonTag": "terms"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11824,6 +13863,121 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsMutualInformationHeuristic",
+      "fields": [
+        {
+          "name": "BackgroundIsSuperset",
+          "type": "*bool",
+          "jsonTag": "background_is_superset,omitempty"
+        },
+        {
+          "name": "IncludeNegatives",
+          "type": "*bool",
+          "jsonTag": "include_negatives,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsNestedAggregationFields",
+      "fields": [
+        {
+          "name": "Path",
+          "type": "*string",
+          "jsonTag": "path,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsNormalizeAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Method",
+          "type": "*string",
+          "jsonTag": "method,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsParentAggregationFields",
+      "fields": [
+        {
+          "name": "Type",
+          "type": "*string",
+          "jsonTag": "type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsPercentageScoreHeuristic",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsPercentileRanksAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "HDR",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHDRMethod",
+          "jsonTag": "hdr,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "TDigest",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTDigest",
+          "jsonTag": "tdigest,omitempty"
+        },
+        {
+          "name": "Values",
+          "type": "[]float64",
+          "jsonTag": "values,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsPercentiles",
       "fields": null
     },
@@ -11833,13 +13987,142 @@
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
           "name": "Values",
           "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentiles",
           "jsonTag": "values"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsPercentilesAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "HDR",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsHDRMethod",
+          "jsonTag": "hdr,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Percents",
+          "type": "[]float64",
+          "jsonTag": "percents,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "TDigest",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTDigest",
+          "jsonTag": "tdigest,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsPercentilesBucketAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Percents",
+          "type": "[]float64",
+          "jsonTag": "percents,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsPipelineAggregationBase",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsRangeAggregationFields",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Keyed",
+          "type": "*bool",
+          "jsonTag": "keyed,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*int",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Ranges",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregationRange",
+          "jsonTag": "ranges,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
         }
       ]
     },
@@ -11881,11 +14164,52 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsRareTermsAggregationFields",
+      "fields": [
+        {
+          "name": "Exclude",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsExclude",
+          "jsonTag": "exclude,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Include",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsInclude",
+          "jsonTag": "include,omitempty"
+        },
+        {
+          "name": "MaxDocCount",
+          "type": "*int64",
+          "jsonTag": "max_doc_count,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Precision",
+          "type": "*float64",
+          "jsonTag": "precision,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsRateAggregate",
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -11902,17 +14226,158 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsRateAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Mode",
+          "type": "*string",
+          "jsonTag": "mode,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "Unit",
+          "type": "*string",
+          "jsonTag": "unit,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsReverseNestedAggregationFields",
+      "fields": [
+        {
+          "name": "Path",
+          "type": "*string",
+          "jsonTag": "path,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsSamplerAggregationFields",
+      "fields": [
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsScriptedHeuristic",
+      "fields": [
+        {
+          "name": "Script",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsScriptedMetricAggregate",
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
           "name": "Value",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "value"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsScriptedMetricAggregation",
+      "fields": [
+        {
+          "name": "CombineScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "combine_script,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "InitScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "init_script,omitempty"
+        },
+        {
+          "name": "MapScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "map_script,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Params",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
+          "jsonTag": "params,omitempty"
+        },
+        {
+          "name": "ReduceScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "reduce_script,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsSerialDifferencingAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Lag",
+          "type": "*int",
+          "jsonTag": "lag,omitempty"
         }
       ]
     },
@@ -11942,7 +14407,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12009,7 +14474,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12066,8 +14531,89 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsSignificantTermsAggregationFields",
+      "fields": [
+        {
+          "name": "BackgroundFilter",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainer",
+          "jsonTag": "background_filter,omitempty"
+        },
+        {
+          "name": "ChiSquare",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsChiSquareHeuristic",
+          "jsonTag": "chi_square,omitempty"
+        },
+        {
+          "name": "Exclude",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsExclude",
+          "jsonTag": "exclude,omitempty"
+        },
+        {
+          "name": "ExecutionHint",
+          "type": "*string",
+          "jsonTag": "execution_hint,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Gnd",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGoogleNormalizedDistanceHeuristic",
+          "jsonTag": "gnd,omitempty"
+        },
+        {
+          "name": "Include",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsInclude",
+          "jsonTag": "include,omitempty"
+        },
+        {
+          "name": "Jlh",
+          "type": "*struct{}",
+          "jsonTag": "jlh,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "*int64",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "MutualInformation",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMutualInformationHeuristic",
+          "jsonTag": "mutual_information,omitempty"
+        },
+        {
+          "name": "Percentage",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentageScoreHeuristic",
+          "jsonTag": "percentage,omitempty"
+        },
+        {
+          "name": "ScriptHeuristic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsScriptedHeuristic",
+          "jsonTag": "script_heuristic,omitempty"
+        },
+        {
+          "name": "ShardMinDocCount",
+          "type": "*int64",
+          "jsonTag": "shard_min_doc_count,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
         }
       ]
     },
@@ -12094,6 +14640,143 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsSignificantTextAggregationFields",
+      "fields": [
+        {
+          "name": "BackgroundFilter",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainer",
+          "jsonTag": "background_filter,omitempty"
+        },
+        {
+          "name": "ChiSquare",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsChiSquareHeuristic",
+          "jsonTag": "chi_square,omitempty"
+        },
+        {
+          "name": "Exclude",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsExclude",
+          "jsonTag": "exclude,omitempty"
+        },
+        {
+          "name": "ExecutionHint",
+          "type": "*string",
+          "jsonTag": "execution_hint,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "FilterDuplicateText",
+          "type": "*bool",
+          "jsonTag": "filter_duplicate_text,omitempty"
+        },
+        {
+          "name": "Gnd",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGoogleNormalizedDistanceHeuristic",
+          "jsonTag": "gnd,omitempty"
+        },
+        {
+          "name": "Include",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsInclude",
+          "jsonTag": "include,omitempty"
+        },
+        {
+          "name": "Jlh",
+          "type": "*struct{}",
+          "jsonTag": "jlh,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "*int64",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "MutualInformation",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMutualInformationHeuristic",
+          "jsonTag": "mutual_information,omitempty"
+        },
+        {
+          "name": "Percentage",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentageScoreHeuristic",
+          "jsonTag": "percentage,omitempty"
+        },
+        {
+          "name": "ScriptHeuristic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsScriptedHeuristic",
+          "jsonTag": "script_heuristic,omitempty"
+        },
+        {
+          "name": "ShardMinDocCount",
+          "type": "*int64",
+          "jsonTag": "shard_min_doc_count,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        },
+        {
+          "name": "SourceFields",
+          "type": "*string",
+          "jsonTag": "source_fields,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsSimpleMovingAverageAggregation",
+      "fields": [
+        {
+          "name": "BucketsPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsBucketsPath",
+          "jsonTag": "buckets_path,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "GapPolicy",
+          "type": "*string",
+          "jsonTag": "gap_policy,omitempty"
+        },
+        {
+          "name": "Minimize",
+          "type": "*bool",
+          "jsonTag": "minimize,omitempty"
+        },
+        {
+          "name": "Model",
+          "type": "string",
+          "jsonTag": "model"
+        },
+        {
+          "name": "Predict",
+          "type": "*int",
+          "jsonTag": "predict,omitempty"
+        },
+        {
+          "name": "Settings",
+          "type": "struct{}",
+          "jsonTag": "settings"
+        },
+        {
+          "name": "Window",
+          "type": "*int",
+          "jsonTag": "window,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsSingleBucketAggregateBase",
       "fields": [
         {
@@ -12103,7 +14786,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12114,7 +14797,7 @@
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -12232,7 +14915,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -12273,7 +14956,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12320,7 +15003,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -12353,11 +15036,22 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTDigest",
+      "fields": [
+        {
+          "name": "Compression",
+          "type": "*int",
+          "jsonTag": "compression,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsTTestAggregate",
       "fields": [
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -12369,6 +15063,27 @@
           "name": "ValueAsString",
           "type": "*string",
           "jsonTag": "value_as_string,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTTestAggregation",
+      "fields": [
+        {
+          "name": "A",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTestPopulation",
+          "jsonTag": "a,omitempty"
+        },
+        {
+          "name": "B",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTestPopulation",
+          "jsonTag": "b,omitempty"
+        },
+        {
+          "name": "Type",
+          "type": "*string",
+          "jsonTag": "type,omitempty"
         }
       ]
     },
@@ -12388,13 +15103,94 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
           "name": "SumOtherDocCount",
           "type": "*int64",
           "jsonTag": "sum_other_doc_count,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTermsAggregationFields",
+      "fields": [
+        {
+          "name": "CollectMode",
+          "type": "*string",
+          "jsonTag": "collect_mode,omitempty"
+        },
+        {
+          "name": "Exclude",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsExclude",
+          "jsonTag": "exclude,omitempty"
+        },
+        {
+          "name": "ExecutionHint",
+          "type": "*string",
+          "jsonTag": "execution_hint,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Include",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsTermsInclude",
+          "jsonTag": "include,omitempty"
+        },
+        {
+          "name": "MinDocCount",
+          "type": "*int64",
+          "jsonTag": "min_doc_count,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Order",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregateOrder",
+          "jsonTag": "order,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ShardMinDocCount",
+          "type": "*int64",
+          "jsonTag": "shard_min_doc_count,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        },
+        {
+          "name": "ShowTermDocCountError",
+          "type": "*bool",
+          "jsonTag": "show_term_doc_count_error,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
         }
       ]
     },
@@ -12416,6 +15212,53 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTermsExclude",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTermsInclude",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTermsPartition",
+      "fields": [
+        {
+          "name": "NumPartitions",
+          "type": "int",
+          "jsonTag": "num_partitions"
+        },
+        {
+          "name": "Partition",
+          "type": "int",
+          "jsonTag": "partition"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTestPopulation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "string",
+          "jsonTag": "field"
+        },
+        {
+          "name": "Filter",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainer",
+          "jsonTag": "filter,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsTopHitsAggregate",
       "fields": [
         {
@@ -12425,8 +15268,89 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsTopHitsAggregation",
+      "fields": [
+        {
+          "name": "DocvalueFields",
+          "type": "*string",
+          "jsonTag": "docvalue_fields,omitempty"
+        },
+        {
+          "name": "Explain",
+          "type": "*bool",
+          "jsonTag": "explain,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "From",
+          "type": "*int",
+          "jsonTag": "from,omitempty"
+        },
+        {
+          "name": "Highlight",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHighlight",
+          "jsonTag": "highlight,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        },
+        {
+          "name": "ScriptFields",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.ScriptField",
+          "jsonTag": "script_fields,omitempty"
+        },
+        {
+          "name": "SeqNoPrimaryTerm",
+          "type": "*bool",
+          "jsonTag": "seq_no_primary_term,omitempty"
+        },
+        {
+          "name": "Size",
+          "type": "*int",
+          "jsonTag": "size,omitempty"
+        },
+        {
+          "name": "Sort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
+          "jsonTag": "sort,omitempty"
+        },
+        {
+          "name": "Source",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
+          "jsonTag": "_source,omitempty"
+        },
+        {
+          "name": "StoredFields",
+          "type": "*string",
+          "jsonTag": "stored_fields,omitempty"
+        },
+        {
+          "name": "TrackScores",
+          "type": "*bool",
+          "jsonTag": "track_scores,omitempty"
+        },
+        {
+          "name": "Version",
+          "type": "*bool",
+          "jsonTag": "version,omitempty"
         }
       ]
     },
@@ -12446,7 +15370,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12482,7 +15406,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12508,7 +15432,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -12539,7 +15463,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         },
         {
@@ -12577,6 +15501,32 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsValueCountAggregation",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsVariableWidthHistogramAggregate",
       "fields": [
         {
@@ -12591,7 +15541,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "meta,omitempty"
         }
       ]
@@ -12600,6 +15550,32 @@
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsVariableWidthHistogramAggregateBuckets",
       "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsVariableWidthHistogramAggregation",
+      "fields": [
+        {
+          "name": "Buckets",
+          "type": "*int",
+          "jsonTag": "buckets,omitempty"
+        },
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "InitialBuffer",
+          "type": "*int",
+          "jsonTag": "initial_buffer,omitempty"
+        },
+        {
+          "name": "ShardSize",
+          "type": "*int",
+          "jsonTag": "shard_size,omitempty"
+        }
+      ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12639,6 +15615,53 @@
           "name": "MinAsString",
           "type": "*string",
           "jsonTag": "min_as_string,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsWeightedAverageAggregation",
+      "fields": [
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
+        },
+        {
+          "name": "Value",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsWeightedAverageValue",
+          "jsonTag": "value,omitempty"
+        },
+        {
+          "name": "ValueType",
+          "type": "*string",
+          "jsonTag": "value_type,omitempty"
+        },
+        {
+          "name": "Weight",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsWeightedAverageValue",
+          "jsonTag": "weight,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsWeightedAverageValue",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "*string",
+          "jsonTag": "field,omitempty"
+        },
+        {
+          "name": "Missing",
+          "type": "*float64",
+          "jsonTag": "missing,omitempty"
+        },
+        {
+          "name": "Script",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
+          "jsonTag": "script,omitempty"
         }
       ]
     },
@@ -15760,7 +18783,7 @@
         },
         {
           "name": "Value",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "value,omitempty"
         }
       ]
@@ -17372,7 +20395,7 @@
         },
         {
           "name": "Parameters",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "parameters,omitempty"
         },
         {
@@ -18410,7 +21433,7 @@
         },
         {
           "name": "Parameters",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "parameters,omitempty"
         }
       ]
@@ -18941,7 +21964,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -20547,7 +23570,7 @@
         },
         {
           "name": "MethodParameters",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "method_parameters,omitempty"
         },
         {
@@ -20588,7 +23611,7 @@
       "fields": [
         {
           "name": "Doc",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "doc,omitempty"
         },
         {
@@ -21299,12 +24322,12 @@
         },
         {
           "name": "Document",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "document,omitempty"
         },
         {
           "name": "Documents",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "documents,omitempty"
         },
         {
@@ -21657,7 +24680,7 @@
         },
         {
           "name": "Template",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "template,omitempty"
         },
         {
@@ -22689,6 +25712,10 @@
         {
           "name": "Errors",
           "type": "*github.com/opensearch-project/opensearch-go/v5/errmask.ErrorMask"
+        },
+        {
+          "name": "MGet",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetConfig"
         }
       ]
     },
@@ -23799,7 +26826,7 @@
       "fields": [
         {
           "name": "Body",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "-"
         }
       ]
@@ -24300,7 +27327,7 @@
         },
         {
           "name": "Properties",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -25345,6 +28372,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "GeoHashPrecision",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "GeoLocation",
       "fields": null
     },
@@ -25431,7 +28463,7 @@
         },
         {
           "name": "Properties",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -25960,7 +28992,7 @@
       "fields": [
         {
           "name": "Fields",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -25995,7 +29027,7 @@
         },
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -26016,7 +29048,7 @@
       "fields": [
         {
           "name": "Fields",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -26051,7 +29083,7 @@
         },
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -26525,7 +29557,7 @@
       "fields": [
         {
           "name": "Body",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "-"
         }
       ]
@@ -26612,7 +29644,7 @@
         },
         {
           "name": "Custom",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "custom,omitempty"
         },
         {
@@ -26632,7 +29664,7 @@
         },
         {
           "name": "Notification",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "notification,omitempty"
         },
         {
@@ -26667,12 +29699,12 @@
         },
         {
           "name": "Rollup",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "rollup,omitempty"
         },
         {
           "name": "Shrink",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "shrink,omitempty"
         },
         {
@@ -26687,7 +29719,7 @@
         },
         {
           "name": "Transform",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "transform,omitempty"
         }
       ]
@@ -26698,7 +29730,7 @@
       "fields": [
         {
           "name": "Actions",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "actions,omitempty"
         }
       ]
@@ -26709,17 +29741,17 @@
       "fields": [
         {
           "name": "Exclude",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "exclude,omitempty"
         },
         {
           "name": "Include",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "include,omitempty"
         },
         {
           "name": "Require",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "require,omitempty"
         },
         {
@@ -26866,7 +29898,7 @@
       "fields": [
         {
           "name": "Timeout",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "timeout,omitempty"
         }
       ]
@@ -26951,7 +29983,7 @@
         },
         {
           "name": "MessageTemplate",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "message_template,omitempty"
         }
       ]
@@ -27272,7 +30304,7 @@
       "fields": [
         {
           "name": "Conditions",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "conditions,omitempty"
         },
         {
@@ -28217,7 +31249,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings,omitempty"
         }
       ]
@@ -28735,7 +31767,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -32511,7 +35543,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -32679,7 +35711,7 @@
         },
         {
           "name": "Param",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "param,omitempty"
         },
         {
@@ -32879,7 +35911,7 @@
       "fields": [
         {
           "name": "Body",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "-"
         }
       ]
@@ -33082,7 +36114,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -33257,7 +36289,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -33544,7 +36576,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings,omitempty"
         },
         {
@@ -34488,7 +37520,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings,omitempty"
         }
       ]
@@ -35289,7 +38321,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings,omitempty"
         }
       ]
@@ -35445,7 +38477,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -35779,7 +38811,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings,omitempty"
         }
       ]
@@ -36493,7 +39525,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings"
         },
         {
@@ -37284,7 +40316,7 @@
         },
         {
           "name": "Value",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "value"
         }
       ]
@@ -37412,7 +40444,7 @@
         },
         {
           "name": "EmptyValue",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "empty_value,omitempty"
         },
         {
@@ -38467,7 +41499,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -38824,7 +41856,7 @@
         },
         {
           "name": "Meta",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_meta,omitempty"
         },
         {
@@ -39082,7 +42114,7 @@
         },
         {
           "name": "Value",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "value,omitempty"
         }
       ]
@@ -39160,7 +42192,7 @@
         },
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source"
         }
       ]
@@ -39191,7 +42223,7 @@
         },
         {
           "name": "Source",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source"
         },
         {
@@ -39857,7 +42889,7 @@
       "fields": [
         {
           "name": "Fields",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -39882,7 +42914,7 @@
         },
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         }
       ]
@@ -39893,7 +42925,7 @@
       "fields": [
         {
           "name": "Fields",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -39918,7 +42950,7 @@
         },
         {
           "name": "Source",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         }
       ]
@@ -39944,7 +42976,7 @@
         },
         {
           "name": "Params",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "params,omitempty"
         },
         {
@@ -40002,7 +43034,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -40022,7 +43054,7 @@
         },
         {
           "name": "Ext",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "ext,omitempty"
         },
         {
@@ -40226,7 +43258,7 @@
         },
         {
           "name": "Labels",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "labels,omitempty"
         },
         {
@@ -40241,7 +43273,7 @@
         },
         {
           "name": "PhaseLatencyMap",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "phase_latency_map,omitempty"
         },
         {
@@ -40381,7 +43413,7 @@
         },
         {
           "name": "Parameters",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "parameters,omitempty"
         },
         {
@@ -40457,7 +43489,7 @@
         },
         {
           "name": "IndicesInCache",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "indices_in_cache,omitempty"
         },
         {
@@ -40929,7 +43961,7 @@
         },
         {
           "name": "Stores",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "stores,omitempty"
         }
       ]
@@ -41050,7 +44082,7 @@
       "fields": [
         {
           "name": "Counts",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "counts,omitempty"
         },
         {
@@ -41136,6 +44168,78 @@
           "name": "IDs",
           "type": "*string",
           "jsonTag": "ids,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "MGetConfig",
+      "fields": [
+        {
+          "name": "Driver",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetDriver"
+        },
+        {
+          "name": "FanOut",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetFanOut"
+        },
+        {
+          "name": "MaxAttempts",
+          "type": "int"
+        },
+        {
+          "name": "MaxDocsPerRequest",
+          "type": "int"
+        },
+        {
+          "name": "MaxInFlightDocsPerNode",
+          "type": "int"
+        },
+        {
+          "name": "Observer",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetObserver"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "MGetDoneEvent",
+      "fields": [
+        {
+          "name": "CoordinatorDocs",
+          "type": "int"
+        },
+        {
+          "name": "Docs",
+          "type": "int"
+        },
+        {
+          "name": "Duration",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Err",
+          "type": "error"
+        },
+        {
+          "name": "FailedDocs",
+          "type": "int"
+        },
+        {
+          "name": "Nodes",
+          "type": "int"
+        },
+        {
+          "name": "Requests",
+          "type": "int"
+        },
+        {
+          "name": "Resent",
+          "type": "bool"
+        },
+        {
+          "name": "Retries",
+          "type": "int"
         }
       ]
     },
@@ -41314,6 +44418,44 @@
         {
           "name": "Params",
           "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetParams"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "MGetRequestEvent",
+      "fields": [
+        {
+          "name": "Attempt",
+          "type": "int"
+        },
+        {
+          "name": "Docs",
+          "type": "int"
+        },
+        {
+          "name": "Duration",
+          "type": "time.Duration"
+        },
+        {
+          "name": "Err",
+          "type": "error"
+        },
+        {
+          "name": "Node",
+          "type": "string"
+        },
+        {
+          "name": "Rejected",
+          "type": "bool"
+        },
+        {
+          "name": "RetryDocs",
+          "type": "int"
+        },
+        {
+          "name": "StatusCode",
+          "type": "int"
         }
       ]
     },
@@ -41812,12 +44954,12 @@
         },
         {
           "name": "After",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "after,omitempty"
         },
         {
           "name": "Before",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "before,omitempty"
         },
         {
@@ -41862,12 +45004,12 @@
         },
         {
           "name": "Metadata",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "metadata,omitempty"
         },
         {
           "name": "Namespace",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "namespace,omitempty"
         },
         {
@@ -41897,7 +45039,7 @@
         },
         {
           "name": "Tags",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "tags,omitempty"
         }
       ]
@@ -42067,7 +45209,7 @@
         },
         {
           "name": "Regex",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "regex,omitempty"
         },
         {
@@ -42236,7 +45378,7 @@
       "fields": [
         {
           "name": "AdditionalInfo",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "additional_info,omitempty"
         },
         {
@@ -42354,7 +45496,7 @@
       "fields": [
         {
           "name": "AdditionalInfo",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "additional_info,omitempty"
         },
         {
@@ -43170,7 +46312,7 @@
         },
         {
           "name": "AdditionalInfo",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "additional_info,omitempty"
         },
         {
@@ -43305,7 +46447,7 @@
         },
         {
           "name": "Metadata",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "metadata,omitempty"
         },
         {
@@ -43360,7 +46502,7 @@
         },
         {
           "name": "Namespace",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "namespace,omitempty"
         },
         {
@@ -43735,7 +46877,7 @@
       "fields": [
         {
           "name": "Stats",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "stats,omitempty"
         }
       ]
@@ -43746,7 +46888,7 @@
       "fields": [
         {
           "name": "Stats",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "stats,omitempty"
         }
       ]
@@ -43999,6 +47141,20 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "MSearchSubSearch",
+      "fields": [
+        {
+          "name": "Body",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchBody"
+        },
+        {
+          "name": "Indices",
+          "type": "[]string"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "MSearchTemplateErrors",
       "fields": null
     },
@@ -44140,7 +47296,7 @@
       "fields": [
         {
           "name": "Doc",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "doc,omitempty"
         },
         {
@@ -46440,7 +49596,7 @@
         },
         {
           "name": "Plugins",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "plugins,omitempty"
         },
         {
@@ -46817,7 +49973,7 @@
       "fields": [
         {
           "name": "Attr",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "attr,omitempty"
         },
         {
@@ -50018,7 +53174,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -51411,7 +54567,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "properties"
         },
         {
@@ -51473,7 +54629,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "properties"
         },
         {
@@ -51620,7 +54776,7 @@
         },
         {
           "name": "MetricDetails",
-          "type": "map[string]map[string]encoding/json.RawMessage",
+          "type": "map[string]map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "metric_details"
         },
         {
@@ -51831,7 +54987,7 @@
         },
         {
           "name": "Params",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "params,omitempty"
         },
         {
@@ -51862,7 +55018,7 @@
         },
         {
           "name": "Failures",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "failures"
         },
         {
@@ -52176,7 +55332,7 @@
       "fields": [
         {
           "name": "Body",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "-"
         }
       ]
@@ -52906,7 +56062,7 @@
         },
         {
           "name": "Params",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "params,omitempty"
         },
         {
@@ -53006,7 +56162,7 @@
       "fields": [
         {
           "name": "TemplateOutput",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "template_output"
         }
       ]
@@ -53716,7 +56872,7 @@
         },
         {
           "name": "RollupMetadata",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "rollup_metadata,omitempty"
         }
       ]
@@ -53805,27 +56961,27 @@
       "fields": [
         {
           "name": "Avg",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "avg,omitempty"
         },
         {
           "name": "Max",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "max,omitempty"
         },
         {
           "name": "Min",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "min,omitempty"
         },
         {
           "name": "Sum",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "sum,omitempty"
         },
         {
           "name": "ValueCount",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "value_count,omitempty"
         }
       ]
@@ -54536,7 +57692,7 @@
         },
         {
           "name": "Filter",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "filter,omitempty"
         },
         {
@@ -54557,7 +57713,7 @@
         },
         {
           "name": "Description",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "description,omitempty"
         },
         {
@@ -54647,7 +57803,7 @@
         },
         {
           "name": "Filter",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "filter,omitempty"
         },
         {
@@ -54668,12 +57824,12 @@
         },
         {
           "name": "Datarows",
-          "type": "[][]encoding/json.RawMessage",
+          "type": "[][]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "datarows,omitempty"
         },
         {
           "name": "Schema",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "schema,omitempty"
         },
         {
@@ -54747,7 +57903,7 @@
         },
         {
           "name": "Persistent",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "persistent,omitempty"
         },
         {
@@ -54831,7 +57987,7 @@
       "fields": [
         {
           "name": "Params",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "params,omitempty"
         }
       ]
@@ -54910,7 +58066,7 @@
       "fields": [
         {
           "name": "Document",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "document"
         },
         {
@@ -55011,7 +58167,7 @@
       "fields": [
         {
           "name": "Result",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "result"
         }
       ]
@@ -55561,7 +58717,7 @@
         },
         {
           "name": "Ext",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "ext,omitempty"
         },
         {
@@ -55779,7 +58935,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -55809,7 +58965,7 @@
         },
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -56065,7 +59221,7 @@
         },
         {
           "name": "Options",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "options,omitempty"
         },
         {
@@ -56181,7 +59337,7 @@
         },
         {
           "name": "Options",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "options,omitempty"
         },
         {
@@ -56302,7 +59458,7 @@
         },
         {
           "name": "Options",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "options,omitempty"
         },
         {
@@ -56358,7 +59514,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -56438,7 +59594,7 @@
         },
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -58005,12 +61161,12 @@
         },
         {
           "name": "InputData",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "input_data,omitempty"
         },
         {
           "name": "OutputData",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "output_data,omitempty"
         },
         {
@@ -58321,7 +61477,7 @@
         },
         {
           "name": "JudgmentRatings",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "judgmentRatings,omitempty"
         },
         {
@@ -58471,7 +61627,7 @@
         },
         {
           "name": "QuerySetQueries",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "querySetQueries,omitempty"
         },
         {
@@ -58898,7 +62054,7 @@
       "fields": [
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         }
       ]
@@ -58909,7 +62065,7 @@
       "fields": [
         {
           "name": "Source",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "_source,omitempty"
         }
       ]
@@ -59362,7 +62518,7 @@
         },
         {
           "name": "Params",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "params,omitempty"
         },
         {
@@ -59907,7 +63063,7 @@
         },
         {
           "name": "PeerCertificates",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "peer_certificates,omitempty"
         },
         {
@@ -60077,7 +63233,7 @@
         },
         {
           "name": "ReadWatchedFields",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "read_watched_fields,omitempty"
         },
         {
@@ -60224,17 +63380,17 @@
       "fields": [
         {
           "name": "AuthFailureListeners",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "auth_failure_listeners,omitempty"
         },
         {
           "name": "Authc",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "authc,omitempty"
         },
         {
           "name": "Authz",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "authz,omitempty"
         },
         {
@@ -60264,7 +63420,7 @@
         },
         {
           "name": "HTTP",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "http,omitempty"
         },
         {
@@ -60274,7 +63430,7 @@
         },
         {
           "name": "Kibana",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "kibana,omitempty"
         },
         {
@@ -60284,12 +63440,12 @@
         },
         {
           "name": "OnBehalfOf",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "on_behalf_of,omitempty"
         },
         {
           "name": "OpensearchDashboards",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "opensearch-dashboards,omitempty"
         },
         {
@@ -60373,7 +63529,7 @@
         },
         {
           "name": "Settings",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "settings,omitempty"
         },
         {
@@ -60493,7 +63649,7 @@
         },
         {
           "name": "Value",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "value,omitempty"
         }
       ]
@@ -60617,12 +63773,12 @@
         },
         {
           "name": "PeerCertificates",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "peer_certificates"
         },
         {
           "name": "PeerCertificatesList",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "peer_certificates_list,omitempty"
         },
         {
@@ -60657,7 +63813,7 @@
         },
         {
           "name": "SSLOpensslVersion",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "ssl_openssl_version,omitempty"
         },
         {
@@ -61469,7 +64625,7 @@
         },
         {
           "name": "Metadata",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "metadata,omitempty"
         },
         {
@@ -62158,7 +65314,7 @@
         },
         {
           "name": "Metadata",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "metadata,omitempty"
         },
         {
@@ -62979,7 +66135,7 @@
         },
         {
           "name": "Params",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "params,omitempty"
         }
       ]
@@ -63567,7 +66723,7 @@
       "fields": [
         {
           "name": "Doc",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "doc,omitempty"
         },
         {
@@ -64096,7 +67252,7 @@
       "fields": [
         {
           "name": "Documents",
-          "type": "[]encoding/json.RawMessage",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "documents,omitempty"
         }
       ]
@@ -64418,7 +67574,7 @@
         },
         {
           "name": "Doc",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "doc,omitempty"
         },
         {
@@ -64443,7 +67599,7 @@
         },
         {
           "name": "Upsert",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "upsert,omitempty"
         }
       ]
@@ -64701,7 +67857,7 @@
       "fields": [
         {
           "name": "Body",
-          "type": "encoding/json.RawMessage",
+          "type": "github.com/opensearch-project/opensearch-go/v5/internal/jsonx.RawMessage",
           "jsonTag": "-"
         }
       ]
@@ -65660,6 +68816,10 @@
           "type": "func(attempt int) time.Duration"
         },
         {
+          "name": "RetryBudget",
+          "type": "time.Duration"
+        },
+        {
           "name": "RetryOnStatus",
           "type": "[]int"
         },
@@ -66363,6 +69523,28 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport",
+      "name": "PoolWindow",
+      "fields": [
+        {
+          "name": "InFlight",
+          "type": "int"
+        },
+        {
+          "name": "MaxWindow",
+          "type": "int"
+        },
+        {
+          "name": "Overloaded",
+          "type": "bool"
+        },
+        {
+          "name": "Window",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport",
       "name": "RequestEvent",
       "fields": [
         {
@@ -66661,6 +69843,20 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport",
+      "name": "ShardMap",
+      "fields": [
+        {
+          "name": "PrimaryShards",
+          "type": "int"
+        },
+        {
+          "name": "RoutingNumShards",
+          "type": "int"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport",
       "name": "ShardMapInvalidationEvent",
       "fields": [
         {
@@ -66678,6 +69874,32 @@
         {
           "name": "Timestamp",
           "type": "time.Time"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport",
+      "name": "ShardTarget",
+      "fields": [
+        {
+          "name": "Generation",
+          "type": "uint64"
+        },
+        {
+          "name": "Node",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchtransport.Connection"
+        },
+        {
+          "name": "Primary",
+          "type": "bool"
+        },
+        {
+          "name": "Replication",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport.ReplicationType"
+        },
+        {
+          "name": "Shard",
+          "type": "int"
         }
       ]
     },

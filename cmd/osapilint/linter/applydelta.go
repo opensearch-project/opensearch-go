@@ -412,7 +412,8 @@ func idiom2ImportNames(file *ast.File) string {
 
 // RewriteImports rewrites source opensearch-go import paths to their target
 // prefix in-place. A prefix match covers every sub-package (opensearchapi,
-// opensearchtransport, plugins/*, ...) without enumerating each.
+// opensearchtransport, plugins/*, ...) without enumerating each. A hop within one
+// major maps a prefix to itself and reports no edit.
 func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 	var edits []string
 	for _, imp := range file.Imports {
@@ -421,6 +422,9 @@ func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 		}
 		val := strings.Trim(imp.Path.Value, `"`)
 		for _, m := range importPrefixes {
+			if m[0] == m[1] {
+				continue
+			}
 			if underModule(val, m[0]) {
 				newVal := m[1] + strings.TrimPrefix(val, m[0])
 				imp.Path.Value = `"` + newVal + `"`
@@ -960,7 +964,9 @@ func rewriteTypeRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[st
 		return ""
 	}
 	old := sel.Sel.Name
-	sel.Sel = ast.NewIdent(r.ToName)
+	// Rename in place: a fresh identifier has no position, and the printer then
+	// misplaces what follows it (a closing parenthesis prints as ",)").
+	sel.Sel.Name = r.ToName
 	return fmt.Sprintf("type %s -> %s", old, r.ToName)
 }
 

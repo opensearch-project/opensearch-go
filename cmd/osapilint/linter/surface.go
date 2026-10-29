@@ -20,10 +20,11 @@ type SurfaceField struct {
 }
 
 // LookupStruct returns the fields of the exported struct named pkg.name in the
-// embedded surface for major version m. It reports false if m has no embedded
-// surface, the surface fails to decode, or the struct isn't in it.
+// embedded surface for major version m, its first release line (v5 rather than
+// v5.2). It reports false if m has no embedded surface, the surface fails to
+// decode, or the struct isn't in it.
 func LookupStruct(m Major, pkg, name string) ([]SurfaceField, bool) {
-	snap, err := decodeSurface(m)
+	snap, err := decodeSurface(version{major: m})
 	if err != nil {
 		return nil, false
 	}

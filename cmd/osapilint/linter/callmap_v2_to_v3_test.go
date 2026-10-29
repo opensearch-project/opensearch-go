@@ -86,9 +86,9 @@ func unqualifiedTypeName(t string) string {
 // no v3 target; only their v2 path is checked. This is what keeps the map from
 // drifting from the packages it migrates between.
 func TestCallMapV2toV3AgainstSurfaces(t *testing.T) {
-	v2Snap, err := decodeSurface(2)
+	v2Snap, err := decodeSurface(majorLine(2))
 	require.NoError(t, err, "v2 surface")
-	v3Snap, err := decodeSurface(3)
+	v3Snap, err := decodeSurface(majorLine(3))
 	require.NoError(t, err, "v3 surface")
 
 	hasReq := func(name string) bool {
@@ -130,7 +130,7 @@ func TestCallMapV2toV3Invariants(t *testing.T) {
 	// Every top-level op field on the v2 root client (excluding Transport and
 	// the sub-client structs, which are covered by their own nested rows) must
 	// appear as the first segment of some mapped path.
-	v2Snap, err := decodeSurface(2)
+	v2Snap, err := decodeSurface(majorLine(2))
 	require.NoError(t, err, "v2 surface")
 	root, ok := lookupStruct(v2Snap, v2CallMapRootPkg, "Client")
 	require.True(t, ok, "v2 opensearch.Client present in surface")

@@ -51,7 +51,7 @@ func TestMigrateSDKSingleHop(t *testing.T) {
 func TestMigrateSDKMatchesEngine(t *testing.T) {
 	dir := stageCorpus(t, "v2")
 
-	plans, err := planChain(2, 3)
+	plans, err := planChain(majorLine(2), majorLine(3))
 	require.NoError(t, err)
 	require.Len(t, plans, 1)
 	p := plans[0]
@@ -91,9 +91,9 @@ func TestMigrateSDKNewestKnown(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, results)
 	require.Equal(t, major(2), results[0].From)
-	require.Equal(t, newestKnownTarget(), results[len(results)-1].To)
+	require.Equal(t, newestKnownTarget().String(), results[len(results)-1].ToVersion)
 	for i := 1; i < len(results); i++ {
-		require.Equal(t, results[i-1].To, results[i].From, "hops must be contiguous")
+		require.Equal(t, results[i-1].ToVersion, results[i].FromVersion, "hops must be contiguous")
 	}
 }
 

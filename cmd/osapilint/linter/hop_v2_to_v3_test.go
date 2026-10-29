@@ -31,7 +31,7 @@ const (
 // planV2toV3 returns the single hop plan for v2->v3.
 func planV2toV3(t *testing.T) hopPlan {
 	t.Helper()
-	plans, err := planChain(2, 3)
+	plans, err := planChain(majorLine(2), majorLine(3))
 	require.NoError(t, err)
 	require.Len(t, plans, 1, "v2->v3 is a single hop")
 	return plans[0]
@@ -111,10 +111,10 @@ func TestHopV2toV3Idiom2FollowupTrimmed(t *testing.T) {
 // TestHopV2toV3_ChainsToV5 verifies the registered hop composes: a v2->v5 request
 // yields the three adjacent hops in order.
 func TestHopV2toV3_ChainsToV5(t *testing.T) {
-	plans, err := planChain(2, 5)
+	plans, err := planChain(majorLine(2), majorLine(5))
 	require.NoError(t, err)
 	require.Len(t, plans, 3, "v2->v5 chains v2->v3, v3->v4, v4->v5")
-	require.Equal(t, [2]major{2, 3}, [2]major{plans[0].from, plans[0].to})
-	require.Equal(t, [2]major{3, 4}, [2]major{plans[1].from, plans[1].to})
-	require.Equal(t, [2]major{4, 5}, [2]major{plans[2].from, plans[2].to})
+	require.Equal(t, [2]version{majorLine(2), majorLine(3)}, [2]version{plans[0].from, plans[0].to})
+	require.Equal(t, [2]version{majorLine(3), majorLine(4)}, [2]version{plans[1].from, plans[1].to})
+	require.Equal(t, [2]version{majorLine(4), majorLine(5)}, [2]version{plans[2].from, plans[2].to})
 }

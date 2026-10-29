@@ -4,11 +4,11 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-Minimal stand-in modules for opensearch-go v2, v3 and v4, published under their
-real module paths so a corpus module's "replace ... => ../stub-vN" resolves
-offline. They are a type-checking API surface, not buildable packages - the
-corpus tests never run `go build` against them. All three ship in one
-archive because every hop stages all three stubs regardless of which majors it
+Minimal stand-in modules for opensearch-go v2, v3, v4 and v5, published under
+their real module paths so a corpus module's "replace ... => ../stub-vN"
+resolves offline. They are a type-checking API surface, not buildable packages -
+the corpus tests never run `go build` against them. All four ship in one
+archive because every hop stages all four stubs regardless of which majors it
 actually rewrites; splitting them per-major would just move that redundancy
 into the archive layout instead of removing it.
 
@@ -535,4 +535,77 @@ type policiesClient struct{}
 // NewClient builds a plugin client from Config.
 func NewClient(config Config) (*Client, error) {
 	return &Client{}, nil
+}
+-- stub-v5/go.mod --
+module github.com/opensearch-project/opensearch-go/v5
+
+go 1.24
+-- stub-v5/opensearchapi/opensearchapi.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearchapi is a minimal stand-in for opensearch-go/v5's
+// opensearchapi package as v5.1 shipped it, carrying only the types and fields
+// the v5 -> v5.2 hop rules on.
+package opensearchapi
+
+// MLHitsTotal is the ML search hits total v5.2 replaces with SearchHitsMetadataTotal.
+type MLHitsTotal struct {
+	Relation string
+	Value    int64
+}
+
+// MLSearchHitsHit is one ML search hit.
+type MLSearchHitsHit struct {
+	ModelID *string
+}
+
+// MLSearchHits is renamed MLSearchRespHits in v5.2.
+type MLSearchHits struct {
+	Hits     []MLSearchHitsHit
+	MaxScore *float64
+	Total    MLHitsTotal
+}
+
+// MLSearchResponse holds MLSearchHits by value; v5.2 holds a pointer.
+type MLSearchResponse struct {
+	Hits MLSearchHits
+}
+
+// SearchCompletionSuggest is the completion suggestion SearchSuggestCompletion wraps.
+type SearchCompletionSuggest struct {
+	Length int
+	Offset int
+	Text   string
+}
+
+// SearchSuggestCompletion collapses into SearchCompletionSuggest in v5.2.
+type SearchSuggestCompletion struct {
+	SearchCompletionSuggest
+}
+
+// InsightsTopQuery's QueryHashcode is QueryGroupHashcode in v5.2.
+type InsightsTopQuery struct {
+	ID            *string
+	QueryHashcode *string
+}
+
+// RollupsIntervalCron is the cron schedule v5.2 moves to RollupsSchedule.Cron.
+type RollupsIntervalCron struct {
+	Expression *string
+}
+
+// RollupsInterval loses Cron in v5.2.
+type RollupsInterval struct {
+	Cron *RollupsIntervalCron
+	Unit *string
+}
+
+// AsynchronousSearchRespBody loses the top-level Took in v5.2.
+type AsynchronousSearchRespBody struct {
+	ID   *string
+	Took *float64
 }
