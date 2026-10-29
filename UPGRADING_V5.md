@@ -923,7 +923,7 @@ var best = float64(*hit.Score)
 
 `SearchTotalHitsRelation` is `TotalHitsRelation`, with the constants `TotalHitsRelationEq` and `TotalHitsRelationGte`. The plugin responses that report a total hits relation (notifications, observability, flow framework) use it instead of a string.
 
-`SearchSuggestCompletion` is gone: `SearchSuggest.AsCompletion()` returns a `SearchCompletionSuggest`, whose `Options` is a `SearchCompletionSuggestOptions` value rather than a pointer to `SearchSuggestCompletionOptions`. The union has the same `Text()` and `Array()` accessors.
+`SearchSuggestCompletion` is gone: `SearchSuggest.AsCompletion()` returns a `SearchCompletionSuggest`, whose `Options` is a `SearchCompletionSuggestOptions` value rather than a pointer to `SearchSuggestCompletionOptions`. The union has the same `Text()` and `Array()` accessors. `SearchResultJSONValueSuggestValueItemCompletion`, the same suggestion in the knn and ltr search responses, is `SearchCompletionSuggest` too.
 
 ```go
 // Before
@@ -937,13 +937,13 @@ c, err := s.AsCompletion() // SearchCompletionSuggest
 opts, err := c.Options.Array()
 ```
 
-`SearchResultJSONValue.Hits`, which the knn and ltr search responses embed, is a `*SearchResultJSONValueHits`: the same hits metadata, behind a pointer.
-
 The `extended_bounds` and `hard_bounds` of histogram aggregations are typed. `CommonAggregationsHistogramAggregationFields` takes a `*CommonAggregationsExtendedBoundsDouble`, whose `Min` and `Max` are `*float64`, and the date histogram's bounds are `CommonAggregationsExtendedBoundsFieldDateMath`, whose `Min` and `Max` are `*CommonAggregationsFieldDateMath`. Both used to be raw JSON.
 
 ### ML
 
-The ML search responses (`SearchModelsResp`, `SearchTasksResp`, `SearchConnectorsResp` and the other ML searches) embed `SearchResult` and hold their hits as a `*MLSearchRespHits`, which replaces `MLSearchHits`. `MLSearchRespHits` embeds `SearchHitsMetadata`, so `Total` is the `SearchHitsMetadataTotal` union, read through `TotalHits()`, and `MaxScore` is a `*float32`. Each hit embeds `SearchHit` and decodes `_source` as an `*MLSource`. `Took`, `TimedOut` and `Shards` are values.
+The ML search responses (`SearchModelsResp`, `SearchTasksResp`, `SearchConnectorsResp` and the other ML searches) embed `SearchResult` and hold their hits as a `*MLSearchRespHits`, which replaces `MLSearchHits`. `MLSearchRespHits` embeds `SearchHitsMetadata`, so `Total` is the `SearchHitsMetadataTotal` union, read through `TotalHits()`, and `MaxScore` is a `*float32`; `MLHitsTotal` is gone. `Took`, `TimedOut` and `Shards` are values.
+
+Each hit embeds `SearchHit`, so `ID`, `Index`, `Score`, `SeqNo`, `Version` and `Sort` (a `[]FieldValue`) come from it, and a literal sets them through its `SearchHit` field. `_source` decodes as an `*MLSource`.
 
 ```go
 // Before
@@ -959,17 +959,18 @@ total := th.Value
 
 ### Flow framework
 
-Workflow search hits embed `SearchHit`, and `_source` decodes as a `*FlowFrameworkCommonGetResp` or a `*FlowFrameworkCommonSearchStateResponse` instead of raw JSON. `user_outputs` is a `map[string]json.RawMessage`, `resources_created` is a list of `FlowFrameworkCommonResourcesCreated`, and the created, updated, provisioned and provision start and end times are `*int64` epoch milliseconds.
+Workflow search hits embed `SearchHit` as the ML hits do, and `_source` decodes as a `*FlowFrameworkCommonGetResp` or a `*FlowFrameworkCommonSearchStateResponse` instead of raw JSON. The `_shards` counts are `int` values rather than pointers, and `hits.total` has a `TotalHitsRelation` and an `int64` value. `user_outputs` is a `map[string]json.RawMessage`, `resources_created` is a list of `FlowFrameworkCommonResourcesCreated`, and the created, updated, provisioned and provision start and end times are `*int64` epoch milliseconds.
 
 ### Other plugins
 
-| Package               | Before                                                                  | After                                                                    |
-| --------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `asynchronous_search` | `Took`, `StartTimeInMillis` and `ExpirationTimeInMillis` as `*float64`  | no `Took` (the search's own `took` is on `Response`); times are `*int64` |
-| `insights`            | `InsightsTopQuery.QueryHashcode`                                        | `QueryGroupHashcode`, the key the server sends                           |
-| `knn`                 | `GetModelResp.Body` raw JSON                                            | typed fields (`ModelID`, `State`, `Dimension`, ...)                      |
-| `notifications`       | `NotificationsWebhook.HeaderParams map[string]int`                      | `map[string]string`                                                      |
-| `rollups`             | `RollupsInterval.Cron`                                                  | `RollupsSchedule.Cron`, a `*RollupsCron`                                 |
-| `security_analytics`  | `GetAlertsResp.TotalAlerts` and `GetFindingsResp.TotalFindings` `int64` | `int`                                                                    |
+| Package               | Before                                                                                                                                | After                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `asynchronous_search` | `Took`, `StartTimeInMillis` and `ExpirationTimeInMillis` as `*float64`; stats counters `*int`                                         | no `Took` (the search's own `took` is on `Response`); times and stats counters are `*int64`         |
+| `insights`            | `InsightsTopQuery.QueryHashcode`; `InsightsMeasurement.Number` `*int`; `PhaseLatencyMap` raw JSON                                     | `QueryGroupHashcode`, the key the server sends; `Number` `*float64`; `map[string]int64`             |
+| `knn`                 | `GetModelResp.Body` raw JSON                                                                                                          | typed fields (`ModelID`, `State`, `Dimension`, ...)                                                 |
+| `neural`              | `NeuralStatMetadataValue` with `Int` and `String` branches                                                                            | a `Float64` branch too, which renumbers `NeuralStatMetadataValueStringType`                         |
+| `notifications`       | `NotificationsWebhook.HeaderParams map[string]int`                                                                                    | `map[string]string`                                                                                 |
+| `rollups`             | `RollupsInterval.Cron`; `Period`, `StartTime` and `ScheduleDelay` `*float64`                                                          | `RollupsSchedule.Cron`, a `*RollupsCron`; `Period` `*int`, `StartTime` and `ScheduleDelay` `*int64` |
+| `security_analytics`  | `GetAlertsResp.TotalAlerts` and `GetFindingsResp.TotalFindings` `int64`; `SecurityAnalyticsFindingsFindingWithScore.Score` `*float32` | `int`; `*float64`                                                                                   |
 
-Counters and timestamps across the geospatial, observability, replication and rollups responses widen from `int` to `int64` where the server sends a Java `long`.
+Insights timestamps and task IDs, and the counters and timestamps of the geospatial, observability and replication responses, widen from `int` to `int64` where the server sends a Java `long`.

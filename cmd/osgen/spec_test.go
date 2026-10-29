@@ -500,8 +500,9 @@ components:
 	}
 }
 
-// overrideDoc is a spec in the shape #1113 gives search responses: Result.hits
-// composes Meta with an inline override, and Wrapped narrows Result.hits again.
+// overrideDoc is a spec in the shape opensearch-api-specification#1113 gives
+// search responses: Result.hits composes Meta with an inline override, and
+// Wrapped narrows Result.hits again.
 const overrideDoc = `openapi: 3.1.0
 info: {title: t, version: "1"}
 paths: {}
