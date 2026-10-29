@@ -150,25 +150,8 @@ type FlowFrameworkCommonStateHits struct {
 
 // FlowFrameworkCommonStateItems is a typed component of the flow_framework.search_state operation.
 type FlowFrameworkCommonStateItems struct {
-	// ID is the document ID.
-	ID *string `json:"_id,omitempty"`
-
-	// Index is the index name where the document resides.
-	Index *string `json:"_index,omitempty"`
-
-	// PrimaryTerm is the primary term of the document.
-	PrimaryTerm *int `json:"_primary_term,omitempty"`
-
-	// Score is the score of the search hit.
-	Score *float32 `json:"_score,omitempty"`
-
-	// SeqNo is the sequence number of the document.
-	SeqNo *int `json:"_seq_no,omitempty"`
-
+	opensearchapi.SearchHit
 	Source *FlowFrameworkCommonSearchStateResponse `json:"_source,omitempty"`
-
-	// Version is the version of the document.
-	Version *int `json:"_version,omitempty"`
 }
 
 // FlowFrameworkCommonSearchStateResponse is a typed component of the flow_framework.search_state operation.
@@ -192,21 +175,6 @@ type FlowFrameworkCommonSearchStateResponse struct {
 
 	// WorkflowID is the ID of the workflow.
 	WorkflowID *string `json:"workflow_id,omitempty"`
-}
-
-// FlowFrameworkCommonResourcesCreated is a typed component of the flow_framework.search_state operation.
-type FlowFrameworkCommonResourcesCreated struct {
-	// ResourceID is the unique identifier for the created resource.
-	ResourceID *string `json:"resource_id,omitempty"`
-
-	// ResourceType is the type of resource created.
-	ResourceType *string `json:"resource_type,omitempty"`
-
-	// WorkflowStepID is the unique identifier for the workflow step.
-	WorkflowStepID *string `json:"workflow_step_id,omitempty"`
-
-	// WorkflowStepName is the name of the workflow step.
-	WorkflowStepName *string `json:"workflow_step_name,omitempty"`
 }
 
 // FlowFrameworkCommonSearchStateRespResourcesCreated is a oneOf union whose branches decode from different JSON tokens.

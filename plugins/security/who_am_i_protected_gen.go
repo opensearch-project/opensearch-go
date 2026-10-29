@@ -87,6 +87,7 @@ func (r WhoAmIProtectedParams) get() map[string]string {
 type WhoAmIProtectedResp struct {
 	DN                       *string `json:"dn,omitempty"`
 	IsAdmin                  *bool   `json:"is_admin,omitempty"`
+	IsAuthenticated          *bool   `json:"is_authenticated,omitempty"`
 	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 
 	response *opensearch.Response

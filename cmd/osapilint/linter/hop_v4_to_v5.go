@@ -52,8 +52,8 @@ const (
 //
 //nolint:gochecknoglobals,goconst // immutable data table; inline names read clearer
 var hopV4toV5 = hop{
-	From: 4,
-	To:   5,
+	From: version{major: 4},
+	To:   version{major: 5},
 
 	// TypeRenames lists v4 opensearchapi types whose name changed in v5. Derived
 	// by diffing the osv4 consumer's referenced types against the pinned v5

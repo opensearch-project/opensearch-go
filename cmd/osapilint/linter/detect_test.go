@@ -14,24 +14,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseMajor(t *testing.T) {
+func TestParseLine(t *testing.T) {
 	tests := []struct {
-		in      string
-		want    major
-		wantErr bool
+		in       string
+		forMajor lineResolver
+		want     version
+		wantErr  bool
 	}{
-		{"v4", 4, false},
-		{"V4", 4, false},
-		{"4", 4, false},
-		{"v12", 12, false},
-		{"", 0, true},
-		{"v0", 0, true},
-		{"vx", 0, true},
-		{"-1", 0, true},
+		{in: "v4", forMajor: firstLineOf, want: version{major: 4}},
+		{in: "V4", forMajor: firstLineOf, want: version{major: 4}},
+		{in: "4", forMajor: firstLineOf, want: version{major: 4}},
+		{in: "v5", forMajor: firstLineOf, want: version{major: 5}},
+		{in: "v5", forMajor: newestLineOf, want: version{major: 5, minor: 2}},
+		{in: "v5.1", forMajor: newestLineOf, want: version{major: 5}},
+		{in: "v5.2", forMajor: firstLineOf, want: version{major: 5, minor: 2}},
+		{in: "v12", forMajor: firstLineOf, wantErr: true},
+		{in: "", forMajor: firstLineOf, wantErr: true},
+		{in: "v0", forMajor: firstLineOf, wantErr: true},
+		{in: "vx", forMajor: firstLineOf, wantErr: true},
+		{in: "-1", forMajor: firstLineOf, wantErr: true},
+		{in: "v5.x", forMajor: firstLineOf, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			got, err := parseMajor(tt.in)
+			got, err := parseLine(tt.in, tt.forMajor)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

@@ -92,20 +92,33 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/get-workflow/
 type GetResp struct {
+	// AllSharedPrincipals is the entities this workflow is shared with.
+	//
+	// Available: >= 3.4.0.
+	AllSharedPrincipals []string `json:"all_shared_principals,omitempty"`
+
 	// CreatedTime. When the workflow was created.
-	CreatedTime *int `json:"created_time,omitempty"`
+	CreatedTime *int64 `json:"created_time,omitempty"`
 
 	// Description is the description of the workflow.
 	Description *string `json:"description,omitempty"`
 
 	// LastProvisionedTime. When the workflow was last provisioned.
-	LastProvisionedTime *float64 `json:"last_provisioned_time,omitempty"`
+	LastProvisionedTime *int64 `json:"last_provisioned_time,omitempty"`
 
 	// LastUpdatedTime. When the workflow was last updated.
-	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
+	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
 	// Name is the name of the workflow.
 	Name *string `json:"name,omitempty"`
+
+	// TenantID is the tenant ID of the workflow.
+	//
+	// Available: >= 3.0.0.
+	TenantID *string `json:"tenant_id,omitempty"`
+
+	// UiMetadata is a map of UI metadata.
+	UiMetadata json.RawMessage `json:"ui_metadata,omitempty"`
 
 	// UseCase is a use case ID, which can be used with the Search Workflow API
 	// to find related workflows.

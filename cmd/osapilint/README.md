@@ -1,12 +1,12 @@
 # osapilint
 
-`osapilint` migrates a Go module across opensearch-go major versions. The source major is detected from the module's imports and the target defaults to the newest supported version, so the common invocation is:
+`osapilint` migrates a Go module across opensearch-go versions. The source version is detected from the module's imports and `go.mod`, and the target defaults to the newest supported version, so the common invocation is:
 
 ```sh
 osapilint rewrite -w ./...
 ```
 
-Today it supports the v2 -> v3, v3 -> v4, and v4 -> v5 hops, chainable to migrate across several majors at once (e.g. v3 -> v5). Most hops are added purely as data, but v2 -> v3 also required two linter additions (see [The v2 -> v3 hop](#the-v2---v3-hop)).
+Today it supports the v2 -> v3, v3 -> v4, v4 -> v5 and v5 -> v5.2 hops, chainable to migrate across several versions at once (e.g. v3 -> v5.2). v5.2 is a hop within one major: its generated types were corrected against the server and broke compatibility with v5.0 and v5.1. Most hops are added purely as data, but v2 -> v3 also required two linter additions (see [The v2 -> v3 hop](#the-v2---v3-hop)).
 
 ## Install
 
@@ -23,14 +23,14 @@ The examples below assume the resulting `osapilint` binary is on your `PATH`.
 
 ### `rewrite` - API-shape migration (pre-compile)
 
-Rewrites source that uses the old major's API shapes (type names, method paths, field spellings) into the target's. It is purely syntactic (go/parser + astutil + go/printer) so it runs before the code compiles against the target.
+Rewrites source that uses the old version's API shapes (type names, method paths, field spellings) into the target's. It is purely syntactic (go/parser + astutil + go/printer) so it runs before the code compiles against the target.
 
 ```sh
-osapilint rewrite [-src=auto] [-dst=vN] [-w] [dir]
+osapilint rewrite [-src=auto] [-dst=vN[.M]] [-w] [dir]
 ```
 
-- `-src` - source major (`v4`), or `auto` (default) to detect from imports.
-- `-dst` - target major (`v5`), defaults to the newest supported version.
+- `-src` - source version (`v4`, `v5.1`), or `auto` (default) to detect from imports and `go.mod`.
+- `-dst` - target version (`v5`, `v5.2`), defaults to the newest supported version. A bare major means its newest release line, so `-dst=v5` migrates to v5.2.
 - `-w` - apply changes. Omitted, `rewrite` is a dry run that prints the edits.
 - `dir` - module directory (default `.`). A `./...` pattern is accepted and resolved to its base directory.
 
@@ -52,11 +52,13 @@ go get github.com/opensearch-project/opensearch-go/v5 && go build ./...
 osapilint vet -fix ./...
 ```
 
+A module on v5.0 or v5.1 follows the same flow: `rewrite` detects the required v5 version and applies only the v5 -> v5.2 hop, then `go get` moves it to v5.2.
+
 ## Using it as a library
 
 `cmd/osapilint/linter` is importable: a downstream tool can run the migration against a directory without the CLI, its flags, or its stdout. Two entrypoints:
 
-- `MigrateSDK(ctx, SDKConfig{...})` runs the opensearch-go SDK migration - the same planning and hops as `osapilint rewrite`, returning one `SDKResult` per hop (each with the per-file `Result` edits and any manual followups) instead of printing. `Src`/`Dst` of `0` mean auto-detect / newest-known; `Write` false is a dry run; `src >= dst` returns no hops and no error. Source-detection notes ride the first hop's `Warnings`, and the `context` cancels the between-hop rebuilds.
+- `MigrateSDK(ctx, SDKConfig{...})` runs the opensearch-go SDK migration - the same planning and hops as `osapilint rewrite`, returning one `SDKResult` per hop (each with the per-file `Result` edits and any manual followups) instead of printing. `Src`/`Dst` of `0` mean auto-detect / newest-known; an explicit `Src` starts from that major's first release line and an explicit `Dst` ends at its newest, so `Src: 5, Dst: 5` is the v5 -> v5.2 hop. `Write` false is a dry run; `src >= dst` returns no hops and no error. Each result's `FromVersion`/`ToVersion` label the hop (`"v5"`, `"v5.2"`), since `From`/`To` carry only the major. Source-detection notes ride the first hop's `Warnings`, and the `context` cancels the between-hop rebuilds.
 - `Walk(WalkConfig{...}, visit)` drives a caller-supplied `Visitor` over the module's loaded files, for a migration this package does not ship (e.g. an opensearchtools overlay). It keeps the same load gate, cross-variant dedupe, and abort-before-write-on-unclassified safety net.
 
 ```go
@@ -65,27 +67,27 @@ import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/linter"
 // opensearch-go SDK migration: auto-detect source, dry run to the newest version.
 hops, err := linter.MigrateSDK(ctx, linter.SDKConfig{Dir: dir})
 for _, h := range hops {
-    fmt.Printf("v%d -> v%d: %d file(s)\n", h.From, h.To, len(h.Files))
+    fmt.Printf("%s -> %s: %d file(s)\n", h.FromVersion, h.ToVersion, len(h.Files))
 }
 ```
 
-`Rewrite(args)` (the `rewrite` subcommand) is a thin CLI shell over `MigrateSDK`, so the command and the library apply identical edits.
+`Rewrite(args)` (the `rewrite` subcommand) is a thin CLI shell over the same engine, so the command and the library apply identical edits.
 
-`LookupStruct(major, pkg, name)` reads the embedded API surface the hops are keyed against. It returns an exported struct's fields (name and type) as a `[]SurfaceField` for that major version, or false if the version has no embedded surface, the surface fails to decode, or the struct isn't in it, so a tool with its own rewrite tables can check them against the same surface.
+`LookupStruct(major, pkg, name)` reads the embedded API surface the hops are keyed against. It returns an exported struct's fields (name and type) as a `[]SurfaceField` from that major's first release line (v5, not v5.2), or false if the version has no embedded surface, the surface fails to decode, or the struct isn't in it, so a tool with its own rewrite tables can check them against the same surface.
 
 ## How it works
 
-Each adjacent transition (vN -> vN+1) is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against two committed API surfaces (`surface_vN.json`). A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
+Each release line has a committed API surface: `surface_vN.json` for a major's first line, `surface_vN_M.json` for a later line that broke compatibility within the major (v5.2). A line covers every release up to the next line of its major, so v5 covers v5.0 and v5.1. Each transition from one line to the next is a `hop`: hand-authored tables of type renames, symbol renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against the two surfaces. A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
 
-| File                      | Responsibility                                                                |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `linter/transitions.go`   | Version-neutral types (`major`, `hop`) and the `surfaces` / `hops` registries |
-| `linter/hop_vN_to_vN1.go` | Hand-authored migration data for one hop                                      |
-| `linter/plan.go`          | `planChain(src, dst)` -> the ordered per-hop plans                            |
-| `linter/detect.go`        | Source major from the module's imports                                        |
-| `linter/applydelta.go`    | Type-aware AST rewriter                                                       |
-| `internal/apirev`         | Surface model and `DeriveDelta` between two surfaces                          |
-| `cmd/gensurface`          | Generates a version's committed surface JSON                                  |
+| File                           | Responsibility                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `linter/transitions.go`        | Version-neutral types (`major`, `version`, `hop`) and the `surfaces` / `hops` registries |
+| `linter/hop_<from>_to_<to>.go` | Hand-authored migration data for one hop (`hop_v4_to_v5.go`, `hop_v5_to_v5_2.go`)        |
+| `linter/plan.go`               | `planChain(src, dst)` -> the ordered per-hop plans                                       |
+| `linter/detect.go`             | Source line from the module's imports and its required version                           |
+| `linter/applydelta.go`         | Type-aware AST rewriter                                                                  |
+| `internal/apirev`              | Surface model and `DeriveDelta` between two surfaces                                     |
+| `cmd/gensurface`               | Generates a version's committed surface JSON                                             |
 
 ### Field dispositions
 
@@ -101,9 +103,19 @@ A field that keeps its name but becomes a pointer is classified from the surface
 
 A regrouped call can also change how the request is passed. When v5 takes a `*Req` where v4 took a `Req`, the argument gains `&`. When v5 takes a `Req` where v4 took a `*Req` (as on `client.IndexTemplate.Get`), `nil` becomes an empty request, `&Req{...}` and `&x` lose the `&`, and any other pointer expression is replaced with an `_OSAPILINT_RESOLVE` marker and reported `MANUAL`, because the pointer may be nil and v5 has no value for it. The empty request needs the v5 `opensearchapi` import, which the tool adds when the file has none.
 
+### Symbol renames
+
+A hop's `SymbolRenames` table holds renamed package-level constants, functions, non-struct types and structs with no exported field (such as unions). `TypeRenames` holds structs with exported fields. Both feed one rename index.
+
+Each `SymbolRenames` pair is checked against the surfaces by `apirev.EquivalentSymbol` in `TestHopSymbolRenamesAgainstSurfaces`. The two symbols must have the same kind, underlying type or signature, constant value, and methods (compared by name, signature and receiver kind). Types in the symbol's own package are rendered with the `@` qualifier (`ownPkgQualifier`), so only those references are mapped through the renames; field names, method names and tags are not.
+
+The rewriter renames qualified references in place. It leaves methods, fields, variables and unqualified references to the package's own symbols alone. A use through a dot import is not rewritten and is reported `MANUAL`.
+
 ### Source detection
 
 The major version is read from import paths (`.../opensearch-go/v4/...`), not `go.mod`: a partially migrated module may `require` both majors, and `go.mod` may name the target while call sites are still source-shaped. A module importing multiple majors migrates from the lowest; the rest are reported.
+
+The minor is then read from the version of that major's module the module graph requires (`go list -m`), which has no such ambiguity. When it cannot be read, the major's first release line is assumed and a note says so.
 
 ## Adding a hop (e.g. v3 -> v4)
 
@@ -114,20 +126,25 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
        -patterns ./opensearchapi,.,./opensearchtransport -out surface_v3.json
    ```
 
-   The v4 and v5 surfaces each have a plugin companion, generated with the same command over the plugin packages:
+   v2 to v4 surfaces are struct-only. From v5 on, pass `-symbols` to also record package-level types, constants and functions. The v4, v5 and v5.2 surfaces each have a plugin companion, generated with the same command over the plugin packages. v4 covers `./plugins/security` and `./plugins/ism`; v5 and v5.2 cover every plugin:
 
    ```sh
-   go run ./cmd/gensurface -dir <v5-module-dir> -version v5 \
-       -patterns ./plugins/security,./plugins/ism -out linter/surface_v5_plugins.json
+   go run ./cmd/gensurface -dir <v5-module-dir> -version v5 -symbols \
+       -patterns "$(cd <v5-module-dir> && ls -d plugins/*/ | sed 's|/$||;s|^|./|' | paste -sd, -)" \
+       -out linter/surface_v5_plugins.json
    ```
+
+   Generate a line's surface from the last release on it (v5.1.3 for v5), so the surface matches what a consumer on that line compiles against.
 
 2. Embed each surface (`//go:embed`) in `linter/embed.go` and register it in the `surfaces` map (`linter/transitions.go`); register a plugin companion in `pluginSurfaces`.
 
 3. Author `linter/hop_v3_to_v4.go`: diff the surfaces and rule on every changed type, field, and method. Follow `linter/hop_v4_to_v5.go`.
 
-4. Register the hop in the `hops` map (`linter/transitions.go`).
+4. Register the hop in the `hops` map (`linter/transitions.go`), keyed by its source line.
 
 5. Add `linter/hop_v3_to_v4_test.go` for version-specific facts. The drift guards validate the tables against the surfaces automatically; a `rewrite` against real v3 code fails loudly on any unruled field.
+
+A hop within a major (v5 -> v5.2) follows the same steps with a `{major, minor}` line as its target; it keeps the import path, so the rewrite reports no import edits.
 
 ## The v2 -> v3 hop
 
@@ -175,20 +192,25 @@ After `osapilint rewrite -w`, `go build` fails at each marker, and `grep -r _OSA
 go test ./...
 ```
 
-| File                                     | Covers                                                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `linter/plan_test.go`                    | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces           |
-| `linter/delta_test.go`                   | Drift guards over every hop's type renames and field dispositions                           |
-| `linter/rewrite_corpus_test.go`          | End-to-end rewrite over fixture modules (`testdata/corpus/*.txtar`), diffed against goldens |
-| `linter/hop_v3_to_v4_test.go`            | v3 -> v4 version-specific facts                                                             |
-| `linter/hop_v4_to_v5_test.go`            | v4 -> v5 version-specific facts                                                             |
-| `linter/hop_v2_to_v3_test.go`            | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings              |
-| `linter/detect_test.go`                  | Source detection, version parsing, directory resolution                                     |
-| `internal/apirev/delta_internal_test.go` | Surface diffing internals                                                                   |
+| File                                       | Covers                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `linter/plan_test.go`                      | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces           |
+| `linter/delta_test.go`                     | Drift guards over every hop's type renames and field dispositions                           |
+| `linter/rewrite_corpus_test.go`            | End-to-end rewrite over fixture modules (`testdata/corpus/*.txtar`), diffed against goldens |
+| `linter/hop_v3_to_v4_test.go`              | v3 -> v4 version-specific facts                                                             |
+| `linter/hop_v4_to_v5_test.go`              | v4 -> v5 version-specific facts                                                             |
+| `linter/hop_v2_to_v3_test.go`              | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings              |
+| `linter/detect_test.go`                    | Source detection, version parsing, directory resolution                                     |
+| `internal/apirev/delta_internal_test.go`   | Surface diffing internals                                                                   |
+| `internal/apirev/symbol_internal_test.go`  | `EquivalentSymbol`: kind, type, value and method equivalence under renames                  |
+| `linter/symbolrename_test.go`              | Drift guard over every hop's symbol renames (`TestHopSymbolRenamesAgainstSurfaces`)         |
+| `linter/applydelta_symbolref_test.go`      | Qualified symbol rewrites and the dot-import `MANUAL` report                                |
+| `internal/apirev/extract_internal_test.go` | Surface extraction: embedded aliases, symbol shape, method receivers                        |
+| `linter/surface_fresh_test.go`             | Regenerates the v5.2 surfaces from the tree and requires them equal to the committed files  |
 
 ### Rewrite corpus
 
-`linter/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules staged from `linter/testdata/corpus/v2.txtar` and its siblings, and diffs the output against `.golden` sections in the same archive. Each fixture compiles against a hand-written stub of the source-version API (`linter/testdata/corpus/stubs.txtar`), so the test needs no opensearch-go download. Fixtures live in `txtar` archives rather than as loose files so repo-wide Go tooling does not walk into them. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./linter -run TestRewriteCorpus`.
+`linter/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules staged from `linter/testdata/corpus/v2.txtar` and its siblings, and diffs the output against `.golden` sections in the same archive. Each fixture compiles against a hand-written stub of the source-version API (`linter/testdata/corpus/stubs.txtar`), so the test needs no opensearch-go download. Fixtures live in `txtar` archives rather than as loose files so repo-wide Go tooling does not walk into them. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. The v5 corpus covers the v5 -> v5.2 symbol renames, including a dot-imported use (`editCounts` pins how many times each report line appears). Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./linter -run TestRewriteCorpus`.
 
 ## Limitations
 

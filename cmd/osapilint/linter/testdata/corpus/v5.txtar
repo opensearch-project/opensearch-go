@@ -1,0 +1,194 @@
+-- go.mod --
+module osapilintcorpus/v5
+
+go 1.24
+
+require github.com/opensearch-project/opensearch-go/v5 v5.1.0
+
+replace github.com/opensearch-project/opensearch-go/v5 => ../stub-v5
+-- minor.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// minor exercises the v5 -> v5.2 hop, which keeps the import path: the two
+// renamed types, the renamed and removed fields, and a field relocated out of
+// the struct, which is reported MANUAL and left in place.
+func minor(q opensearchapi.InsightsTopQuery, c opensearchapi.SearchSuggestCompletion, i opensearchapi.RollupsInterval) (int, bool) {
+	var hits opensearchapi.MLSearchHits
+	_ = q.QueryHashcode
+	_ = opensearchapi.AsynchronousSearchRespBody{ID: q.ID, Took: nil}
+	return c.Length + len(hits.Hits), i.Cron != nil
+}
+
+// lastParam renames a type that ends a parameter list: the renamed identifier
+// must keep the closing parenthesis where it was.
+func lastParam(c opensearchapi.SearchSuggestCompletion) int { return c.Length }
+-- minor.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// minor exercises the v5 -> v5.2 hop, which keeps the import path: the two
+// renamed types, the renamed and removed fields, and a field relocated out of
+// the struct, which is reported MANUAL and left in place.
+func minor(q opensearchapi.InsightsTopQuery, c opensearchapi.SearchCompletionSuggest, i opensearchapi.RollupsInterval) (int, bool) {
+	var hits opensearchapi.MLSearchRespHits
+	_ = q.QueryGroupHashcode
+	_ = opensearchapi.AsynchronousSearchRespBody{ID: q.ID}
+	return c.Length + len(hits.Hits), i.Cron != nil
+}
+
+// lastParam renames a type that ends a parameter list: the renamed identifier
+// must keep the closing parenthesis where it was.
+func lastParam(c opensearchapi.SearchCompletionSuggest) int { return c.Length }
+-- symbols.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// symbols exercises the package-level symbol renames: a constant compared, a
+// union built through its constructor and switched on its branch type, and a
+// renamed type in a parameter and a declaration. The c.Options != nil check is
+// left in place: the Options pointer-to-value change is a documented manual
+// follow-up, not rewritten.
+func symbols(t opensearchapi.SearchTotalHits, c opensearchapi.SearchSuggestCompletion, rel opensearchapi.SearchTotalHitsRelation) (string, bool) {
+	var o opensearchapi.SearchSuggestCompletionOptions = opensearchapi.NewSearchSuggestCompletionOptionsFromText(opensearchapi.SearchCompletionSuggestOption{})
+	_ = opensearchapi.NewSearchSuggestCompletionOptionsFromArray(nil)
+	switch o.Type() {
+	case opensearchapi.SearchSuggestCompletionOptionsUnknownType:
+		return "unknown", false
+	case opensearchapi.SearchSuggestCompletionOptionsTextType:
+		return "text", t.Relation == opensearchapi.SearchTotalHitsRelationEq
+	case opensearchapi.SearchSuggestCompletionOptionsArrayType:
+		return "array", rel == opensearchapi.SearchTotalHitsRelationGte
+	}
+	return "", c.Options != nil
+}
+-- dotimport.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import . "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// dotImported uses a renamed constant through a dot import. The rewriter keys
+// on the qualified selector, so the unqualified use is left alone and is
+// reported MANUAL.
+func dotImported(t SearchTotalHits) bool { return t.Relation == SearchTotalHitsRelationEq }
+-- own/own.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package own
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// SearchTotalHitsRelationEq shares a name with a renamed opensearchapi
+// constant; the package's own symbol is not the API one and must not change.
+const SearchTotalHitsRelationEq = "x"
+
+// NewSearchSuggestCompletionOptionsFromText shares a name with a renamed
+// opensearchapi function.
+func NewSearchSuggestCompletionOptionsFromText() string { return SearchTotalHitsRelationEq }
+
+// uses imports opensearchapi and references one of its renamed constants
+// qualified, which is rewritten, next to the unqualified own symbols above,
+// which are not.
+func uses() string {
+	return string(opensearchapi.SearchTotalHitsRelationGte) + NewSearchSuggestCompletionOptionsFromText() + SearchTotalHitsRelationEq
+}
+-- symbols.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// symbols exercises the package-level symbol renames: a constant compared, a
+// union built through its constructor and switched on its branch type, and a
+// renamed type in a parameter and a declaration. The c.Options != nil check is
+// left in place: the Options pointer-to-value change is a documented manual
+// follow-up, not rewritten.
+func symbols(t opensearchapi.SearchTotalHits, c opensearchapi.SearchCompletionSuggest, rel opensearchapi.TotalHitsRelation) (string, bool) {
+	var o opensearchapi.SearchCompletionSuggestOptions = opensearchapi.NewSearchCompletionSuggestOptionsFromText(opensearchapi.SearchCompletionSuggestOption{})
+	_ = opensearchapi.NewSearchCompletionSuggestOptionsFromArray(nil)
+	switch o.Type() {
+	case opensearchapi.SearchCompletionSuggestOptionsUnknownType:
+		return "unknown", false
+	case opensearchapi.SearchCompletionSuggestOptionsTextType:
+		return "text", t.Relation == opensearchapi.TotalHitsRelationEq
+	case opensearchapi.SearchCompletionSuggestOptionsArrayType:
+		return "array", rel == opensearchapi.TotalHitsRelationGte
+	}
+	return "", c.Options != nil
+}
+-- dotimport.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import . "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// dotImported uses a renamed constant through a dot import. The rewriter keys
+// on the qualified selector, so the unqualified use is left alone and is
+// reported MANUAL.
+func dotImported(t SearchTotalHits) bool { return t.Relation == SearchTotalHitsRelationEq }
+-- own/own.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package own
+
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+
+// SearchTotalHitsRelationEq shares a name with a renamed opensearchapi
+// constant; the package's own symbol is not the API one and must not change.
+const SearchTotalHitsRelationEq = "x"
+
+// NewSearchSuggestCompletionOptionsFromText shares a name with a renamed
+// opensearchapi function.
+func NewSearchSuggestCompletionOptionsFromText() string { return SearchTotalHitsRelationEq }
+
+// uses imports opensearchapi and references one of its renamed constants
+// qualified, which is rewritten, next to the unqualified own symbols above,
+// which are not.
+func uses() string {
+	return string(opensearchapi.TotalHitsRelationGte) + NewSearchSuggestCompletionOptionsFromText() + SearchTotalHitsRelationEq
+}

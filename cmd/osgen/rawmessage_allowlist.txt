@@ -48,9 +48,6 @@ SearchHit/_source # bare
 SearchHit/fields # map
 SearchProcessorExecutionDetail/input_data # bare
 SearchProcessorExecutionDetail/output_data # bare
-SearchResultJSONValueHitsHitsItem/_source # bare
-SearchResultJSONValueSuggestValueItemCompletionOptionsItem/_source # bare
-SearchResultJSONValueSuggestValueItemCompletionOptionsSource/_source # bare
 
 # --- asynchronous_search.search ---
 AsynchronousSearchSearch/ext # map
@@ -83,18 +80,23 @@ ClusterStateResp/- # bare
 DeleteByQueryResp/- # bare
 
 # --- flow_framework.create ---
+FlowFrameworkCommonFlowFrameworkCreate/ui_metadata # bare
 FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
 
 # --- flow_framework.get ---
+GetResp/ui_metadata # bare
 GetResp/workflows # bare
 
 # --- flow_framework.get_status ---
+FlowFrameworkCommonWorkFlowStatusFullResponse/user_outputs # map
 GetStatusResp/- # bare
 
 # --- flow_framework.search ---
+FlowFrameworkCommonGetResp/ui_metadata # bare
 FlowFrameworkCommonGetResp/workflows # bare
 
 # --- flow_framework.update ---
+FlowFrameworkCommonFlowFrameworkUpdate/ui_metadata # bare
 FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
 
 # --- geospatial._common ---
@@ -159,7 +161,6 @@ IngestSimulateDocumentSimulation/_source # map
 InsightsSource/aggregations # bare
 InsightsSource/ext # map
 InsightsTopQuery/labels # bare
-InsightsTopQuery/phase_latency_map # bare
 
 # --- ism._common ---
 ISMAction/custom # map
@@ -180,10 +181,14 @@ ExistsPolicyResp/- # bare
 
 # --- knn._common ---
 KNNMethod/parameters # map
+KNNModelResponse/model_definition # map
 KNNNodeStats/indices_in_cache # map
 
 # --- knn.get_model ---
-GetModelResp/- # bare
+GetModelResp/model_definition # map
+
+# --- list.wlm_stats ---
+WLMStatsResp/- # bare
 
 # --- ltr._common ---
 LTRCacheStatsResponse/stores # bare
@@ -197,6 +202,9 @@ GetFeatureResp/- # bare
 
 # --- ltr.get_featureset ---
 GetFeaturesetResp/- # bare
+
+# --- ltr.get_model ---
+GetModelResp/- # bare
 
 # --- ml._common ---
 MLGetAgenticMemoryResponse/after # map

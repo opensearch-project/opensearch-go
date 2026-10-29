@@ -20,6 +20,10 @@
 CommonAggregationsAdjacencyMatrixAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsAdjacencyMatrixAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 CommonAggregationsDateHistogramAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsDateHistogramAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 CommonAggregationsDoubleTermsAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: []CommonAggregationsDoubleTermsBucket shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets (via CommonAggregationsTermsAggregateBase)
+CommonAggregationsExtendedBoundsDouble/max/CommonAggregationsExtendedBounds # intentional narrowing: *float64 shadows CommonAggregationsExtendedBounds.max json.RawMessage; makes a required field optional
+CommonAggregationsExtendedBoundsDouble/min/CommonAggregationsExtendedBounds # intentional narrowing: *float64 shadows CommonAggregationsExtendedBounds.min json.RawMessage; makes a required field optional
+CommonAggregationsExtendedBoundsFieldDateMath/max/CommonAggregationsExtendedBounds # intentional narrowing: *CommonAggregationsFieldDateMath shadows CommonAggregationsExtendedBounds.max json.RawMessage; makes a required field optional
+CommonAggregationsExtendedBoundsFieldDateMath/min/CommonAggregationsExtendedBounds # intentional narrowing: *CommonAggregationsFieldDateMath shadows CommonAggregationsExtendedBounds.min json.RawMessage; makes a required field optional
 CommonAggregationsFiltersAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsFiltersAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 CommonAggregationsGeoHashGridAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsGeoHashGridAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 CommonAggregationsGeoTileGridAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsGeoTileGridAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
@@ -41,9 +45,26 @@ CommonAggregationsVariableWidthHistogramAggregate/buckets/CommonAggregationsMult
 
 # --- _core.search ---
 SearchResultJSONValue/suggest/SearchResult # intentional narrowing: map[string][]SearchResultJSONValueSuggestValueItem shadows SearchResult.suggest map[string][]SearchSuggest
-SearchSuggestCompletion/options/SearchCompletionSuggest # intentional narrowing: *SearchSuggestCompletionOptions shadows SearchCompletionSuggest.options SearchCompletionSuggestOptions; makes a required field optional
+
+# --- flow_framework.common ---
+FlowFrameworkCommonItemsObject/_source/SearchHit # intentional narrowing: *FlowFrameworkCommonGetResp shadows SearchHit._source json.RawMessage
+FlowFrameworkCommonStateItems/_source/SearchHit # intentional narrowing: *FlowFrameworkCommonSearchStateResponse shadows SearchHit._source json.RawMessage
+
+# --- ml._common ---
+MLSearchHitsHit/_source/SearchHit # intentional narrowing: *MLSource shadows SearchHit._source json.RawMessage
+MLSearchRespHits/hits/SearchHitsMetadata # intentional narrowing: []MLSearchHitsHit shadows SearchHitsMetadata.hits []SearchHit; makes a required field optional
+MLSearchResponse/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchAgenticMemoryResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchAgentsResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchConnectorsResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchMemoryContainerResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchMemoryResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchMessageResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchModelGroupResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
+SearchTasksResp/hits/SearchResult # intentional narrowing: *MLSearchRespHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
 
 # --- neural._common ---
 NeuralInfoCounterStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
 NeuralInfoStringStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
+NeuralMemoryStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
 NeuralTimestampedEventCounterStatStatType/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string

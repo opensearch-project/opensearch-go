@@ -991,3 +991,33 @@ func TestResolveCollapsedBaseDeclines(t *testing.T) {
 		})
 	}
 }
+
+// TestRedundantOverrideTagsSkipsBaseMembers covers allOf [$ref Hit, {_source: X}]
+// where Hit's own _source is the erased type parameter. The loader resolves the
+// $ref member's Value, so its erased _source looks like a redeclaration of the
+// override's; only inline members are overrides, or the concrete _source is lost.
+func TestRedundantOverrideTagsSkipsBaseMembers(t *testing.T) {
+	t.Parallel()
+
+	hit := &openapi3.SchemaRef{Value: &openapi3.Schema{Properties: openapi3.Schemas{
+		"_id":     {Value: openapi3.NewStringSchema()},
+		"_source": {Ref: "#/components/schemas/pkg___TDoc"},
+	}}}
+	schemas := openapi3.Schemas{
+		"pkg___Hit":      hit,
+		"pkg___TDoc":     genericParamSchema(),
+		"pkg___Concrete": {Value: &openapi3.Schema{Properties: openapi3.Schemas{"key": {Value: openapi3.NewStringSchema()}}}},
+	}
+	w := newOverrideWalker(schemas)
+
+	schema := &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+		{Ref: "#/components/schemas/pkg___Hit", Value: hit.Value},
+		{Value: &openapi3.Schema{Properties: openapi3.Schemas{
+			"_source": {Ref: "#/components/schemas/pkg___Concrete"},
+		}}},
+	}}
+
+	require.Empty(t, w.redundantOverrideTags(schema))
+	_, collapses := w.collapsesToBase(schema)
+	require.False(t, collapses, "a concrete _source is a real narrowing of Hit")
+}

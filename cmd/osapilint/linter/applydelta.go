@@ -73,9 +73,9 @@ type rewriteRules struct {
 // an internal visitor backed by rewriteFileTyped. Walk owns the load gate,
 // dedupe, unclassified-abort, and write sandbox.
 func runTypeAwareRewrite(cfg rewriteConfig) ([]rewriteResult, error) {
-	// Build quick lookups from the rename table: qualified source type -> target
-	// name, so a type reference (opensearchapi.DocumentGetReq) can be renamed to
-	// its target spelling.
+	// Build quick lookups from the rename table: qualified source symbol -> target
+	// name, so a reference (opensearchapi.DocumentGetReq) can be renamed to its
+	// target spelling.
 	renameByFrom := map[string]apirev.TypeRename{}
 	for _, r := range cfg.renames {
 		renameByFrom[r.FromPkgPath+"."+r.FromName] = r
@@ -146,8 +146,8 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			res.edits = append(res.edits, edits...)
 			res.unclassified = append(res.unclassified, unclassified...)
 		case *ast.SelectorExpr:
-			// Type reference rename: opensearchapi.DocumentGetReq -> .GetReq.
-			if e := rewriteTypeRef(n, info, rules.renameByFrom); e != "" {
+			// Package-level symbol rename: opensearchapi.DocumentGetReq -> .GetReq.
+			if e := rewriteSymbolRef(n, info, rules.renameByFrom); e != "" {
 				res.edits = append(res.edits, e)
 			}
 			// Reference to a type removed outright on the target (idiom 1's
@@ -161,6 +161,16 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 				res.unclassified = append(res.unclassified, unclassified)
 			} else if edit != "" {
 				res.edits = append(res.edits, edit)
+			}
+		case *ast.Ident:
+			// A selector's Sel belongs to the SelectorExpr case, which renames it in place;
+			// info.Uses still maps it to the old object, so flagging it here would
+			// double-report a rewritten use.
+			if _, isSel := c.Parent().(*ast.SelectorExpr); isSel && c.Name() == "Sel" {
+				break
+			}
+			if e := flagUnqualifiedSymbolRef(n, info, rules.renameByFrom); e != "" {
+				res.edits = append(res.edits, e)
 			}
 		}
 		return true
@@ -412,7 +422,8 @@ func idiom2ImportNames(file *ast.File) string {
 
 // RewriteImports rewrites source opensearch-go import paths to their target
 // prefix in-place. A prefix match covers every sub-package (opensearchapi,
-// opensearchtransport, plugins/*, ...) without enumerating each.
+// opensearchtransport, plugins/*, ...) without enumerating each. A hop within one
+// major maps a prefix to itself and reports no edit.
 func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 	var edits []string
 	for _, imp := range file.Imports {
@@ -421,6 +432,9 @@ func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 		}
 		val := strings.Trim(imp.Path.Value, `"`)
 		for _, m := range importPrefixes {
+			if m[0] == m[1] {
+				continue
+			}
 			if underModule(val, m[0]) {
 				newVal := m[1] + strings.TrimPrefix(val, m[0])
 				imp.Path.Value = `"` + newVal + `"`
@@ -945,23 +959,57 @@ func isOpenSearchAPIClient(t types.Type) bool {
 	return named.Obj().Name() == "Client" && isOpenSearchAPIPath(named.Obj().Pkg().Path())
 }
 
-// rewriteTypeRef renames a qualified type reference whose v4 type was renamed in
-// v5 (opensearchapi.DocumentGetReq -> opensearchapi.GetReq). It matches on the
-// resolved object so only the intended type is touched.
-func rewriteTypeRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
-	obj := info.Uses[sel.Sel]
-	tn, ok := obj.(*types.TypeName)
-	if !ok || tn.Pkg() == nil {
-		return ""
-	}
-	key := tn.Pkg().Path() + "." + tn.Name()
-	r, ok := renameByFrom[key]
+// rewriteSymbolRef renames a qualified reference to a package-level type,
+// constant or function that was renamed on the target
+// (opensearchapi.DocumentGetReq -> opensearchapi.GetReq). It matches on the
+// resolved object so only the intended symbol is touched: the package-scope
+// check excludes methods and fields, and variables are not renamed at all.
+func rewriteSymbolRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
+	kind, r, ok := lookupSymbolRename(info.Uses[sel.Sel], renameByFrom)
 	if !ok {
 		return ""
 	}
 	old := sel.Sel.Name
-	sel.Sel = ast.NewIdent(r.ToName)
-	return fmt.Sprintf("type %s -> %s", old, r.ToName)
+	// Rename in place: a fresh identifier has no position, and the printer then
+	// misplaces what follows it (a closing parenthesis prints as ",)").
+	sel.Sel.Name = r.ToName
+	return fmt.Sprintf("%s %s -> %s", kind, old, r.ToName)
+}
+
+// lookupSymbolRename reports whether obj is a package-level type, constant or
+// function that was renamed on the target, with its kind and ruling.
+func lookupSymbolRename(obj types.Object, renameByFrom map[string]apirev.TypeRename) (string, apirev.TypeRename, bool) {
+	var kind string
+	switch obj.(type) {
+	case *types.TypeName:
+		kind = "type"
+	case *types.Const:
+		kind = "const"
+	case *types.Func:
+		kind = "func"
+	default:
+		return "", apirev.TypeRename{}, false
+	}
+	if obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
+		return "", apirev.TypeRename{}, false
+	}
+	r, ok := renameByFrom[obj.Pkg().Path()+"."+obj.Name()]
+	return kind, r, ok
+}
+
+// flagUnqualifiedSymbolRef reports an unqualified use of a renamed symbol of
+// another package, i.e. one reached through a dot import, as a MANUAL worklist
+// item. rewriteSymbolRef follows only qualified selectors, so the use would
+// otherwise become an undefined name on the target. An own declaration with the
+// same name resolves to its own package and never matches. Report-only: it never
+// mutates the AST. Returns "" if not applicable.
+func flagUnqualifiedSymbolRef(id *ast.Ident, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
+	kind, r, ok := lookupSymbolRename(info.Uses[id], renameByFrom)
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("MANUAL %s %s -> %s: unqualified use (dot import) is not rewritten; rename it by hand",
+		kind, id.Name, r.ToName)
 }
 
 // flagRemovedTypeRef reports a reference to a source type that was removed

@@ -17,12 +17,16 @@ import (
 // package, which matters because the same field name fans in across types
 // (EnableMetrics on both opensearch.Config and opensearchtransport.Config).
 
+// majorVersionPattern is the "/vN" core shared by every pattern that matches a
+// module-major-version segment.
+const majorVersionPattern = `/v[0-9]+`
+
 // majorVersionSeg matches the "/vN" module-major-version segment in an import
 // path (e.g. ".../opensearch-go/v4/opensearchapi" or a trailing ".../opensearch-go/v4").
 // The major version is part of the path, so a v4 package and its v5 successor
 // never share an exact path; pairing must compare paths with this segment
 // normalized away.
-var majorVersionSeg = regexp.MustCompile(`/v[0-9]+(/|$)`)
+var majorVersionSeg = regexp.MustCompile(majorVersionPattern + `(/|$)`)
 
 // versionAgnostic strips the module-major-version segment so v4 and v5 package
 // paths for the same logical package compare equal. A "/vN" in the middle of the
@@ -100,9 +104,9 @@ type Delta struct {
 	RemovedTypes map[string]bool `json:"removedTypes,omitempty"`
 }
 
-// TypeRename identifies a source type that was renamed in the target version, by
-// unqualified name within a package pair. The linter resolves the source struct
-// in FromPkgPath and its counterpart in ToPkgPath.
+// TypeRename identifies a source type, constant or function that was renamed in
+// the target version, by unqualified name within a package pair. The linter
+// resolves the source symbol in FromPkgPath and its counterpart in ToPkgPath.
 type TypeRename struct {
 	FromPkgPath string
 	FromName    string
@@ -369,7 +373,7 @@ func isBodyReaderSplit(fFrom, fTo Field, toByName map[string]Field) bool {
 // typeMajorVersionSeg matches the "/vN" module-major-version segment inside a
 // types.Type string, where a package path is followed by "/" (sub-package) or
 // "." (type name), e.g. ".../opensearch-go/v4.CausedBy".
-var typeMajorVersionSeg = regexp.MustCompile(`/v[0-9]+([/.])`)
+var typeMajorVersionSeg = regexp.MustCompile(majorVersionPattern + `([/.])`)
 
 // versionAgnosticType strips module-major-version segments from a type string,
 // the type-string counterpart of versionAgnostic.

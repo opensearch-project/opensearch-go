@@ -66,8 +66,63 @@ func (s *Struct) Qualified() string { return s.PkgPath + "." + s.Name }
 // Snapshot is the exported struct surface of one version, spanning every scanned
 // package.
 type Snapshot struct {
-	Version string   `json:"version"` // "v4" or "v5", for provenance
+	Version string   `json:"version"` // e.g. "v4", "v5", "v5.2", for provenance
 	Structs []Struct `json:"structs"`
+	// Symbols are the package-level names Structs does not cover, recorded only
+	// for the surfaces generated with them (v5 and later).
+	Symbols []Symbol `json:"symbols,omitempty"`
+}
+
+// SymbolKind is what a Symbol declares.
+type SymbolKind string
+
+// Symbol kinds. An alias is recorded by the type it names, not that type's
+// underlying shape, so an alias and a defined type never compare equal.
+const (
+	SymbolType  SymbolKind = "type"
+	SymbolAlias SymbolKind = "alias"
+	SymbolConst SymbolKind = "const"
+	SymbolFunc  SymbolKind = "func"
+)
+
+// ownPkgQualifier is the package qualifier extractSymbol gives the symbol's own
+// package, so types.TypeString renders its types as "@.Name". Field names,
+// method names and tags never carry that marker, which is what lets a
+// comparison map own-package names safely.
+const ownPkgQualifier = "@"
+
+// Symbol is one exported package-level type, constant or function, with enough
+// of its shape to tell whether a symbol of another name is the same thing: a
+// type's underlying type (unexported fields included) and declared methods, a
+// constant's type and exact value, a function's signature. Struct types with
+// exported fields are in Structs instead. A type from PkgPath itself is
+// rendered with ownPkgQualifier; a type from any other package keeps its full
+// package path.
+type Symbol struct {
+	PkgPath string     `json:"pkgPath"`
+	Name    string     `json:"name"`
+	Kind    SymbolKind `json:"kind"`
+	Type    string     `json:"type"`
+	Value   string     `json:"value,omitempty"`
+	Methods []Method   `json:"methods,omitempty"`
+}
+
+// Method is one method declared on a named type, by name and signature without
+// the receiver; PointerReceiver records the receiver's kind.
+type Method struct {
+	Name            string `json:"name"`
+	Signature       string `json:"signature"`
+	PointerReceiver bool   `json:"pointerReceiver,omitempty"`
+}
+
+// LookupSymbol finds a symbol by name within a specific package path.
+func (s *Snapshot) LookupSymbol(pkgPath, name string) (Symbol, bool) {
+	for _, sym := range s.Symbols {
+		if sym.PkgPath == pkgPath && sym.Name == name {
+			return sym, true
+		}
+	}
+	return Symbol{}, false
 }
 
 // Lookup finds a struct by unqualified name within a specific package path.

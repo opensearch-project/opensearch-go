@@ -203,7 +203,7 @@ func (r GetFindingsParams) get() map[string]string {
 // See: https://docs.opensearch.org/docs/latest/security-analytics/api-tools/alert-finding-api/#get-findings
 type GetFindingsResp struct {
 	Findings      []SecurityAnalyticsFindingsFinding `json:"findings"`
-	TotalFindings int64                              `json:"total_findings"`
+	TotalFindings int                                `json:"total_findings"`
 
 	response *opensearch.Response
 }

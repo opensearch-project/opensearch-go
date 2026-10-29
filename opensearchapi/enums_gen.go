@@ -223,15 +223,15 @@ func (e *UnknownRestStatusError) Error() string {
 	return fmt.Sprintf("unknown RestStatus %q", e.Value)
 }
 
-type SearchTotalHitsRelation string
+type TotalHitsRelation string
 
 const (
-	// SearchTotalHitsRelationEq. Accurate.
-	SearchTotalHitsRelationEq SearchTotalHitsRelation = "eq"
+	// TotalHitsRelationEq. Accurate.
+	TotalHitsRelationEq TotalHitsRelation = "eq"
 
-	// SearchTotalHitsRelationGte. Lower bound, including returned events or
+	// TotalHitsRelationGte. Lower bound, including returned events or
 	// sequences.
-	SearchTotalHitsRelationGte SearchTotalHitsRelation = "gte"
+	TotalHitsRelationGte TotalHitsRelation = "gte"
 )
 
 type GeoDistanceType string

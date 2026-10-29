@@ -554,7 +554,7 @@ A clause you construct without its `From*` constructor marshals as `null`, which
 MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{"title": {}},
 ```
 
-`SearchSuggestCompletion` narrows the inherited `options` field to `*SearchSuggestCompletionOptions`, so a field the spec marks required is now omitted when unset; read it through `AsCompletion()`.
+`SearchSuggestCompletion` narrows the inherited `options` field to `*SearchSuggestCompletionOptions`, so a field the spec marks required is now omitted when unset; read it through `AsCompletion()`. 5.2 replaces it with `SearchCompletionSuggest`; see [Generated types corrected against the server in 5.2](#generated-types-corrected-against-the-server-in-52).
 
 On the response side, `SearchSuggest` gains an `AsCompletion()` branch, and the `neural` info-stat fields change from plain scalars to `NeuralInfoCounterStat`, `NeuralInfoStringStat`, and `NeuralTimestampedEventCounterStat`. Each keeps the scalar on a branch accessor: `Int()` on `NeuralInfoCounterStat` and `NeuralTimestampedEventCounterStat`, and `String()` on `NeuralInfoStringStat`, which is the one that replaced a `*string`. The accessor returns the value the plain field used to hold, plus an error when the response carried the object form instead.
 
@@ -895,3 +895,82 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 ```
 
 `OPENSEARCH_GO_MGET_FANOUT=least-loaded` selects it without a code change, and `opensearchapi.WithMGetFanOut(ctx, opensearchapi.MGetFanOutLeastLoaded)` selects it for the mgets made with that context.
+
+## Generated types corrected against the server in 5.2
+
+5.2 regenerates `opensearchapi` and the plugin packages from a spec that was checked field by field against the OpenSearch server and plugin source. Fields now carry the types the server sends, and the search hits of several plugins compose with `SearchHit`, so code written against 5.0 or 5.1 may no longer compile. The module path stays `/v5`.
+
+`osapilint` reads the version your `go.mod` requires and applies the changes it can make mechanically:
+
+```sh
+osapilint rewrite -w ./...
+go get github.com/opensearch-project/opensearch-go/v5@v5.2.0 && go build ./...
+```
+
+It renames the types, fields, constants, union types and constructors below, drops the removed fields from literals, and lists the rest as manual follow-ups. A use through a dot import is reported `MANUAL` and not rewritten. A width change such as `float64` to `float32` is left to the compiler.
+
+### Search
+
+`SearchHit.Score` and the phrase and term suggest option scores are `float32`, which is what the server computes. `SearchTermSuggestOption.Freq` is an `*int`. `SearchHitsMetadata.MaxScore` was already a `*float32`.
+
+```go
+// Before
+var best float64 = *hit.Score
+
+// After
+var best = float64(*hit.Score)
+```
+
+`SearchTotalHitsRelation` is `TotalHitsRelation`, with the constants `TotalHitsRelationEq` and `TotalHitsRelationGte`. The plugin responses that report a total hits relation (notifications, observability, flow framework) use it instead of a string.
+
+`SearchSuggestCompletion` is gone: `SearchSuggest.AsCompletion()` returns a `SearchCompletionSuggest`, whose `Options` is a `SearchCompletionSuggestOptions` value rather than a pointer to `SearchSuggestCompletionOptions`. The union has the same `Text()` and `Array()` accessors. `SearchResultJSONValueSuggestValueItemCompletion`, the same suggestion in the knn and ltr search responses, is `SearchCompletionSuggest` too.
+
+```go
+// Before
+c, err := s.AsCompletion() // SearchSuggestCompletion
+if c.Options != nil {
+	opts, err := c.Options.Array()
+}
+
+// After
+c, err := s.AsCompletion() // SearchCompletionSuggest
+opts, err := c.Options.Array()
+```
+
+The `extended_bounds` and `hard_bounds` of histogram aggregations are typed. `CommonAggregationsHistogramAggregationFields` takes a `*CommonAggregationsExtendedBoundsDouble`, whose `Min` and `Max` are `*float64`, and the date histogram's bounds are `CommonAggregationsExtendedBoundsFieldDateMath`, whose `Min` and `Max` are `*CommonAggregationsFieldDateMath`. Both used to be raw JSON.
+
+### ML
+
+The ML search responses (`SearchModelsResp`, `SearchTasksResp`, `SearchConnectorsResp` and the other ML searches) embed `SearchResult` and hold their hits as a `*MLSearchRespHits`, which replaces `MLSearchHits`. `MLSearchRespHits` embeds `SearchHitsMetadata`, so `Total` is the `SearchHitsMetadataTotal` union, read through `TotalHits()`, and `MaxScore` is a `*float32`; `MLHitsTotal` is gone. `Took`, `TimedOut` and `Shards` are values.
+
+Each hit embeds `SearchHit`, so `ID`, `Index`, `Score`, `SeqNo`, `Version` and `Sort` (a `[]FieldValue`) come from it, and a literal sets them through its `SearchHit` field. `_source` decodes as an `*MLSource`.
+
+```go
+// Before
+total := resp.Hits.Total.Value
+
+// After
+th, err := resp.Hits.Total.TotalHits()
+if err != nil {
+	return err
+}
+total := th.Value
+```
+
+### Flow framework
+
+Workflow search hits embed `SearchHit` as the ML hits do, and `_source` decodes as a `*FlowFrameworkCommonGetResp` or a `*FlowFrameworkCommonSearchStateResponse` instead of raw JSON. The `_shards` counts are `int` values rather than pointers, and `hits.total` has a `TotalHitsRelation` and an `int64` value. `user_outputs` is a `map[string]json.RawMessage`, `resources_created` is a list of `FlowFrameworkCommonResourcesCreated`, and the created, updated, provisioned and provision start and end times are `*int64` epoch milliseconds.
+
+### Other plugins
+
+| Package               | Before                                                                                                                                | After                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `asynchronous_search` | `Took`, `StartTimeInMillis` and `ExpirationTimeInMillis` as `*float64`; stats counters `*int`                                         | no `Took` (the search's own `took` is on `Response`); times and stats counters are `*int64`         |
+| `insights`            | `InsightsTopQuery.QueryHashcode`; `InsightsMeasurement.Number` `*int`; `PhaseLatencyMap` raw JSON                                     | `QueryGroupHashcode`, the key the server sends; `Number` `*float64`; `map[string]int64`             |
+| `knn`                 | `GetModelResp.Body` raw JSON                                                                                                          | typed fields (`ModelID`, `State`, `Dimension`, ...)                                                 |
+| `neural`              | `NeuralStatMetadataValue` with `Int` and `String` branches                                                                            | a `Float64` branch too, which renumbers `NeuralStatMetadataValueStringType`                         |
+| `notifications`       | `NotificationsWebhook.HeaderParams map[string]int`                                                                                    | `map[string]string`                                                                                 |
+| `rollups`             | `RollupsInterval.Cron`; `Period`, `StartTime` and `ScheduleDelay` `*float64`                                                          | `RollupsSchedule.Cron`, a `*RollupsCron`; `Period` `*int`, `StartTime` and `ScheduleDelay` `*int64` |
+| `security_analytics`  | `GetAlertsResp.TotalAlerts` and `GetFindingsResp.TotalFindings` `int64`; `SecurityAnalyticsFindingsFindingWithScore.Score` `*float32` | `int`; `*float64`                                                                                   |
+
+Insights timestamps and task IDs, and the counters and timestamps of the geospatial, observability and replication responses, widen from `int` to `int64` where the server sends a Java `long`.

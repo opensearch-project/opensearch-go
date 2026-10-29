@@ -91,7 +91,8 @@ func (r StatusParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#get-replication-status
 type StatusResp struct {
-	FollowerIndex *string `json:"follower_index,omitempty"`
+	BootstrapDetails *opensearchapi.ReplicationRestoreDetails `json:"bootstrap_details,omitempty"`
+	FollowerIndex    *string                                  `json:"follower_index,omitempty"`
 
 	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
@@ -100,6 +101,10 @@ type StatusResp struct {
 
 	// Reason is the reason for the current replication status.
 	Reason *string `json:"reason,omitempty"`
+
+	// ShardReplicationDetails. Per-shard replication details. Only present in
+	// verbose status responses.
+	ShardReplicationDetails []opensearchapi.ReplicationShardInfoResponse `json:"shard_replication_details,omitempty"`
 
 	// Status is the current status of the replication process.
 	Status *string `json:"status,omitempty"`

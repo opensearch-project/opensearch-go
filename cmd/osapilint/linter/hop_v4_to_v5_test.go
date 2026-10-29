@@ -24,7 +24,7 @@ import (
 // planV4toV5 returns the single hop plan for v4->v5.
 func planV4toV5(t *testing.T) hopPlan {
 	t.Helper()
-	plans, err := planChain(4, 5)
+	plans, err := planChain(majorLine(4), majorLine(5))
 	require.NoError(t, err)
 	require.Len(t, plans, 1, "v4->v5 is a single hop")
 	return plans[0]

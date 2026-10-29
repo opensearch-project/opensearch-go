@@ -106,14 +106,8 @@ func (r SearchTasksParams) get() map[string]string {
 //
 // Available: >= 1.3.0.
 type SearchTasksResp struct {
-	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
-	Hits   opensearchapi.MLSearchHits     `json:"hits"`
-
-	// TimedOut. Whether the search timed out.
-	TimedOut *bool `json:"timed_out,omitempty"`
-
-	// Took is the time taken to execute the search.
-	Took *int `json:"took,omitempty"`
+	opensearchapi.SearchResult
+	Hits *opensearchapi.MLSearchRespHits `json:"hits,omitempty"`
 
 	response *opensearch.Response
 }

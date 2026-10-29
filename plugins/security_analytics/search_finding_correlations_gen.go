@@ -146,5 +146,5 @@ type SecurityAnalyticsFindingsFindingWithScore struct {
 	DetectorType *string  `json:"detector_type,omitempty"`
 	Finding      *string  `json:"finding,omitempty"`
 	Rules        []string `json:"rules,omitempty"`
-	Score        *float32 `json:"score,omitempty"`
+	Score        *float64 `json:"score,omitempty"`
 }

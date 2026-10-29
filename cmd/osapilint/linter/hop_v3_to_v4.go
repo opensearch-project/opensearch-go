@@ -33,8 +33,8 @@ const (
 //
 //nolint:gochecknoglobals // immutable data table; mirrors hopV4toV5
 var hopV3toV4 = hop{
-	From: 3,
-	To:   4,
+	From: version{major: 3},
+	To:   version{major: 4},
 
 	// TypeRenames: none. The four error types (Error, Err, RootCause, StringError)
 	// change PACKAGE (opensearchapi -> root opensearch), not just name. The linter's

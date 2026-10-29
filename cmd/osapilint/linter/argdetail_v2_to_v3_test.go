@@ -34,9 +34,9 @@ func TestArgDetailSeedOpsPresent(t *testing.T) {
 // Req or Params struct, and every destParams/destReqField option must have a
 // backing field on the v2 Request struct. Mirrors TestCallMapV2toV3AgainstSurfaces.
 func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
-	v2Snap, err := decodeSurface(2)
+	v2Snap, err := decodeSurface(majorLine(2))
 	require.NoError(t, err)
-	v3Snap, err := decodeSurface(3)
+	v3Snap, err := decodeSurface(majorLine(3))
 	require.NoError(t, err)
 
 	// v3 Req name per op comes from the call map (single source of truth).

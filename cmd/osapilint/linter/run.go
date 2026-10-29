@@ -56,8 +56,8 @@ func Rewrite(args []string) error {
 	fs := flag.NewFlagSet("rewrite", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	write := fs.Bool("w", false, "write changes to files (default: dry run, print intended edits)")
-	srcFlag := fs.String("src", "auto", "source major version (e.g. v4) or 'auto' to detect from the consumer's imports")
-	dstFlag := fs.String("dst", "", "target major version (e.g. v5); default: newest known")
+	srcFlag := fs.String("src", "auto", "source version (e.g. v4 or v5.1) or 'auto' to detect from the consumer's imports and go.mod")
+	dstFlag := fs.String("dst", "", "target version (e.g. v5 or v5.2; a bare major means its newest release line); default: newest known")
 	if err := fs.Parse(args); err != nil {
 		// -h/-help is not an error; exit cleanly. For any other parse failure the
 		// flag package already wrote the message and usage to os.Stderr (set
@@ -79,41 +79,42 @@ func Rewrite(args []string) error {
 
 	dst := newestKnownTarget()
 	if *dstFlag != "" {
-		m, err := parseMajor(*dstFlag)
+		v, err := parseLine(*dstFlag, newestLineOf)
 		if err != nil {
 			return &UsageError{Msg: "-dst: " + err.Error()}
 		}
-		dst = m
+		dst = v
 	}
 
-	var src major
+	var src version
+	var warnings []string
 	if *srcFlag == "auto" {
-		m, warnings, err := detectSourceMajor(dir)
+		var err error
+		src, warnings, err = detectSource(context.Background(), dir)
 		if err != nil {
 			return err
 		}
-		for _, w := range warnings {
-			fmt.Fprintln(os.Stderr, "note:", w)
+		for _, n := range warnings {
+			fmt.Fprintln(os.Stderr, "note:", n)
 		}
-		src = m
-		fmt.Printf("detected source v%d (target v%d)\n", src, dst)
+		fmt.Printf("detected source %s (target %s)\n", src, dst)
 	} else {
-		m, err := parseMajor(*srcFlag)
+		v, err := parseLine(*srcFlag, firstLineOf)
 		if err != nil {
 			return &UsageError{Msg: "-src: " + err.Error()}
 		}
-		src = m
+		src = v
 	}
 
-	if src >= dst {
-		fmt.Printf("already at v%d (>= target v%d); nothing to do.\n", src, dst)
+	if !src.less(dst) {
+		fmt.Printf("already at %s (>= target %s); nothing to do.\n", src, dst)
 		return nil
 	}
 
-	// The engine (planning, per-hop type-aware rewrite, between-hop rebuild) lives
-	// in MigrateSDK; Rewrite is the CLI shell over it. src/dst are already resolved
-	// above, so pass them explicitly rather than letting MigrateSDK re-detect.
-	results, err := MigrateSDK(context.Background(), SDKConfig{Dir: dir, Src: src, Dst: dst, Write: *write})
+	// The engine (planning, per-hop type-aware rewrite, between-hop rebuild) is
+	// shared with MigrateSDK; Rewrite is the CLI shell over it. src/dst are already
+	// resolved above, so pass them explicitly rather than re-detecting.
+	results, err := migrate(context.Background(), dir, src, dst, *write, warnings)
 	if err != nil {
 		return err
 	}
@@ -121,7 +122,7 @@ func Rewrite(args []string) error {
 	var followups []string
 	for _, r := range results {
 		if len(results) > 1 {
-			fmt.Printf("== v%d -> v%d ==\n", r.From, r.To)
+			fmt.Printf("== %s -> %s ==\n", r.FromVersion, r.ToVersion)
 		}
 		for _, f := range r.Files {
 			fmt.Printf("%s\n", f.Path)
@@ -150,21 +151,28 @@ func Rewrite(args []string) error {
 	return nil
 }
 
-// bumpAndBuild points the consumer module at the given opensearch-go major and
+// bumpAndBuild points the consumer module at the newest release on line to and
 // builds it, so a subsequent type-aware hop can load and resolve types against
 // the intermediate version. Runs in the consumer module directory.
-func bumpAndBuild(ctx context.Context, dir string, to major) error {
+func bumpAndBuild(ctx context.Context, dir string, to version) error {
+	// The newest release on the line: below the next line of the same major, or
+	// the major's latest when to is its newest line.
+	query := "latest"
+	if next, ok := nextLineOf(to); ok {
+		query = fmt.Sprintf("<v%d.%d.0", next.major, next.minor)
+	}
+	target := modulePath(to.major) + "@" + query
 	// #nosec G204 -- the command and its arguments are internally constructed
-	// (a fixed "go get" of a version-derived module path), not user input.
-	get := exec.CommandContext(ctx, "go", "get", modulePath(to)+"@latest")
+	// (a fixed "go get" of a version-derived module query), not user input.
+	get := exec.CommandContext(ctx, "go", "get", target)
 	get.Dir = dir
 	if out, err := get.CombinedOutput(); err != nil {
-		return fmt.Errorf("go get %s: %w\n%s", modulePath(to), err, out)
+		return fmt.Errorf("go get %q: %w\n%s", target, err, out)
 	}
 	build := exec.CommandContext(ctx, "go", "build", "./...")
 	build.Dir = dir
 	if out, err := build.CombinedOutput(); err != nil {
-		return fmt.Errorf("go build after bumping to v%d: %w\n%s", to, err, out)
+		return fmt.Errorf("go build after bumping to %q: %w\n%s", to, err, out)
 	}
 	return nil
 }
@@ -183,14 +191,33 @@ func dedupe(s []string) []string {
 	return out
 }
 
-// parseMajor parses a version label like "v4", "V4", or "4" into a major.
-func parseMajor(s string) (major, error) {
+// parseLine parses a version label like "v4", "4", "v5.1" or "V5.2" into the
+// release line it names. A label with a minor names the line that release is on;
+// a bare major is resolved by forMajor.
+func parseLine(s string, forMajor lineResolver) (version, error) {
 	t := strings.TrimPrefix(strings.TrimPrefix(s, "v"), "V")
-	n, err := strconv.Atoi(t)
+	majorPart, minorPart, hasMinor := strings.Cut(t, ".")
+	n, err := strconv.Atoi(majorPart)
 	if err != nil || n < 1 {
-		return 0, fmt.Errorf("invalid version %q (want e.g. v4)", s)
+		return version{}, fmt.Errorf("invalid version %q (want e.g. v4 or v5.2)", s)
 	}
-	return major(n), nil
+	m := major(n)
+
+	var v version
+	var ok bool
+	if hasMinor {
+		minor, err := strconv.Atoi(minorPart)
+		if err != nil || minor < 0 {
+			return version{}, fmt.Errorf("invalid version %q (want e.g. v4 or v5.2)", s)
+		}
+		v, ok = lineOf(m, minor)
+	} else {
+		v, ok = forMajor(m)
+	}
+	if !ok {
+		return version{}, noSurfaceError(s)
+	}
+	return v, nil
 }
 
 // dirFromArg resolves the positional argument to a module directory and
@@ -218,13 +245,13 @@ func dirFromArg(arg string) (string, error) {
 
 // Usage writes the command usage text to stderr.
 func Usage() {
-	fmt.Fprint(os.Stderr, `osapilint - migrate a Go module across opensearch-go major versions
+	fmt.Fprint(os.Stderr, `osapilint - migrate a Go module across opensearch-go versions
 
 Usage:
-  osapilint rewrite [-src=auto] [-dst=vN] [-w] [dir]
+  osapilint rewrite [-src=auto] [-dst=vN[.M]] [-w] [dir]
         Syntactic API-shape migration (run first, pre-compile). Dry run by
-        default; -w writes changes. Source auto-detected from imports; target
-        defaults to the newest known version.
+        default; -w writes changes. Source auto-detected from imports and the
+        required module version; target defaults to the newest known version.
   osapilint vet [-fix] pkgs...
         Semantic runtime-hazard analyzers (run after build). -fix applies safe
         suggested fixes. Targets the destination version; does not chain.

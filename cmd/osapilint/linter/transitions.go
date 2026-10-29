@@ -6,7 +6,14 @@
 
 package linter
 
-import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
+import (
+	"cmp"
+	"fmt"
+	"math"
+	"slices"
+
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
+)
 
 // transitions.go is the generic transition registry: the version-neutral types
 // and the map of hand-authored, per-adjacent-hop migration data. The linter
@@ -27,25 +34,110 @@ type major int
 // package's internal signatures (which keep using major).
 type Major = major
 
-// surfaces holds the embedded exported-struct surface for each known version,
-// keyed by major. gensurface produces these JSON files; they are embedded in
-// embed.go and referenced here so composition can diff any src/dst pair.
-//
-//nolint:gochecknoglobals // const-ish surface registry, immutable after init
-var surfaces = map[major][]byte{
-	2: surfaceV2JSON,
-	3: surfaceV3JSON,
-	4: surfaceV4JSON,
-	5: surfaceV5JSON,
+// version is a release line with its own surface: a major, and the minor its
+// surface starts at. A line covers every release up to the next line of the same
+// major, so {5, 0} covers v5.0 and v5.1, which are compatible, and {5, 2} starts
+// where generated types broke compatibility within v5.
+type version struct {
+	major major
+	minor int
 }
 
-// pluginSurfaces holds the embedded plugin-package struct surface for the majors
-// that have one. decodeSurface appends it to the version's surface.
+// String renders v as a version label: "v5" for a major's first line, "v5.2"
+// for a later one.
+func (v version) String() string {
+	if v.minor == 0 {
+		return fmt.Sprintf("v%d", v.major)
+	}
+	return fmt.Sprintf("v%d.%d", v.major, v.minor)
+}
+
+// less reports whether v is an older line than o.
+func (v version) less(o version) bool {
+	if v.major != o.major {
+		return v.major < o.major
+	}
+	return v.minor < o.minor
+}
+
+// surfaces holds the embedded exported-struct surface for each known line.
+// gensurface produces these JSON files; they are embedded in embed.go and
+// referenced here so composition can diff any src/dst pair.
 //
 //nolint:gochecknoglobals // const-ish surface registry, immutable after init
-var pluginSurfaces = map[major][]byte{
-	4: surfaceV4PluginsJSON,
-	5: surfaceV5PluginsJSON,
+var surfaces = map[version][]byte{
+	{major: 2}:           surfaceV2JSON,
+	{major: 3}:           surfaceV3JSON,
+	{major: 4}:           surfaceV4JSON,
+	{major: 5}:           surfaceV5JSON,
+	{major: 5, minor: 2}: surfaceV5_2JSON,
+}
+
+// pluginSurfaces holds the embedded plugin-package struct surface for the lines
+// that have one. decodeSurface appends it to the line's surface.
+//
+//nolint:gochecknoglobals // const-ish surface registry, immutable after init
+var pluginSurfaces = map[version][]byte{
+	{major: 4}:           surfaceV4PluginsJSON,
+	{major: 5}:           surfaceV5PluginsJSON,
+	{major: 5, minor: 2}: surfaceV5_2PluginsJSON,
+}
+
+// lines returns every line with a surface, oldest first. It reads surfaces on
+// every call rather than once, because tests swap the registry.
+func lines() []version {
+	out := make([]version, 0, len(surfaces))
+	for v := range surfaces {
+		out = append(out, v)
+	}
+	slices.SortFunc(out, func(a, b version) int {
+		return cmp.Or(cmp.Compare(a.major, b.major), cmp.Compare(a.minor, b.minor))
+	})
+	return out
+}
+
+// lineResolver resolves a major to one of its release lines, reporting false
+// when the major has none.
+type lineResolver func(major) (version, bool)
+
+// lineOf returns the line a release of major m with the given minor belongs to:
+// the newest line of m that starts at or before minor. It reports false when m
+// has no line.
+func lineOf(m major, minor int) (version, bool) {
+	var found version
+	ok := false
+	for _, v := range lines() {
+		if v.major == m && v.minor <= minor {
+			found, ok = v, true
+		}
+	}
+	return found, ok
+}
+
+// firstLineOf returns the first line of major m, and false when m has none.
+func firstLineOf(m major) (version, bool) {
+	return lineOf(m, 0)
+}
+
+// newestLineOf returns the newest line of major m, and false when m has none.
+func newestLineOf(m major) (version, bool) {
+	return lineOf(m, math.MaxInt)
+}
+
+// noSurfaceError reports that no embedded surface covers the version label.
+func noSurfaceError(label string) error {
+	return fmt.Errorf("no embedded surface for %q", label)
+}
+
+// nextLineOf returns the line of the same major that follows v, and false when v
+// is its major's newest line.
+func nextLineOf(v version) (version, bool) {
+	for _, w := range lines() {
+		if w.major == v.major && v.less(w) {
+			return w, true
+		}
+	}
+	return version{}, false
 }
 
 // methodRegroup rewrites a source client call path to its target sub-client
@@ -69,11 +161,17 @@ const (
 	argValue                 // target takes Req and the source took *Req: pass the value
 )
 
-// hop is one adjacent transition (From -> From+1): the hand-authored data that
-// cannot be auto-derived from the surfaces alone.
+// hop is one adjacent transition (From -> the next line): the hand-authored data
+// that cannot be auto-derived from the surfaces alone.
 //
-//   - TypeRenames:       types whose NAME changed across the hop (surface diffing
-//     handles same-name survivors automatically; this is only for renames).
+//   - TypeRenames:       structs with exported fields whose NAME changed across the
+//     hop (surface diffing handles same-name survivors automatically; this is
+//     only for renames).
+//   - SymbolRenames:     package-level constants, functions, non-struct types and
+//     structs with no exported field (such as unions) whose NAME changed across
+//     the hop. Each pair is checked equivalent against the surfaces (see
+//     apirev.EquivalentSymbol).
+//     The rewriter reads them through the same rename index as TypeRenames.
 //   - FieldDispositions: rulings for struct fields that vanish on the target -
 //     rename, remove, or manual, matched by (source pkg + type + field). A
 //     closed, discrete table; a vanished field with no ruling is "unclassified"
@@ -85,8 +183,9 @@ const (
 //   - SemanticFollowups: behavioral changes that cannot be mechanically
 //     rewritten, reported to the operator after a rewrite.
 type hop struct {
-	From, To          major
+	From, To          version
 	TypeRenames       []apirev.TypeRename
+	SymbolRenames     []apirev.TypeRename
 	FieldDispositions []apirev.FieldDisposition
 	MethodRegroups    []methodRegroup
 	RemovedHelpers    map[string]string
@@ -97,13 +196,13 @@ type hop struct {
 // to the native new(x).
 const helperNativeNew = "nativeNew"
 
-// hops is the registry of adjacent transitions, keyed by source major. A
-// coworker completing the multi-version work appends v3->v4, v2->v3 entries here
-// (and their surfaces above); the composition linter chains whatever is present.
+// hops is the registry of adjacent transitions, keyed by source line; the
+// composition linter chains whatever is present.
 //
 //nolint:gochecknoglobals // const-ish transition registry, immutable after init
-var hops = map[major]hop{
-	2: hopV2toV3,
-	3: hopV3toV4,
-	4: hopV4toV5,
+var hops = map[version]hop{
+	{major: 2}: hopV2toV3,
+	{major: 3}: hopV3toV4,
+	{major: 4}: hopV4toV5,
+	{major: 5}: hopV5toV5_2,
 }

@@ -9,6 +9,7 @@ package linter
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
@@ -34,7 +35,7 @@ const openSearchGoBase = "github.com/opensearch-project/opensearch-go"
 // its own tables) plus the call-site rules, import prefix, and operator
 // followups. Entirely self-contained - nothing is threaded from adjacent hops.
 type hopPlan struct {
-	from, to       major
+	from, to       version
 	delta          apirev.Delta
 	renames        []apirev.TypeRename
 	regroups       []methodRegroup
@@ -44,19 +45,19 @@ type hopPlan struct {
 }
 
 // planChain builds the ordered per-hop plans for migrating src->dst. It requires
-// a registered hop and an embedded surface for every adjacent step in [src, dst).
-// The plans are meant to be applied in order, rebuilding between them.
-func planChain(src, dst major) ([]hopPlan, error) {
-	if src >= dst {
-		return nil, fmt.Errorf("source v%d is not older than target v%d", src, dst)
+// a registered hop and an embedded surface for every adjacent step from src to
+// dst. The plans are meant to be applied in order, rebuilding between them.
+func planChain(src, dst version) ([]hopPlan, error) {
+	if !src.less(dst) {
+		return nil, fmt.Errorf("source %q is not older than target %q", src, dst)
 	}
 
 	var plans []hopPlan
-	for v := src; v < dst; v++ {
+	for v := src; v.less(dst); {
 		h, ok := hops[v]
 		if !ok {
-			return nil, fmt.Errorf("no registered transition for v%d -> v%d (needed to migrate v%d -> v%d); "+
-				"add a hop_v%d_to_v%d.go and register it in hops", v, v+1, src, dst, v, v+1)
+			return nil, fmt.Errorf("no registered transition from %q (needed to migrate %q -> %q); "+
+				"add a hop file for it and register it in hops", v, src, dst)
 		}
 
 		fromSnap, err := decodeSurface(h.From)
@@ -68,47 +69,52 @@ func planChain(src, dst major) ([]hopPlan, error) {
 			return nil, err
 		}
 
+		// Fieldless structs (unions) are in the surface, so a symbol rename must
+		// reach DeriveDelta too or the renamed type is reported as removed.
+		renames := slices.Concat(h.TypeRenames, h.SymbolRenames)
 		plans = append(plans, hopPlan{
 			from:           h.From,
 			to:             h.To,
-			delta:          apirev.DeriveDelta(fromSnap, toSnap, h.TypeRenames, h.FieldDispositions),
-			renames:        h.TypeRenames,
+			delta:          apirev.DeriveDelta(fromSnap, toSnap, renames, h.FieldDispositions),
+			renames:        renames,
 			regroups:       h.MethodRegroups,
 			removedHelpers: h.RemovedHelpers,
-			importPrefixes: [][2]string{{modulePath(h.From), modulePath(h.To)}},
+			importPrefixes: [][2]string{{modulePath(h.From.major), modulePath(h.To.major)}},
 			followups:      h.SemanticFollowups,
 		})
+		v = h.To
 	}
 	return plans, nil
 }
 
-// decodeSurface decodes the embedded exported-struct surface for a version,
-// including its plugin companion when the version has one.
-func decodeSurface(m major) (*apirev.Snapshot, error) {
-	data, ok := surfaces[m]
+// decodeSurface decodes the embedded exported-struct surface for a line,
+// including its plugin companion when the line has one.
+func decodeSurface(v version) (*apirev.Snapshot, error) {
+	data, ok := surfaces[v]
 	if !ok {
-		return nil, fmt.Errorf("no embedded surface for v%d (regenerate with cmd/gensurface and register it in surfaces)", m)
+		return nil, fmt.Errorf("%w (regenerate with cmd/gensurface and register it in surfaces)", noSurfaceError(v.String()))
 	}
 	var s apirev.Snapshot
 	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, fmt.Errorf("decode surface v%d: %w", m, err)
+		return nil, fmt.Errorf("decode surface %q: %w", v, err)
 	}
-	if pdata, ok := pluginSurfaces[m]; ok {
+	if pdata, ok := pluginSurfaces[v]; ok {
 		var ps apirev.Snapshot
 		if err := json.Unmarshal(pdata, &ps); err != nil {
-			return nil, fmt.Errorf("decode plugin surface v%d: %w", m, err)
+			return nil, fmt.Errorf("decode plugin surface %q: %w", v, err)
 		}
 		s.Structs = append(s.Structs, ps.Structs...)
+		s.Symbols = append(s.Symbols, ps.Symbols...)
 	}
 	return &s, nil
 }
 
-// newestKnownTarget is the highest target version reachable in the registry,
-// used as the default -dst.
-func newestKnownTarget() major {
-	var newest major
+// newestKnownTarget is the newest target line reachable in the registry, used as
+// the default -dst.
+func newestKnownTarget() version {
+	var newest version
 	for _, h := range hops {
-		if h.To > newest {
+		if newest.less(h.To) {
 			newest = h.To
 		}
 	}

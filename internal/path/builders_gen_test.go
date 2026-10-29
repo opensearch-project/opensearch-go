@@ -4596,6 +4596,36 @@ func TestListShardsPath_Build(t *testing.T) {
 	}
 }
 
+func TestListWLMStatsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     ListWLMStatsPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "all empty", path: ListWLMStatsPath{}, wantPath: "/_list/wlm_stats", wantErr: false},
+		{name: "all fields", path: ListWLMStatsPath{NodeID: []string{"test-nodeid"}, WorkloadGroupID: []string{"test-workloadgroupid"}}, wantPath: "/_list/wlm_stats/test-nodeid/stats/test-workloadgroupid", wantErr: false},
+		{name: "only NodeID", path: ListWLMStatsPath{NodeID: []string{"val-nodeid"}}, wantPath: "/_list/wlm_stats/val-nodeid/stats", wantErr: false},
+		{name: "only WorkloadGroupID", path: ListWLMStatsPath{WorkloadGroupID: []string{"val-workloadgroupid"}}, wantPath: "/_list/wlm_stats/stats/val-workloadgroupid", wantErr: false},
+		{name: "NodeID multi-value", path: ListWLMStatsPath{NodeID: []string{"a", "b", "c"}}, wantPath: "/_list/wlm_stats/a,b,c/stats", wantErr: false},
+		{name: "WorkloadGroupID multi-value", path: ListWLMStatsPath{WorkloadGroupID: []string{"a", "b", "c"}}, wantPath: "/_list/wlm_stats/stats/a,b,c", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
 func TestLTRAddFeaturesToSetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -9201,6 +9231,32 @@ func TestSearchRelevanceGetStatsPath_Build(t *testing.T) {
 	}
 }
 
+func TestSearchRelevancePatchExperimentPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     SearchRelevancePatchExperimentPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "required fields empty", path: SearchRelevancePatchExperimentPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevancePatchExperimentPath{ExperimentID: "test-experimentid"}, wantPath: "/_plugins/_search_relevance/experiments/test-experimentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
 func TestSearchRelevancePostQuerySetsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -12511,6 +12567,31 @@ func TestWLMCreateQueryGroupPath_Build(t *testing.T) {
 	}
 }
 
+func TestWLMCreateWorkloadGroupPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     WLMCreateWorkloadGroupPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "all empty", path: WLMCreateWorkloadGroupPath{}, wantPath: "/_wlm/workload_group", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
 func TestWLMDeleteQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -12521,6 +12602,32 @@ func TestWLMDeleteQueryGroupPath_Build(t *testing.T) {
 	}{
 		{name: "required fields empty", path: WLMDeleteQueryGroupPath{}, wantPath: "", wantErr: true},
 		{name: "all fields", path: WLMDeleteQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
+func TestWLMDeleteWorkloadGroupPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     WLMDeleteWorkloadGroupPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "required fields empty", path: WLMDeleteWorkloadGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: WLMDeleteWorkloadGroupPath{Name: "test-name"}, wantPath: "/_wlm/workload_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12563,6 +12670,62 @@ func TestWLMGetQueryGroupPath_Build(t *testing.T) {
 	}
 }
 
+func TestWLMGetWorkloadGroupPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     WLMGetWorkloadGroupPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "all empty", path: WLMGetWorkloadGroupPath{}, wantPath: "/_wlm/workload_group", wantErr: false},
+		{name: "all fields", path: WLMGetWorkloadGroupPath{Name: "test-name"}, wantPath: "/_wlm/workload_group/test-name", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
+func TestWLMStatsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     WLMStatsPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "all empty", path: WLMStatsPath{}, wantPath: "/_wlm/stats", wantErr: false},
+		{name: "all fields", path: WLMStatsPath{NodeID: []string{"test-nodeid"}, WorkloadGroupID: []string{"test-workloadgroupid"}}, wantPath: "/_wlm/test-nodeid/stats/test-workloadgroupid", wantErr: false},
+		{name: "only NodeID", path: WLMStatsPath{NodeID: []string{"val-nodeid"}}, wantPath: "/_wlm/val-nodeid/stats", wantErr: false},
+		{name: "only WorkloadGroupID", path: WLMStatsPath{WorkloadGroupID: []string{"val-workloadgroupid"}}, wantPath: "/_wlm/stats/val-workloadgroupid", wantErr: false},
+		{name: "NodeID multi-value", path: WLMStatsPath{NodeID: []string{"a", "b", "c"}}, wantPath: "/_wlm/a,b,c/stats", wantErr: false},
+		{name: "WorkloadGroupID multi-value", path: WLMStatsPath{WorkloadGroupID: []string{"a", "b", "c"}}, wantPath: "/_wlm/stats/a,b,c", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
 func TestWLMUpdateQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -12573,6 +12736,32 @@ func TestWLMUpdateQueryGroupPath_Build(t *testing.T) {
 	}{
 		{name: "required fields empty", path: WLMUpdateQueryGroupPath{}, wantPath: "", wantErr: true},
 		{name: "all fields", path: WLMUpdateQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.ErrorIs(t, err, errRequired)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
+		})
+	}
+}
+
+func TestWLMUpdateWorkloadGroupPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		path     WLMUpdateWorkloadGroupPath
+		wantPath string
+		wantErr  bool
+	}{
+		{name: "required fields empty", path: WLMUpdateWorkloadGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: WLMUpdateWorkloadGroupPath{Name: "test-name"}, wantPath: "/_wlm/workload_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -16,8 +16,11 @@
 // across packages (EnableMetrics on opensearch.Config AND
 // opensearchtransport.Config), so the surface must cover all of them:
 //
-//	go run ./cmd/gensurface -dir <module-dir> -version v5 \
+//	go run ./cmd/gensurface -dir <module-dir> -version v5 -symbols \
 //	    -patterns ./opensearchapi,.,./opensearchtransport -out surface_v5.json
+//
+// -symbols also records package-level types, constants and functions
+// (apirev.Snapshot.Symbols).
 //
 // The resulting JSON is committed so the delta the rewriter uses is auditable in
 // review, not recomputed opaquely at run time.
@@ -38,7 +41,8 @@ func main() {
 	var (
 		dir      = flag.String("dir", ".", "module directory to load packages from")
 		patterns = flag.String("patterns", "./opensearchapi,.,./opensearchtransport", "comma-separated go/packages load patterns")
-		version  = flag.String("version", "", "version label recorded for provenance (v4 or v5)")
+		version  = flag.String("version", "", "version label recorded for provenance (e.g. v4, v5, v5.2)")
+		symbols  = flag.Bool("symbols", false, "also record package-level types, constants and functions")
 		out      = flag.String("out", "", "output JSON path (default: stdout)")
 	)
 	flag.Parse()
@@ -49,7 +53,7 @@ func main() {
 	}
 
 	pats := strings.Split(*patterns, ",")
-	snap, err := apirev.ExtractFromDir(*dir, *version, pats...)
+	snap, err := apirev.ExtractFromDir(*dir, *version, *symbols, pats...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gensurface:", err)
 		os.Exit(1)

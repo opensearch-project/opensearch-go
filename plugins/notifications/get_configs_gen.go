@@ -354,7 +354,7 @@ func (r GetConfigsParams) get() map[string]string {
 type GetConfigsResp struct {
 	ConfigList       []opensearchapi.NotificationsConfigsOutputItem `json:"config_list,omitempty"`
 	StartIndex       *int64                                         `json:"start_index,omitempty"`
-	TotalHitRelation *string                                        `json:"total_hit_relation,omitempty"`
+	TotalHitRelation *opensearchapi.TotalHitsRelation               `json:"total_hit_relation,omitempty"`
 	TotalHits        *int64                                         `json:"total_hits,omitempty"`
 
 	response *opensearch.Response

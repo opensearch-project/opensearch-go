@@ -39,8 +39,8 @@ import (
 func TestRewriteCorpus(t *testing.T) {
 	tests := []struct {
 		name    string
-		src     major
-		dst     major
+		src     version
+		dst     version
 		corpus  string   // txtar archive under testdata/corpus holding go.mod + fixtures
 		goldens []string // fixture files diffed against <file>.golden
 		// compileClean lists goldens that must be pure compiling target-version
@@ -50,12 +50,13 @@ func TestRewriteCorpus(t *testing.T) {
 		// where a rewrite leaves an import dangling - e.g. the root import going
 		// dead once *opensearch.Client is repointed to *opensearchapi.Client.
 		compileClean []string
-		edits        []string // substrings that must appear in the report
+		edits        []string       // substrings that must appear in the report
+		editCounts   map[string]int // report substring -> exact occurrence count
 	}{
 		{
 			name:   "v2_to_v3",
-			src:    2,
-			dst:    3,
+			src:    majorLine(2),
+			dst:    majorLine(3),
 			corpus: "v2",
 			// seedops: idiom-2 seed ops -> compiling v3. aliasedimport: aliased
 			// opensearchapi import stays single. paramsemit: destParams nests under
@@ -80,12 +81,48 @@ func TestRewriteCorpus(t *testing.T) {
 		},
 		{
 			name:    "v3_to_v4",
-			src:     3,
-			dst:     4,
+			src:     majorLine(3),
+			dst:     majorLine(4),
 			corpus:  "v3",
 			goldens: []string{"client.go"}, // quiet hop: only the import path bumps
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v3",
+			},
+		},
+		{
+			// The hop within v5 keeps the import path, so the report carries no
+			// import edit: only the type, field and symbol rulings. symbols.go
+			// covers the package-level symbol renames. dotimport.go uses an API
+			// name unqualified through a dot import: the rewriter follows only
+			// qualified selectors, so it stays unchanged and is reported MANUAL.
+			// own/own.go imports opensearchapi and uses one renamed constant
+			// qualified, which is rewritten, beside its own same-named const and
+			// func used unqualified, which stay.
+			name:    "v5_to_v5_2",
+			src:     majorLine(5),
+			dst:     version{major: 5, minor: 2},
+			corpus:  "v5",
+			goldens: []string{"minor.go", "symbols.go", "dotimport.go", "own/own.go"},
+			edits: []string{
+				"type SearchSuggestCompletion -> SearchCompletionSuggest",
+				"type SearchTotalHitsRelation -> TotalHitsRelation",
+				"const SearchTotalHitsRelationEq -> TotalHitsRelationEq",
+				"const SearchTotalHitsRelationGte -> TotalHitsRelationGte",
+				"type SearchSuggestCompletionOptions -> SearchCompletionSuggestOptions",
+				"func NewSearchSuggestCompletionOptionsFromText -> NewSearchCompletionSuggestOptionsFromText",
+				"func NewSearchSuggestCompletionOptionsFromArray -> NewSearchCompletionSuggestOptionsFromArray",
+				"const SearchSuggestCompletionOptionsUnknownType -> SearchCompletionSuggestOptionsUnknownType",
+				"const SearchSuggestCompletionOptionsTextType -> SearchCompletionSuggestOptionsTextType",
+				"const SearchSuggestCompletionOptionsArrayType -> SearchCompletionSuggestOptionsArrayType",
+				"type MLSearchHits -> MLSearchRespHits",
+				`InsightsTopQuery": field QueryHashcode -> QueryGroupHashcode`,
+				`AsynchronousSearchRespBody": field Took removed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v5/opensearchapi.RollupsInterval": access .Cron`,
+			},
+			editCounts: map[string]int{
+				// Only dotimport.go's one use is reported: qualified renames (symbols.go)
+				// are rewritten, not flagged, and own/own.go's same-named symbols stay silent.
+				"MANUAL const SearchTotalHitsRelationEq -> TotalHitsRelationEq: unqualified use (dot import)": 1,
 			},
 		},
 		{
@@ -112,8 +149,8 @@ func TestRewriteCorpus(t *testing.T) {
 			// a bare sub-client read is reported MANUAL. plugins: the removed plugin
 			// Config types and the regrouped plugin Client fields are reported MANUAL.
 			name:   "v4_to_v5",
-			src:    4,
-			dst:    5,
+			src:    majorLine(4),
+			dst:    majorLine(5),
 			corpus: "v4",
 			// removedtype: import bumps, the removed-type ref stays put.
 			goldens: []string{
@@ -182,6 +219,10 @@ func TestRewriteCorpus(t *testing.T) {
 			report := reportText(results)
 			for _, want := range tt.edits {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
+			}
+
+			for s, n := range tt.editCounts {
+				require.Equal(t, n, strings.Count(report, s), "report must mention %q exactly %d time(s)\nfull report:\n%s", s, n, report)
 			}
 
 			archivePath := filepath.Join("testdata", "corpus", tt.corpus+".txtar")
