@@ -90,14 +90,29 @@ func TestRewriteCorpus(t *testing.T) {
 		},
 		{
 			// The hop within v5 keeps the import path, so the report carries no
-			// import edit: only the type and field rulings.
+			// import edit: only the type, field and symbol rulings. symbols.go
+			// covers the package-level symbol renames. dotimport.go uses an API
+			// name unqualified through a dot import: it is the API symbol, but the
+			// rewriter follows only qualified selectors, so it stays unchanged.
+			// own/own.go imports opensearchapi and uses one renamed constant
+			// qualified, which is rewritten, beside its own same-named const and
+			// func used unqualified, which stay.
 			name:    "v5_to_v5_2",
 			src:     majorLine(5),
 			dst:     version{major: 5, minor: 2},
 			corpus:  "v5",
-			goldens: []string{"minor.go"},
+			goldens: []string{"minor.go", "symbols.go", "dotimport.go", "own/own.go"},
 			edits: []string{
 				"type SearchSuggestCompletion -> SearchCompletionSuggest",
+				"type SearchTotalHitsRelation -> TotalHitsRelation",
+				"const SearchTotalHitsRelationEq -> TotalHitsRelationEq",
+				"const SearchTotalHitsRelationGte -> TotalHitsRelationGte",
+				"type SearchSuggestCompletionOptions -> SearchCompletionSuggestOptions",
+				"func NewSearchSuggestCompletionOptionsFromText -> NewSearchCompletionSuggestOptionsFromText",
+				"func NewSearchSuggestCompletionOptionsFromArray -> NewSearchCompletionSuggestOptionsFromArray",
+				"const SearchSuggestCompletionOptionsUnknownType -> SearchCompletionSuggestOptionsUnknownType",
+				"const SearchSuggestCompletionOptionsTextType -> SearchCompletionSuggestOptionsTextType",
+				"const SearchSuggestCompletionOptionsArrayType -> SearchCompletionSuggestOptionsArrayType",
 				"type MLSearchHits -> MLSearchRespHits",
 				`InsightsTopQuery": field QueryHashcode -> QueryGroupHashcode`,
 				`AsynchronousSearchRespBody": field Took removed`,

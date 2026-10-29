@@ -585,6 +585,59 @@ type SearchCompletionSuggest struct {
 // SearchSuggestCompletion collapses into SearchCompletionSuggest in v5.2.
 type SearchSuggestCompletion struct {
 	SearchCompletionSuggest
+	Options *SearchSuggestCompletionOptions
+}
+
+// SearchTotalHitsRelation is renamed TotalHitsRelation in v5.2.
+type SearchTotalHitsRelation string
+
+const (
+	// SearchTotalHitsRelationEq is renamed TotalHitsRelationEq in v5.2.
+	SearchTotalHitsRelationEq SearchTotalHitsRelation = "eq"
+	// SearchTotalHitsRelationGte is renamed TotalHitsRelationGte in v5.2.
+	SearchTotalHitsRelationGte SearchTotalHitsRelation = "gte"
+)
+
+// SearchTotalHits holds the renamed Relation.
+type SearchTotalHits struct {
+	Relation SearchTotalHitsRelation
+	Value    int64
+}
+
+// SearchCompletionSuggestOption is the argument the renamed Options
+// constructors take.
+type SearchCompletionSuggestOption struct {
+	Text string
+}
+
+// SearchSuggestCompletionOptions is renamed SearchCompletionSuggestOptions in v5.2.
+type SearchSuggestCompletionOptions struct {
+	typ SearchSuggestCompletionOptionsType
+}
+
+// SearchSuggestCompletionOptionsType is renamed SearchCompletionSuggestOptionsType in v5.2.
+type SearchSuggestCompletionOptionsType int
+
+const (
+	// SearchSuggestCompletionOptionsUnknownType is renamed SearchCompletionSuggestOptionsUnknownType in v5.2.
+	SearchSuggestCompletionOptionsUnknownType SearchSuggestCompletionOptionsType = iota
+	// SearchSuggestCompletionOptionsTextType is renamed SearchCompletionSuggestOptionsTextType in v5.2.
+	SearchSuggestCompletionOptionsTextType
+	// SearchSuggestCompletionOptionsArrayType is renamed SearchCompletionSuggestOptionsArrayType in v5.2.
+	SearchSuggestCompletionOptionsArrayType
+)
+
+// Type returns the branch constant the corpus switches on.
+func (u *SearchSuggestCompletionOptions) Type() SearchSuggestCompletionOptionsType { return u.typ }
+
+// NewSearchSuggestCompletionOptionsFromText is renamed NewSearchCompletionSuggestOptionsFromText in v5.2.
+func NewSearchSuggestCompletionOptionsFromText(v SearchCompletionSuggestOption) SearchSuggestCompletionOptions {
+	return SearchSuggestCompletionOptions{typ: SearchSuggestCompletionOptionsTextType}
+}
+
+// NewSearchSuggestCompletionOptionsFromArray is renamed NewSearchCompletionSuggestOptionsFromArray in v5.2.
+func NewSearchSuggestCompletionOptionsFromArray(v []SearchCompletionSuggestOption) SearchSuggestCompletionOptions {
+	return SearchSuggestCompletionOptions{typ: SearchSuggestCompletionOptionsArrayType}
 }
 
 // InsightsTopQuery's QueryHashcode is QueryGroupHashcode in v5.2.
