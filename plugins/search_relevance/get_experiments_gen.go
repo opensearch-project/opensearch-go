@@ -91,7 +91,7 @@ type GetExperimentsResp struct {
 	ScrollID        *string                                              `json:"_scroll_id,omitempty"`
 	Shards          opensearchapi.ShardStatistics                        `json:"_shards"`
 	Aggregations    map[string]opensearchapi.CommonAggregationsAggregate `json:"aggregations,omitempty"`
-	Hits            opensearchapi.SearchResultHits                       `json:"hits"`
+	Hits            opensearchapi.SearchHitsMetadata                     `json:"hits"`
 	NumReducePhases *int                                                 `json:"num_reduce_phases,omitempty"`
 
 	// PhaseTook is the time taken by different phases of the search.

@@ -765,11 +765,6 @@ type CommonAggregationsVariableWidthHistogramAggregate struct {
 	Buckets CommonAggregationsVariableWidthHistogramAggregateBuckets `json:"buckets"`
 }
 
-type SearchResultHits struct {
-	SearchHitsMetadata
-	Hits []SearchHit `json:"hits,omitempty"`
-}
-
 // The time taken by different phases of the search.
 type PhaseTook struct {
 	// CanMatch is the time taken for the `can_match` phase.
@@ -984,11 +979,6 @@ type SearchCompletionSuggest struct {
 	Options SearchCompletionSuggestOptions `json:"options"`
 }
 
-type SearchSuggestCompletion struct {
-	SearchCompletionSuggest
-	Options *SearchSuggestCompletionOptions `json:"options,omitempty"`
-}
-
 type SearchPhraseSuggestOption struct {
 	CollateMatch *bool   `json:"collate_match,omitempty"`
 	Highlighted  *string `json:"highlighted,omitempty"`
@@ -1019,7 +1009,7 @@ type SearchResult struct {
 	ScrollID        *string                                `json:"_scroll_id,omitempty"`
 	Shards          ShardStatistics                        `json:"_shards"`
 	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
-	Hits            SearchResultHits                       `json:"hits"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
 	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
 
 	// PhaseTook is the time taken by different phases of the search.
@@ -9506,6 +9496,7 @@ type KNNModelResponse struct {
 }
 
 type SearchResultJSONValueHits struct {
+	SearchHitsMetadata
 	Hits []SearchHit `json:"hits,omitempty"`
 }
 
@@ -10784,12 +10775,14 @@ type MLSource struct {
 
 type MLSearchHitsHit struct {
 	SearchHit
+	Source *MLSource `json:"_source,omitempty"`
 
 	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 }
 
 type MLSearchRespHits struct {
+	SearchHitsMetadata
 	Hits []MLSearchHitsHit `json:"hits,omitempty"`
 }
 
@@ -13949,6 +13942,18 @@ type CommonAggregationsExtendedBounds struct {
 	Min json.RawMessage `json:"min"`
 }
 
+type CommonAggregationsExtendedBoundsFieldDateMath struct {
+	CommonAggregationsExtendedBounds
+
+	// Max is a date range limit, represented either as a DateMath expression
+	// or a number expressed according to the target field's precision.
+	Max *CommonAggregationsFieldDateMath `json:"max,omitempty"`
+
+	// Min is a date range limit, represented either as a DateMath expression
+	// or a number expressed according to the target field's precision.
+	Min *CommonAggregationsFieldDateMath `json:"min,omitempty"`
+}
+
 type CommonAggregationsHistogramOrder struct {
 	// Count is the direction of the sort order.
 	Count *string `json:"_count,omitempty"`
@@ -13958,8 +13963,8 @@ type CommonAggregationsHistogramOrder struct {
 }
 
 type CommonAggregationsDateHistogramAggregationFields struct {
-	CalendarInterval *string                           `json:"calendar_interval,omitempty"`
-	ExtendedBounds   *CommonAggregationsExtendedBounds `json:"extended_bounds,omitempty"`
+	CalendarInterval *string                                        `json:"calendar_interval,omitempty"`
+	ExtendedBounds   *CommonAggregationsExtendedBoundsFieldDateMath `json:"extended_bounds,omitempty"`
 
 	// Field is the path to a field or an array of paths. Some APIs support
 	// wildcards in the path, which allows you to select multiple fields.
@@ -13976,7 +13981,7 @@ type CommonAggregationsDateHistogramAggregationFields struct {
 	// in the field mapping is used.
 	Format *string `json:"format,omitempty"`
 
-	HardBounds *CommonAggregationsExtendedBounds `json:"hard_bounds,omitempty"`
+	HardBounds *CommonAggregationsExtendedBoundsFieldDateMath `json:"hard_bounds,omitempty"`
 
 	// Interval is a duration. Units can be `nanos`, `micros`, `ms`
 	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
@@ -14198,15 +14203,21 @@ type CommonAggregationsGeoTileGridAggregationFields struct {
 type CommonAggregationsGlobalAggregationFields struct {
 }
 
+type CommonAggregationsExtendedBoundsDouble struct {
+	CommonAggregationsExtendedBounds
+	Max *float64 `json:"max,omitempty"`
+	Min *float64 `json:"min,omitempty"`
+}
+
 type CommonAggregationsHistogramAggregationFields struct {
-	ExtendedBounds *CommonAggregationsExtendedBounds `json:"extended_bounds,omitempty"`
+	ExtendedBounds *CommonAggregationsExtendedBoundsDouble `json:"extended_bounds,omitempty"`
 
 	// Field is the path to a field or an array of paths. Some APIs support
 	// wildcards in the path, which allows you to select multiple fields.
 	Field *string `json:"field,omitempty"`
 
-	Format     *string                           `json:"format,omitempty"`
-	HardBounds *CommonAggregationsExtendedBounds `json:"hard_bounds,omitempty"`
+	Format     *string                                 `json:"format,omitempty"`
+	HardBounds *CommonAggregationsExtendedBoundsDouble `json:"hard_bounds,omitempty"`
 
 	// Interval is the interval for the buckets. Must be a positive decimal.
 	Interval *float64 `json:"interval,omitempty"`

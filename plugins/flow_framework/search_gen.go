@@ -15,6 +15,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -148,9 +149,59 @@ type FlowFrameworkCommonShards struct {
 
 // FlowFrameworkCommonHits is a typed component of the flow_framework.search operation.
 type FlowFrameworkCommonHits struct {
-	Hits     []opensearchapi.SearchHit `json:"hits,omitempty"`
-	MaxScore *float32                  `json:"max_score,omitempty"`
-	Total    *FlowFrameworkCommonTotal `json:"total,omitempty"`
+	Hits     []FlowFrameworkCommonItemsObject `json:"hits,omitempty"`
+	MaxScore *float32                         `json:"max_score,omitempty"`
+	Total    *FlowFrameworkCommonTotal        `json:"total,omitempty"`
+}
+
+// FlowFrameworkCommonItemsObject is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonItemsObject struct {
+	opensearchapi.SearchHit
+	Source *FlowFrameworkCommonGetResp `json:"_source,omitempty"`
+}
+
+// FlowFrameworkCommonGetResp is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonGetResp struct {
+	// AllSharedPrincipals is the entities this workflow is shared with.
+	//
+	// Available: >= 3.4.0.
+	AllSharedPrincipals []string `json:"all_shared_principals,omitempty"`
+
+	// CreatedTime. When the workflow was created.
+	CreatedTime *int64 `json:"created_time,omitempty"`
+
+	// Description is the description of the workflow.
+	Description *string `json:"description,omitempty"`
+
+	// LastProvisionedTime. When the workflow was last provisioned.
+	LastProvisionedTime *int64 `json:"last_provisioned_time,omitempty"`
+
+	// LastUpdatedTime. When the workflow was last updated.
+	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
+
+	// Name is the name of the workflow.
+	Name *string `json:"name,omitempty"`
+
+	// TenantID is the tenant ID of the workflow.
+	//
+	// Available: >= 3.0.0.
+	TenantID *string `json:"tenant_id,omitempty"`
+
+	// UiMetadata is a map of UI metadata.
+	UiMetadata json.RawMessage `json:"ui_metadata,omitempty"`
+
+	// UseCase is a use case ID, which can be used with the Search Workflow API
+	// to find related workflows.
+	UseCase *string `json:"use_case,omitempty"`
+
+	User *FlowFrameworkCommonUser `json:"user,omitempty"`
+
+	// Version is a key-value map with two fields, template, which identifies
+	// the template version, and compatibility, which identifies a list of
+	// minimum required OpenSearch versions.
+	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
+
+	Workflows json.RawMessage `json:"workflows,omitempty"`
 }
 
 // FlowFrameworkCommonTotal is a typed component of the flow_framework.search operation.

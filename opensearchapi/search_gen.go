@@ -586,7 +586,7 @@ type SearchResp struct {
 	ScrollID        *string                                `json:"_scroll_id,omitempty"`
 	Shards          ShardStatistics                        `json:"_shards"`
 	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
-	Hits            SearchResultHits                       `json:"hits"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
 	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
 
 	// PhaseTook is the time taken by different phases of the search.
