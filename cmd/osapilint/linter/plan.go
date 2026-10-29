@@ -9,6 +9,7 @@ package linter
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
@@ -68,11 +69,14 @@ func planChain(src, dst version) ([]hopPlan, error) {
 			return nil, err
 		}
 
+		// Fieldless structs (unions) are in the surface, so a symbol rename must
+		// reach DeriveDelta too or the renamed type is reported as removed.
+		renames := slices.Concat(h.TypeRenames, h.SymbolRenames)
 		plans = append(plans, hopPlan{
 			from:           h.From,
 			to:             h.To,
-			delta:          apirev.DeriveDelta(fromSnap, toSnap, h.TypeRenames, h.FieldDispositions),
-			renames:        h.TypeRenames,
+			delta:          apirev.DeriveDelta(fromSnap, toSnap, renames, h.FieldDispositions),
+			renames:        renames,
 			regroups:       h.MethodRegroups,
 			removedHelpers: h.RemovedHelpers,
 			importPrefixes: [][2]string{{modulePath(h.From.major), modulePath(h.To.major)}},

@@ -164,11 +164,14 @@ const (
 // hop is one adjacent transition (From -> the next line): the hand-authored data
 // that cannot be auto-derived from the surfaces alone.
 //
-//   - TypeRenames:       types whose NAME changed across the hop (surface diffing
-//     handles same-name survivors automatically; this is only for renames).
-//   - SymbolRenames:     package-level constants, functions and non-struct types
-//     whose NAME changed across the hop (TypeRenames covers structs). Each pair
-//     is checked equivalent against the surfaces (see apirev.EquivalentSymbol).
+//   - TypeRenames:       structs with exported fields whose NAME changed across the
+//     hop (surface diffing handles same-name survivors automatically; this is
+//     only for renames).
+//   - SymbolRenames:     package-level constants, functions, non-struct types and
+//     structs with no exported field (such as unions) whose NAME changed across
+//     the hop. Each pair is checked equivalent against the surfaces (see
+//     apirev.EquivalentSymbol).
+//     The rewriter reads them through the same rename index as TypeRenames.
 //   - FieldDispositions: rulings for struct fields that vanish on the target -
 //     rename, remove, or manual, matched by (source pkg + type + field). A
 //     closed, discrete table; a vanished field with no ruling is "unclassified"

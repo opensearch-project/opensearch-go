@@ -73,9 +73,9 @@ type rewriteRules struct {
 // an internal visitor backed by rewriteFileTyped. Walk owns the load gate,
 // dedupe, unclassified-abort, and write sandbox.
 func runTypeAwareRewrite(cfg rewriteConfig) ([]rewriteResult, error) {
-	// Build quick lookups from the rename table: qualified source type -> target
-	// name, so a type reference (opensearchapi.DocumentGetReq) can be renamed to
-	// its target spelling.
+	// Build quick lookups from the rename table: qualified source symbol -> target
+	// name, so a reference (opensearchapi.DocumentGetReq) can be renamed to its
+	// target spelling.
 	renameByFrom := map[string]apirev.TypeRename{}
 	for _, r := range cfg.renames {
 		renameByFrom[r.FromPkgPath+"."+r.FromName] = r
@@ -146,8 +146,8 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			res.edits = append(res.edits, edits...)
 			res.unclassified = append(res.unclassified, unclassified...)
 		case *ast.SelectorExpr:
-			// Type reference rename: opensearchapi.DocumentGetReq -> .GetReq.
-			if e := rewriteTypeRef(n, info, rules.renameByFrom); e != "" {
+			// Package-level symbol rename: opensearchapi.DocumentGetReq -> .GetReq.
+			if e := rewriteSymbolRef(n, info, rules.renameByFrom); e != "" {
 				res.edits = append(res.edits, e)
 			}
 			// Reference to a type removed outright on the target (idiom 1's
@@ -949,17 +949,28 @@ func isOpenSearchAPIClient(t types.Type) bool {
 	return named.Obj().Name() == "Client" && isOpenSearchAPIPath(named.Obj().Pkg().Path())
 }
 
-// rewriteTypeRef renames a qualified type reference whose v4 type was renamed in
-// v5 (opensearchapi.DocumentGetReq -> opensearchapi.GetReq). It matches on the
-// resolved object so only the intended type is touched.
-func rewriteTypeRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
+// rewriteSymbolRef renames a qualified reference to a package-level type,
+// constant or function that was renamed on the target
+// (opensearchapi.DocumentGetReq -> opensearchapi.GetReq). It matches on the
+// resolved object so only the intended symbol is touched: the package-scope
+// check excludes methods and fields, and variables are not renamed at all.
+func rewriteSymbolRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
 	obj := info.Uses[sel.Sel]
-	tn, ok := obj.(*types.TypeName)
-	if !ok || tn.Pkg() == nil {
+	var kind string
+	switch obj.(type) {
+	case *types.TypeName:
+		kind = "type"
+	case *types.Const:
+		kind = "const"
+	case *types.Func:
+		kind = "func"
+	default:
 		return ""
 	}
-	key := tn.Pkg().Path() + "." + tn.Name()
-	r, ok := renameByFrom[key]
+	if obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
+		return ""
+	}
+	r, ok := renameByFrom[obj.Pkg().Path()+"."+obj.Name()]
 	if !ok {
 		return ""
 	}
@@ -967,7 +978,7 @@ func rewriteTypeRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[st
 	// Rename in place: a fresh identifier has no position, and the printer then
 	// misplaces what follows it (a closing parenthesis prints as ",)").
 	sel.Sel.Name = r.ToName
-	return fmt.Sprintf("type %s -> %s", old, r.ToName)
+	return fmt.Sprintf("%s %s -> %s", kind, old, r.ToName)
 }
 
 // flagRemovedTypeRef reports a reference to a source type that was removed

@@ -285,3 +285,45 @@ func TestDecodeSurface_MergesPluginSymbols(t *testing.T) {
 		require.True(t, ok, "symbol %q in %q", tc.name, tc.pkg)
 	}
 }
+
+// TestPlanChain_SymbolRenamesInDelta verifies symbol renames reach DeriveDelta
+// and the rewriter's rename index: a fieldless struct renamed as a symbol is
+// not reported removed (which would flag the selector the rewriter just
+// renamed), and a field typed with a renamed symbol keeps its pointer-wrap
+// classification.
+func TestPlanChain_SymbolRenamesInDelta(t *testing.T) {
+	union := apirev.TypeRename{FromPkgPath: pkgN(7), FromName: "OldUnion", ToPkgPath: pkgN(8), ToName: "NewUnion"}
+	rel := apirev.TypeRename{FromPkgPath: pkgN(7), FromName: "OldRel", ToPkgPath: pkgN(8), ToName: "NewRel"}
+	installSynthetic(t,
+		map[version]hop{majorLine(7): {From: majorLine(7), To: majorLine(8), SymbolRenames: []apirev.TypeRename{union, rel}}},
+		map[version][]byte{
+			majorLine(7): mkSurface(t, "v7",
+				apirev.Struct{PkgPath: pkgN(7), Name: "OldUnion"},
+				apirev.Struct{PkgPath: pkgN(7), Name: "Hits", Fields: []apirev.Field{{Name: "Rel", Type: pkgN(7) + ".OldRel"}}}),
+			majorLine(8): mkSurface(t, "v8",
+				apirev.Struct{PkgPath: pkgN(8), Name: "NewUnion"},
+				apirev.Struct{PkgPath: pkgN(8), Name: "Hits", Fields: []apirev.Field{{Name: "Rel", Type: "*" + pkgN(8) + ".NewRel"}}}),
+		},
+	)
+
+	plans, err := planChain(majorLine(7), majorLine(8))
+	require.NoError(t, err)
+	require.Len(t, plans, 1)
+	require.Equal(t, []apirev.TypeRename{union, rel}, plans[0].renames)
+	require.False(t, plans[0].delta.RemovedTypes[pkgN(7)+".OldUnion"])
+	assertChangeKind(t, plans[0].delta.Structs[pkgN(7)+".Hits"].Changes, "Rel", apirev.KindPointerWrap)
+}
+
+// TestPlanChain_V5toV5_2SymbolRenamesNotRemoved pins that no real v5 -> v5.2
+// symbol rename is also reported as a removed type.
+func TestPlanChain_V5toV5_2SymbolRenamesNotRemoved(t *testing.T) {
+	t.Parallel()
+
+	plans, err := planChain(version{major: 5}, version{major: 5, minor: 2})
+	require.NoError(t, err)
+	require.Len(t, plans, 1)
+	for _, r := range hopV5toV5_2.SymbolRenames {
+		q := r.FromPkgPath + "." + r.FromName
+		require.Falsef(t, plans[0].delta.RemovedTypes[q], "%q is renamed, not removed", q)
+	}
+}
