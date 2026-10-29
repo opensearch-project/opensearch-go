@@ -218,18 +218,25 @@ func dropRedundantRefTypeConjuncts(spec *openapi3.T) error {
 // property another member already declares, so the walker sees each override
 // for what it adds:
 //
-//   - an override identical to the base declaration is deleted. Result.hits
-//     composes Meta with an override restating Meta.hits, and the restatement
-//     would otherwise keep Result.hits from collapsing to Meta.
+//   - an override that conveys no concrete type (an erased type parameter, or
+//     {}) is deleted, as the walker would skip it anyway. A JsonValue hit
+//     substitutes {} for Hit's TDocument _source, and the restatement would
+//     otherwise keep the hits holding it from matching the base's hits.
+//   - an override identical to the base declaration is deleted.
+//     SearchResult.hits composes HitsMetadata with an override restating
+//     HitsMetadata.hits, and the restatement would otherwise keep
+//     SearchResult.hits from collapsing to HitsMetadata.
 //   - an inline object override of an object property becomes allOf of the base
-//     declaration and the override. The walker would otherwise emit the override
-//     as its own struct holding only the fields it names, so narrowing
-//     SearchResult.hits.hits would drop hits.total and hits.max_score.
+//     declaration and the override, or is deleted when every property it names
+//     is identical to the base's. The walker would otherwise emit the override as
+//     its own struct holding only the fields it names, so the ML search response
+//     narrowing SearchResult.hits.hits would drop hits.total and hits.max_score.
 //
-// The deletions run first so a merge splices in already-cleaned base members.
-// They are all found before any is applied: an override nested inside another
-// (the _source of a hit inside hits) would otherwise change what the outer one
-// compares against, and the result would depend on the walk order.
+// Each deletion pass finds all its overrides before applying any: an override
+// nested inside another (the _source of a hit inside hits) would otherwise
+// change what the outer one compares against, and the result would depend on
+// the walk order. The deletions run before the merges so a merge splices in
+// already-cleaned base members.
 func normalizeAllOfOverrides(spec *openapi3.T) error {
 	w := &walker{spec: spec}
 	walkAllOfs := func(fn func(*openapi3.Schema)) error {
@@ -241,12 +248,14 @@ func normalizeAllOfOverrides(spec *openapi3.T) error {
 		})
 	}
 
-	var drops []propertyDrop
-	if err := walkAllOfs(func(s *openapi3.Schema) { drops = append(drops, w.identicalOverrides(s)...) }); err != nil {
-		return err
-	}
-	for _, d := range drops {
-		delete(d.props, d.name)
+	for _, find := range []func(*openapi3.Schema) []propertyDrop{w.erasedOverrides, w.identicalOverrides} {
+		var drops []propertyDrop
+		if err := walkAllOfs(func(s *openapi3.Schema) { drops = append(drops, find(s)...) }); err != nil {
+			return err
+		}
+		for _, d := range drops {
+			delete(d.props, d.name)
+		}
 	}
 	return walkAllOfs(w.mergeObjectOverrides)
 }
@@ -271,9 +280,9 @@ func (w *walker) baseDeclaration(schema *openapi3.Schema, member *openapi3.Schem
 	return nil
 }
 
-// identicalOverrides returns the inline-member properties that marshal the same
-// as the base declaration they redeclare.
-func (w *walker) identicalOverrides(schema *openapi3.Schema) []propertyDrop {
+// overrides returns the inline-member properties of schema that redeclare a
+// base declaration and that redundant reports true for.
+func (w *walker) overrides(schema *openapi3.Schema, redundant func(prop, base *openapi3.SchemaRef) bool) []propertyDrop {
 	var drops []propertyDrop
 	for _, member := range schema.AllOf {
 		if member.Ref != "" || member.Value == nil {
@@ -281,7 +290,7 @@ func (w *walker) identicalOverrides(schema *openapi3.Schema) []propertyDrop {
 		}
 		for name, prop := range member.Value.Properties {
 			base := w.baseDeclaration(schema, member, name)
-			if base != nil && sameSchema(prop, base) {
+			if base != nil && redundant(prop, base) {
 				drops = append(drops, propertyDrop{props: member.Value.Properties, name: name})
 			}
 		}
@@ -289,8 +298,23 @@ func (w *walker) identicalOverrides(schema *openapi3.Schema) []propertyDrop {
 	return drops
 }
 
+// erasedOverrides returns the inline-member properties that redeclare a base
+// declaration without conveying a concrete type.
+func (w *walker) erasedOverrides(schema *openapi3.Schema) []propertyDrop {
+	return w.overrides(schema, func(prop, _ *openapi3.SchemaRef) bool {
+		return w.conveysNoConcreteType(prop, make(set[string]))
+	})
+}
+
+// identicalOverrides returns the inline-member properties that marshal the same
+// as the base declaration they redeclare.
+func (w *walker) identicalOverrides(schema *openapi3.Schema) []propertyDrop {
+	return w.overrides(schema, sameSchema)
+}
+
 // mergeObjectOverrides replaces each inline object override of an object property
-// with allOf of the base declaration's members and the override.
+// with allOf of the base declaration's members and the override, and deletes one
+// that only restates the base.
 func (w *walker) mergeObjectOverrides(schema *openapi3.Schema) {
 	for _, member := range schema.AllOf {
 		if member.Ref != "" || member.Value == nil {
@@ -307,6 +331,10 @@ func (w *walker) mergeObjectOverrides(schema *openapi3.Schema) {
 			if len(base.Value.Properties) == 0 && len(base.Value.AllOf) == 0 {
 				continue
 			}
+			if w.restatesBase(prop.Value, base) {
+				delete(member.Value.Properties, name)
+				continue
+			}
 			// An inline allOf base is spliced: as a member it would be inlined by
 			// its properties, and it has none of its own.
 			members := openapi3.SchemaRefs{base}
@@ -319,6 +347,18 @@ func (w *walker) mergeObjectOverrides(schema *openapi3.Schema) {
 			}}
 		}
 	}
+}
+
+// restatesBase reports whether every property override declares is identical to
+// the base's declaration of it.
+func (w *walker) restatesBase(override *openapi3.Schema, base *openapi3.SchemaRef) bool {
+	for name, prop := range override.Properties {
+		decl := w.propertyDeclaration(base, name, make(set[string]))
+		if decl == nil || !sameSchema(prop, decl) {
+			return false
+		}
+	}
+	return true
 }
 
 // isPlainObject reports whether ref is an inline schema declaring properties and

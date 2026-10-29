@@ -610,3 +610,65 @@ components:
 	require.NotEmpty(t, props["extra"].Value.Properties, "a property the base does not declare is left alone")
 	require.Empty(t, props["extra"].Value.AllOf)
 }
+
+// TestNormalizeAllOfOverridesFoldsErasedRestatements covers the JsonValue
+// instantiations: a hit whose _source is substituted with {} restates Hit's
+// erased _source, so hits holding it restate the base's hits, and an object
+// override made only of such restatements adds nothing and is deleted.
+func TestNormalizeAllOfOverridesFoldsErasedRestatements(t *testing.T) {
+	t.Parallel()
+
+	doc := `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    TDoc:
+      x-is-generic-type-parameter: true
+    Hit:
+      type: object
+      properties:
+        _id: {type: string}
+        _source: {$ref: '#/components/schemas/TDoc'}
+    Meta:
+      type: object
+      properties:
+        hits:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Hit'
+              - type: object
+                properties:
+                  _source: {$ref: '#/components/schemas/TDoc'}
+    Result:
+      type: object
+      properties:
+        hits: {$ref: '#/components/schemas/Meta'}
+    ResultJsonValue:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            hits:
+              type: object
+              properties:
+                hits:
+                  type: array
+                  items:
+                    allOf:
+                      - $ref: '#/components/schemas/Hit'
+                      - type: object
+                        properties:
+                          _source: {}
+`
+	spec, err := openapi3.NewLoader().LoadFromData([]byte(doc))
+	require.NoError(t, err)
+	require.NoError(t, normalizeAllOfOverrides(spec))
+
+	item := spec.Components.Schemas["Meta"].Value.Properties["hits"].Value.Items.Value
+	require.Empty(t, item.AllOf[1].Value.Properties, "an erased _source restating Hit's is deleted")
+
+	override := spec.Components.Schemas["ResultJsonValue"].Value.AllOf[1].Value
+	require.NotContains(t, override.Properties, "hits", "a hits override that only restates Result.hits is deleted")
+}

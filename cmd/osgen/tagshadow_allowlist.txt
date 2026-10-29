@@ -44,11 +44,7 @@ CommonAggregationsUnsignedLongTermsAggregate/buckets/CommonAggregationsMultiBuck
 CommonAggregationsVariableWidthHistogramAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsVariableWidthHistogramAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 
 # --- _core.search ---
-SearchHitsMetadataJSONValue/hits/SearchHitsMetadata # redundant redeclaration: []SearchHit shadows SearchHitsMetadata.hits []SearchHit; makes a required field optional
-SearchResultJSONValue/hits/SearchResult # intentional narrowing: *SearchResultJSONValueHits shadows SearchResult.hits SearchHitsMetadata; makes a required field optional
 SearchResultJSONValue/suggest/SearchResult # intentional narrowing: map[string][]SearchResultJSONValueSuggestValueItem shadows SearchResult.suggest map[string][]SearchSuggest
-SearchResultJSONValueHits/hits/SearchHitsMetadata # redundant redeclaration: []SearchHit shadows SearchHitsMetadata.hits []SearchHit; makes a required field optional
-SearchResultJSONValueSuggestValueItemCompletion/options/SearchCompletionSuggest # intentional narrowing: *SearchResultJSONValueSuggestValueItemCompletionOptions shadows SearchCompletionSuggest.options SearchCompletionSuggestOptions; makes a required field optional
 
 # --- flow_framework.common ---
 FlowFrameworkCommonItemsObject/_source/SearchHit # intentional narrowing: *FlowFrameworkCommonGetResp shadows SearchHit._source json.RawMessage
