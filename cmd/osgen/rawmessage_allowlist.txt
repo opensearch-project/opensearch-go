@@ -79,10 +79,6 @@ ClusterStateResp/- # bare
 # --- delete_by_query ---
 DeleteByQueryResp/- # bare
 
-# --- flow_framework.common ---
-FlowFrameworkCommonGetResp/ui_metadata # bare
-FlowFrameworkCommonGetResp/workflows # bare
-
 # --- flow_framework.create ---
 FlowFrameworkCommonFlowFrameworkCreate/ui_metadata # bare
 FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
@@ -94,6 +90,10 @@ GetResp/workflows # bare
 # --- flow_framework.get_status ---
 FlowFrameworkCommonWorkFlowStatusFullResponse/user_outputs # map
 GetStatusResp/- # bare
+
+# --- flow_framework.search ---
+FlowFrameworkCommonGetResp/ui_metadata # bare
+FlowFrameworkCommonGetResp/workflows # bare
 
 # --- flow_framework.update ---
 FlowFrameworkCommonFlowFrameworkUpdate/ui_metadata # bare

@@ -499,3 +499,114 @@ components:
 		})
 	}
 }
+
+// overrideDoc is a spec in the shape #1113 gives search responses: Result.hits
+// composes Meta with an inline override, and Wrapped narrows Result.hits again.
+const overrideDoc = `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    Hit:
+      type: object
+      properties:
+        _id: {type: string}
+    Meta:
+      type: object
+      properties:
+        total: {type: integer}
+        hits:
+          type: array
+          items: {$ref: '#/components/schemas/Hit'}
+      required: [hits]
+    Result:
+      type: object
+      properties:
+        hits:
+          allOf:
+            - $ref: '#/components/schemas/Meta'
+            - type: object
+              properties:
+                hits:
+                  type: array
+                  items: {$ref: '#/components/schemas/Hit'}
+    Wrapped:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            hits:
+              description: The narrowed hits.
+              type: object
+              properties:
+                hits:
+                  type: array
+                  items: {type: string}
+`
+
+func TestNormalizeAllOfOverrides(t *testing.T) {
+	t.Parallel()
+
+	spec, err := openapi3.NewLoader().LoadFromData([]byte(overrideDoc))
+	require.NoError(t, err)
+	require.NoError(t, normalizeAllOfOverrides(spec))
+
+	// The override restating Meta.hits exactly is dropped, so Result.hits is Meta.
+	resultHits := spec.Components.Schemas["Result"].Value.Properties["hits"].Value
+	require.Empty(t, resultHits.AllOf[1].Value.Properties,
+		"an override identical to the base declaration conveys nothing")
+
+	// Wrapped.hits keeps the Meta fields it would otherwise shadow: the override
+	// becomes the members of Result.hits plus the narrowing itself.
+	wrappedHits := spec.Components.Schemas["Wrapped"].Value.AllOf[1].Value.Properties["hits"]
+	require.Empty(t, wrappedHits.Ref)
+	require.Equal(t, "The narrowed hits.", wrappedHits.Value.Description)
+	members := wrappedHits.Value.AllOf
+	require.Len(t, members, 3)
+	require.Equal(t, "#/components/schemas/Meta", members[0].Ref)
+	require.Equal(t, []string{"string"}, members[2].Value.Properties["hits"].Value.Items.Value.Type.Slice())
+
+	// A second pass changes nothing.
+	require.NoError(t, normalizeAllOfOverrides(spec))
+	require.Len(t, spec.Components.Schemas["Wrapped"].Value.AllOf[1].Value.Properties["hits"].Value.AllOf, 3)
+}
+
+func TestNormalizeAllOfOverridesKeepsRealOverrides(t *testing.T) {
+	t.Parallel()
+
+	doc := `openapi: 3.1.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    Base:
+      type: object
+      properties:
+        count: {type: integer}
+        tags:
+          type: array
+          items: {type: string}
+    Narrowed:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          properties:
+            count: {type: integer, format: int32}
+            tags:
+              type: array
+              items: {type: integer}
+            extra:
+              type: object
+              properties:
+                a: {type: string}
+`
+	spec, err := openapi3.NewLoader().LoadFromData([]byte(doc))
+	require.NoError(t, err)
+	require.NoError(t, normalizeAllOfOverrides(spec))
+
+	props := spec.Components.Schemas["Narrowed"].Value.AllOf[1].Value.Properties
+	require.Len(t, props, 3, "overrides that differ from the base are kept")
+	require.Empty(t, props["tags"].Value.AllOf, "only an object override of an object property is merged")
+	require.NotEmpty(t, props["extra"].Value.Properties, "a property the base does not declare is left alone")
+	require.Empty(t, props["extra"].Value.AllOf)
+}

@@ -140,10 +140,18 @@ func namesConcreteSchema(s *openapi3.Schema) bool {
 // resolveAllOf and collectFields build the embedded field set. visited is
 // walkAllOfChain's.
 func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visited set[string]) bool {
-	return w.walkAllOfChain(ref, "", visited, func(_ string, s *openapi3.Schema) bool {
-		_, ok := s.Properties[jsonName]
-		return ok
+	return w.propertyDeclaration(ref, jsonName, visited) != nil
+}
+
+// propertyDeclaration returns the first declaration of jsonName along the allOf
+// chain rooted at ref, as declaresProperty finds it, or nil when there is none.
+func (w *walker) propertyDeclaration(ref *openapi3.SchemaRef, jsonName string, visited set[string]) *openapi3.SchemaRef {
+	var decl *openapi3.SchemaRef
+	w.walkAllOfChain(ref, "", visited, func(_ string, s *openapi3.Schema) bool {
+		decl = s.Properties[jsonName]
+		return decl != nil
 	})
+	return decl
 }
 
 // allOfVisitor is called by walkAllOfChain on each schema in a chain, with the
@@ -367,6 +375,10 @@ func (w *walker) resolveCollapsedBase(schema *openapi3.Schema, schemaKey, group 
 // redeclares without narrowing: the property conveys no concrete type and another
 // member's chain already declares it. Callers skip these so the base declaration
 // is reached by Go field promotion.
+//
+// Only inline members are overrides. The loader resolves a $ref member's Value,
+// so Hit's own erased _source would otherwise read as a redeclaration of a
+// concrete _source the inline member narrows it to, and drop the narrowing.
 func (w *walker) redundantOverrideTags(schema *openapi3.Schema) map[string]bool {
 	if len(schema.AllOf) < 2 {
 		return nil
@@ -374,7 +386,7 @@ func (w *walker) redundantOverrideTags(schema *openapi3.Schema) map[string]bool 
 
 	var redundant map[string]bool
 	for _, member := range schema.AllOf {
-		if member == nil || member.Value == nil || len(member.Value.Properties) == 0 {
+		if member == nil || member.Ref != "" || member.Value == nil || len(member.Value.Properties) == 0 {
 			continue
 		}
 		for name, prop := range member.Value.Properties {
