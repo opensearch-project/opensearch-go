@@ -1371,6 +1371,28 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		require.False(t, lc.has(lcOverloaded), "overloaded flag should be cleared after network error")
 	})
 
+	t.Run("disabled timeout does not cancel the stats request", func(t *testing.T) {
+		var ctxErr error
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctxErr = r.Context().Err()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(makeStatsResponse(30, nil)))
+		}))
+		defer server.Close()
+
+		serverURL, _ := url.Parse(server.URL)
+		conn := &Connection{URL: serverURL}
+		conn.setLifecycleBit(lcActive)
+		pool := newStandbyPool([]*Connection{conn}, nil)
+
+		client := newTestClientWithPool(server.Client().Transport, pool)
+		client.healthCheckTimeout = 0
+		client.fetchAndEvaluateNodeStats(conn, pool)
+
+		require.NoError(t, ctxErr)
+		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
+	})
+
 	t.Run("overloaded conn cleared when stats improve", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)

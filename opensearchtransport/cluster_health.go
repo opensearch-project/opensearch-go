@@ -191,7 +191,14 @@ func (tr *Transport) pollNodeStats() {
 func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
 	var sample nodeSearchSample
 
-	ctx, cancel := context.WithTimeout(tr.ctx, tr.healthCheckTimeout)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if tr.healthCheckTimeout > 0 {
+		ctx, cancel = context.WithTimeout(tr.ctx, tr.healthCheckTimeout)
+	} else {
+		ctx = tr.ctx
+		cancel = func() {}
+	}
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
