@@ -126,8 +126,8 @@ func (c indicesClient) Get(ctx context.Context, req IndicesGetReq) (*IndicesGetR
 		data IndicesGetResp
 		err  error
 	)
-	data.IndicesGetRespData = &IndicesGetRespData{}
-	if data.response, err = do(ctx, c.apiClient, http.MethodGet, req, data.IndicesGetRespData); err != nil {
+	data.Indices = IndicesGetRespData{}
+	if data.response, err = do(ctx, c.apiClient, http.MethodGet, req, &data.Indices); err != nil {
 		return &data, err
 	}
 

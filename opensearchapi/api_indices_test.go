@@ -828,12 +828,23 @@ func TestIndicesClient(t *testing.T) {
 			// Refresh only this test's index to avoid conflicts with closed indices from other parallel tests
 			res, err := client.Indices.Refresh(
 				t.Context(),
-				&opensearchapi.IndicesRefreshReq{Index: []string{index}},
+				&opensearchapi.IndicesRefreshReq{Indices: []string{index}},
 			)
 			validateDefault(t, res, err)
+			require.GreaterOrEqual(t, res.Shards.Total, 0)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
+			t.Parallel()
+			res, err := client.Indices.Refresh(
+				t.Context(),
+				&opensearchapi.IndicesRefreshReq{Indices: []string{index}},
+			)
+			validateDefault(t, res, err)
+			require.GreaterOrEqual(t, res.Shards.Total, 0)
+		})
+
+		t.Run("deprecated_index_field", func(t *testing.T) {
 			t.Parallel()
 			res, err := client.Indices.Refresh(
 				t.Context(),
@@ -846,7 +857,7 @@ func TestIndicesClient(t *testing.T) {
 			t.Parallel()
 			res, err := failingClient.Indices.Refresh(
 				t.Context(),
-				&opensearchapi.IndicesRefreshReq{Index: []string{index}},
+				&opensearchapi.IndicesRefreshReq{Indices: []string{index}},
 			)
 			validateInspect(t, res, err)
 		})

@@ -2,6 +2,12 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+
+### Fixed
+
+- Restore `IndicesRefreshReq.Indices` after the v4.7.0 code-generation pass renamed it to `Index` without a changelog entry, leaving refresh as the only multi-index request that did not match siblings such as `IndicesFlushReq`. `Index` remains as a deprecated alias so callers that already switched keep compiling; `GetRequest` uses `Indices` when it is non-empty, otherwise `Index`. Also restore `IndicesRefreshResp.Shards` to `ResponseShards` (the type `#797` documented) instead of `json.RawMessage`, restore `IndicesRefreshParams.ExpandWildcards` to `string` like the other indices params, and put the get-indices map back on `IndicesGetResp.Indices` so `_samples` and pre-4.7 callers compile again ([#1255](https://github.com/opensearch-project/opensearch-go/issues/1255))
+
 ## [4.8.1]
 
 ### Dependencies
