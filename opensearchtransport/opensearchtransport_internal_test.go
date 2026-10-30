@@ -44,6 +44,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -180,6 +181,81 @@ func TestTransportConfig(t *testing.T) {
 		}
 
 		require.NotNil(t, tp.compressor)
+	})
+}
+
+func TestHealthCheckTimeoutConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("zero uses the default", func(t *testing.T) {
+		t.Parallel()
+		tp, err := New(Config{})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
+		require.Equal(t, defaultHealthCheckTimeout, tp.healthCheckTimeout)
+	})
+
+	t.Run("negative disables the timeout", func(t *testing.T) {
+		t.Parallel()
+		tp, err := New(Config{HealthCheckTimeout: -1})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
+		require.Equal(t, time.Duration(0), tp.healthCheckTimeout)
+	})
+
+	t.Run("positive is kept", func(t *testing.T) {
+		t.Parallel()
+		tp, err := New(Config{HealthCheckTimeout: 2 * time.Second})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
+		require.Equal(t, 2*time.Second, tp.healthCheckTimeout)
+	})
+
+	t.Run("disabled timeout leaves seed health-check context live", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			mu          sync.Mutex
+			ctxErr      error
+			healthCalls int
+		)
+		done := make(chan struct{})
+
+		router, err := NewDefaultRouter()
+		require.NoError(t, err)
+
+		tp, err := New(Config{
+			URLs:                  []*url.URL{{Scheme: "http", Host: "seed.example:9200"}},
+			Router:                router,
+			HealthCheckTimeout:    -1,
+			NodeStatsInterval:     -1,
+			DiscoverNodesInterval: -1,
+			HealthCheck: func(ctx context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+				mu.Lock()
+				healthCalls++
+				ctxErr = ctx.Err()
+				mu.Unlock()
+				close(done)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(validOpenSearchRootResponse())),
+					Header:     make(http.Header),
+				}, nil
+			},
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
+
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for seed health check")
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		require.Equal(t, 1, healthCalls)
+		require.NoError(t, ctxErr)
 	})
 }
 

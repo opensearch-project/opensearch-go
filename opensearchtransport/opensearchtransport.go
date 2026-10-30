@@ -1441,7 +1441,14 @@ func New(cfg Config) (*Transport, error) {
 		// First successful connection will allow requests immediately
 		// Discovery will be handled by DiscoverNodesOnStart if configured
 		go func() {
-			ctx, cancel := context.WithTimeout(client.ctx, healthCheckTimeout)
+			var ctx context.Context
+			var cancel context.CancelFunc
+			if healthCheckTimeout > 0 {
+				ctx, cancel = context.WithTimeout(client.ctx, healthCheckTimeout)
+			} else {
+				ctx = client.ctx
+				cancel = func() {}
+			}
 			defer cancel()
 
 			// Use errgroup to manage parallel health checks
