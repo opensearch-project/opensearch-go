@@ -151,10 +151,13 @@ func TestHopV4toV5_NoUnclassifiedForKnownFields(t *testing.T) {
 	// Fields the osv4 wrapper is known to set; each must resolve to a concrete
 	// action (rename/remove/pointerWrap), never "unclassified".
 	knownlySet := map[string][]string{
-		v4api + ".SearchResp":     {"Timeout"},
-		v4api + ".UpdateReq":      {"DocumentID"},
-		v4api + ".IndexReq":       {"DocumentID"},
-		v4api + ".SnapshotGetReq": {"Repo", "Snapshots"},
+		v4api + ".SearchResp":        {"Timeout"},
+		v4api + ".UpdateReq":         {"DocumentID"},
+		v4api + ".IndexReq":          {"DocumentID"},
+		v4api + ".SnapshotGetReq":    {"Repo", "Snapshots"},
+		v4api + ".IndicesRefreshReq": {"Index"},
+		v4api + ".IndicesOpenReq":    {"Index"},
+		v4api + ".IndicesCloseReq":   {"Index"},
 	}
 	for typ, fields := range knownlySet {
 		sd := d.Structs[typ]
@@ -167,6 +170,17 @@ func TestHopV4toV5_NoUnclassifiedForKnownFields(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestHopV4toV5_IndicesIndexFields(t *testing.T) {
+	t.Parallel()
+
+	d := planV4toV5(t).delta
+
+	assertChange(t, d.Structs[v4api+".IndicesRefreshReq"].Changes,
+		apirev.FieldChange{Kind: "rename", From: "Index", To: "Indices", NewType: "[]string"})
+	assertChangeKind(t, d.Structs[v4api+".IndicesOpenReq"].Changes, "Index", "manual")
+	assertChangeKind(t, d.Structs[v4api+".IndicesCloseReq"].Changes, "Index", "manual")
 }
 
 // TestHopV4toV5_SnapshotInfoRenames pins the snapshot element types behind
