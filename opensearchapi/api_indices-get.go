@@ -34,9 +34,8 @@ func (r IndicesGetReq) GetRequest(method string) (*http.Request, error) {
 }
 
 // IndicesGetResp represents the returned struct of the get indices response
-// Since the JSON has index names as top-level keys, we use a map-based approach
 type IndicesGetResp struct {
-	*IndicesGetRespData
+	Indices  IndicesGetRespData
 	response *opensearch.Response
 }
 
