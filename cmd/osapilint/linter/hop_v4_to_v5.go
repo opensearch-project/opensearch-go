@@ -178,6 +178,7 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		{"IngestSimulateReq", "PipelineID", "", "ID"},
 		{"RenderSearchTemplateReq", "TemplateID", "", "ID"},
 		{"IndicesRolloverReq", "Index", "", "NewIndex"},
+		{"IndicesRefreshReq", "Index", "", "Indices"},
 		{"CatAliasesReq", "Aliases", "", "Name"},
 		{"CatTemplatesReq", "Templates", "", "Name"},
 		{"CatAllocationReq", "NodeIDs", "", "NodeID"},
@@ -236,6 +237,8 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 	manuals := []struct{ typ, field, note string }{
 		{"TemplateExistsReq", "Template", "v5 takes Name []string; v4 sent []string{Template}"},
 		{"DataStreamDeleteReq", "DataStream", "v5 takes Name []string; v4 sent []string{DataStream}"},
+		{"IndicesOpenReq", "Index", "v5 takes Indices []string; v4 sent a single Index string"},
+		{"IndicesCloseReq", "Index", "v5 takes Indices []string; v4 sent a single Index string"},
 		{"IndexTemplateSimulateIndexParams", "Cause", simulateIndexParamNote},
 		{"IndexTemplateSimulateIndexParams", "Create", simulateIndexParamNote},
 		{"SearchParams", "MinCompatibleShardNode", "v5 SearchParams has no such param; dropping it would change the request"},
