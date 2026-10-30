@@ -456,10 +456,8 @@ func TestTransportLogger(t *testing.T) {
 		if err.Error() != "MOCK ERROR" {
 			t.Errorf("Unexpected error value, expected [ERROR MOCK], got [%s]", err.Error())
 		}
-
-		read, _ := io.ReadAll(&input)
-		if string(read) != "BAR" {
-			t.Errorf("Unexpected undrained part: %q", read)
+		if !input.closed {
+			t.Errorf("Expected input to be closed on read error: %#v", input)
 		}
 
 		b2r, _ := io.ReadAll(b2)
