@@ -31,7 +31,7 @@ import (
 
 // typeCheckSelector parses src, type-checks it, and returns the type info plus the
 // first SelectorExpr whose selector name is field.
-func typeCheckSelector(t *testing.T, src, field string) (*types.Info, *ast.SelectorExpr) {
+func typeCheckSelector(t *testing.T, src, field string) (*token.FileSet, *types.Info, *ast.SelectorExpr) {
 	t.Helper()
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "src.go", src, 0)
@@ -57,7 +57,7 @@ func typeCheckSelector(t *testing.T, src, field string) (*types.Info, *ast.Selec
 		return true
 	})
 	require.NotNilf(t, found, "no promoted-field selection for .%s found", field)
-	return info, found
+	return fset, info, found
 }
 
 // TestFlagFieldAccess_PromotedField verifies that an access to a field promoted
@@ -79,7 +79,7 @@ func use(c *Client) {
 	c.Ping()
 }
 `
-	info, sel := typeCheckSelector(t, src, "Ping")
+	_, info, sel := typeCheckSelector(t, src, "Ping")
 
 	delta := apirev.Delta{Structs: map[string]apirev.StructDelta{
 		"example.com/pkg.Client": {
@@ -118,7 +118,7 @@ type Response struct { Shards []int }
 type Wrapped struct { *Response }
 func use(r ` + tt.receiver + `) { _ = r.Shards }
 `
-			info, sel := typeCheckSelector(t, src, "Shards")
+			_, info, sel := typeCheckSelector(t, src, "Shards")
 			qual := "example.com/pkg." + tt.ruledType
 			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{
 				qual: {
@@ -175,7 +175,7 @@ func TestRewriteFieldAccess_RenameCollision(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			info, sel := typeCheckSelector(t, `package pkg
+			_, info, sel := typeCheckSelector(t, `package pkg
 type Response struct { Shards []int }
 `+tt.declarations+`
 func use(r `+tt.receiver+`) { _ = r.Shards }
@@ -194,7 +194,7 @@ func use(r `+tt.receiver+`) { _ = r.Shards }
 }
 
 func TestRewriteRename_TypeChangeWarning(t *testing.T) {
-	info, sel := typeCheckSelector(t, `package pkg
+	fset, info, sel := typeCheckSelector(t, `package pkg
 type Response struct { Shards []string }
 func use(r Response) { _ = r.Shards; _ = Response{Shards: nil} }
 `, "Shards")
@@ -216,8 +216,8 @@ func use(r Response) { _ = r.Shards; _ = Response{Shards: nil} }
 		}
 	}
 	require.NotNil(t, lit)
-	edits, unknown := rewriteCompositeLit(lit, info, delta, nil)
+	edits, unknown := rewriteCompositeLit(fset, lit, info, delta, nil)
 	require.Empty(t, unknown)
 	require.Equal(t, "Records", lit.Elts[0].(*ast.KeyValueExpr).Key.(*ast.Ident).Name)
-	require.Contains(t, edits, `MANUAL "`+qual+`": field Records - `+note)
+	require.Contains(t, edits, `MANUAL "`+qual+`": field Records - `+note+` at src.go:3:51`)
 }

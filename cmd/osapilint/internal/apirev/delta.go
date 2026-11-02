@@ -9,6 +9,7 @@ package apirev
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // delta.go derives the field-level migration delta between a v4 struct and its
@@ -51,7 +52,8 @@ func versionAgnostic(pkgPath string) string {
 //   - "manual":      field vanished but its data/behavior relocated (e.g. a v5
 //     Resp collapsed to a raw Body json.RawMessage, so resp.Deleted must become
 //     a decode call), or its type changed in a way no mechanical rewrite covers
-//     (e.g. it became a pointer to a different type, int -> *int64). Reported
+//     (e.g. it became a pointer to a different type, int -> *int64, or a value
+//     of the old type no longer fits, *int -> int). Reported
 //     for a human wherever it is set or read: even a read that still compiles
 //     can change behavior (printing a *string prints the pointer).
 //   - "unclassified": field vanished from the target and NO FieldDisposition
@@ -168,7 +170,8 @@ func fieldDispKey(pkgPath, typeName, field string) string {
 // (genuinely removed; not mechanically migratable) so a reference to it is
 // reported as a manual worklist item. Field pairing within a struct: pointerWrap
 // when a surviving field became a pointer to the same type, manual when it
-// became a pointer to another type, a rename to BodyReader for a raw Body split
+// became a pointer to another type or its value type no longer fits (see
+// retypedValue), a rename to BodyReader for a raw Body split
 // (see isBodyReaderSplit); for a vanished field, the
 // FieldDisposition table's action (rename/remove/manual) if present, else
 // "unclassified".
@@ -186,6 +189,15 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 	dispByFrom := map[string]FieldDisposition{}
 	for _, d := range dispositions {
 		dispByFrom[fieldDispKey(d.FromPkgPath, d.FromType, d.FromField)] = d
+	}
+	// structTypes is every named struct either version declares, version
+	// agnostic, so a field typed with one reads as a struct shape (see
+	// retypedValue).
+	structTypes := map[string]struct{}{}
+	for _, snap := range []*Snapshot{from, to} {
+		for _, s := range snap.Structs {
+			structTypes[versionAgnosticType(s.Qualified())] = struct{}{}
+		}
 	}
 
 	out := Delta{Structs: map[string]StructDelta{}, RemovedTypes: map[string]bool{}}
@@ -211,7 +223,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 		}
 
 		sd := StructDelta{From: sFrom.Qualified(), To: sTo.Qualified()}
-		sd.Changes = diffFields(sFrom, sTo, dispByFrom, renamedType)
+		sd.Changes = diffFields(sFrom, sTo, dispByFrom, renamedType, structTypes)
 		if len(sd.Changes) > 0 {
 			out.Structs[sFrom.Qualified()] = sd
 		}
@@ -229,7 +241,9 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 // linter fails loudly if the consumer references it. This is deliberate:
 // inferring from name/type similarity silently drops a caller's value whenever a
 // struct changed by more than one field, which is common across a major version.
-func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renamedType map[string]string) []FieldChange {
+func diffFields(
+	sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renamedType map[string]string, structTypes map[string]struct{},
+) []FieldChange {
 	toByName := map[string]Field{}
 	for _, f := range sTo.Fields {
 		toByName[f.Name] = f
@@ -255,10 +269,7 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renam
 		case still && fTo.IsPointer() && !fFrom.IsPointer():
 			// Became a pointer to a DIFFERENT type (int -> *int64, io.Reader ->
 			// *XBody): neither & nor new(x) would type-check.
-			changes = append(changes, FieldChange{
-				Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
-				Note: fmt.Sprintf("field type changed from %q to %q; migrate this use by hand", fFrom.Type, fTo.Type),
-			})
+			changes = append(changes, retypedChange(fFrom, fTo))
 		case still && incompatibleTypeChange(fFrom.Type, fTo.Type):
 			// Field kept its name but its type changed in a way that breaks
 			// existing access patterns (e.g. json.RawMessage []byte -> a typed
@@ -270,8 +281,11 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renam
 					"field type changed from %q to %q; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type",
 					fFrom.Type, fTo.Type),
 			})
+		case still && retypedValue(fFrom.Type, fTo.Type, renamedType, structTypes):
+			changes = append(changes, retypedChange(fFrom, fTo))
 		case still:
-			// unchanged, or a compatible type change the rewriter need not act on
+			// unchanged, or a change between struct shapes that field reads
+			// still compile through (see retypedValue)
 		default:
 			// Field is present only on the source side: resolve via the explicit
 			// disposition table, the raw-body-collapse classifier, or mark
@@ -326,14 +340,92 @@ func dispositionChange(
 // breaks existing access. It is deliberately narrow: it fires when one side is
 // encoding/json.RawMessage (accessed as a []byte, e.g. via json.Unmarshal) and
 // the other is not - the SearchResp.Aggregations case, where v5 moved from a raw
-// message to a typed union map. Broader type-equality diffing would be noisy
-// (many fields differ only by pointer or package path), so we scope to the known
-// hazard.
+// message to a typed union map - so that hazard gets its own guidance. Other
+// type changes are classified by retypedValue.
 func incompatibleTypeChange(fromType, toType string) bool {
 	const raw = "encoding/json.RawMessage"
 	fromRaw := fromType == raw
 	toRaw := toType == raw
 	return fromRaw != toRaw
+}
+
+// retypedValue reports whether a surviving field's type changed so that a value
+// or access of the old type no longer fits: *int -> int, string -> []string,
+// string -> a named string type, int -> int64, X -> map[string]X. Types are
+// compared with version segments normalized, interface{} spelled any, and the
+// source element type mapped through the hop's type renames. Only a change
+// between two struct shapes under the same pointer, slice and map layers does
+// not count (an anonymous struct gaining a field, or becoming a named struct),
+// because callers read those through their fields, which still compile.
+func retypedValue(fromType, toType string, renamedType map[string]string, structTypes map[string]struct{}) bool {
+	fromLayers, fromElem := splitLayers(comparableType(fromType))
+	if to, ok := renamedType[fromElem]; ok {
+		fromElem = to
+	}
+	toLayers, toElem := splitLayers(comparableType(toType))
+	if fromLayers != toLayers {
+		return true
+	}
+	return fromElem != toElem && (!structShaped(fromElem, structTypes) || !structShaped(toElem, structTypes))
+}
+
+// comparableType is typ version agnostic, with interface{} spelled any: the two
+// spellings are one type, and types.Type.String renders either depending on
+// how the source wrote it.
+func comparableType(typ string) string {
+	return strings.ReplaceAll(versionAgnosticType(typ), "interface{}", "any")
+}
+
+// mapKeyPrefix matches a leading map key type ("map[string]").
+var mapKeyPrefix = regexp.MustCompile(`^map\[[^\[\]]*\]`)
+
+// splitLayers splits typ into its leading pointer, slice and map layers
+// ("[]map[string]*") and the element type under them.
+func splitLayers(typ string) (layers, elem string) {
+	for {
+		var layer string
+		switch {
+		case strings.HasPrefix(typ, "*"):
+			layer = "*"
+		case strings.HasPrefix(typ, "[]"):
+			layer = "[]"
+		default:
+			layer = mapKeyPrefix.FindString(typ)
+		}
+		if layer == "" {
+			return layers, typ
+		}
+		layers += layer
+		typ = typ[len(layer):]
+	}
+}
+
+// structShaped reports whether elem, a version-agnostic element type, is only
+// ever read through its fields and methods: an anonymous struct, a named
+// struct in structTypes, or an unexported named type, which callers cannot
+// spell (the opensearchapi.Client sub-clients).
+func structShaped(elem string, structTypes map[string]struct{}) bool {
+	if strings.HasPrefix(elem, "struct{") {
+		return true
+	}
+	if _, ok := structTypes[elem]; ok {
+		return true
+	}
+	dot := strings.LastIndex(elem, ".")
+	if dot < 0 || dot == len(elem)-1 {
+		return false
+	}
+	r := elem[dot+1]
+	return 'a' <= r && r <= 'z'
+}
+
+// retypedChange is the manual FieldChange for a surviving field whose type
+// changed with no mechanical rewrite.
+func retypedChange(fFrom, fTo Field) FieldChange {
+	return FieldChange{
+		Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
+		Note: fmt.Sprintf("field type changed from %q to %q; migrate this use by hand", fFrom.Type, fTo.Type),
+	}
 }
 
 // isRawBodyCollapse reports whether a target struct is the "dynamic schema

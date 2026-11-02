@@ -286,3 +286,66 @@ func TestDeriveDelta_PointerFieldClassification(t *testing.T) {
 		})
 	}
 }
+
+// TestDeriveDelta_RetypedFieldClassification pins how a surviving field whose
+// type changed without becoming a pointer is classified. A scalar, element or
+// pointer-ness change (*int -> int, string -> []string, string -> a named
+// string type) is manual: a value or access of the old type no longer fits. A
+// change between struct shapes (an anonymous struct gaining a field, or
+// becoming a named struct) is left alone, since field reads through it still
+// compile.
+func TestDeriveDelta_RetypedFieldClassification(t *testing.T) {
+	t.Parallel()
+	const (
+		v4api = "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+		v5api = "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	)
+	renames := []TypeRename{{FromPkgPath: v4api, FromName: "ResponseShards", ToPkgPath: v5api, ToName: "ShardStatistics"}}
+	// Named struct types the target snapshot declares, so a field typed with
+	// one reads as a struct shape.
+	targetStructs := []Struct{
+		{PkgPath: v5api, Name: "ShardStatistics"},
+		{PkgPath: v5api, Name: "ErrorCause"},
+		{PkgPath: v5api, Name: "CatClient"},
+	}
+	manual := func(from, to string) []FieldChange {
+		return []FieldChange{{
+			Kind: KindManual, From: "F", NewType: to,
+			Note: `field type changed from "` + from + `" to "` + to + `"; migrate this use by hand`,
+		}}
+	}
+
+	cases := []struct {
+		name     string
+		from, to string // the field's type in each version
+		want     []FieldChange
+	}{
+		{name: "pointer to value", from: "*int", to: "int", want: manual("*int", "int")},
+		{name: "scalar to slice", from: "string", to: "[]string", want: manual("string", "[]string")},
+		{name: "scalar to named scalar", from: "string", to: v5api + ".SearchType", want: manual("string", v5api+".SearchType")},
+		{name: "numeric width", from: "int", to: "int64", want: manual("int", "int64")},
+		{name: "pointer elem", from: "*int", to: "*float64", want: manual("*int", "*float64")},
+		{name: "struct to map of structs", from: v4api + ".ErrorCause", to: "map[string]" + v5api + ".ErrorCause", want: manual(v4api+".ErrorCause", "map[string]"+v5api+".ErrorCause")},
+		{name: "slice elem loses its pointer", from: "[]*" + v4api + ".ErrorCause", to: "[]" + v5api + ".ErrorCause", want: manual("[]*"+v4api+".ErrorCause", "[]"+v5api+".ErrorCause")},
+		{name: "same type across majors", from: v4api + ".SearchType", to: v5api + ".SearchType"},
+		{name: "interface{} spelled any", from: "map[string]interface{}", to: "map[string]any"},
+		{name: "type rename", from: v4api + ".ResponseShards", to: v5api + ".ShardStatistics"},
+		{name: "type rename in a slice", from: "[]" + v4api + ".ResponseShards", to: "[]" + v5api + ".ShardStatistics"},
+		{name: "unexported to exported struct", from: v4api + ".catClient", to: v5api + ".CatClient"},
+		{name: "anonymous struct gains a field", from: `struct{Total int "json:\"total\""}`, to: `struct{Total int "json:\"total\""; Failed int "json:\"failed\""}`},
+		{name: "anonymous struct to named struct", from: `struct{Total int "json:\"total\""}`, to: v5api + ".ShardStatistics"},
+		{name: "slice of structs", from: `[]struct{Type string "json:\"type\""}`, to: "[]" + v5api + ".ErrorCause"},
+		{name: "map of structs", from: `map[string]struct{Lang string "json:\"lang\""}`, to: `map[string]struct{Lang string "json:\"lang\""; Options *string "json:\"options\""}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			from := &Snapshot{Structs: []Struct{{PkgPath: v4api, Name: "Req", Fields: []Field{{Name: "F", Type: tc.from}}}}}
+			to := &Snapshot{Structs: append([]Struct{{PkgPath: v5api, Name: "Req", Fields: []Field{{Name: "F", Type: tc.to}}}}, targetStructs...)}
+
+			d := DeriveDelta(from, to, renames, nil)
+
+			require.Equal(t, tc.want, d.Structs[v4api+".Req"].Changes)
+		})
+	}
+}

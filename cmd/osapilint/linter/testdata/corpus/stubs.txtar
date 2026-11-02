@@ -375,9 +375,12 @@ type SearchReq struct {
 	Params  SearchParams
 }
 
-// SearchParams is v4's search params.
+// SearchParams is v4's search params. v5 makes From an int and ExpandWildcards
+// a []string.
 type SearchParams struct {
-	Size *int
+	Size            *int
+	From            *int
+	ExpandWildcards string
 }
 
 // SearchHit: v5 retypes Score from float32 to *float64 and makes Index a

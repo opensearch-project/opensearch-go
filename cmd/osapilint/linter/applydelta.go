@@ -125,9 +125,12 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	var needImports []string // target import paths to inject after the walk
 
 	astutil.Apply(file, func(c *astutil.Cursor) bool {
+		// Each MANUAL line names its site's position (manualAt), so the worklist
+		// locates everything the rewrite leaves for a human.
+		node := c.Node()
 		if isV2Hop {
 			if edits, imports, handled := rewriteIdiom2Node(c, info, apiName, apiImportPath); handled {
-				res.edits = append(res.edits, edits...)
+				res.edits = append(res.edits, manualAt(pkg.Fset, node, edits)...)
 				needImports = append(needImports, imports...)
 				// Stop descending: the rewritten call's stale selector (or the
 				// synthetic subtree) must not be re-walked, or rewriteFieldAccess would
@@ -136,32 +139,35 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 				return false
 			}
 		}
-		switch n := c.Node().(type) {
+		switch n := node.(type) {
 		case *ast.CallExpr:
 			edits, imports := rewriteCall(c, n, info, rules, apiName, apiImportPath)
-			res.edits = append(res.edits, edits...)
+			res.edits = append(res.edits, manualAt(pkg.Fset, n, edits)...)
 			needImports = append(needImports, imports...)
 		case *ast.CompositeLit:
-			edits, unclassified := rewriteCompositeLit(n, info, rules.delta, rules.renameByFrom)
+			// Positioned per key inside, so each line names its own key.
+			edits, unclassified := rewriteCompositeLit(pkg.Fset, n, info, rules.delta, rules.renameByFrom)
 			res.edits = append(res.edits, edits...)
 			res.unclassified = append(res.unclassified, unclassified...)
 		case *ast.SelectorExpr:
+			var edits []string
 			// Type reference rename: opensearchapi.DocumentGetReq -> .GetReq.
 			if e := rewriteTypeRef(n, info, rules.renameByFrom); e != "" {
-				res.edits = append(res.edits, e)
+				edits = append(edits, e)
 			}
 			// Reference to a type removed outright on the target (idiom 1's
 			// opensearchapi.*Request family): report as a manual worklist item.
 			if e := flagRemovedTypeRef(n, info, rules.delta.RemovedTypes); e != "" {
-				res.edits = append(res.edits, e)
+				edits = append(edits, e)
 			}
 			// Rename field accesses, or report MANUAL/unclassified changes that
 			// cannot be rewritten mechanically.
 			if edit, unclassified := rewriteFieldAccess(n, info, rules.delta); unclassified != "" {
 				res.unclassified = append(res.unclassified, unclassified)
 			} else if edit != "" {
-				res.edits = append(res.edits, edit)
+				edits = append(edits, edit)
 			}
+			res.edits = append(res.edits, manualAt(pkg.Fset, n, edits)...)
 		}
 		return true
 	}, nil)
@@ -222,6 +228,27 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 type sourceImport struct {
 	spec *ast.ImportSpec
 	name string // the spec's alias, or the package's real name when unnamed
+}
+
+// manualTag marks a worklist line as MANUAL: a site the rewrite leaves for a
+// human. A rename line can carry it after a "; " for a type change it reports.
+const manualTag = "MANUAL "
+
+// manualAt appends node's position (" at file.go:line:col") to each MANUAL
+// line in edits, in place, and returns edits. A node the rewrite synthesized
+// has no position, so its lines stay as they are.
+func manualAt(fset *token.FileSet, node ast.Node, edits []string) []string {
+	if node == nil || !node.Pos().IsValid() {
+		return edits
+	}
+	p := fset.Position(node.Pos())
+	at := fmt.Sprintf(" at %s:%d:%d", filepath.Base(p.Filename), p.Line, p.Column)
+	for i, e := range edits {
+		if strings.Contains(e, manualTag) {
+			edits[i] = e + at
+		}
+	}
+	return edits
 }
 
 // sourceImportsOf returns the file's imports of packages under the hop's source
@@ -577,7 +604,7 @@ func NamedOf(t types.Type) *types.Named {
 // (edits, unclassified): a key naming a field that vanished with no disposition
 // is reported as unclassified (a bug) rather than rewritten or dropped.
 func rewriteCompositeLit(
-	lit *ast.CompositeLit, info *types.Info, delta apirev.Delta, renameByFrom map[string]apirev.TypeRename,
+	fset *token.FileSet, lit *ast.CompositeLit, info *types.Info, delta apirev.Delta, renameByFrom map[string]apirev.TypeRename,
 ) ([]string, []string) {
 	qual := QualifiedType(info.TypeOf(lit))
 	if qual == "" {
@@ -628,6 +655,7 @@ func rewriteCompositeLit(
 			kept = append(kept, elt)
 			continue
 		}
+		start := len(edits)
 		switch ch.Kind {
 		case apirev.KindRename:
 			edits = append(edits, fmt.Sprintf("%q: field %s -> %s", label, ch.From, ch.To))
@@ -672,6 +700,7 @@ func rewriteCompositeLit(
 		default:
 			kept = append(kept, kv)
 		}
+		manualAt(fset, kv, edits[start:])
 	}
 	lit.Elts = kept
 	return edits, unclassified
