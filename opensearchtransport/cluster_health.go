@@ -27,7 +27,6 @@
 package opensearchtransport
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"time"
@@ -191,7 +190,7 @@ func (tr *Transport) pollNodeStats() {
 func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
 	var sample nodeSearchSample
 
-	ctx, cancel := context.WithTimeout(tr.ctx, tr.healthCheckTimeout)
+	ctx, cancel := tr.healthCheckContext(tr.ctx)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
