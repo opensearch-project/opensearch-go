@@ -1441,14 +1441,7 @@ func New(cfg Config) (*Transport, error) {
 		// First successful connection will allow requests immediately
 		// Discovery will be handled by DiscoverNodesOnStart if configured
 		go func() {
-			var ctx context.Context
-			var cancel context.CancelFunc
-			if healthCheckTimeout > 0 {
-				ctx, cancel = context.WithTimeout(client.ctx, healthCheckTimeout)
-			} else {
-				ctx = client.ctx
-				cancel = func() {}
-			}
+			ctx, cancel := client.healthCheckContext(client.ctx)
 			defer cancel()
 
 			// Use errgroup to manage parallel health checks
@@ -2818,6 +2811,16 @@ func (tr *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u
 	return res, nil
 }
 
+// healthCheckContext derives the context for one health-check request from
+// parent. A stored healthCheckTimeout of 0 means the timeout is disabled
+// (Config.HealthCheckTimeout < 0), so parent is returned without a deadline.
+func (tr *Transport) healthCheckContext(parent context.Context) (context.Context, context.CancelFunc) {
+	if tr.healthCheckTimeout > 0 {
+		return context.WithTimeout(parent, tr.healthCheckTimeout)
+	}
+	return parent, func() {}
+}
+
 // baselineHealthCheck performs the standard GET / health check against an OpenSearch node.
 // It validates the response contains core fields (name, cluster_name, version.number).
 func (tr *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*http.Response, error) {
@@ -2825,15 +2828,8 @@ func (tr *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyM
 		tr.metrics.healthChecks.Add(1)
 	}
 
-	var healthCtx context.Context
-	var cancel context.CancelFunc
-
-	if tr.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
-		defer cancel()
-	} else {
-		healthCtx = ctx
-	}
+	healthCtx, cancel := tr.healthCheckContext(ctx)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/", nil)
 	if err != nil {
@@ -2900,15 +2896,8 @@ func (tr *Transport) hardwareInfoHealthCheck(
 		tr.metrics.healthChecks.Add(1)
 	}
 
-	var healthCtx context.Context
-	var cancel context.CancelFunc
-
-	if tr.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
-		defer cancel()
-	} else {
-		healthCtx = ctx
-	}
+	healthCtx, cancel := tr.healthCheckContext(ctx)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_nodes/_local/http,os,thread_pool", nil)
 	if err != nil {
@@ -3026,15 +3015,8 @@ func (tr *Transport) fetchClusterHealth(
 		tr.metrics.clusterHealthChecks.Add(1)
 	}
 
-	var healthCtx context.Context
-	var cancel context.CancelFunc
-
-	if tr.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
-		defer cancel()
-	} else {
-		healthCtx = ctx
-	}
+	healthCtx, cancel := tr.healthCheckContext(ctx)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_cluster/health", nil)
 	if err != nil {

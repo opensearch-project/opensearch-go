@@ -44,7 +44,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -187,76 +186,62 @@ func TestTransportConfig(t *testing.T) {
 func TestHealthCheckTimeoutConfig(t *testing.T) {
 	t.Parallel()
 
-	t.Run("zero uses the default", func(t *testing.T) {
-		t.Parallel()
-		tp, err := New(Config{})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = tp.Close() })
-		require.Equal(t, defaultHealthCheckTimeout, tp.healthCheckTimeout)
-	})
-
-	t.Run("negative disables the timeout", func(t *testing.T) {
-		t.Parallel()
-		tp, err := New(Config{HealthCheckTimeout: -1})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = tp.Close() })
-		require.Equal(t, time.Duration(0), tp.healthCheckTimeout)
-	})
-
-	t.Run("positive is kept", func(t *testing.T) {
-		t.Parallel()
-		tp, err := New(Config{HealthCheckTimeout: 2 * time.Second})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = tp.Close() })
-		require.Equal(t, 2*time.Second, tp.healthCheckTimeout)
-	})
-
-	t.Run("disabled timeout leaves seed health-check context live", func(t *testing.T) {
-		t.Parallel()
-
-		var (
-			mu          sync.Mutex
-			ctxErr      error
-			healthCalls int
-		)
-		done := make(chan struct{})
-
-		router, err := NewDefaultRouter()
-		require.NoError(t, err)
-
-		tp, err := New(Config{
-			URLs:                  []*url.URL{{Scheme: "http", Host: "seed.example:9200"}},
-			Router:                router,
-			HealthCheckTimeout:    -1,
-			NodeStatsInterval:     -1,
-			DiscoverNodesInterval: -1,
-			HealthCheck: func(ctx context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
-				mu.Lock()
-				healthCalls++
-				ctxErr = ctx.Err()
-				mu.Unlock()
-				close(done)
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(validOpenSearchRootResponse())),
-					Header:     make(http.Header),
-				}, nil
-			},
+	tests := []struct {
+		name string
+		in   time.Duration
+		want time.Duration
+	}{
+		{name: "zero uses the default", in: 0, want: defaultHealthCheckTimeout},
+		{name: "negative disables the timeout", in: -1, want: 0},
+		{name: "positive is kept", in: 2 * time.Second, want: 2 * time.Second},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tp, err := New(Config{HealthCheckTimeout: tt.in})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+			require.Equal(t, tt.want, tp.healthCheckTimeout)
 		})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = tp.Close() })
+	}
+}
 
-		select {
-		case <-done:
-		case <-time.After(2 * time.Second):
-			t.Fatal("timed out waiting for seed health check")
-		}
+func TestSeedHealthCheckDisabledTimeout(t *testing.T) {
+	t.Parallel()
 
-		mu.Lock()
-		defer mu.Unlock()
-		require.Equal(t, 1, healthCalls)
-		require.NoError(t, ctxErr)
+	var healthCalls atomic.Int32
+	ctxErrs := make(chan error, 1)
+
+	router, err := NewDefaultRouter()
+	require.NoError(t, err)
+
+	tp, err := New(Config{
+		URLs:                  []*url.URL{{Scheme: "http", Host: "seed.example:9200"}},
+		Router:                router,
+		HealthCheckTimeout:    -1,
+		NodeStatsInterval:     -1,
+		DiscoverNodesInterval: -1,
+		HealthCheck: func(ctx context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+			if healthCalls.Add(1) == 1 {
+				ctxErrs <- ctx.Err()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(validOpenSearchRootResponse())),
+				Header:     make(http.Header),
+			}, nil
+		},
 	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	select {
+	case ctxErr := <-ctxErrs:
+		require.NoError(t, ctxErr)
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for seed health check")
+	}
+	require.Equal(t, int32(1), healthCalls.Load())
 }
 
 func TestTransportConnectionPool(t *testing.T) {

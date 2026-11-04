@@ -1372,9 +1372,9 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 	})
 
 	t.Run("disabled timeout does not cancel the stats request", func(t *testing.T) {
-		var ctxErr error
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctxErr = r.Context().Err()
+		var requestCount atomic.Int64
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			requestCount.Add(1)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(makeStatsResponse(30, nil)))
 		}))
@@ -1389,7 +1389,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		client.healthCheckTimeout = 0
 		client.fetchAndEvaluateNodeStats(conn, pool)
 
-		require.NoError(t, ctxErr)
+		require.Equal(t, int64(1), requestCount.Load(), "stats request should reach the server")
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
 	})
 
