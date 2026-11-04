@@ -123,7 +123,7 @@ func TestStreamRequestBodyReadError(t *testing.T) {
 		},
 		{
 			name: "compressed",
-			cfg:  Config{CompressRequestBody: true},
+			cfg:  Config{CompressRequestBody: true, CompressMinBytes: -1},
 		},
 	}
 

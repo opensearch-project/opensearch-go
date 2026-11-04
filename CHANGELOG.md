@@ -6,7 +6,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `compress.ZstdTable(level)`, a `CompressorTable` that sends zstd request bodies to OpenSearch 3.0.0 and later and gzip at level 6 otherwise; see the [`ZstdTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/compress/v5#ZstdTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
+- Add `opensearchtransport.CompressorTable` and `Config.CompressorTable` (also on `opensearch.Config`), which choose the request `Compressor` by server version; see the [`CompressorTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#CompressorTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
+
 ### Changed
+
+- Size the buffer a compressed request body is written into from the last body's compression ratio, when the body's length is known, instead of growing it from empty for every request. Growing it was 60% to 71% of the compressing request path's allocations. The output is the same ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
+- **BREAKING**: Send request bodies shorter than 4096 bytes uncompressed, and add `CompressMinBytes` to `opensearch.Config` and `opensearchtransport.Config` to change the limit. The measurements behind the limit are in [`compress/README.md`](compress/README.md#minimum-body-size). Bulk bodies are far larger and are compressed as before. Set `CompressMinBytes` to a negative value to compress every body, as earlier releases did; a body whose length is not known is always compressed. See [`UPGRADING_V5.md`](UPGRADING_V5.md#request-bodies-under-4-kib-are-sent-uncompressed) for migration ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 
 ### Deprecated
 
@@ -26,6 +32,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Update the `toolchain` line to go1.26.10 in the root and all nested modules, so builds in this repository use Go 1.26.10. The go directive stays 1.26.0, so consumers are not affected ([#1256](https://github.com/opensearch-project/opensearch-go/pull/1256))
 - Bump `github.com/getkin/kin-openapi` from 0.151.0 to 0.152.0 in `cmd/osgen` ([#1258](https://github.com/opensearch-project/opensearch-go/pull/1258))
+- Bump the `opensearch-go/v5` requirement in `compress` to v5.2.0, the first root release with `CompressorTable` ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 
 ## [5.1.3]
 

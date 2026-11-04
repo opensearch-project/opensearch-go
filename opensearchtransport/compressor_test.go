@@ -26,7 +26,7 @@ import (
 
 // healthCheckBody is a root-endpoint response the transport accepts as a
 // healthy node.
-const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"number":"3.0.0"}}`
+const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"distribution":"opensearch","number":"3.0.0"}}`
 
 // zlibCompressor is a Compressor implemented outside the package, over
 // compress/zlib, that sends "deflate" bodies.
@@ -86,6 +86,7 @@ func TestCompressor_ExternalImplementation(t *testing.T) {
 	tp, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs:              []*url.URL{u},
 		Compressor:        zlibCompressor{},
+		CompressMinBytes:  -1,
 		DisableRetry:      true,
 		NodeStatsInterval: -1,
 	})

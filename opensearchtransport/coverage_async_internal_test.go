@@ -55,7 +55,7 @@ func TestBaseConnectionObserver_AllMethods(t *testing.T) {
 
 // validHealthCheckBody returns a minimal valid OpenSearch health check response.
 func validHealthCheckBody() io.ReadCloser {
-	return io.NopCloser(strings.NewReader(`{"name":"node-1","cluster_name":"test","version":{"number":"2.11.0"}}`))
+	return io.NopCloser(strings.NewReader(`{"name":"node-1","cluster_name":"test","version":{"distribution":"opensearch","number":"2.11.0"}}`))
 }
 
 func TestHealthCheckWithRetries(t *testing.T) {

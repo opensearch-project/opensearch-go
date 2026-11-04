@@ -292,6 +292,13 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 		return true
 	}
 
+	// A node in compatibility mode reports version 7.10.2 and no distribution.
+	// 7.10.2 would pass version floors meant for OpenSearch releases, such as
+	// zstd's 3.0.0, so keep the version discovery read from /_nodes/http.
+	if info.Version.Distribution != "opensearch" {
+		return true
+	}
+
 	// Log version changes during rolling upgrades (not on initial startup)
 	prev := c.loadVersion()
 	if prev != "" && prev != info.Version.Number {

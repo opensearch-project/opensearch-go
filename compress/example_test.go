@@ -34,6 +34,25 @@ func Example() {
 	defer func() { _ = client.Close() }()
 }
 
+// Example_zstd sends zstd to a cluster whose nodes all run OpenSearch 3.0.0 or
+// later, and gzip otherwise, including before the client has read the nodes'
+// versions.
+func Example_zstd() {
+	table, err := compress.ZstdTable(compress.DefaultLevel)
+	if err != nil {
+		panic(err)
+	}
+
+	client, err := opensearch.NewClient(opensearch.Config{
+		Addresses:       []string{"http://localhost:9200"},
+		CompressorTable: table,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer func() { _ = client.Close() }()
+}
+
 // Example_bulkIndexer compresses only the bulk client's requests, since bulk
 // bodies are the largest the client sends. The application's other traffic goes
 // through client, which has no Compressor and sends bodies uncompressed.

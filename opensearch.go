@@ -170,12 +170,25 @@ type Config struct {
 	// takes precedence over CompressRequestBody.
 	Compressor opensearchtransport.Compressor
 
+	// CompressorTable chooses the Compressor by the OpenSearch version of the
+	// cluster, for an encoding only some versions decode, such as zstd.
+	// It cannot be set together with Compressor. CompressMinBytes applies to
+	// every Compressor the table resolves to. It takes precedence over the
+	// deprecated CompressRequestBody. See [opensearchtransport.CompressorTable]
+	// for how versions are read.
+	CompressorTable *opensearchtransport.CompressorTable
+
 	// CompressRequestBody gzip-compresses request bodies (default false) at
-	// gzip.DefaultCompression when Compressor is nil.
+	// gzip.DefaultCompression when Compressor and CompressorTable are nil.
 	//
 	// Deprecated: Use Compressor. [opensearchtransport.GZip] with
 	// gzip.DefaultCompression gives the same output.
 	CompressRequestBody bool
+
+	// CompressMinBytes is the shortest request body, in bytes, that is
+	// compressed; see [opensearchtransport.Config.CompressMinBytes]. 0 selects
+	// 4096, and a negative value compresses every body.
+	CompressMinBytes int
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
 	// as NewClient returns. nil (the default) means "auto": if Router is
@@ -534,7 +547,9 @@ func newClient(cfg Config, getenv func(string) (string, bool)) (*Client, error) 
 		DNSTimeout:      cfg.DNSTimeout,
 
 		Compressor:          cfg.Compressor,
+		CompressorTable:     cfg.CompressorTable,
 		CompressRequestBody: cfg.CompressRequestBody, //nolint:staticcheck // SA1019: passes the deprecated field to the transport.
+		CompressMinBytes:    cfg.CompressMinBytes,
 
 		EnableDebugLogger: cfg.EnableDebugLogger,
 
@@ -660,7 +675,8 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		cfg.OperationClassifier != nil || cfg.DebugLogger != nil ||
 		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
 		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
-		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil || cfg.Compressor != nil {
+		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil || cfg.Compressor != nil ||
+		cfg.CompressorTable != nil {
 		return 0, false
 	}
 
@@ -701,7 +717,8 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		Int(int64(cfg.DNSDialTimeout)).
 		Int(int64(cfg.DNSKeepAlive)).
 		Int(int64(cfg.DNSTimeout)).
-		Bool(cfg.CompressRequestBody)
+		Bool(cfg.CompressRequestBody).
+		Int(int64(cfg.CompressMinBytes))
 	if cfg.DiscoverNodesOnStart != nil {
 		b.Bool(*cfg.DiscoverNodesOnStart)
 	} else {

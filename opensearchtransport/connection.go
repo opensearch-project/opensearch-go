@@ -152,8 +152,10 @@ type Connection struct {
 	// Rewritten is true when an AddressResolverFunc replaced the URL derived
 	// from the server's http.publish_address during node discovery.
 	Rewritten bool
-	// version stores the server version discovered during health check.
-	// Atomic: written by performHealthCheck, read by newConnectionEvent.
+	// version stores the server version. Atomic: written by performHealthCheck
+	// and by node discovery (createConnection, and reuse of an existing
+	// connection, from /_nodes/http); read by newConnectionEvent and
+	// Transport.compressorFor.
 	version atomic.Value // string
 
 	// weight is the number of entries this connection occupies in the ready list
