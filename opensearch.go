@@ -211,7 +211,7 @@ type Config struct {
 	VerifyDeadAfter time.Duration
 
 	// Health check configuration
-	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 5s.
+	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 5s. Set to -1 to disable the timeout.
 	HealthCheckMaxRetries int           // Max retries for health checks. Default: 6. Set to -1 to disable retries (one attempt).
 	HealthCheckJitter     float64       // Jitter factor for health check timing (0.0-1.0). Default: 0.1.
 
