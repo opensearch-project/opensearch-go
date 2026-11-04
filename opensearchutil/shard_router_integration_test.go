@@ -116,57 +116,56 @@ func clusterShardMap(
 	return opensearchutil.ShardMap{RoutingNumShards: meta.RoutingNumShards, PrimaryShards: int(primaries)}
 }
 
-// awaitShardTarget looks a routing value up through the client's shard router
-// and runs discovery until the router answers for the index. The first lookup
-// registers the index; discovery then fetches its shard map and placement.
+// awaitShardTarget is [awaitPlaced] for one routing value; it returns the
+// target the router placed it on.
 func awaitShardTarget(
 	t *testing.T, ctx context.Context, client *opensearchapi.Client, index, routing string,
 ) opensearchutil.ShardTarget {
 	t.Helper()
 
-	router := opensearchutil.ClientShardRouter(client)
-	require.NotNil(t, router, "%T does not offer a shard router", client.Client.Transport)
-
-	var got opensearchutil.ShardTarget
-	err := transporttestutil.PollUntil(t, ctx, 100*time.Millisecond, 100, 0.1, func() (bool, error) {
-		target, known := lookupOne(router, index, routing)
-		if known && target.Node.Name != "" {
-			got = target
-			return true, nil
-		}
-
-		if err := client.Client.DiscoverNodes(ctx); err != nil {
-			return false, err
-		}
-
-		return false, nil
-	})
-	require.NoError(t, err, "the router never placed %q in %q", routing, index)
-
-	return got
+	return awaitPlaced(t, ctx, client, index, []string{routing})[0]
 }
 
-// awaitPlaced runs discovery until the router has a placed node for every key.
-// A single awaitShardTarget proves only the shard its routing value hashes to;
-// other primaries can sit on nodes the transport has not yet made routable.
-func awaitPlaced(t *testing.T, ctx context.Context, client *opensearchapi.Client, index string, keys []string) {
+// awaitPlaced looks every key up through the client's shard router and runs
+// discovery until each has a primary on a connected node, and returns the
+// targets in keys' order. The first lookup registers the index; discovery then
+// fetches its shard map and placement. A key proves only the shard it hashes
+// to, so a caller that relies on every document being placed passes them all.
+func awaitPlaced(
+	t *testing.T, ctx context.Context, client *opensearchapi.Client, index string, keys []string,
+) []opensearchutil.ShardTarget {
 	t.Helper()
 
 	router := opensearchutil.ClientShardRouter(client)
 	require.NotNil(t, router, "%T does not offer a shard router", client.Client.Transport)
 
+	targets := make([]opensearchutil.ShardTarget, len(keys))
 	var unplaced string
 	err := transporttestutil.PollUntil(t, ctx, 100*time.Millisecond, 100, 0.1, func() (bool, error) {
-		for _, key := range keys {
-			if target, known := lookupOne(router, index, key); !known || target.Node.Name == "" {
+		for i, key := range keys {
+			target, known := lookupOne(router, index, key)
+			if !known || target.Node.Conn == nil {
 				unplaced = key
 				return false, client.Client.DiscoverNodes(ctx)
 			}
+			targets[i] = target
 		}
 
 		return true, nil
 	})
 	require.NoError(t, err, "the router never placed %q in %q", unplaced, index)
+
+	return targets
+}
+
+// docKeys returns the document IDs doc-0 through doc-(n-1).
+func docKeys(n int) []string {
+	keys := make([]string, n)
+	for i := range keys {
+		keys[i] = "doc-" + strconv.Itoa(i)
+	}
+
+	return keys
 }
 
 // TestDefaultRoutingNumShardsMatchesCluster_Integration verifies the no-cluster
@@ -253,10 +252,7 @@ func TestShardRouterPlacesDocumentsOnTheirPrimary_Integration(t *testing.T) {
 	index := transporttestutil.MustUniqueString(t, "shard-place")
 	createShardTestIndex(t, ctx, client, index, `{"index":{"number_of_shards":6,"number_of_replicas":0}}`)
 
-	keys := make([]string, 60)
-	for i := range keys {
-		keys[i] = "doc-" + strconv.Itoa(i)
-	}
+	keys := docKeys(60)
 	awaitPlaced(t, ctx, client, index, keys)
 	router := opensearchutil.ClientShardRouter(client)
 
@@ -407,10 +403,7 @@ func TestBulkIndexerSendsEachBatchToItsPrimary_Integration(t *testing.T) {
 
 	// Wait until every document's primary is placed before indexing, so every
 	// item is grouped by its node from the first one.
-	docIDs := make([]string, numDocs)
-	for i := range docIDs {
-		docIDs[i] = "doc-" + strconv.Itoa(i)
-	}
+	docIDs := docKeys(numDocs)
 	awaitPlaced(t, ctx, client, index, docIDs)
 	router := opensearchutil.ClientShardRouter(client)
 
