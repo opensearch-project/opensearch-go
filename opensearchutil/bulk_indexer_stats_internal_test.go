@@ -363,6 +363,10 @@ func (f fakeTransportRouter) LookupShard(_, _ string, dst *[]*opensearchtranspor
 	return nil
 }
 
+func (f fakeTransportRouter) LookupDocShard(_, _, _ string, dst *[]*opensearchtransport.ShardTarget) error {
+	return f.LookupShard("", "", dst)
+}
+
 func (f fakeTransportRouter) WriteNodes() []*opensearchtransport.Connection { return f.nodes }
 func (f fakeTransportRouter) ShardMapUnavailable() error                    { return f.unavailable }
 

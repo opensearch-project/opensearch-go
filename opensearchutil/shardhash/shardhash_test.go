@@ -170,3 +170,77 @@ func BenchmarkForRouting(b *testing.B) {
 		shardhash.ForRouting("user123", 640, 5)
 	}
 }
+
+// Expected shards are derived by hand from the Murmur3HashFunctionTests vectors
+// above: shard = floorMod(hash(routing) + floorMod(hash(id), partitionSize), routingNumShards) / routingFactor,
+// with the sum wrapping as a Java int does.
+func TestForDocument(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                          string
+		routing, id                   string
+		routingNumShards, shards, rps int
+		expected                      int
+	}{
+		{"partition size 0 ignores id", "hello", "hell", 640, 640, 0, 521},
+		{"partition size 1 ignores id", "hello", "hell", 640, 640, 1, 521},
+		{"offset 3 from id", "hello", "hell", 640, 640, 4, 524},
+		{"offset 4 from id", "hello", "hello w", 640, 640, 8, 525},
+		{"no routing hashes the id", "", "hello", 640, 640, 1, 521},
+		// hash(r3700249) = 2147483104 and floorMod(hash(id8), 1024) = 977:
+		// the sum wraps to -2147483215 rather than 2147484081.
+		{"int32 overflow wraps", "r3700249", "id8", 640, 5, 1024, 2},
+		{"no overflow without partition", "r3700249", "id8", 640, 5, 1, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := shardhash.ForDocument(tt.routing, tt.id, tt.routingNumShards, tt.shards, tt.rps)
+			require.True(t, ok)
+			require.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestForDocument_UnpartitionedMatchesForRouting(t *testing.T) {
+	t.Parallel()
+
+	for _, rps := range []int{0, 1} {
+		for _, key := range []string{"a", "hello", "The quick brown fox", "r3700249"} {
+			byRouting, ok := shardhash.ForDocument(key, "other-id", 640, 5, rps)
+			require.True(t, ok)
+			require.Equal(t, shardhash.ForRouting(key, 640, 5), byRouting)
+
+			byID, ok := shardhash.ForDocument("", key, 640, 5, rps)
+			require.True(t, ok)
+			require.Equal(t, shardhash.ForRouting(key, 640, 5), byID)
+		}
+	}
+}
+
+func TestForDocument_NeedsAnIDOnAPartitionedIndex(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rps  int
+		want bool
+	}{
+		{"partition size 0", 0, true},
+		{"partition size 1", 1, true},
+		{"partition size 2", 2, false},
+		{"partition size 4", 4, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, ok := shardhash.ForDocument("hello", "", 640, 5, tt.rps)
+			require.Equal(t, tt.want, ok)
+		})
+	}
+}

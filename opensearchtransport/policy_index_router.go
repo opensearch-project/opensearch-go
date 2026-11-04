@@ -166,7 +166,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	var extraCost pooledFloats
 
 	if !strings.Contains(routingValue, routingValueSeparator) {
-		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, "", conns)
 	} else {
 		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1

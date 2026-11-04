@@ -10,16 +10,24 @@ import (
 	"cmp"
 	"slices"
 	"sync"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
 // calcSingleKeyCost resolves a single routing key to the shard it targets and
 // returns the connections hosting that shard. The 1:1 relationship between key
 // and shard makes this a direct lookup with no intermediate data structures.
 //
+// routingValue is the request's routing value, or "" for none; docID is the
+// document ID, or "" when the request has none. The server routes by the ID
+// when there is no routing value, and a partitioned index adds an offset
+// derived from the ID, so on such an index a request without an ID has no
+// known shard and the result is -1.
+//
 // Returns a zero-value pooledConns when shard-exact routing is disabled via
-// features, shard map data is unavailable, the routing value is empty, or no
-// connections match. Callers must call Release on the returned pooledConns
-// when done.
+// features, shard map data is unavailable, there is neither a routing value
+// nor an ID, or no connections match. Callers must call Release on the
+// returned pooledConns when done.
 //
 // Per-shard cost is derived from the returned [shardNodes] by the caller via
 // [shardCostMultiplier.forShard].
@@ -27,13 +35,14 @@ func calcSingleKeyCost(
 	features routingFeatures,
 	slot *indexSlot,
 	routingValue string,
+	docID string,
 	conns []*Connection,
 ) (pooledConns, int, *shardNodes) {
 	if !features.shardExactEnabled() {
 		return pooledConns{}, -1, nil
 	}
 
-	if routingValue == "" {
+	if routingValue == "" && docID == "" {
 		return pooledConns{}, -1, nil
 	}
 
@@ -42,7 +51,10 @@ func calcSingleKeyCost(
 		return pooledConns{}, -1, nil
 	}
 
-	shardNum := shardForRouting(routingValue, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+	shardNum, ok := shardhash.ForDocument(routingValue, docID, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
+	if !ok {
+		return pooledConns{}, -1, nil
+	}
 
 	shardCopy := sm.Shards[shardNum]
 	if shardCopy == nil {

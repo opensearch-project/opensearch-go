@@ -154,10 +154,15 @@ type indexShardMap struct {
 	//   IndexMetadata.java:getRoutingNumShards           -- stored per-index metadata
 	RoutingNumShards int
 
-	// Generation identifies this shard geometry (NumberOfPrimaryShards and
-	// RoutingNumShards): a merge that stores different values gives the map a new
-	// one, and a merge that keeps them keeps it. Zero only on a map built outside
-	// mergeShardMap, which reports it as unversioned.
+	// RoutingPartitionSize is the index's index.routing_partition_size; see
+	// [shardhash.ForDocument] for how it affects the shard. It is fetched with
+	// RoutingNumShards and, like it, cannot change while the index exists.
+	RoutingPartitionSize int
+
+	// Generation identifies this shard geometry (NumberOfPrimaryShards,
+	// RoutingNumShards and RoutingPartitionSize): a merge that stores different
+	// values gives the map a new one, and a merge that keeps them keeps it. Zero
+	// only on a map built outside mergeShardMap, which reports it as unversioned.
 	Generation uint64
 
 	// Replication is the index's index.replication.type. It is fetched with
@@ -478,6 +483,7 @@ func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
 		if slot.shardMap.CompareAndSwap(old, &indexShardMap{
 			NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
 			RoutingNumShards:      placement.RoutingNumShards,
+			RoutingPartitionSize:  placement.RoutingPartitionSize,
 			Generation:            geometryGeneration(old, placement),
 			Replication:           placement.Replication,
 			Shards:                merged,
@@ -499,7 +505,8 @@ var lastGeometryGeneration atomic.Uint64 //nolint:gochecknoglobals // Process-wi
 func geometryGeneration(old *indexShardMap, placement *indexShardPlacement) uint64 {
 	if old != nil && old.Generation != 0 &&
 		old.NumberOfPrimaryShards == placement.NumberOfPrimaryShards &&
-		old.RoutingNumShards == placement.RoutingNumShards {
+		old.RoutingNumShards == placement.RoutingNumShards &&
+		old.RoutingPartitionSize == placement.RoutingPartitionSize {
 		return old.Generation
 	}
 

@@ -7,6 +7,7 @@
 package opensearchutil
 
 import (
+	"errors"
 	"math"
 	"math/bits"
 
@@ -21,7 +22,7 @@ import (
 // (MetadataCreateIndexService.calculateNumRoutingShards).
 const maxDefaultRoutingShardsLog2 = 10
 
-// ShardMap is the routing half of an index's shard map: the two numbers that
+// ShardMap is the routing half of an index's shard map: the numbers that
 // decide which shard a routing value belongs to.
 type ShardMap = opensearchtransport.ShardMap
 
@@ -65,6 +66,11 @@ func (n Node) writeSaturated() bool {
 // ErrShardMapUnknown is what a [ShardRouter] returns from LookupShard when it does
 // not know the index's shard map.
 var ErrShardMapUnknown = opensearchtransport.ErrShardMapUnknown
+
+// ErrDocumentIDRequired is what a [DocShardRouter] returns when the index's shard map
+// is known but its routing_partition_size is above 1 and no document ID was given. It
+// wraps [ErrShardMapUnknown].
+var ErrDocumentIDRequired = opensearchtransport.ErrDocumentIDRequired
 
 // ShardTarget is one copy of the shard a document with a given key lives on.
 type ShardTarget struct {
@@ -116,6 +122,35 @@ type ShardRouter interface {
 	WriteNodes() []Node
 }
 
+// DocShardRouter is a [ShardRouter] that can also map a document by its routing
+// value and ID together, which an index with a routing_partition_size above 1
+// needs: the shard there depends on the ID as well as the routing value. The
+// bulk client uses it when the router offers it, and falls back to
+// LookupShard otherwise.
+//
+// The result and *dst follow LookupShard. routing may be empty, in which case
+// the document is routed by id. On a partitioned index an empty id yields
+// [ErrDocumentIDRequired], because the shard of a document whose ID the server
+// generates cannot be predicted.
+type DocShardRouter interface {
+	ShardRouter
+	LookupDocShard(index, routing, id string, dst *[]*ShardTarget) error
+}
+
+// lookupDoc asks r for the shard of a document, with LookupDocShard when r has
+// it and else with LookupShard, keyed by the routing value or else the ID.
+func lookupDoc(r ShardRouter, index, routing, id string, dst *[]*ShardTarget) error {
+	if dr, ok := r.(DocShardRouter); ok {
+		return dr.LookupDocShard(index, routing, id, dst)
+	}
+
+	if routing == "" {
+		routing = id
+	}
+
+	return r.LookupShard(index, routing, dst)
+}
+
 type noShardRouter struct{}
 
 // LookupShard implements [ShardRouter]; it knows no shard.
@@ -146,8 +181,15 @@ var NoShardRouter ShardRouter = noShardRouter{}
 // is using it.
 type StaticShardRouter map[string]ShardMap
 
-// LookupShard implements [ShardRouter].
+// LookupShard implements [ShardRouter]. It returns [ErrDocumentIDRequired] for a
+// shard map with a RoutingPartitionSize above 1, because one key cannot name the
+// shard there; use LookupDocShard.
 func (r StaticShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	return r.LookupDocShard(index, key, "", dst)
+}
+
+// LookupDocShard implements [DocShardRouter].
+func (r StaticShardRouter) LookupDocShard(index, routing, id string, dst *[]*ShardTarget) error {
 	*dst = (*dst)[:0]
 
 	m, found := r[index]
@@ -155,7 +197,12 @@ func (r StaticShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) e
 		return ErrShardMapUnknown
 	}
 
-	*slicepool.Append(dst) = ShardTarget{Shard: m.Shard(key), Primary: true}
+	shard, ok := m.ShardForDocument(routing, id)
+	if !ok {
+		return ErrDocumentIDRequired
+	}
+
+	*slicepool.Append(dst) = ShardTarget{Shard: shard, Primary: true}
 
 	return nil
 }
@@ -230,6 +277,9 @@ type chainShardRouter []ShardRouter
 // [DefaultShardMap]. The cluster's shard map must win whenever it is available,
 // because a split or an explicit number_of_routing_shards makes the derivation
 // wrong.
+//
+// A router that reports [ErrDocumentIDRequired] for a lookup ends the chain with
+// that error, because no later router can place the document either.
 func ChainShardRouter(routers ...ShardRouter) ShardRouter {
 	chain := make(chainShardRouter, 0, len(routers))
 	for _, r := range routers {
@@ -247,11 +297,21 @@ func ChainShardRouter(routers ...ShardRouter) ShardRouter {
 
 // LookupShard implements [ShardRouter].
 func (c chainShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	return c.LookupDocShard(index, key, "", dst)
+}
+
+// LookupDocShard implements [DocShardRouter].
+func (c chainShardRouter) LookupDocShard(index, routing, id string, dst *[]*ShardTarget) error {
 	var first error
 	for _, r := range c {
-		err := r.LookupShard(index, key, dst)
+		err := lookupDoc(r, index, routing, id, dst)
 		if err == nil {
 			return nil
+		}
+		if errors.Is(err, ErrDocumentIDRequired) {
+			*dst = (*dst)[:0]
+
+			return err
 		}
 		if first == nil {
 			first = err
@@ -278,6 +338,7 @@ func (c chainShardRouter) WriteNodes() []Node {
 // provides it.
 type transportRouter interface {
 	LookupShard(index, key string, dst *[]*opensearchtransport.ShardTarget) error
+	LookupDocShard(index, routing, id string, dst *[]*opensearchtransport.ShardTarget) error
 	WriteNodes() []*opensearchtransport.Connection
 }
 
@@ -298,12 +359,17 @@ func nodeOf(conn *opensearchtransport.Connection) Node {
 
 // LookupShard implements [ShardRouter].
 func (r clientShardRouter) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	return r.LookupDocShard(index, key, "", dst)
+}
+
+// LookupDocShard implements [DocShardRouter].
+func (r clientShardRouter) LookupDocShard(index, routing, id string, dst *[]*ShardTarget) error {
 	*dst = (*dst)[:0]
 
 	copies := transportTargetPool.Get()
 	defer transportTargetPool.Put(copies)
 
-	if err := r.tr.LookupShard(index, key, copies); err != nil {
+	if err := r.tr.LookupDocShard(index, routing, id, copies); err != nil {
 		return err
 	}
 

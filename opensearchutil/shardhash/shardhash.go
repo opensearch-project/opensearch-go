@@ -79,9 +79,42 @@ func Hash(routing string) int32 {
 //	OperationRouting.java:calculateScaledShardId
 //	MetadataCreateIndexService.java:calculateNumRoutingShards
 func ForRouting(routing string, routingNumShards, numPrimaryShards int) int {
+	shard, _ := ForDocument(routing, "", routingNumShards, numPrimaryShards, 0)
+
+	return shard
+}
+
+// ForDocument computes the shard number for a document the way
+// OpenSearch's OperationRouting.generateShardId does:
+//
+//	effectiveRouting = routing == "" ? id : routing
+//	partitionOffset  = routingPartitionSize > 1 ? floorMod(hash(id), routingPartitionSize) : 0
+//	shard = floorMod(hash(effectiveRouting) + partitionOffset, routingNumShards) / routingFactor
+//
+// The sum is an int32 addition that wraps on overflow, as in Java. A
+// routingPartitionSize of 0 or 1 means the index is not partitioned, and the
+// result equals [ForRouting] of the effective routing.
+//
+// The partition offset hashes the ID, so on a partitioned index the shard is not
+// known without one, as for a document whose ID the server generates: the second
+// result is false when routingPartitionSize is above 1 and id is empty.
+func ForDocument(routing, id string, routingNumShards, numPrimaryShards, routingPartitionSize int) (int, bool) {
+	if routingPartitionSize > 1 && id == "" {
+		return 0, false
+	}
+
+	if routing == "" {
+		routing = id
+	}
+
 	hash := Hash(routing)
+	if routingPartitionSize > 1 {
+		hash += int32(floorMod(Hash(id), routingPartitionSize)) //nolint:gosec // result < routingPartitionSize, an int32 index setting
+	}
+
 	routingFactor := routingNumShards / numPrimaryShards
-	return floorMod(hash, routingNumShards) / routingFactor
+
+	return floorMod(hash, routingNumShards) / routingFactor, true
 }
 
 // floorMod computes Java's Math.floorMod(a, b): the floor modulus that

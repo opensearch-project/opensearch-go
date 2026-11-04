@@ -86,7 +86,7 @@ func BenchmarkCalcSingleKeyCost(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		buf, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, conns)
+		buf, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, "", conns)
 		buf.Release()
 	}
 }

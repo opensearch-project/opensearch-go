@@ -1914,6 +1914,10 @@ type indexShardPlacement struct {
 	// fetched from _cluster/state/metadata. Zero until populated.
 	RoutingNumShards int
 
+	// RoutingPartitionSize is the index's index.routing_partition_size; see
+	// indexShardMap.RoutingPartitionSize.
+	RoutingPartitionSize int
+
 	// Replication is the index's index.replication.type, fetched with
 	// RoutingNumShards.
 	Replication ReplicationType
@@ -2096,16 +2100,19 @@ func (tr *Transport) getShardPlacement(ctx context.Context) (map[string]*indexSh
 	return result, nil
 }
 
-// fetchRoutingNumShards fetches routing metadata (routing_num_shards and
-// number_of_shards) from the cluster state for indexes that don't have it
-// cached yet. This is a one-time fetch per index --once populated, the values
-// are stored in the indexShardMap and persist across subsequent discovery cycles.
+// fetchRoutingNumShards fetches routing metadata (routing_num_shards,
+// number_of_shards and routing_partition_size) from the cluster state for
+// indexes that don't have it cached yet. This is a one-time fetch per index
+// --once populated, the values are stored in the indexShardMap and persist
+// across subsequent discovery cycles.
 //
-// Both values are needed for murmur3 shard-exact routing:
+// These values are needed for murmur3 shard-exact routing:
 //
 //	shard = floorMod(hash, routingNumShards) / routingFactor
 //
-// where routingFactor = routingNumShards / numberOfShards.
+// where routingFactor = routingNumShards / numberOfShards. On an index with
+// routing_partition_size above 1 the hash also includes a partition offset
+// (see indexShardMap.RoutingPartitionSize).
 //
 // number_of_shards from index settings is the authoritative shard count.
 // The _cat/shards-derived count can be transiently wrong when shards are
@@ -2150,6 +2157,7 @@ func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement m
 		// Already cached -- carry forward into the placement data.
 		shardPlacement[indexName].RoutingNumShards = sm.RoutingNumShards
 		shardPlacement[indexName].Replication = sm.Replication
+		shardPlacement[indexName].RoutingPartitionSize = sm.RoutingPartitionSize
 		if sm.NumberOfPrimaryShards > 0 {
 			shardPlacement[indexName].NumberOfPrimaryShards = sm.NumberOfPrimaryShards
 		}
@@ -2172,6 +2180,7 @@ func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement m
 		if placement, ok := shardPlacement[indexName]; ok {
 			placement.RoutingNumShards = meta.RoutingNumShards
 			placement.Replication = meta.Replication
+			placement.RoutingPartitionSize = meta.RoutingPartitionSize
 			// Use the authoritative number_of_shards from index metadata
 			// rather than the _cat/shards-derived count, which can be
 			// transiently wrong when shards are RELOCATING.
@@ -2186,9 +2195,10 @@ func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement m
 // fetched from _cluster/state/metadata. These values are immutable for the
 // lifetime of an index and are needed by murmur3 shard-exact routing.
 type indexRoutingMeta struct {
-	RoutingNumShards int             // Hash modulus (e.g. 640 for a 5-shard index)
-	NumberOfShards   int             // Configured number_of_shards from index settings
-	Replication      ReplicationType // index.replication.type
+	RoutingNumShards     int             // Hash modulus (e.g. 640 for a 5-shard index)
+	NumberOfShards       int             // Configured number_of_shards from index settings
+	Replication          ReplicationType // index.replication.type
+	RoutingPartitionSize int             // index.routing_partition_size; see indexShardMap.RoutingPartitionSize
 }
 
 // index.replication.type values, as the server spells them.
@@ -2209,8 +2219,8 @@ func parseReplicationType(s string) ReplicationType {
 	return ReplicationDocument
 }
 
-// getRoutingMeta fetches routing metadata (routing_num_shards and
-// number_of_shards) for the given indexes from _cluster/state/metadata.
+// getRoutingMeta fetches routing metadata (routing_num_shards, number_of_shards
+// and routing_partition_size) for the given indexes from _cluster/state/metadata.
 //
 // number_of_shards from index settings is the authoritative shard count,
 // unlike the _cat/shards-derived count which can be transiently wrong when
@@ -2226,6 +2236,7 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 	}
 	req.URL.RawQuery = "filter_path=metadata.indices.*.routing_num_shards," +
 		"metadata.indices.*.settings.index.number_of_shards," +
+		"metadata.indices.*.settings.index.routing_partition_size," +
 		"metadata.indices.*.settings.index.replication.type"
 
 	conn, err := getConnectionFromPool(tr, req)
@@ -2269,7 +2280,7 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 	// Response shape:
 	// {"metadata":{"indices":{"idx":{
 	//   "routing_num_shards": 640,
-	//   "settings": {"index": {"number_of_shards": "5", "replication": {"type": "SEGMENT"}}}
+	//   "settings": {"index": {"number_of_shards": "5", "routing_partition_size": "2", "replication": {"type": "SEGMENT"}}}
 	// }}}}
 	var clusterState struct {
 		Metadata struct {
@@ -2277,8 +2288,9 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 				RoutingNumShards int `json:"routing_num_shards"`
 				Settings         struct {
 					Index struct {
-						NumberOfShards string `json:"number_of_shards"`
-						Replication    struct {
+						NumberOfShards       string `json:"number_of_shards"`
+						RoutingPartitionSize string `json:"routing_partition_size"`
+						Replication          struct {
 							Type string `json:"type"`
 						} `json:"replication"`
 					} `json:"index"`
@@ -2299,6 +2311,9 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 			}
 			if n, err := strconv.Atoi(meta.Settings.Index.NumberOfShards); err == nil && n > 0 {
 				rm.NumberOfShards = n
+			}
+			if n, err := strconv.Atoi(meta.Settings.Index.RoutingPartitionSize); err == nil && n > 0 {
+				rm.RoutingPartitionSize = n
 			}
 			result[name] = rm
 		}
