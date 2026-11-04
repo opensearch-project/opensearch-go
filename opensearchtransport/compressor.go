@@ -539,7 +539,14 @@ func (tr *Transport) clusterVersionCompressor(conn *Connection) (*requestCompres
 	if err != nil {
 		return tbl.defaultCompressor, err.Error()
 	}
-	defer res.Body.Close()
+	// The probe shares conn's connection with real traffic. Drain what is left
+	// before closing, so a non-200 response or bytes json.Decoder leaves unread
+	// do not stop the connection from being reused.
+	defer func() {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusOK {
 		return tbl.defaultCompressor, fmt.Sprintf("GET %q: status %d", nodesVersionsPath, res.StatusCode)
 	}
