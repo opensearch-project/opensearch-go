@@ -224,7 +224,7 @@ func TestCalcSingleKeyCostPartitionedIndex(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, tt.routing, tt.id, conns)
+			buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, tt.routing, tt.id, conns)
 			defer buf.Release()
 
 			require.Equal(t, tt.wantShard, shardNum)
@@ -321,7 +321,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			slot := partitionedSlot(tt.primaries, tt.routingPartitionSize, placement)
 			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
 
-			cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
+			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
 			defer cBuf.Release()
 			defer ecBuf.Release()
 

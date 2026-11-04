@@ -126,15 +126,16 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			dispatchRoute(obs, routeEventParams{
-				totalNodes:    len(conns),
-				fanOut:        len(conns),
-				candidates:    conns,
-				best:          best,
-				costs:         p.shardCosts,
-				poolName:      p.poolName,
-				targetShard:   -1,
-				poolInfoReady: pir,
-				scoreFunc:     p.scoreFunc,
+				totalNodes:      len(conns),
+				fanOut:          len(conns),
+				candidates:      conns,
+				best:            best,
+				costs:           p.shardCosts,
+				poolName:        p.poolName,
+				targetShard:     -1,
+				shardMissReason: ShardMissNoRoutingKey,
+				poolInfoReady:   pir,
+				scoreFunc:       p.scoreFunc,
 			})
 		}
 
@@ -166,11 +167,12 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
+	var missReason ShardMissReason
 
 	if !needsShardSetCost(slot, routingValue, keyB) {
-		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, keyB, conns)
+		candidatesBuf, shardNum, shard, missReason = calcSingleKeyCost(p.cache.features, slot, routingValue, keyB, conns)
 	} else {
-		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, missReason = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
@@ -275,6 +277,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			routingValue:        routingValue,
 			effectiveRoutingKey: effectiveRoutingKey,
 			targetShard:         shardNum,
+			shardMissReason:     missReason,
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,

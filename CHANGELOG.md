@@ -8,6 +8,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Add `compress.ZstdTable(level)`, a `CompressorTable` that sends zstd request bodies to OpenSearch 3.0.0 and later and gzip at level 6 otherwise; see the [`ZstdTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/compress/v5#ZstdTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 - Add `opensearchtransport.CompressorTable` and `Config.CompressorTable` (also on `opensearch.Config`), which choose the request `Compressor` by server version; see the [`CompressorTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#CompressorTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
+- Add the optional `ShardLookupObserver` interface with `OnShardLookupMiss`, called with a `ShardLookupMissEvent` and a `ShardMissReason` when `Transport.LookupShard` or `LookupDocShard` cannot name a node for a shard, and `RouteEvent.ShardMissReason`, which says why a request fell back from shard-exact routing
 - Add `ShardMap.RoutingPartitionSize`, `ShardMap.ShardForDocument`, `Transport.LookupDocShard`, `shardhash.ForRoutingOffset`, the optional `opensearchutil.DocShardRouter` interface and `ErrDocumentIDRequired`, so a router can find a document's shard from its routing value and ID together. `ShardForDocument` also reports whether the shard can be known.
 
 ### Changed

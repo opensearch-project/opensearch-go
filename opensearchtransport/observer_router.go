@@ -69,6 +69,14 @@ type RouteEvent struct {
 	// rendezvous hashing (e.g., shard map not yet loaded).
 	ShardExactMatch bool
 
+	// ShardMissReason says why the request was not routed to a node hosting
+	// the target shard(s): [ShardMissNone] when ShardExactMatch is true (and
+	// when shard-exact routing is disabled), otherwise the reason for the
+	// fallback to rendezvous hashing. Request routing reports a miss here only;
+	// it never calls [ShardLookupObserver].OnShardLookupMiss, which would fire
+	// for every request that carries no routing value.
+	ShardMissReason ShardMissReason
+
 	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
 	// from the selected connection's search pool cwnd. Zero when adaptive
 	// concurrency does not apply (shard-exact routing, non-search pool,
@@ -253,6 +261,7 @@ type routeEventParams struct {
 	effectiveRoutingKey string
 	targetShard         int
 	shardExactMatch     bool
+	shardMissReason     ShardMissReason
 	poolInfoReady       bool
 	adaptiveMCSR        int
 	scoreFunc           connScoreFunc
@@ -294,6 +303,7 @@ func buildRouteEventInto(cs []RouteCandidate, p routeEventParams) RouteEvent {
 		EffectiveRoutingKey:        p.effectiveRoutingKey,
 		TargetShard:                p.targetShard,
 		ShardExactMatch:            p.shardExactMatch,
+		ShardMissReason:            p.shardMissReason,
 		MaxConcurrentShardRequests: p.adaptiveMCSR,
 		Timestamp:                  time.Now().UTC(),
 	}

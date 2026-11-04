@@ -194,11 +194,17 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 // in which case the document is routed by id. On a partitioned index it returns
 // [ErrDocumentIDRequired] when id is empty, as for a document whose ID the server
 // generates.
+//
+// A lookup that cannot name a node for the shard is reported to
+// [Config].Observer when it implements [ShardLookupObserver]; the targets are
+// still returned as for [Transport.LookupShard].
 func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarget) error {
 	*dst = (*dst)[:0]
 
 	cache := tr.shardMapCache()
 	if cache == nil {
+		tr.shardLookupMiss(index, ShardMissMapUnknown)
+
 		if err := tr.ShardMapUnavailable(); err != nil {
 			return err
 		}
@@ -208,11 +214,15 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 
 	sm := cache.register(index).shardMap.Load()
 	if sm == nil || sm.RoutingNumShards <= 0 || sm.NumberOfPrimaryShards <= 0 {
+		tr.shardLookupMiss(index, ShardMissMapUnknown)
+
 		return ErrShardMapUnknown
 	}
 
 	shard, ok := shardhash.ForDocument(routing, id, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
 	if !ok {
+		tr.shardLookupMiss(index, ShardMissDocumentIDRequired)
+
 		return ErrDocumentIDRequired
 	}
 
@@ -222,6 +232,8 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 	*primary = ShardTarget{Shard: shard, Primary: true, Replication: sm.Replication, Generation: sm.Generation}
 
 	if nodes == nil {
+		tr.shardLookupMiss(index, ShardMissNoNode)
+
 		return nil
 	}
 
@@ -229,6 +241,10 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 		if conn := tr.readyConnectionByName(nodes.Primary); conn != nil && !conn.needsCatUpdate() {
 			primary.Node = conn
 		}
+	}
+
+	if primary.Node == nil {
+		tr.shardLookupMiss(index, ShardMissNoNode)
 	}
 
 	for _, name := range nodes.Replicas {
@@ -242,6 +258,14 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 	}
 
 	return nil
+}
+
+// shardLookupMiss tells the observer, when it is a [ShardLookupObserver], that a
+// lookup in index missed. It does not allocate.
+func (tr *Transport) shardLookupMiss(index string, reason ShardMissReason) {
+	if obs, ok := observerFromAtomic(&tr.observer).(ShardLookupObserver); ok {
+		obs.OnShardLookupMiss(ShardLookupMissEvent{Index: index, Reason: reason})
+	}
 }
 
 // connectionNamer is implemented by the built-in connection pools.

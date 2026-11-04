@@ -16,6 +16,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -38,6 +40,8 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 
 	u := testutil.GetTestURL(t)
 	cfg, obs := getTestConfigWithReadiness(t, []*url.URL{u})
+	misses := &shardMissObserver{readinessObserver: obs}
+	cfg.Observer = misses
 	router, err := NewDefaultRouter()
 	require.NoError(t, err)
 	cfg.Router = router
@@ -188,6 +192,12 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 		require.ErrorIs(t, transport.LookupShard(index, d.routing, &targets), ErrDocumentIDRequired)
 	}
 
+	// A key-only lookup on the partitioned index reports one miss.
+	misses.reset()
+	var missTargets []*ShardTarget
+	require.ErrorIs(t, transport.LookupShard(index, "tenant-0", &missTargets), ErrDocumentIDRequired)
+	require.Equal(t, []ShardLookupMissEvent{{Index: index, Reason: ShardMissDocumentIDRequired}}, misses.snapshot())
+
 	// A search with only a routing value targets the shards of every partition
 	// offset; the server names them in _search_shards.
 	m, ok := transport.ShardMap(index)
@@ -221,4 +231,32 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 		}
 		require.Equal(t, want, got, "routing=%q: _search_shards targets %v, shardhash.ForRoutingOffset predicts %v", tenant, got, want)
 	}
+}
+
+// shardMissObserver records shard lookup misses on top of the readiness
+// observer the transport config already uses.
+type shardMissObserver struct {
+	*readinessObserver
+
+	mu     sync.Mutex
+	events []ShardLookupMissEvent
+}
+
+func (o *shardMissObserver) OnShardLookupMiss(e ShardLookupMissEvent) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.events = append(o.events, e)
+}
+
+func (o *shardMissObserver) reset() {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.events = nil
+}
+
+func (o *shardMissObserver) snapshot() []ShardLookupMissEvent {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	return slices.Clone(o.events)
 }

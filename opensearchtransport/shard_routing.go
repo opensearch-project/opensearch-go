@@ -38,28 +38,28 @@ func calcSingleKeyCost(
 	routingValue string,
 	docID string,
 	conns []*Connection,
-) (pooledConns, int, *shardNodes) {
+) (pooledConns, int, *shardNodes, ShardMissReason) {
 	if !features.shardExactEnabled() {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissNone
 	}
 
 	if routingValue == "" && docID == "" {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissNoRoutingKey
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissMapUnknown
 	}
 
 	shardNum, ok := shardhash.ForDocument(routingValue, docID, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
 	if !ok {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissDocumentIDRequired
 	}
 
 	shardCopy := sm.Shards[shardNum]
 	if shardCopy == nil {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissNoNode
 	}
 
 	// Build a set of node names hosting this shard.
@@ -73,7 +73,7 @@ func calcSingleKeyCost(
 
 	if nodeNames.Len() == 0 {
 		nodeNames.Release()
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissNoNode
 	}
 
 	// Resolve node names to connections. Filter out connections that
@@ -91,10 +91,10 @@ func calcSingleKeyCost(
 
 	if len(*bp) == 0 {
 		putConnSlice(bp)
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ShardMissNoNode
 	}
 
-	return pooledConns{p: bp}, shardNum, shardCopy
+	return pooledConns{p: bp}, shardNum, shardCopy, ShardMissNone
 }
 
 // needsShardSetCost reports whether a request is costed by [calcMultiKeyCost]
@@ -135,14 +135,17 @@ func calcMultiKeyCost(
 	slot *indexSlot,
 	routingValue string,
 	conns []*Connection,
-) (pooledConns, pooledFloats) {
-	if !features.shardExactEnabled() || routingValue == "" {
-		return pooledConns{}, pooledFloats{}
+) (pooledConns, pooledFloats, ShardMissReason) {
+	if !features.shardExactEnabled() {
+		return pooledConns{}, pooledFloats{}, ShardMissNone
+	}
+	if routingValue == "" {
+		return pooledConns{}, pooledFloats{}, ShardMissNoRoutingKey
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, ShardMissMapUnknown
 	}
 
 	rvBuf := acquireRoutingValues()
@@ -177,7 +180,7 @@ func calcMultiKeyCost(
 
 	if len(*hits) == 0 {
 		releaseNodeHits(hits)
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, ShardMissNoNode
 	}
 
 	scored := acquireScoredConns()
@@ -193,7 +196,7 @@ func calcMultiKeyCost(
 
 	if len(*scored) == 0 {
 		releaseScoredConns(scored)
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, ShardMissNoNode
 	}
 
 	slices.SortFunc(*scored, func(a, b scoredConn) int {
@@ -209,7 +212,7 @@ func calcMultiKeyCost(
 	}
 	releaseScoredConns(scored)
 
-	return result, extraCost
+	return result, extraCost, ShardMissNone
 }
 
 type scoredConn struct {

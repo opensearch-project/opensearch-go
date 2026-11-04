@@ -137,6 +137,74 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	OnStreamResponse(ctx context.Context, event StreamResponseEvent)
 }
 
+// ShardLookupObserver is an optional interface a [ConnectionObserver] may also
+// implement. The transport type-asserts [Config].Observer for it, so an existing
+// ConnectionObserver keeps compiling and simply receives no shard lookup events.
+//
+// OnShardLookupMiss is called on the hot path, once per [Transport.LookupShard]
+// or [Transport.LookupDocShard] call that cannot name a node for the shard, so
+// it must return quickly. The same restrictions as [ConnectionObserver] apply.
+// Request routing does not call it; a request that falls back from shard-exact
+// routing reports why in [RouteEvent].ShardMissReason.
+type ShardLookupObserver interface {
+	// OnShardLookupMiss is called when a shard lookup cannot be answered
+	// directly. It is not called for a lookup that finds the shard's node.
+	OnShardLookupMiss(event ShardLookupMissEvent)
+}
+
+// ShardLookupMissEvent describes a shard lookup that could not be answered
+// directly.
+type ShardLookupMissEvent struct {
+	// Index is the index the lookup was for.
+	Index string
+
+	// Reason is why the lookup missed. It is never [ShardMissNone].
+	Reason ShardMissReason
+}
+
+// ShardMissReason says why a shard could not be hit directly.
+type ShardMissReason uint8
+
+const (
+	// ShardMissNone is the zero value: the shard was found.
+	ShardMissNone ShardMissReason = iota
+
+	// ShardMissMapUnknown means the index has no shard map yet, or the
+	// transport never collects one (see [Transport.ShardMapUnavailable]).
+	ShardMissMapUnknown
+
+	// ShardMissDocumentIDRequired means the index is partitioned and the
+	// lookup had no document ID; see [ErrDocumentIDRequired].
+	ShardMissDocumentIDRequired
+
+	// ShardMissNoRoutingKey means the request had neither a routing value nor
+	// a document ID.
+	ShardMissNoRoutingKey
+
+	// ShardMissNoNode means the shard is known, but its primary's node is not
+	// a ready connection.
+	ShardMissNoNode
+)
+
+// String returns the reason's name, or "unknown" for a value outside the
+// constants above.
+func (r ShardMissReason) String() string {
+	switch r {
+	case ShardMissNone:
+		return "none"
+	case ShardMissMapUnknown:
+		return "map_unknown"
+	case ShardMissDocumentIDRequired:
+		return "document_id_required"
+	case ShardMissNoRoutingKey:
+		return "no_routing_key"
+	case ShardMissNoNode:
+		return "no_node"
+	default:
+		return "unknown"
+	}
+}
+
 // BaseConnectionObserver is an embeddable no-op implementation of
 // ConnectionObserver. Embed it in your own struct and override only the
 // methods you care about.
@@ -195,6 +263,9 @@ func (BaseConnectionObserver) OnShardMapInvalidation(ShardMapInvalidationEvent) 
 // OnAddressRewrite implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnAddressRewrite(AddressRewriteEvent) {}
 
+// OnShardLookupMiss implements ShardLookupObserver (no-op).
+func (BaseConnectionObserver) OnShardLookupMiss(ShardLookupMissEvent) {}
+
 // OnRequestStart implements ConnectionObserver (no-op; returns ctx unchanged).
 func (BaseConnectionObserver) OnRequestStart(ctx context.Context, event RequestEvent) context.Context {
 	_ = event
@@ -225,6 +296,9 @@ func (BaseConnectionObserver) OnStreamResponse(ctx context.Context, event Stream
 
 // Compile-time check that BaseConnectionObserver implements ConnectionObserver.
 var _ ConnectionObserver = (*BaseConnectionObserver)(nil)
+
+// Compile-time check that BaseConnectionObserver implements ShardLookupObserver.
+var _ ShardLookupObserver = (*BaseConnectionObserver)(nil)
 
 // observerFromAtomic loads a ConnectionObserver from an atomic pointer.
 // Returns nil if the pointer is nil or stores nil.

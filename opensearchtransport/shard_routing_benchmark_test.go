@@ -56,7 +56,7 @@ func BenchmarkCalcMultiKeyCost(b *testing.B) {
 		b.Run(fmt.Sprintf("keys=%d", numKeys), func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+				candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 				candidates.Release()
 				extraCost.Release()
 			}
@@ -86,7 +86,7 @@ func BenchmarkCalcSingleKeyCost(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		buf, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, "", conns)
+		buf, _, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, "", conns)
 		buf.Release()
 	}
 }
