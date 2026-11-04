@@ -244,3 +244,39 @@ func TestForDocument_NeedsAnIDOnAPartitionedIndex(t *testing.T) {
 		})
 	}
 }
+
+// Expected shards reuse the TestForDocument vectors: hash(hello) maps to shard
+// 521 at offset 0, and the sum wraps as a Java int does.
+func TestForRoutingOffset(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                     string
+		routing                  string
+		offset                   int
+		routingNumShards, shards int
+		expected                 int
+	}{
+		{"offset 0", "hello", 0, 640, 640, 521},
+		{"offset 3", "hello", 3, 640, 640, 524},
+		{"offset wraps past routingNumShards", "hello", 120, 640, 5, 0},
+		{"int32 overflow wraps", "r3700249", 977, 640, 5, 2},
+		{"no overflow at offset 0", "r3700249", 0, 640, 5, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.expected, shardhash.ForRoutingOffset(tt.routing, tt.offset, tt.routingNumShards, tt.shards))
+		})
+	}
+}
+
+func TestForRoutingOffset_ZeroOffsetMatchesForRouting(t *testing.T) {
+	t.Parallel()
+
+	for _, key := range []string{"a", "hello", "The quick brown fox", "r3700249"} {
+		require.Equal(t, shardhash.ForRouting(key, 640, 5), shardhash.ForRoutingOffset(key, 0, 640, 5))
+	}
+}

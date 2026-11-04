@@ -335,16 +335,13 @@ func (call *mgetCall) route(positions []int, avoid string, s *mgetRouteScratch) 
 		pos := mgetPosition(positions, i)
 
 		op := call.req.Body.Docs[pos]
-		key := op.ID
-		switch {
-		case op.Routing != nil && *op.Routing != "":
-			key = *op.Routing
-		case call.routing != "":
-			key = call.routing
+		routing := call.routing
+		if op.Routing != nil && *op.Routing != "" {
+			routing = *op.Routing
 		}
 
 		idx := call.indexOf(pos)
-		if idx == "" || op.ID == "" || call.d.lookup.LookupShard(idx, key, targets) != nil {
+		if idx == "" || op.ID == "" || call.d.lookup.LookupDocShard(idx, routing, op.ID, targets) != nil {
 			unrouted = append(unrouted, pos)
 
 			continue

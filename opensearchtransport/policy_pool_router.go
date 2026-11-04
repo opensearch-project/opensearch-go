@@ -9,7 +9,6 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -168,7 +167,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	var shard *shardNodes
 	var extraCost pooledFloats
 
-	if !strings.Contains(routingValue, routingValueSeparator) {
+	if !needsMultiKeyCost(slot, routingValue, keyB) {
 		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, keyB, conns)
 	} else {
 		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)

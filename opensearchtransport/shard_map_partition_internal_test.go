@@ -238,3 +238,128 @@ func TestCalcSingleKeyCostPartitionedIndex(t *testing.T) {
 		})
 	}
 }
+
+// partitionedSlot builds a slot whose index has the given geometry and
+// partition size, with each shard in placement hosted by its named primary.
+func partitionedSlot(primaries, rps int, placement map[int]string) *indexSlot {
+	shards := make(map[int]*shardNodes, len(placement))
+	for shard, node := range placement {
+		shards[shard] = &shardNodes{Primary: node}
+	}
+	slot := &indexSlot{clock: realClock{}}
+	slot.shardMap.Store(&indexShardMap{
+		NumberOfPrimaryShards: primaries,
+		RoutingNumShards:      partitionedRoutingNumShards,
+		RoutingPartitionSize:  rps,
+		Shards:                shards,
+	})
+
+	return slot
+}
+
+func TestCalcMultiKeyCostPartitionedIndex(t *testing.T) {
+	t.Parallel()
+
+	const routing = "user-7"
+	var targets [partitionSize]int
+	for i := range targets {
+		targets[i] = shardhash.ForRoutingOffset(routing, i, partitionedRoutingNumShards, partitionedPrimaryShards)
+	}
+
+	// nodeA hosts three of the four partition shards and nodeB the fourth.
+	slot := partitionedSlot(partitionedPrimaryShards, partitionSize, map[int]string{
+		targets[0]: "nodeA", targets[1]: "nodeA", targets[2]: "nodeA", targets[3]: "nodeB",
+	})
+	conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
+
+	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routing, conns)
+	defer cBuf.Release()
+	defer ecBuf.Release()
+
+	require.Len(t, cBuf.Slice(), 2)
+	require.Equal(t, "nodeA", cBuf.Slice()[0].Name)
+	require.Equal(t, "nodeB", cBuf.Slice()[1].Name)
+	require.Equal(t, []float64{1, 3}, ecBuf.Slice())
+}
+
+// With fewer primaries than routing_partition_size the offsets collide on a
+// shard; a key counts each distinct shard once.
+func TestCalcMultiKeyCostPartitionedIndexCountsDistinctShards(t *testing.T) {
+	t.Parallel()
+
+	const routing = "user-7"
+	distinct := map[int]struct{}{}
+	for i := range partitionSize {
+		distinct[shardhash.ForRoutingOffset(routing, i, partitionedRoutingNumShards, 5)] = struct{}{}
+	}
+	require.Less(t, len(distinct), partitionSize, "routing value must collide on this geometry")
+
+	placement := map[int]string{}
+	for shard := range distinct {
+		placement[shard] = "nodeA"
+	}
+	slot := partitionedSlot(5, partitionSize, placement)
+
+	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routing, []*Connection{newTestConn(t, "nodeA")})
+	defer cBuf.Release()
+	defer ecBuf.Release()
+
+	require.Len(t, cBuf.Slice(), 1)
+	require.Equal(t, []float64{0}, ecBuf.Slice())
+}
+
+func TestNeedsMultiKeyCost(t *testing.T) {
+	t.Parallel()
+
+	partitioned := partitionedSlot(partitionedPrimaryShards, partitionSize, nil)
+	plain := partitionedSlot(partitionedPrimaryShards, 0, nil)
+
+	tests := []struct {
+		name        string
+		slot        *indexSlot
+		routing, id string
+		want        bool
+	}{
+		{"comma list", plain, "a,b", "", true},
+		{"single routing, unpartitioned", plain, "a", "", false},
+		{"single routing and id, partitioned", partitioned, "a", "doc", false},
+		{"single routing without id, partitioned", partitioned, "a", "", true},
+		{"no routing, partitioned", partitioned, "", "", false},
+		{"no shard map", &indexSlot{clock: realClock{}}, "a", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, needsMultiKeyCost(tt.slot, tt.routing, tt.id))
+		})
+	}
+}
+
+func TestIndexRouterPartitionedSearchPrefersTheNodeHostingMostPartitionShards(t *testing.T) {
+	t.Parallel()
+
+	const routing = "user-7"
+	var targets [partitionSize]int
+	for i := range targets {
+		targets[i] = shardhash.ForRoutingOffset(routing, i, partitionedRoutingNumShards, partitionedPrimaryShards)
+	}
+
+	cache := newIndexSlotCache(indexSlotCacheConfig{})
+	policy := newIndexRouter(indexSlotCacheConfig{})
+	policy.cache = cache
+	conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB"), newTestConn(t, "nodeC")}
+	require.NoError(t, policy.DiscoveryUpdate(conns, nil, nil))
+
+	slot := cache.getOrCreate("tenants")
+	slot.shardMap.Store(partitionedSlot(partitionedPrimaryShards, partitionSize, map[int]string{
+		// Ordinary routing lands on nodeB here, so only the partition-aware path picks nodeC.
+		targets[0]: "nodeC", targets[1]: "nodeC", targets[2]: "nodeC", targets[3]: "nodeA",
+	}).shardMap.Load())
+
+	req := &http.Request{URL: &url.URL{Path: "/tenants/_search", RawQuery: "routing=" + routing}}
+	hop, err := policy.Eval(t.Context(), req)
+	require.NoError(t, err)
+	require.NotNil(t, hop.Conn)
+	require.Equal(t, "nodeC", hop.Conn.Name)
+}

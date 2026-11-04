@@ -107,14 +107,25 @@ func ForDocument(routing, id string, routingNumShards, numPrimaryShards, routing
 		routing = id
 	}
 
-	hash := Hash(routing)
+	offset := 0
 	if routingPartitionSize > 1 {
-		hash += int32(floorMod(Hash(id), routingPartitionSize)) //nolint:gosec // result < routingPartitionSize, an int32 index setting
+		offset = floorMod(Hash(id), routingPartitionSize)
 	}
 
-	routingFactor := routingNumShards / numPrimaryShards
+	return ForRoutingOffset(routing, offset, routingNumShards, numPrimaryShards), true
+}
 
-	return floorMod(hash, routingNumShards) / routingFactor, true
+// ForRoutingOffset computes the shard for a routing value at a partition
+// offset: floorMod(hash(routing) + offset, routingNumShards) / routingFactor,
+// with the sum wrapping as in [ForDocument], which owns the partition rule.
+//
+// On a partitioned index the server's search target set for a routing value is
+// this function over offsets 0 through routingPartitionSize-1. Offset 0 equals
+// [ForRouting].
+func ForRoutingOffset(routing string, offset, routingNumShards, numPrimaryShards int) int {
+	hash := Hash(routing) + int32(offset) //nolint:gosec // offset < routingPartitionSize, an int32 index setting
+
+	return floorMod(hash, routingNumShards) / (routingNumShards / numPrimaryShards)
 }
 
 // floorMod computes Java's Math.floorMod(a, b): the floor modulus that

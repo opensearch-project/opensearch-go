@@ -9,6 +9,7 @@ package opensearchtransport
 import (
 	"cmp"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
@@ -96,15 +97,33 @@ func calcSingleKeyCost(
 	return pooledConns{p: bp}, shardNum, shardCopy
 }
 
+// needsMultiKeyCost reports whether a request is costed by [calcMultiKeyCost]
+// rather than [calcSingleKeyCost]: a comma-separated routing list, or a single
+// routing value without a document ID on a partitioned index, which targets
+// several shards (see [shardhash.ForDocument]).
+func needsMultiKeyCost(slot *indexSlot, routingValue, docID string) bool {
+	if strings.Contains(routingValue, routingValueSeparator) {
+		return true
+	}
+
+	sm := slot.shardMap.Load()
+
+	return routingValue != "" && docID == "" && sm != nil && sm.RoutingPartitionSize > 1
+}
+
 // calcMultiKeyCost resolves multiple comma-separated routing keys to their
 // target shards and computes a per-node extra cost based on how many target
 // shards each node is missing. When multiple keys target different shards
 // spread across the cluster, the ideal coordinator is the node hosting the
 // most target shards - it can serve those locally and only proxies the rest.
 //
+// On a partitioned index each key targets one shard per partition offset (see
+// [shardhash.ForRoutingOffset]), counted once per key.
+//
 // Returns candidates sorted by hit-count descending and a parallel extraCost
-// slice where extraCost[i] = totalKeys - hitsForNode[i]. A node hosting all
-// target shards has extraCost=0; a node hosting one of five has extraCost=4.
+// slice where extraCost[i] = totalKeys - hitsForNode[i], with totalKeys the
+// number of target shards. A node hosting all target shards has extraCost=0; a
+// node hosting one of five has extraCost=4.
 //
 // Returns nil, nil when shard-exact routing is disabled, shard data is
 // unavailable, or no connections match.
@@ -125,20 +144,35 @@ func calcMultiKeyCost(
 
 	rvBuf := acquireRoutingValues()
 	routingValues := splitRoutingValues(routingValue, rvBuf)
-	totalKeys := len(routingValues)
+	totalKeys := 0
 
 	hits := acquireNodeHits()
 	for _, rv := range routingValues {
-		shardNum := shardForRouting(rv, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
-		shard := sm.Shards[shardNum]
-		if shard == nil {
-			continue
+		offsets := max(sm.RoutingPartitionSize, 1)
+		var targets []int // allocated only for a partitioned index
+		if offsets > 1 {
+			targets = make([]int, 0, offsets)
 		}
-		if shard.Primary != "" {
-			(*hits)[shard.Primary]++
-		}
-		for _, r := range shard.Replicas {
-			(*hits)[r]++
+		for i := range offsets {
+			shardNum := shardhash.ForRoutingOffset(rv, i, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+			if slices.Contains(targets, shardNum) {
+				continue
+			}
+			if offsets > 1 {
+				targets = append(targets, shardNum)
+			}
+			totalKeys++
+
+			shard := sm.Shards[shardNum]
+			if shard == nil {
+				continue
+			}
+			if shard.Primary != "" {
+				(*hits)[shard.Primary]++
+			}
+			for _, r := range shard.Replicas {
+				(*hits)[r]++
+			}
 		}
 	}
 	releaseRoutingValues(rvBuf)

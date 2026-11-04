@@ -23,6 +23,7 @@ import (
 
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
 // TestRoutingPartitionSizeShardPrediction_Integration indexes documents into an
@@ -54,10 +55,14 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 	)
 	index := testutil.MustUniqueString(t, "routing-partition-test")
 
+	// number_of_routing_shards equals number_of_shards so the routing factor is
+	// 1. With the default routing_num_shards (1024 for 8 shards, factor 128) the
+	// partition offset rarely moves a document to another shard, and the test
+	// could not tell the partition rule from ordinary routing.
 	createBody := fmt.Sprintf(`{
-		"settings": {"number_of_shards": %d, "number_of_replicas": 0, "routing_partition_size": %d},
+		"settings": {"number_of_shards": %d, "number_of_routing_shards": %d, "number_of_replicas": 0, "routing_partition_size": %d},
 		"mappings": {"_routing": {"required": true}}
-	}`, numShards, partitionSize)
+	}`, numShards, numShards, partitionSize)
 
 	var createResp *http.Response
 	createPath, _ := ospath.IndicesCreatePath{Index: index}.Build()
@@ -152,6 +157,26 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 		return ok && m.RoutingPartitionSize == partitionSize
 	}, 60*time.Second, time.Second, "the shard map of %q was not discovered with its routing_partition_size", index)
 
+	// The partition offset must have moved documents, or the checks below would
+	// pass for ordinary routing too.
+	shardsByTenant := make(map[string]map[int]struct{})
+	var movedByOffset bool
+	for _, d := range docs {
+		if shardsByTenant[d.routing] == nil {
+			shardsByTenant[d.routing] = make(map[int]struct{})
+		}
+		shardsByTenant[d.routing][serverShard[d.id]] = struct{}{}
+		if serverShard[d.id] != shardhash.ForRouting(d.routing, numShards, numShards) {
+			movedByOffset = true
+		}
+	}
+	require.True(t, movedByOffset, "no document sits on a shard other than its routing value alone names")
+	var spread bool
+	for _, shards := range shardsByTenant {
+		spread = spread || len(shards) > 1
+	}
+	require.True(t, spread, "no tenant's documents span more than one shard")
+
 	for _, d := range docs {
 		var targets []*ShardTarget
 		require.NoError(t, transport.LookupDocShard(index, d.routing, d.id, &targets), "doc %q", d.id)
@@ -161,5 +186,39 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 
 		// A key-only lookup cannot name the shard of a partitioned index.
 		require.ErrorIs(t, transport.LookupShard(index, d.routing, &targets), ErrDocumentIDRequired)
+	}
+
+	// A search with only a routing value targets the shards of every partition
+	// offset; the server names them in _search_shards.
+	m, ok := transport.ShardMap(index)
+	require.True(t, ok)
+	searchShardsPath, _ := ospath.SearchShardsPath{Indices: []string{index}}.Build()
+	for tenant := range shardsByTenant {
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, searchShardsPath+"?routing="+url.QueryEscape(tenant), nil)
+		require.NoError(t, reqErr)
+		resp, perfErr := transport.Stream(req)
+		require.NoError(t, perfErr)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode, "_search_shards routing=%q: %s", tenant, body)
+
+		var result struct {
+			Shards [][]struct {
+				Shard int `json:"shard"`
+			} `json:"shards"`
+		}
+		require.NoError(t, json.Unmarshal(body, &result))
+		got := make(map[int]struct{})
+		for _, group := range result.Shards {
+			for _, c := range group {
+				got[c.Shard] = struct{}{}
+			}
+		}
+
+		want := make(map[int]struct{}, partitionSize)
+		for i := range partitionSize {
+			want[shardhash.ForRoutingOffset(tenant, i, m.RoutingNumShards, m.PrimaryShards)] = struct{}{}
+		}
+		require.Equal(t, want, got, "routing=%q: _search_shards targets %v, shardhash.ForRoutingOffset predicts %v", tenant, got, want)
 	}
 }

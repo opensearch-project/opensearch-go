@@ -37,6 +37,15 @@ type mgetFakeIndex struct {
 	shards      int
 	replication opensearchtransport.ReplicationType
 	copies      [][]string
+	// partitioned adds the last digit of the document ID to the shard, as a
+	// routing_partition_size above 1 does, so the shard needs the ID as well as
+	// the routing value.
+	partitioned bool
+}
+
+// mgetFakeLookup records one LookupDocShard call.
+type mgetFakeLookup struct {
+	index, routing, id string
 }
 
 // mgetFake is a cluster the direct driver talks to without a transport: a shard
@@ -56,6 +65,7 @@ type mgetFake struct {
 	mu struct {
 		sync.Mutex
 		sent      []mgetFakeSent
+		lookups   []mgetFakeLookup
 		coordReqs []MGetBody
 		attempts  map[string]int
 	}
@@ -78,6 +88,7 @@ func newMGetFake(tb testing.TB) *mgetFake {
 			"idx": {shards: 3, replication: opensearchtransport.ReplicationDocument, copies: copies},
 			"seg": {shards: 3, replication: opensearchtransport.ReplicationSegment, copies: copies},
 			"unk": {shards: 3, replication: opensearchtransport.ReplicationUnknown, copies: copies},
+			"par": {shards: 3, replication: opensearchtransport.ReplicationDocument, copies: copies, partitioned: true},
 		},
 		conns: map[string]*opensearchtransport.Connection{
 			"n0": {Name: "n0"}, "n1": {Name: "n1"}, "n2": {Name: "n2"},
@@ -94,17 +105,39 @@ func (f *mgetFake) shardOf(index, key string) int {
 	return k % f.indexes[index].shards
 }
 
-// LookupShard implements shardLookup. Like the transport's, it reuses the
+// docShard is the shard of the document id, routed by routing when it is not
+// empty.
+func (f *mgetFake) docShard(index, routing, id string) int {
+	key := routing
+	if key == "" {
+		key = id
+	}
+	shard := f.shardOf(index, key)
+	if f.indexes[index].partitioned {
+		shard = (shard + f.shardOf(index, id)) % f.indexes[index].shards
+	}
+
+	return shard
+}
+
+// LookupDocShard implements shardLookup. Like the transport's, it reuses the
 // ShardTargets already in dst.
-func (f *mgetFake) LookupShard(index, key string, dst *[]*opensearchtransport.ShardTarget) error {
+func (f *mgetFake) LookupDocShard(index, routing, id string, dst *[]*opensearchtransport.ShardTarget) error {
+	f.mu.Lock()
+	f.mu.lookups = append(f.mu.lookups, mgetFakeLookup{index: index, routing: routing, id: id})
+	f.mu.Unlock()
+
 	*dst = (*dst)[:0]
 
 	idx, ok := f.indexes[index]
 	if !ok {
 		return opensearchtransport.ErrShardMapUnknown
 	}
+	if idx.partitioned && id == "" {
+		return opensearchtransport.ErrDocumentIDRequired
+	}
 
-	shard := f.shardOf(index, key)
+	shard := f.docShard(index, routing, id)
 	for i, name := range idx.copies[shard] {
 		*slicepool.Append(dst) = opensearchtransport.ShardTarget{
 			Shard:       shard,
@@ -191,11 +224,11 @@ func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtranspor
 	for i, op := range req.Body.Docs {
 		ids[i] = op.ID
 		index := f.indexOf(req, op)
-		key := op.ID
+		var routing string
 		if op.Routing != nil {
-			key = *op.Routing
+			routing = *op.Routing
 		}
-		if !slices.Contains(f.indexes[index].copies[f.shardOf(index, key)], node.Name) {
+		if !slices.Contains(f.indexes[index].copies[f.docShard(index, routing, op.ID)], node.Name) {
 			// The driver's goroutines send, so report without FailNow.
 			f.t.Errorf("document %s/%s sent to %s, which holds no copy of its shard", index, op.ID, node.Name)
 		}
@@ -307,6 +340,13 @@ func (f *mgetFake) sent() []mgetFakeSent {
 	return slices.Clone(f.mu.sent)
 }
 
+func (f *mgetFake) lookups() []mgetFakeLookup {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return slices.Clone(f.mu.lookups)
+}
+
 func (f *mgetFake) coordinatorRequests() []MGetBody {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -406,6 +446,46 @@ func TestMGetDirectSplitsByNodeAndKeepsOrder(t *testing.T) {
 			for i := range resp.Docs {
 				require.NotEqual(t, "coordinator", via(t, resp.Docs[i]))
 			}
+		})
+	}
+}
+
+func TestMGetDirectLooksUpTheShardByRoutingAndID(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		callRouting []string
+		opRouting   *string
+		want        mgetFakeLookup
+	}{
+		{name: "no routing", want: mgetFakeLookup{index: "par", routing: "", id: "d1"}},
+		{name: "request routing", callRouting: []string{"r2"}, want: mgetFakeLookup{index: "par", routing: "r2", id: "d1"}},
+		{
+			name: "operation routing wins", callRouting: []string{"r2"}, opRouting: new("r0"),
+			want: mgetFakeLookup{index: "par", routing: "r0", id: "d1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			f := newMGetFake(t)
+			c := f.client(MGetConfig{})
+
+			ops := mgetDocs("par", "d1")
+			ops[0].Routing = tt.opRouting
+			req := MGetReq{Body: &MGetBody{Docs: ops}}
+			if tt.callRouting != nil {
+				req.Params = &MGetParams{Routing: tt.callRouting}
+			}
+			resp, err := c.Doc.MGet(t.Context(), req)
+			require.NoError(t, err)
+			requireAnswers(t, ops, resp)
+
+			require.Equal(t, []mgetFakeLookup{tt.want}, f.lookups())
+			require.Len(t, f.sent(), 1, "the document is fetched from a node holding its shard")
+			require.Empty(t, f.coordinatorRequests())
 		})
 	}
 }
