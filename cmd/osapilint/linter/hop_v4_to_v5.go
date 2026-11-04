@@ -108,6 +108,8 @@ var hopV4toV5 = hop{
 		{FromPath: []string{"Document", "DeleteByQuery"}, ToPath: []string{"DeleteByQuery"}, Arg: argAddr},
 		{FromPath: []string{"Indices", "Delete"}, ToPath: []string{"Indices", "Delete"}, Arg: argAddr},
 		{FromPath: []string{"Indices", "Exists"}, ToPath: []string{"Indices", "Exists"}, Arg: argAddr},
+		{FromPath: []string{"Indices", "Close"}, ToPath: []string{"Indices", "Close"}, Arg: argAddr},
+		{FromPath: []string{"Indices", "Open"}, ToPath: []string{"Indices", "Open"}, Arg: argAddr},
 		{FromPath: []string{"Index"}, ToPath: []string{"Doc", "Index"}},
 		// Top-level methods that stayed top-level but now take *Req in v5. Same
 		// path, Arg only - the regroup machinery doubles as a "wrap the arg" rule.
@@ -179,6 +181,8 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		{"RenderSearchTemplateReq", "TemplateID", "", "ID"},
 		{"IndicesRolloverReq", "Index", "", "NewIndex"},
 		{"IndicesRefreshReq", "Index", "", "Indices"},
+		{"IndicesCloseReq", "Index", "", "Indices"},
+		{"IndicesOpenReq", "Index", "", "Indices"},
 		{"CatAliasesReq", "Aliases", "", "Name"},
 		{"CatTemplatesReq", "Templates", "", "Name"},
 		{"CatAllocationReq", "NodeIDs", "", "NodeID"},
@@ -237,8 +241,6 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 	manuals := []struct{ typ, field, note string }{
 		{"TemplateExistsReq", "Template", "v5 takes Name []string; v4 sent []string{Template}"},
 		{"DataStreamDeleteReq", "DataStream", "v5 takes Name []string; v4 sent []string{DataStream}"},
-		{"IndicesOpenReq", "Index", "v5 takes Indices []string; v4 sent a single Index string"},
-		{"IndicesCloseReq", "Index", "v5 takes Indices []string; v4 sent a single Index string"},
 		{"IndexTemplateSimulateIndexParams", "Cause", simulateIndexParamNote},
 		{"IndexTemplateSimulateIndexParams", "Create", simulateIndexParamNote},
 		{"SearchParams", "MinCompatibleShardNode", "v5 SearchParams has no such param; dropping it would change the request"},
