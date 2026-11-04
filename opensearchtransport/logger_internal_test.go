@@ -478,6 +478,54 @@ func TestTransportLogger(t *testing.T) {
 	})
 }
 
+func TestLogRoundTripNilResponse(t *testing.T) {
+	t.Parallel()
+
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:9200/_search", nil)
+	require.NoError(t, err)
+	roundTripErr := errors.New("cannot get connection")
+	start := time.Date(2026, 11, 4, 20, 41, 16, 0, time.UTC)
+
+	tests := []struct {
+		name   string
+		logger func(io.Writer) Logger
+		want   string
+	}{
+		{
+			name:   "TextLogger",
+			logger: func(w io.Writer) Logger { return &TextLogger{Output: w} },
+			want:   "[status:-1",
+		},
+		{
+			name:   "ColorLogger",
+			logger: func(w io.Writer) Logger { return &ColorLogger{Output: w} },
+			want:   "\x1b[31;4mERROR",
+		},
+		{
+			name:   "CurlLogger",
+			logger: func(w io.Writer) Logger { return &CurlLogger{Output: w} },
+			want:   "# => 2026-11-04T20:41:16Z [] 1ms",
+		},
+		{
+			name:   "JSONLogger",
+			logger: func(w io.Writer) Logger { return &JSONLogger{Output: w} },
+			want:   `"status_code":-1`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var dst strings.Builder
+			require.NotPanics(t, func() {
+				require.NoError(t, tt.logger(&dst).LogRoundTrip(req, nil, roundTripErr, start, time.Millisecond))
+			})
+			require.Contains(t, dst.String(), tt.want)
+		})
+	}
+}
+
 // debugRecordPrefixLen is the width of the fixed timestamp-and-level prefix
 // textDebugLogger writes ahead of every record.
 const debugRecordPrefixLen = len("[15:04:05.000] DEBUG    ")
