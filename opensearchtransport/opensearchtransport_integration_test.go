@@ -229,6 +229,7 @@ func TestTransportCompression(t *testing.T) {
 	transport, _ := opensearchtransport.New(opensearchtransport.Config{
 		URLs:                []*url.URL{u},
 		CompressRequestBody: true,
+		CompressMinBytes:    -1,
 		Username:            config.Client.Username,
 		Password:            config.Client.Password,
 		Transport:           config.Client.Transport,

@@ -17,8 +17,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/klauspost/compress/snappy"
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 
 	compress "github.com/opensearch-project/opensearch-go/compress/v5"
@@ -28,6 +30,10 @@ import (
 // healthCheckBody is a root-endpoint response the transport accepts as a
 // healthy node.
 const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"number":"3.0.0"}}`
+
+// nodesBody answers the GET /_nodes a CompressorTable sends, for a
+// one-node cluster at the version healthCheckBody reports.
+const nodesBody = `{"nodes":{"n":{"version":"3.0.0"}}}`
 
 // decodeFunc decodes one compressed request body, using only a decoder that is
 // not part of the compress module under test.
@@ -49,6 +55,18 @@ func newDeflate() (opensearchtransport.Compressor, error) {
 
 func newSnappy() (opensearchtransport.Compressor, error) { return compress.Snappy(), nil }
 
+func newZstd() (opensearchtransport.Compressor, error) { return zstdAt(compress.DefaultLevel) }
+
+// zstdAt returns the zstd Compressor of ZstdTable(level), which is the table's
+// only rule.
+func zstdAt(level int) (opensearchtransport.Compressor, error) {
+	tbl, err := compress.ZstdTable(level)
+	if err != nil {
+		return nil, err
+	}
+	return tbl.Rules[0].Compressor, nil
+}
+
 // decodeVia decodes a body with the reader newReader builds over it.
 func decodeVia[R io.Reader](newReader func(io.Reader) (R, error)) decodeFunc {
 	return func(r io.Reader) ([]byte, error) {
@@ -67,6 +85,15 @@ var (
 
 func decodeSnappy(r io.Reader) ([]byte, error) {
 	return io.ReadAll(snappy.NewReader(r))
+}
+
+func decodeZstd(r io.Reader) ([]byte, error) {
+	zr, err := zstd.NewReader(r, zstd.WithDecoderConcurrency(1))
+	if err != nil {
+		return nil, err
+	}
+	defer zr.Close()
+	return io.ReadAll(zr)
 }
 
 // TestCompressorRoundTrip sends several bodies through each compressor and
@@ -105,6 +132,18 @@ func TestCompressorRoundTrip(t *testing.T) {
 			token:         "snappy",
 			decode:        decodeSnappy,
 		},
+		{
+			name:          "zstd default level",
+			newCompressor: newZstd,
+			token:         "zstd",
+			decode:        decodeZstd,
+		},
+		{
+			name:          "zstd level 22",
+			newCompressor: func() (opensearchtransport.Compressor, error) { return zstdAt(22) },
+			token:         "zstd",
+			decode:        decodeZstd,
+		},
 	}
 
 	for _, tt := range tests {
@@ -120,8 +159,19 @@ func TestCompressorRoundTrip(t *testing.T) {
 				encodings []string
 				bodies    []string
 				errs      []error
+				primed    bool // a /prime request arrived compressed
 			}
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/prime" {
+					received.Lock()
+					received.primed = received.primed || r.Header.Get("Content-Encoding") == tt.token
+					received.Unlock()
+					return
+				}
+				if r.URL.Path == "/_nodes" {
+					_, _ = io.WriteString(w, nodesBody)
+					return
+				}
 				// Record only the test's own requests; answer the transport's
 				// health check without recording it.
 				if r.Method != http.MethodPost || r.URL.Path != "/bulk" {
@@ -149,11 +199,30 @@ func TestCompressorRoundTrip(t *testing.T) {
 			tp, err := opensearchtransport.New(opensearchtransport.Config{
 				URLs:              []*url.URL{u},
 				Compressor:        c,
+				CompressMinBytes:  -1,
 				DisableRetry:      true,
 				NodeStatsInterval: -1,
 			})
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = tp.Close() })
+
+			send := func(path, body string) {
+				req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(body))
+				require.NoError(t, err)
+				res, err := tp.Stream(req)
+				require.NoError(t, err)
+				require.NoError(t, res.Body.Close())
+				require.Equal(t, http.StatusOK, res.StatusCode)
+			}
+
+			// A table sends a rule's encoding only once the
+			// transport has read the cluster's node versions, so wait for that.
+			require.Eventually(t, func() bool {
+				send("/prime", "prime")
+				received.Lock()
+				defer received.Unlock()
+				return received.primed
+			}, 5*time.Second, 10*time.Millisecond)
 
 			// The later bodies go through an Encoder the transport pooled after
 			// the first one.
@@ -163,12 +232,7 @@ func TestCompressorRoundTrip(t *testing.T) {
 				strings.Repeat("third|", 16),
 			}
 			for _, body := range want {
-				req, err := http.NewRequest(http.MethodPost, "/bulk", strings.NewReader(body))
-				require.NoError(t, err)
-				res, err := tp.Stream(req)
-				require.NoError(t, err)
-				require.NoError(t, res.Body.Close())
-				require.Equal(t, http.StatusOK, res.StatusCode)
+				send("/bulk", body)
 			}
 
 			received.Lock()
@@ -180,9 +244,39 @@ func TestCompressorRoundTrip(t *testing.T) {
 	}
 }
 
-// TestInvalidLevel verifies that a constructor rejects a level outside
-// [compress.DefaultLevel] through 9 and returns a nil Compressor, so a bad
-// level fails at construction rather than on the first request.
+// TestZstdTable pins ZstdTable's contents: a zstd rule from 3.0.0, where zstd is
+// supported, and gzip at level 6, which the standard library decodes, as Default.
+func TestZstdTable(t *testing.T) {
+	t.Parallel()
+
+	tbl, err := compress.ZstdTable(compress.DefaultLevel)
+	require.NoError(t, err)
+
+	require.Len(t, tbl.Rules, 1)
+	require.Equal(t, "v3.0.0", tbl.Rules[0].MinVersion)
+	require.Equal(t, "zstd", tbl.Rules[0].Compressor.ContentEncoding())
+
+	fb := tbl.Default
+	require.NotNil(t, fb)
+	require.Equal(t, "gzip", fb.ContentEncoding())
+
+	want := strings.Repeat("fallback body|", 64)
+	var buf strings.Builder
+	enc, err := fb.NewEncoder(&buf)
+	require.NoError(t, err)
+	_, err = io.WriteString(enc, want)
+	require.NoError(t, err)
+	require.NoError(t, enc.Close())
+
+	got, err := decodeGzip(strings.NewReader(buf.String()))
+	require.NoError(t, err)
+	require.Equal(t, want, string(got))
+	require.Less(t, buf.Len(), len(want)/4, "fallback barely compressed")
+}
+
+// TestInvalidLevel verifies that a constructor rejects a level outside the range
+// it documents and returns a nil Compressor, so a bad level fails at
+// construction rather than on the first request.
 func TestInvalidLevel(t *testing.T) {
 	t.Parallel()
 
@@ -195,6 +289,9 @@ func TestInvalidLevel(t *testing.T) {
 		{name: "gzip above 9", ctor: compress.Gzip, level: 10},
 		{name: "deflate below default", ctor: compress.Deflate, level: -2},
 		{name: "deflate above 9", ctor: compress.Deflate, level: 10},
+		{name: "zstd below default", ctor: zstdAt, level: -2},
+		{name: "zstd 0", ctor: zstdAt, level: 0},
+		{name: "zstd above 22", ctor: zstdAt, level: 23},
 	}
 
 	for _, tt := range tests {

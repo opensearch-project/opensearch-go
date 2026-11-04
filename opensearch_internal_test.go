@@ -720,6 +720,7 @@ func TestClientGetConfig(t *testing.T) {
 			DisableRetry:         true,
 			MaxRetries:           10,
 			CompressRequestBody:  true,
+			CompressMinBytes:     -1,
 			EnableRetryOnTimeout: true,
 			Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
 		}
@@ -739,8 +740,8 @@ func TestClientGetConfig(t *testing.T) {
 	})
 }
 
-// TestClientCompressor verifies NewClient threads Config.Compressor and
-// Config.CompressRequestBody through to the transport.
+// TestClientCompressor verifies NewClient threads Config.Compressor,
+// Config.CompressorTable and Config.CompressRequestBody through to the transport.
 func TestClientCompressor(t *testing.T) {
 	t.Parallel()
 
@@ -750,6 +751,7 @@ func TestClientCompressor(t *testing.T) {
 	tests := []struct {
 		name         string
 		compressor   opensearchtransport.Compressor
+		table        *opensearchtransport.CompressorTable
 		legacyFlag   bool
 		wantEncoding string
 	}{
@@ -757,6 +759,16 @@ func TestClientCompressor(t *testing.T) {
 		{name: "legacy flag", legacyFlag: true, wantEncoding: "gzip"},
 		{name: "GZip", compressor: gz, wantEncoding: "gzip"},
 		{name: "None overrides legacy flag", compressor: opensearchtransport.None(), legacyFlag: true},
+		{
+			// The first request goes out with the table's Default, before any
+			// version read has answered.
+			name: "table Default",
+			table: &opensearchtransport.CompressorTable{
+				Rules:   []opensearchtransport.CompressorRule{{MinVersion: "3.0.0", Compressor: opensearchtransport.None()}},
+				Default: gz,
+			},
+			wantEncoding: "gzip",
+		},
 	}
 
 	for _, tt := range tests {
@@ -767,10 +779,15 @@ func TestClientCompressor(t *testing.T) {
 			c, err := NewClient(Config{
 				Addresses:           []string{"http://localhost:9200"},
 				Compressor:          tt.compressor,
+				CompressorTable:     tt.table,
 				CompressRequestBody: tt.legacyFlag,
+				CompressMinBytes:    -1,
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					// Background discovery shares the transport; only the
 					// request under test is recorded.
+					if req.URL.Path == "/_nodes" {
+						return &http.Response{StatusCode: http.StatusNotFound, Body: http.NoBody}, nil
+					}
 					if req.URL.Path != "/abc" {
 						return defaultRoundTripFunc(req)
 					}
@@ -903,6 +920,7 @@ func TestConfigKey(t *testing.T) {
 			{"operation classifier", Config{OperationClassifier: opensearchtransport.NewOperationClassifier()}},
 			{"debug logger", Config{DebugLogger: noopDebugLogger{}}},
 			{"compressor", Config{Compressor: opensearchtransport.None()}},
+			{"compressor table", Config{CompressorTable: &opensearchtransport.CompressorTable{}}},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -931,7 +949,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 53
+	const knownFieldCount = 55
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")

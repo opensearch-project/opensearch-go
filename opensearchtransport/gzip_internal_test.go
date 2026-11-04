@@ -25,7 +25,7 @@ func TestCompress(t *testing.T) {
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
-		buf, err := gzipCompressor.compress(rc)
+		buf, err := gzipCompressor.compress(rc, 0)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -44,7 +44,7 @@ func TestCompress(t *testing.T) {
 			body := generateRandomString()
 			rc := io.NopCloser(strings.NewReader(body))
 
-			buf, err := gzipCompressor.compress(rc)
+			buf, err := gzipCompressor.compress(rc, 0)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -63,7 +63,7 @@ func TestCompress(t *testing.T) {
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
-		buf, err := gzipCompressor.compress(rc)
+		buf, err := gzipCompressor.compress(rc, 0)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -82,13 +82,13 @@ func TestCompress(t *testing.T) {
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
-		buf, err := gzipCompressor.compress(rc)
+		buf, err := gzipCompressor.compress(rc, 0)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		rc = io.NopCloser(buf)
-		buf2, err := gzipCompressor.compress(rc)
+		buf2, err := gzipCompressor.compress(rc, 0)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -164,7 +164,7 @@ func gzipRoundTrip(t *testing.T, c Compressor, body string) int {
 
 	rc, err := newRequestCompressor(c)
 	require.NoError(t, err)
-	buf, err := rc.compress(strings.NewReader(body))
+	buf, err := rc.compress(strings.NewReader(body), 0)
 	require.NoError(t, err)
 
 	require.Equal(t, body, gunzip(t, buf.Bytes()))
@@ -221,4 +221,35 @@ func TestGZipLevelReachesWriter(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Greater(t, gzipRoundTrip(t, stored, body), gzipRoundTrip(t, best, body))
+}
+
+// TestCompressPresizesFromRatio checks that once a body has been compressed, a
+// body of known size is compressed into a buffer sized from the last ratio and
+// never regrown, and that the output is the same as without a size.
+func TestCompressPresizesFromRatio(t *testing.T) {
+	t.Parallel()
+
+	gzipCompressor := newGzipRequestCompressor(t)
+	body := strings.Repeat(generateRandomString(), 64)
+	size := int64(len(body))
+
+	unsized, err := gzipCompressor.compress(strings.NewReader(body), 0)
+	require.NoError(t, err)
+	require.Zero(t, gzipCompressor.ratio.Load(), "an unknown size must not record a ratio")
+
+	first, err := gzipCompressor.compress(strings.NewReader(body), size)
+	require.NoError(t, err)
+	permille := gzipCompressor.ratio.Load()
+	require.Equal(t, int64(first.Len())*1000/size, permille)
+
+	sized, err := gzipCompressor.compress(strings.NewReader(body), size)
+	require.NoError(t, err)
+	require.Equal(t, unsized.Bytes(), sized.Bytes())
+
+	// The buffer starts at the prediction, rounded up to an allocation size
+	// class, which a regrow would at least double.
+	want := size * permille / 1000
+	predicted := int(want + want/8 + compressOverhead)
+	require.GreaterOrEqual(t, sized.Cap(), predicted)
+	require.Less(t, sized.Cap(), predicted*3/2, "the buffer was regrown")
 }

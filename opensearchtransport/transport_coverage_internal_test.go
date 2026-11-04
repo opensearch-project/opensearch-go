@@ -639,6 +639,7 @@ func TestPerform_GzipCompression(t *testing.T) {
 		URLs:                []*url.URL{seedURL},
 		HealthCheck:         NoOpHealthCheck,
 		CompressRequestBody: true,
+		CompressMinBytes:    -1,
 		DisableRetry:        true,
 		NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {

@@ -74,6 +74,7 @@ func BenchmarkEncodeNDJSON(b *testing.B) {
 		}},
 		{name: "deflate", newCompressor: newDeflate},
 		{name: "snappy", newCompressor: newSnappy},
+		{name: "zstd", newCompressor: newZstd},
 	}
 
 	for _, bm := range benchmarks {
