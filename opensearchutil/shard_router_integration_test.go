@@ -146,6 +146,29 @@ func awaitShardTarget(
 	return got
 }
 
+// awaitPlaced runs discovery until the router has a placed node for every key.
+// A single awaitShardTarget proves only the shard its routing value hashes to;
+// other primaries can sit on nodes the transport has not yet made routable.
+func awaitPlaced(t *testing.T, ctx context.Context, client *opensearchapi.Client, index string, keys []string) {
+	t.Helper()
+
+	router := opensearchutil.ClientShardRouter(client)
+	require.NotNil(t, router, "%T does not offer a shard router", client.Client.Transport)
+
+	var unplaced string
+	err := transporttestutil.PollUntil(t, ctx, 100*time.Millisecond, 100, 0.1, func() (bool, error) {
+		for _, key := range keys {
+			if target, known := lookupOne(router, index, key); !known || target.Node.Name == "" {
+				unplaced = key
+				return false, client.Client.DiscoverNodes(ctx)
+			}
+		}
+
+		return true, nil
+	})
+	require.NoError(t, err, "the router never placed %q in %q", unplaced, index)
+}
+
 // TestDefaultRoutingNumShardsMatchesCluster_Integration verifies the no-cluster
 // derivation against the routing_num_shards a live cluster assigns.
 func TestDefaultRoutingNumShardsMatchesCluster_Integration(t *testing.T) {
@@ -230,13 +253,15 @@ func TestShardRouterPlacesDocumentsOnTheirPrimary_Integration(t *testing.T) {
 	index := transporttestutil.MustUniqueString(t, "shard-place")
 	createShardTestIndex(t, ctx, client, index, `{"index":{"number_of_shards":6,"number_of_replicas":0}}`)
 
-	awaitShardTarget(t, ctx, client, index, "warm-up")
+	keys := make([]string, 60)
+	for i := range keys {
+		keys[i] = "doc-" + strconv.Itoa(i)
+	}
+	awaitPlaced(t, ctx, client, index, keys)
 	router := opensearchutil.ClientShardRouter(client)
 
 	nodes := map[string]struct{}{}
-	for i := range 60 {
-		routing := "doc-" + strconv.Itoa(i)
-
+	for _, routing := range keys {
 		target, ok := lookupOne(router, index, routing)
 		require.True(t, ok)
 		require.NotEmpty(t, target.Node.Name, "placement of %q is unknown", routing)
@@ -380,9 +405,13 @@ func TestBulkIndexerSendsEachBatchToItsPrimary_Integration(t *testing.T) {
 	createShardTestIndex(t, ctx, client, index,
 		fmt.Sprintf(`{"index":{"number_of_shards":%d,"number_of_replicas":0}}`, numShards))
 
-	// Let the transport learn the index before indexing, so every item can be
-	// placed from the first one.
-	awaitShardTarget(t, ctx, client, index, "warm-up")
+	// Wait until every document's primary is placed before indexing, so every
+	// item is grouped by its node from the first one.
+	docIDs := make([]string, numDocs)
+	for i := range docIDs {
+		docIDs[i] = "doc-" + strconv.Itoa(i)
+	}
+	awaitPlaced(t, ctx, client, index, docIDs)
 	router := opensearchutil.ClientShardRouter(client)
 
 	bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
@@ -392,15 +421,14 @@ func TestBulkIndexerSendsEachBatchToItsPrimary_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	hostOf := map[string]string{} // node name -> host the transport contacts it at
-	for i := range numDocs {
-		docID := "doc-" + strconv.Itoa(i)
+	for i, docID := range docIDs {
 		require.NoError(t, bi.Add(ctx, opensearchutil.BulkIndexerItem{
 			Index: index, Action: "index", DocumentID: docID, Body: seqBody(i),
 		}))
 
 		target, ok := lookupOne(router, index, docID)
 		require.True(t, ok)
-		require.NotNil(t, target.Node.Conn)
+		require.NotNil(t, target.Node.Conn, "doc %q has no placed primary", docID)
 		hostOf[target.Node.Name] = target.Node.Conn.URL.Host
 	}
 	require.NoError(t, bi.Close(ctx))
