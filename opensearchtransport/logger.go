@@ -678,11 +678,11 @@ func duplicateBody(body io.ReadCloser) (io.ReadCloser, io.ReadCloser, error) {
 		tr = io.TeeReader(body, &b2)
 	)
 
-	if _, err := b1.ReadFrom(tr); err != nil {
+	_, err := b1.ReadFrom(tr)
+	_ = body.Close()
+	if err != nil {
 		return io.NopCloser(io.MultiReader(&b1, errorReader{err: err})), io.NopCloser(io.MultiReader(&b2, errorReader{err: err})), err
 	}
-
-	defer func() { body.Close() }()
 
 	return io.NopCloser(&b1), io.NopCloser(&b2), nil
 }
