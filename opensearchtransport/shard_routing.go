@@ -97,11 +97,11 @@ func calcSingleKeyCost(
 	return pooledConns{p: bp}, shardNum, shardCopy
 }
 
-// needsMultiKeyCost reports whether a request is costed by [calcMultiKeyCost]
+// needsShardSetCost reports whether a request is costed by [calcMultiKeyCost]
 // rather than [calcSingleKeyCost]: a comma-separated routing list, or a single
 // routing value without a document ID on a partitioned index, which targets
 // several shards (see [shardhash.ForDocument]).
-func needsMultiKeyCost(slot *indexSlot, routingValue, docID string) bool {
+func needsShardSetCost(slot *indexSlot, routingValue, docID string) bool {
 	if strings.Contains(routingValue, routingValueSeparator) {
 		return true
 	}
@@ -111,19 +111,22 @@ func needsMultiKeyCost(slot *indexSlot, routingValue, docID string) bool {
 	return routingValue != "" && docID == "" && sm != nil && sm.RoutingPartitionSize > 1
 }
 
-// calcMultiKeyCost resolves multiple comma-separated routing keys to their
-// target shards and computes a per-node extra cost based on how many target
-// shards each node is missing. When multiple keys target different shards
-// spread across the cluster, the ideal coordinator is the node hosting the
-// most target shards - it can serve those locally and only proxies the rest.
+// calcMultiKeyCost resolves routing values, either a comma-separated list or
+// one value on a partitioned index, to the set of shards they target and
+// computes a per-node extra cost based on how many target shards each node is
+// missing. When the target shards are spread across the cluster, the ideal
+// coordinator is the node hosting the most of them - it can serve those locally
+// and only proxies the rest.
 //
-// On a partitioned index each key targets one shard per partition offset (see
-// [shardhash.ForRoutingOffset]), counted once per key.
+// The target set is the union over all keys, as the server builds it: a shard
+// reached by several keys or partition offsets counts once. On a partitioned
+// index each key targets one shard per partition offset (see
+// [shardhash.ForRoutingOffset]).
 //
 // Returns candidates sorted by hit-count descending and a parallel extraCost
-// slice where extraCost[i] = totalKeys - hitsForNode[i], with totalKeys the
-// number of target shards. A node hosting all target shards has extraCost=0; a
-// node hosting one of five has extraCost=4.
+// slice where extraCost[i] = totalShards - hitsForNode[i], with totalShards the
+// number of distinct target shards. A node hosting all target shards has
+// extraCost=0; a node hosting one of five has extraCost=4.
 //
 // Returns nil, nil when shard-exact routing is disabled, shard data is
 // unavailable, or no connections match.
@@ -144,24 +147,18 @@ func calcMultiKeyCost(
 
 	rvBuf := acquireRoutingValues()
 	routingValues := splitRoutingValues(routingValue, rvBuf)
-	totalKeys := 0
+	offsets := max(sm.RoutingPartitionSize, 1)
+	var targetsBuf [16]int // spills to the heap only for a large target set
+	targets := targetsBuf[:0]
 
 	hits := acquireNodeHits()
 	for _, rv := range routingValues {
-		offsets := max(sm.RoutingPartitionSize, 1)
-		var targets []int // allocated only for a partitioned index
-		if offsets > 1 {
-			targets = make([]int, 0, offsets)
-		}
 		for i := range offsets {
 			shardNum := shardhash.ForRoutingOffset(rv, i, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
 			if slices.Contains(targets, shardNum) {
 				continue
 			}
-			if offsets > 1 {
-				targets = append(targets, shardNum)
-			}
-			totalKeys++
+			targets = append(targets, shardNum)
 
 			shard := sm.Shards[shardNum]
 			if shard == nil {
@@ -175,6 +172,7 @@ func calcMultiKeyCost(
 			}
 		}
 	}
+	totalShards := len(targets)
 	releaseRoutingValues(rvBuf)
 
 	if len(*hits) == 0 {
@@ -207,7 +205,7 @@ func calcMultiKeyCost(
 	extraCost := acquireFloats(n)
 	for i, s := range *scored {
 		result.Slice()[i] = s.conn
-		extraCost.Slice()[i] = float64(totalKeys - s.hits)
+		extraCost.Slice()[i] = float64(totalShards - s.hits)
 	}
 	releaseScoredConns(scored)
 

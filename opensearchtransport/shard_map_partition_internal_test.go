@@ -241,7 +241,7 @@ func TestCalcSingleKeyCostPartitionedIndex(t *testing.T) {
 
 // partitionedSlot builds a slot whose index has the given geometry and
 // partition size, with each shard in placement hosted by its named primary.
-func partitionedSlot(primaries, rps int, placement map[int]string) *indexSlot {
+func partitionedSlot(primaries, routingPartitionSize int, placement map[int]string) *indexSlot {
 	shards := make(map[int]*shardNodes, len(placement))
 	for shard, node := range placement {
 		shards[shard] = &shardNodes{Primary: node}
@@ -250,65 +250,91 @@ func partitionedSlot(primaries, rps int, placement map[int]string) *indexSlot {
 	slot.shardMap.Store(&indexShardMap{
 		NumberOfPrimaryShards: primaries,
 		RoutingNumShards:      partitionedRoutingNumShards,
-		RoutingPartitionSize:  rps,
+		RoutingPartitionSize:  routingPartitionSize,
 		Shards:                shards,
 	})
 
 	return slot
 }
 
-func TestCalcMultiKeyCostPartitionedIndex(t *testing.T) {
-	t.Parallel()
-
-	const routing = "user-7"
-	var targets [partitionSize]int
-	for i := range targets {
-		targets[i] = shardhash.ForRoutingOffset(routing, i, partitionedRoutingNumShards, partitionedPrimaryShards)
-	}
-
-	// nodeA hosts three of the four partition shards and nodeB the fourth.
-	slot := partitionedSlot(partitionedPrimaryShards, partitionSize, map[int]string{
-		targets[0]: "nodeA", targets[1]: "nodeA", targets[2]: "nodeA", targets[3]: "nodeB",
-	})
-	conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
-
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routing, conns)
-	defer cBuf.Release()
-	defer ecBuf.Release()
-
-	require.Len(t, cBuf.Slice(), 2)
-	require.Equal(t, "nodeA", cBuf.Slice()[0].Name)
-	require.Equal(t, "nodeB", cBuf.Slice()[1].Name)
-	require.Equal(t, []float64{1, 3}, ecBuf.Slice())
+// keyOffset names the shard of a routing key at a partition offset.
+type keyOffset struct {
+	key    string
+	offset int
 }
 
-// With fewer primaries than routing_partition_size the offsets collide on a
-// shard; a key counts each distinct shard once.
-func TestCalcMultiKeyCostPartitionedIndexCountsDistinctShards(t *testing.T) {
+// calcMultiKeyCost costs each distinct target shard once, however many keys or
+// partition offsets reach it. Every target shard is hosted by nodeA except those
+// in onB, which nodeB hosts.
+func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 	t.Parallel()
 
-	const routing = "user-7"
-	distinct := map[int]struct{}{}
-	for i := range partitionSize {
-		distinct[shardhash.ForRoutingOffset(routing, i, partitionedRoutingNumShards, 5)] = struct{}{}
+	tests := []struct {
+		name                 string
+		primaries            int
+		routingPartitionSize int
+		routing              string
+		onB                  []keyOffset
+		wantExtraCost        map[string]float64
+	}{
+		{
+			name: "partitioned, one key's offsets on distinct shards", primaries: partitionedPrimaryShards, routingPartitionSize: partitionSize,
+			routing: "user-7", onB: []keyOffset{{"user-7", 3}},
+			wantExtraCost: map[string]float64{"nodeA": 1, "nodeB": 3},
+		},
+		{
+			// With 5 primaries every offset of the key lands on one shard.
+			name: "partitioned, one key's offsets collide on a shard", primaries: 5, routingPartitionSize: partitionSize,
+			routing:       "user-7",
+			wantExtraCost: map[string]float64{"nodeA": 0},
+		},
+		{
+			// k1 and k2 share a shard, k3 has another: two target shards, one each.
+			name: "unpartitioned, keys share a shard", primaries: 5,
+			routing: "k1,k2,k3", onB: []keyOffset{{"k3", 0}},
+			wantExtraCost: map[string]float64{"nodeA": 1, "nodeB": 1},
+		},
+		{
+			// user-7 targets shards 285-288 and u682 shards 287-290; 289 and 290
+			// are nodeB's, so six shards are targeted and nodeA hosts four.
+			name: "partitioned, keys' partitions overlap", primaries: partitionedPrimaryShards, routingPartitionSize: partitionSize,
+			routing: "user-7,u682", onB: []keyOffset{{"u682", 2}, {"u682", 3}},
+			wantExtraCost: map[string]float64{"nodeA": 2, "nodeB": 4},
+		},
 	}
-	require.Less(t, len(distinct), partitionSize, "routing value must collide on this geometry")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	placement := map[int]string{}
-	for shard := range distinct {
-		placement[shard] = "nodeA"
+			shardOf := func(ko keyOffset) int {
+				return shardhash.ForRoutingOffset(ko.key, ko.offset, partitionedRoutingNumShards, tt.primaries)
+			}
+			placement := map[int]string{}
+			for key := range strings.SplitSeq(tt.routing, routingValueSeparator) {
+				for offset := range max(tt.routingPartitionSize, 1) {
+					placement[shardOf(keyOffset{key, offset})] = "nodeA"
+				}
+			}
+			for _, ko := range tt.onB {
+				placement[shardOf(ko)] = "nodeB"
+			}
+			slot := partitionedSlot(tt.primaries, tt.routingPartitionSize, placement)
+			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
+
+			cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
+			defer cBuf.Release()
+			defer ecBuf.Release()
+
+			got := map[string]float64{}
+			for i, c := range cBuf.Slice() {
+				got[c.Name] = ecBuf.Slice()[i]
+			}
+			require.Equal(t, tt.wantExtraCost, got)
+		})
 	}
-	slot := partitionedSlot(5, partitionSize, placement)
-
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routing, []*Connection{newTestConn(t, "nodeA")})
-	defer cBuf.Release()
-	defer ecBuf.Release()
-
-	require.Len(t, cBuf.Slice(), 1)
-	require.Equal(t, []float64{0}, ecBuf.Slice())
 }
 
-func TestNeedsMultiKeyCost(t *testing.T) {
+func TestNeedsShardSetCost(t *testing.T) {
 	t.Parallel()
 
 	partitioned := partitionedSlot(partitionedPrimaryShards, partitionSize, nil)
@@ -331,7 +357,7 @@ func TestNeedsMultiKeyCost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			require.Equal(t, tt.want, needsMultiKeyCost(tt.slot, tt.routing, tt.id))
+			require.Equal(t, tt.want, needsShardSetCost(tt.slot, tt.routing, tt.id))
 		})
 	}
 }
