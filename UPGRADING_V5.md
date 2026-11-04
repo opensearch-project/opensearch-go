@@ -895,3 +895,24 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 ```
 
 `OPENSEARCH_GO_MGET_FANOUT=least-loaded` selects it without a code change, and `opensearchapi.WithMGetFanOut(ctx, opensearchapi.MGetFanOutLeastLoaded)` selects it for the mgets made with that context.
+
+## Request bodies under 4 KiB are sent uncompressed
+
+A client with a `Compressor`, or with `CompressRequestBody`, compresses only request bodies of 4096 bytes or more. In 5.1.3 it compressed every body. The measurements behind the limit are in [`compress/README.md`](compress/README.md#minimum-body-size). Bulk bodies are far larger, so they are compressed as before. A body whose length is not known is always compressed.
+
+To compress every body, as 5.1.3 did:
+
+```go
+// Before: 5.1.3 compressed every body.
+client, err := opensearch.NewClient(opensearch.Config{
+	Compressor: c,
+})
+
+// After: same behavior.
+client, err := opensearch.NewClient(opensearch.Config{
+	Compressor:       c,
+	CompressMinBytes: -1,
+})
+```
+
+A positive `CompressMinBytes` sets a different limit, such as 1024 for a slow or metered link.

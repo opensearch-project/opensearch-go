@@ -151,10 +151,13 @@ func TestHopV4toV5_NoUnclassifiedForKnownFields(t *testing.T) {
 	// Fields the osv4 wrapper is known to set; each must resolve to a concrete
 	// action (rename/remove/pointerWrap), never "unclassified".
 	knownlySet := map[string][]string{
-		v4api + ".SearchResp":     {"Timeout"},
-		v4api + ".UpdateReq":      {"DocumentID"},
-		v4api + ".IndexReq":       {"DocumentID"},
-		v4api + ".SnapshotGetReq": {"Repo", "Snapshots"},
+		v4api + ".SearchResp":        {"Timeout"},
+		v4api + ".UpdateReq":         {"DocumentID"},
+		v4api + ".IndexReq":          {"DocumentID"},
+		v4api + ".SnapshotGetReq":    {"Repo", "Snapshots"},
+		v4api + ".IndicesRefreshReq": {"Index"},
+		v4api + ".IndicesOpenReq":    {"Index"},
+		v4api + ".IndicesCloseReq":   {"Index"},
 	}
 	for typ, fields := range knownlySet {
 		sd := d.Structs[typ]
@@ -166,6 +169,32 @@ func TestHopV4toV5_NoUnclassifiedForKnownFields(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestHopV4toV5_IndicesIndexFields pins the v4 Req fields spelled Index whose
+// v5 counterpart is Indices. IndicesCloseReq and IndicesOpenReq also change from
+// string to []string, which the rewrite reports MANUAL.
+func TestHopV4toV5_IndicesIndexFields(t *testing.T) {
+	t.Parallel()
+
+	const stringToSlice = `type changed from "string" to "[]string"`
+	tests := []struct {
+		typ  string
+		note string // type-change note the rewrite reports as MANUAL
+	}{
+		{typ: "IndicesRefreshReq"},
+		{typ: "IndicesCloseReq", note: stringToSlice},
+		{typ: "IndicesOpenReq", note: stringToSlice},
+	}
+	d := planV4toV5(t).delta
+	for _, tt := range tests {
+		t.Run(tt.typ, func(t *testing.T) {
+			t.Parallel()
+
+			assertChange(t, d.Structs[v4api+"."+tt.typ].Changes,
+				apirev.FieldChange{Kind: apirev.KindRename, From: "Index", To: "Indices", NewType: "[]string", Note: tt.note})
+		})
 	}
 }
 
@@ -355,9 +384,9 @@ func TestHopV4toV5_PluginManualFields(t *testing.T) {
 	}
 }
 
-// TestHopV4toV5_OpFamilyRegroups pins the call-site regroups of the template,
-// script and data stream sub-clients, one row per argument shape.
-func TestHopV4toV5_OpFamilyRegroups(t *testing.T) {
+// TestHopV4toV5_Regroups pins a sample of call-site regroups across each
+// argument shape.
+func TestHopV4toV5_Regroups(t *testing.T) {
 	t.Parallel()
 
 	byFrom := map[string]methodRegroup{}
@@ -381,6 +410,8 @@ func TestHopV4toV5_OpFamilyRegroups(t *testing.T) {
 		{"DataStream.Delete", []string{"Indices", "DeleteDataStream"}, argAddr},
 		{"IndexTemplate.Get", []string{"Indices", "GetIndexTemplate"}, argValue},
 		{"ComponentTemplate.Get", []string{"Cluster", "GetComponentTemplate"}, argValue},
+		{"Indices.Close", []string{"Indices", "Close"}, argAddr},
+		{"Indices.Open", []string{"Indices", "Open"}, argAddr},
 	}
 	for _, tt := range tests {
 		t.Run(tt.from, func(t *testing.T) {

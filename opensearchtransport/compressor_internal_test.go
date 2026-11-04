@@ -25,9 +25,10 @@ import (
 )
 
 var (
-	errFakeNew   = errors.New("fake NewEncoder failure")
-	errFakeWrite = errors.New("fake Write failure")
-	errFakeClose = errors.New("fake Close failure")
+	errFakeNew       = errors.New("fake NewEncoder failure")
+	errFakeWrite     = errors.New("fake Write failure")
+	errFakeClose     = errors.New("fake Close failure")
+	errFakeRoundTrip = errors.New("fake RoundTrip failure")
 )
 
 // fakeCompressor is a Compressor over compress/gzip whose encoders record the
@@ -137,7 +138,7 @@ const encoderCallOrder = `^w*c(rw*c)*$`
 
 // healthCheckBody is a root-endpoint response the transport accepts as a
 // healthy node, for the health check requests a test server also receives.
-const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"number":"3.0.0"}}`
+const healthCheckBody = `{"name":"n","cluster_name":"c","version":{"distribution":"opensearch","number":"3.0.0"}}`
 
 // healthCheckResponse answers a request that is not one of the test's own.
 func healthCheckResponse() *http.Response {
@@ -195,6 +196,7 @@ func newCompressorTransport(t *testing.T, c Compressor, rt http.RoundTripper) *T
 	tp, err := New(Config{
 		URLs:              []*url.URL{{Scheme: "https", Host: "foo.com"}},
 		Compressor:        c,
+		CompressMinBytes:  -1,
 		DisableRetry:      true,
 		NodeStatsInterval: -1,
 		Transport:         rt,
@@ -260,6 +262,7 @@ func TestNewCompressorValidation(t *testing.T) {
 				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
 				Compressor:          tt.compressor,
 				CompressRequestBody: tt.legacyFlag,
+				CompressMinBytes:    -1,
 				NodeStatsInterval:   -1,
 				Transport:           &wireRecorder{},
 			})
@@ -393,5 +396,76 @@ func TestCompressorConcurrentStreams(t *testing.T) {
 	require.ElementsMatch(t, want, rec.bodies())
 	for i, e := range c.encoders() {
 		require.Regexp(t, encoderCallOrder, e.events(), "encoder %d", i)
+	}
+}
+
+// TestCompressMinBytes checks that a body shorter than CompressMinBytes is sent
+// uncompressed, whether its length comes from Content-Length or from a body
+// held in memory, and that a body of unknown length is compressed.
+func TestCompressMinBytes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		minBytes     int
+		size         int
+		body         func(s string) io.Reader
+		wantEncoding string
+	}{
+		{name: "default, one byte short", size: defaultCompressMinBytes - 1},
+		{name: "default, at the minimum", size: defaultCompressMinBytes, wantEncoding: encodingGzip},
+		{
+			name: "default, held body one byte short",
+			size: defaultCompressMinBytes - 1,
+			body: func(s string) io.Reader { return newHeldBody(s) },
+		},
+		{
+			name:         "default, held body at the minimum",
+			size:         defaultCompressMinBytes,
+			body:         func(s string) io.Reader { return newHeldBody(s) },
+			wantEncoding: encodingGzip,
+		},
+		{
+			name:         "default, unknown length",
+			size:         100,
+			body:         func(s string) io.Reader { return io.MultiReader(strings.NewReader(s)) },
+			wantEncoding: encodingGzip,
+		},
+		{name: "explicit, one byte short", minBytes: 100, size: 99},
+		{name: "explicit, at the minimum", minBytes: 100, size: 100, wantEncoding: encodingGzip},
+		{name: "negative compresses every body", minBytes: -1, size: 1, wantEncoding: encodingGzip},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gz, err := GZip(gzip.DefaultCompression)
+			require.NoError(t, err)
+			cluster := newTableCluster(0)
+			tp, err := New(Config{
+				URLs:              []*url.URL{{Scheme: "https", Host: "foo.com"}},
+				Compressor:        gz,
+				CompressMinBytes:  tt.minBytes,
+				DisableRetry:      true,
+				NodeStatsInterval: -1,
+				Transport:         cluster,
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			body := strings.Repeat("a", tt.size)
+			var r io.Reader = strings.NewReader(body)
+			if tt.body != nil {
+				r = tt.body(body)
+			}
+			req, err := http.NewRequest(http.MethodPost, "/abc", r)
+			require.NoError(t, err)
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			require.NoError(t, res.Body.Close())
+
+			require.Equal(t, []wireBody{{encoding: tt.wantEncoding, body: body}}, cluster.wire())
+		})
 	}
 }

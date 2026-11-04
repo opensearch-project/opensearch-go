@@ -28,8 +28,10 @@ package opensearchtransport
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -454,4 +456,51 @@ func TestCalculateResurrectTimeout(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestPerformHealthCheckStoresVersion(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "opensearch distribution stores the reported version",
+			body: `{"version":{"distribution":"opensearch","number":"3.1.0"}}`,
+			want: "3.1.0",
+		},
+		{
+			name: "missing distribution keeps the discovered version",
+			body: `{"version":{"number":"7.10.2"}}`,
+			want: "1.3.20",
+		},
+		{
+			name: "other distribution keeps the discovered version",
+			body: `{"version":{"distribution":"other","number":"7.10.2"}}`,
+			want: "1.3.20",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "version-test:9200"}}
+			conn.setLifecycleBit(lcActive)
+			conn.storeVersion("1.3.20")
+
+			pool := &multiServerPool{name: "test"}
+			pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(tt.body)),
+				}, nil
+			}
+
+			require.True(t, pool.performHealthCheck(t.Context(), conn, false))
+			require.Equal(t, tt.want, conn.loadVersion())
+		})
+	}
 }

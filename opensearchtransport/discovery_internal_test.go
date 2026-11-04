@@ -2731,3 +2731,112 @@ func TestDiscoverNodesWaiterCtxCancelDuringWait(t *testing.T) {
 		t.Fatal("waiter did not return after its own ctx was cancelled")
 	}
 }
+
+// TestDiscoveryNodeVersion checks that discovery carries each node's version
+// from the /_nodes/http response onto its Connection, when the node is first
+// seen and when it is rediscovered.
+func TestDiscoveryNodeVersion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nodeInfo parses version", func(t *testing.T) {
+		t.Parallel()
+
+		nodesJSON := testNodesResponse(t, map[string]nodeInfo{
+			"node-1": {Name: "alpha", Version: "3.1.0", Roles: []string{"data"}, HTTP: nodeInfoHTTP{PublishAddress: "10.0.0.1:9200"}},
+			"node-2": {Name: "beta", Roles: []string{"data"}, HTTP: nodeInfoHTTP{PublishAddress: "10.0.0.2:9200"}},
+		})
+		tp, err := New(Config{
+			URLs:        []*url.URL{testSeedURL(t)},
+			Transport:   newResolverTestTransport(t, nodesJSON),
+			HealthCheck: NoOpHealthCheck,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
+
+		nodes, err := tp.getNodesInfo(t.Context())
+		require.NoError(t, err)
+
+		got := map[string]string{}
+		for _, n := range nodes {
+			got[n.Name] = n.Version
+		}
+		require.Equal(t, map[string]string{"alpha": "3.1.0", "beta": ""}, got)
+	})
+
+	t.Run("createConnection stores version", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name    string
+			version string
+		}{
+			{name: "reported", version: "3.1.0"},
+			{name: "absent", version: ""},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				tp := &Transport{}
+				conn := tp.createConnection(nodeInfo{
+					ID:      "id-1",
+					Name:    "node1",
+					Version: tt.version,
+					Roles:   []string{"data"},
+					url:     &url.URL{Scheme: "http", Host: "node1:9200"},
+				})
+				require.Equal(t, tt.version, conn.loadVersion())
+			})
+		}
+	})
+
+	t.Run("nodeDiscovery updates the version of a reused connection", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name        string
+			oldVersion  string
+			newVersion  string
+			wantVersion string
+		}{
+			{name: "upgraded", oldVersion: "2.19.6", newVersion: "3.1.0", wantVersion: "3.1.0"},
+			{name: "version first reported", newVersion: "3.1.0", wantVersion: "3.1.0"},
+			{name: "absent keeps the stored version", oldVersion: "2.19.6", wantVersion: "2.19.6"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				ctx, cancel := context.WithCancel(t.Context())
+				client := &Transport{
+					ctx:        ctx,
+					cancelFunc: cancel,
+					urls:       []*url.URL{{Scheme: "http", Host: "seed:9200"}},
+					transport:  http.DefaultTransport.(*http.Transport).Clone(),
+				}
+				defer client.cancelFunc()
+
+				existing := &Connection{
+					URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
+					ID:    "node-id-1",
+					Name:  "node1",
+					Roles: newRoleSet([]string{"data"}),
+				}
+				existing.weight.Store(1)
+				existing.setLifecycleBit(lcActive)
+				existing.storeVersion(tt.oldVersion)
+				require.NoError(t, client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{existing}, nil))
+
+				require.NoError(t, client.nodeDiscovery(t.Context(), []nodeInfo{{
+					ID:      "node-id-1",
+					Name:    "node1",
+					Version: tt.newVersion,
+					Roles:   []string{"data"},
+					url:     existing.URL,
+				}}))
+
+				require.Equal(t, tt.wantVersion, existing.loadVersion())
+			})
+		}
+	})
+}

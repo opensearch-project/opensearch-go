@@ -27,7 +27,6 @@
 package opensearchtransport
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"time"
@@ -191,7 +190,7 @@ func (tr *Transport) pollNodeStats() {
 func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
 	var sample nodeSearchSample
 
-	ctx, cancel := context.WithTimeout(tr.ctx, tr.healthCheckTimeout)
+	ctx, cancel := tr.healthCheckContext(tr.ctx)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
@@ -571,7 +570,10 @@ type ClusterHealthLocal struct {
 // healthCheckInfo represents the minimal structure needed to extract version from health check response
 type healthCheckInfo struct {
 	Version struct {
-		Number string `json:"number"`
+		// Distribution is "opensearch" on OpenSearch nodes. A 1.x node running with
+		// compatibility.override_main_response_version omits it and reports number 7.10.2.
+		Distribution string `json:"distribution"`
+		Number       string `json:"number"`
 	} `json:"version"`
 }
 

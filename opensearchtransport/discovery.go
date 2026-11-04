@@ -221,8 +221,9 @@ type nodeInfoThreadPool struct {
 
 // nodeInfo represents a node discovered via the /_nodes API.
 type nodeInfo struct {
-	ID         string         `json:"id"`   // Available since OpenSearch 1.0.0
-	Name       string         `json:"name"` // Available since OpenSearch 1.0.0
+	ID         string         `json:"id"`      // Available since OpenSearch 1.0.0
+	Name       string         `json:"name"`    // Available since OpenSearch 1.0.0
+	Version    string         `json:"version"` // Available since OpenSearch 1.0.0
 	url        *url.URL       // Client-side field, not from server
 	Roles      []string       `json:"roles"`        // Available since OpenSearch 1.0.0
 	Attributes map[string]any `json:"attributes"`   // Available since OpenSearch 1.0.0
@@ -514,6 +515,11 @@ func (tr *Transport) nodeDiscovery(ctx context.Context, discovered []nodeInfo) e
 
 		existing, found := currentByURL[node.url.String()]
 		if found && canReuseConnection(existing, node) {
+			// A version change is not an identity change, so the connection
+			// stays and takes the node's current version.
+			if node.Version != "" {
+				existing.storeVersion(node.Version)
+			}
 			readyConnections = append(readyConnections, existing)
 			continue
 		}
@@ -564,6 +570,10 @@ func (tr *Transport) createConnection(node nodeInfo) *Connection {
 	conn.estLoad.clock = realClock{}
 	conn.weight.Store(1)
 	conn.rttRing = newRTTRing(tr.rttRingSize)
+
+	if node.Version != "" {
+		conn.storeVersion(node.Version)
+	}
 
 	// Store allocated_processors if present (populated when nodeInfo was parsed
 	// from a /_nodes/_local/http,os,thread_pool response; nil from /_nodes/http discovery).

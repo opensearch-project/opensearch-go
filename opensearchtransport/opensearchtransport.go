@@ -239,7 +239,9 @@ type Config struct {
 	// codec. [GZip] with gzip.DefaultCompression, which the standard library
 	// runs as level 6, is the usual choice and is what CompressRequestBody
 	// uses. nil leaves the choice to CompressRequestBody. New returns an error
-	// for a Compressor that is not usable; see [Compressor].
+	// for a Compressor that is not usable; see [Compressor], and when
+	// CompressorTable is also set. To choose the Compressor by server version,
+	// set CompressorTable instead.
 	//
 	// A compressor is skipped for a request whose caller already set any
 	// non-empty Content-Encoding value: the caller chose the body's encoding,
@@ -249,13 +251,30 @@ type Config struct {
 	// it does not count.
 	Compressor Compressor
 
+	// CompressorTable chooses the Compressor by the OpenSearch version of the
+	// cluster, for an encoding only some versions decode, such as zstd.
+	// It cannot be set together with Compressor: New returns an error for that,
+	// and for a table that is not usable. CompressMinBytes applies to every
+	// Compressor the table resolves to, and the skip rules for Compressor
+	// apply. It takes precedence over the deprecated CompressRequestBody. See
+	// [CompressorTable] for how versions are read.
+	CompressorTable *CompressorTable
+
 	// CompressRequestBody gzip-compresses request bodies at
-	// gzip.DefaultCompression when Compressor is nil. A non-nil Compressor,
-	// including [None], takes precedence.
+	// gzip.DefaultCompression when Compressor and CompressorTable are nil. A
+	// non-nil Compressor, including [None], or a CompressorTable takes
+	// precedence.
 	//
 	// Deprecated: Use Compressor. [GZip] with gzip.DefaultCompression gives the
 	// same output.
 	CompressRequestBody bool
+
+	// CompressMinBytes is the shortest request body, in bytes, that is
+	// compressed; a shorter one is sent as it is. 0 selects 4096; the
+	// measurements behind it are in compress/README.md, "Minimum body size". A
+	// negative value compresses every body. A body whose length is not known is
+	// always compressed.
+	CompressMinBytes int
 
 	EnableDebugLogger bool
 
@@ -598,8 +617,15 @@ type Transport struct {
 	healthCheck HealthCheckFunc
 
 	// compressor is never nil: New builds it, resolving a nil Config.Compressor
-	// to [None]; see requestCompressor.encoding.
+	// to [None]; see requestCompressor.encoding. It is [None] when table is set.
 	compressor *requestCompressor
+
+	// table is the Config.CompressorTable, or nil when it is not set.
+	table *compressorTable
+
+	// compressMinBytes is the shortest body of known length that is compressed,
+	// by compressor or table; see [Config.CompressMinBytes].
+	compressMinBytes int64
 
 	// readBufs holds the buffers readResponseBody reads a body of unknown length
 	// into; see readResponseBody. nil, in a Transport not built by New, keeps none.
@@ -749,9 +775,31 @@ func New(cfg Config) (*Transport, error) {
 
 	// Validate the compressor first, before any clone or goroutine exists, so a
 	// broken one fails here rather than on its first request.
-	compressor, err := newRequestCompressor(resolveCompressor(cfg.Compressor, cfg.CompressRequestBody))
+	if cfg.Compressor != nil && cfg.CompressorTable != nil {
+		return nil, errors.New("opensearchtransport: Compressor and CompressorTable are both set; use one")
+	}
+	var (
+		compressor *requestCompressor
+		table      *compressorTable
+		err        error
+	)
+	if cfg.CompressorTable != nil {
+		compressor, err = newRequestCompressor(None())
+		if err == nil {
+			table, err = newCompressorTable(cfg.CompressorTable)
+		}
+	} else {
+		compressor, err = newRequestCompressor(resolveCompressor(cfg.Compressor, cfg.CompressRequestBody))
+	}
 	if err != nil {
 		return nil, err
+	}
+	var compressMinBytes int64
+	switch {
+	case cfg.CompressMinBytes == 0:
+		compressMinBytes = defaultCompressMinBytes
+	case cfg.CompressMinBytes > 0:
+		compressMinBytes = int64(cfg.CompressMinBytes)
 	}
 
 	// customTransport records that the caller supplied their own Transport. When
@@ -1205,8 +1253,10 @@ func New(cfg Config) (*Transport, error) {
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
-		compressor: compressor,
-		readBufs:   make(chan *bytes.Buffer, readBufsKept),
+		compressor:       compressor,
+		table:            table,
+		compressMinBytes: compressMinBytes,
+		readBufs:         make(chan *bytes.Buffer, readBufsKept),
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1441,7 +1491,7 @@ func New(cfg Config) (*Transport, error) {
 		// First successful connection will allow requests immediately
 		// Discovery will be handled by DiscoverNodesOnStart if configured
 		go func() {
-			ctx, cancel := context.WithTimeout(client.ctx, healthCheckTimeout)
+			ctx, cancel := client.healthCheckContext(client.ctx)
 			defer cancel()
 
 			// Use errgroup to manage parallel health checks
@@ -1714,7 +1764,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// Update request
 	tr.setReqUserAgent(req)
 	// Decide before the global headers merge in; see Config.Compressor.
-	compress := tr.compressor.encoding != "" &&
+	compress := (tr.compressor.encoding != "" || tr.table != nil) &&
 		!slices.ContainsFunc(req.Header.Values(headerContentEncoding), func(v string) bool { return v != "" })
 	tr.setReqGlobalHeader(req)
 
@@ -1746,10 +1796,44 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 	}
 
+	// compressed is set when there is a CompressorTable: each attempt then
+	// encodes with the Compressor the table resolves to.
+	var compressed *compressedBody
+
 	if req.Body != nil && req.Body != http.NoBody {
 		origBody := req.Body
-		if compress {
-			buf, err := tr.compressor.compress(origBody)
+		size := req.ContentLength
+		if br, ok := origBody.(bufbody.BufferedReader); ok {
+			size = int64(br.Len())
+		}
+		// A body of unknown length is compressed; see Config.CompressMinBytes.
+		compress = compress && (size <= 0 || size >= tr.compressMinBytes)
+		switch {
+		case compress && tr.table != nil:
+			compressed = &compressedBody{tr: tr}
+			if br, ok := origBody.(bufbody.BufferedReader); ok {
+				// Already in memory: encode it where it is instead of copying it.
+				// origBody is closed below, so keepAlive holds the body open until
+				// the request returns.
+				keepAlive := bufbody.Replay(br)
+				defer func() { _ = keepAlive.Close() }()
+				compressed.raw = func() io.ReadCloser { return bufbody.Replay(br) }
+				compressed.size, compressed.keepAlive = size, keepAlive
+				req.Body = keepAlive
+			} else {
+				raw, err := readBody(origBody, size)
+				if err != nil {
+					_ = origBody.Close()
+					return nil, sr, fmt.Errorf("failed to read request body: %w", err)
+				}
+				compressed.raw = func() io.ReadCloser { return io.NopCloser(bytes.NewReader(raw)) }
+				compressed.size = int64(len(raw))
+				req.Body = compressed.raw()
+			}
+			req.GetBody = func() (io.ReadCloser, error) { return compressed.raw(), nil }
+			req.ContentLength = compressed.size
+		case compress:
+			buf, err := tr.compressor.compress(origBody, size)
 			if err != nil {
 				_ = origBody.Close()
 				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
@@ -1765,7 +1849,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 			req.Header.Set(headerContentEncoding, tr.compressor.encoding)
 			req.ContentLength = int64(buf.Len())
-		} else if req.GetBody == nil {
+		case req.GetBody == nil:
 			if br, ok := origBody.(bufbody.BufferedReader); ok {
 				// Already in memory: replay it as it is instead of copying it.
 				req.GetBody = func() (io.ReadCloser, error) { return bufbody.Replay(br), nil }
@@ -1925,6 +2009,14 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 				return nil, sr, fmt.Errorf("cannot get request body: %w", err)
 			}
 			attemptReq.Body = body
+		}
+
+		// Before signing, which covers the body and its headers.
+		if compressed != nil {
+			//nolint:contextcheck // the version probe outlives this request, so it runs on the transport's context
+			if err := compressed.apply(attemptReq, conn); err != nil {
+				return nil, sr, err
+			}
 		}
 
 		if err = tr.signRequest(attemptReq); err != nil {
@@ -2230,7 +2322,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// attempt could not obtain a connection, which happens before setReqURL runs;
 	// a retry restores the caller path before routing for the same reason.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
-		res, err = tr.performSeedFallback(req.Context(), req, bodyOpen, &sr)
+		res, err = tr.performSeedFallback(req.Context(), req, bodyOpen, compressed, &sr)
 	} else if bodyOpen {
 		// Nothing will send the body, so close it as a RoundTripper does for a
 		// request it fails.
@@ -2392,7 +2484,12 @@ func (tr *Transport) roundTripAttempt(
 // bodyOpen says req.Body is still the caller's open, unsent body. The fallback
 // then owns closing it: a body replaced from GetBody is closed here, and one
 // handed to the transport is closed by it, so no return path leaves it open.
-func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request, bodyOpen bool, sr *streamResult) (*http.Response, error) {
+//
+// compressed is the request's body under a CompressorTable, or nil; see
+// compressedBody.
+func (tr *Transport) performSeedFallback(
+	ctx context.Context, req *http.Request, bodyOpen bool, compressed *compressedBody, sr *streamResult,
+) (*http.Response, error) {
 	handedOver := false
 	if bodyOpen {
 		defer func() {
@@ -2433,6 +2530,14 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 		}
 		attemptReq.Body = body
 		replacedBody = true
+	}
+
+	// compressed set GetBody, so the body above was already replaced.
+	if compressed != nil {
+		//nolint:contextcheck // the version probe outlives this request, so it runs on the transport's context
+		if err := compressed.apply(attemptReq, conn); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tr.signRequest(attemptReq); err != nil {
@@ -2811,6 +2916,16 @@ func (tr *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u
 	return res, nil
 }
 
+// healthCheckContext derives the context for one health-check request from
+// parent. A stored healthCheckTimeout of 0 means the timeout is disabled
+// (Config.HealthCheckTimeout < 0), so parent is returned without a deadline.
+func (tr *Transport) healthCheckContext(parent context.Context) (context.Context, context.CancelFunc) {
+	if tr.healthCheckTimeout > 0 {
+		return context.WithTimeout(parent, tr.healthCheckTimeout)
+	}
+	return parent, func() {}
+}
+
 // baselineHealthCheck performs the standard GET / health check against an OpenSearch node.
 // It validates the response contains core fields (name, cluster_name, version.number).
 func (tr *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*http.Response, error) {
@@ -2818,15 +2933,8 @@ func (tr *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyM
 		tr.metrics.healthChecks.Add(1)
 	}
 
-	var healthCtx context.Context
-	var cancel context.CancelFunc
-
-	if tr.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
-		defer cancel()
-	} else {
-		healthCtx = ctx
-	}
+	healthCtx, cancel := tr.healthCheckContext(ctx)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/", nil)
 	if err != nil {
@@ -2893,15 +3001,8 @@ func (tr *Transport) hardwareInfoHealthCheck(
 		tr.metrics.healthChecks.Add(1)
 	}
 
-	var healthCtx context.Context
-	var cancel context.CancelFunc
-
-	if tr.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
-		defer cancel()
-	} else {
-		healthCtx = ctx
-	}
+	healthCtx, cancel := tr.healthCheckContext(ctx)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_nodes/_local/http,os,thread_pool", nil)
 	if err != nil {
@@ -3019,15 +3120,8 @@ func (tr *Transport) fetchClusterHealth(
 		tr.metrics.clusterHealthChecks.Add(1)
 	}
 
-	var healthCtx context.Context
-	var cancel context.CancelFunc
-
-	if tr.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
-		defer cancel()
-	} else {
-		healthCtx = ctx
-	}
+	healthCtx, cancel := tr.healthCheckContext(ctx)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_cluster/health", nil)
 	if err != nil {

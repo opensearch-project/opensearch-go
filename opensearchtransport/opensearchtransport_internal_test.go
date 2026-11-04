@@ -160,6 +160,7 @@ func TestTransportConfig(t *testing.T) {
 			EnableRetryOnTimeout: true,
 			MaxRetries:           5,
 			CompressRequestBody:  true,
+			CompressMinBytes:     -1,
 		})
 		t.Cleanup(func() { _ = tp.Close() })
 
@@ -181,6 +182,67 @@ func TestTransportConfig(t *testing.T) {
 
 		require.NotNil(t, tp.compressor)
 	})
+}
+
+func TestHealthCheckTimeoutConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   time.Duration
+		want time.Duration
+	}{
+		{name: "zero uses the default", in: 0, want: defaultHealthCheckTimeout},
+		{name: "negative disables the timeout", in: -1, want: 0},
+		{name: "positive is kept", in: 2 * time.Second, want: 2 * time.Second},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tp, err := New(Config{HealthCheckTimeout: tt.in})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+			require.Equal(t, tt.want, tp.healthCheckTimeout)
+		})
+	}
+}
+
+func TestSeedHealthCheckDisabledTimeout(t *testing.T) {
+	t.Parallel()
+
+	var healthCalls atomic.Int32
+	ctxErrs := make(chan error, 1)
+
+	router, err := NewDefaultRouter()
+	require.NoError(t, err)
+
+	tp, err := New(Config{
+		URLs:                  []*url.URL{{Scheme: "http", Host: "seed.example:9200"}},
+		Router:                router,
+		HealthCheckTimeout:    -1,
+		NodeStatsInterval:     -1,
+		DiscoverNodesInterval: -1,
+		HealthCheck: func(ctx context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+			if healthCalls.Add(1) == 1 {
+				ctxErrs <- ctx.Err()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(validOpenSearchRootResponse())),
+				Header:     make(http.Header),
+			}, nil
+		},
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	select {
+	case ctxErr := <-ctxErrs:
+		require.NoError(t, ctxErr)
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for seed health check")
+	}
+	require.Equal(t, int32(1), healthCalls.Load())
 }
 
 func TestTransportConnectionPool(t *testing.T) {
@@ -798,6 +860,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				URLs:                []*url.URL{u},
 				MaxRetries:          3, // Set to 3 retries to get 4 total requests
 				CompressRequestBody: true,
+				CompressMinBytes:    -1,
 				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					body, err := io.ReadAll(req.Body)
@@ -1380,6 +1443,7 @@ func TestRequestCompression(t *testing.T) {
 			tp, _ := New(Config{
 				URLs:                []*url.URL{{}},
 				CompressRequestBody: test.compressionFlag,
+				CompressMinBytes:    -1,
 				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					if req.Body == nil || req.Body == http.NoBody {
@@ -1515,6 +1579,7 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 					MaxRetries:          maxRetries,
 					CompressRequestBody: cfg.legacyFlag,
 					Compressor:          cfg.compressor,
+					CompressMinBytes:    -1,
 					Header:              tt.globalHeader,
 					NodeStatsInterval:   -1,
 					Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
@@ -1608,6 +1673,7 @@ func TestCompressedBodyOutlivesStream(t *testing.T) {
 			tp, err := New(Config{
 				URLs:              []*url.URL{{Scheme: "https", Host: "foo.com"}},
 				Compressor:        gz,
+				CompressMinBytes:  -1,
 				DisableRetry:      true,
 				NodeStatsInterval: -1,
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
@@ -1661,6 +1727,7 @@ func TestRequestCompressionReadError(t *testing.T) {
 	tp, err := New(Config{
 		URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
 		CompressRequestBody: true,
+		CompressMinBytes:    -1,
 		NodeStatsInterval:   -1,
 		Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
 			return nil, errors.New("unexpected round trip")
@@ -1722,6 +1789,7 @@ func TestRequestCompressorNone(t *testing.T) {
 				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
 				CompressRequestBody: tt.legacyFlag,
 				Compressor:          tt.compressor,
+				CompressMinBytes:    -1,
 				NodeStatsInterval:   -1,
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					body, err := io.ReadAll(req.Body)
@@ -1779,6 +1847,7 @@ func TestStreamClosesOriginalRequestBodyAfterSnapshot(t *testing.T) {
 			tp, err := New(Config{
 				URLs:                []*url.URL{u},
 				CompressRequestBody: tt.compress,
+				CompressMinBytes:    -1,
 				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
 					return &http.Response{Status: "MOCK", StatusCode: http.StatusOK, Body: http.NoBody}, nil
