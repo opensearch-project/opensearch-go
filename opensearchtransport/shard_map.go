@@ -143,6 +143,11 @@ type ShardTarget struct {
 	Generation uint64
 }
 
+// shardForDocument is [shardhash.ForDocument] over the map's own geometry.
+func (sm *indexShardMap) shardForDocument(routing, id string) (int, bool) {
+	return shardhash.ForDocument(routing, id, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
+}
+
 // ErrShardMapUnknown is returned by [Transport.LookupShard] when the index's
 // shard map is not known yet; see [Transport.ShardMap].
 var ErrShardMapUnknown = errors.New("the shard map of the index is not known")
@@ -229,7 +234,7 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 		return ErrShardMapUnknown
 	}
 
-	shard, ok := shardhash.ForDocument(routing, id, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
+	shard, ok := sm.shardForDocument(routing, id)
 	if !ok {
 		tr.shardLookupMiss(index, ErrDocumentIDRequired)
 

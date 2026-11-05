@@ -209,15 +209,18 @@ func (l *ColorLogger) LogRoundTrip(req *http.Request, res *http.Response, err er
 		color  string
 	)
 
-	status = res.Status
-	switch {
-	case res.StatusCode >= http.StatusContinue && res.StatusCode < http.StatusMultipleChoices:
-		color = "\x1b[32m"
-	case res.StatusCode >= http.StatusMultipleChoices && res.StatusCode < http.StatusInternalServerError:
-		color = "\x1b[33m"
-	case res.StatusCode >= http.StatusInternalServerError:
-		color = "\x1b[31m"
-	default:
+	if res != nil {
+		status = res.Status
+		switch {
+		case res.StatusCode >= http.StatusContinue && res.StatusCode < http.StatusMultipleChoices:
+			color = "\x1b[32m"
+		case res.StatusCode >= http.StatusMultipleChoices && res.StatusCode < http.StatusInternalServerError:
+			color = "\x1b[33m"
+		case res.StatusCode >= http.StatusInternalServerError:
+			color = "\x1b[31m"
+		}
+	}
+	if color == "" {
 		status = "ERROR"
 		color = "\x1b[31;4m"
 	}
@@ -336,7 +339,10 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 
 	b.WriteRune('\n')
 
-	status := res.Status
+	var status string
+	if res != nil {
+		status = res.Status
+	}
 
 	fmt.Fprintf(&b, "# => %s [%s] %s\n", start.UTC().Format(time.RFC3339), status, dur.Truncate(time.Millisecond)) // #nosec G705
 	if l.ResponseBodyEnabled() && res != nil && res.Body != nil && res.Body != http.NoBody {

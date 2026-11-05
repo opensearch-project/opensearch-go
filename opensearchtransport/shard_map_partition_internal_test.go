@@ -530,6 +530,7 @@ func TestRoutersCostShardSets(t *testing.T) {
 		wantNode  string // "" accepts any node
 		wantExact bool
 		wantErr   error
+		features  routingFeatures
 	}{
 		{
 			name: "doc router, routing list", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
@@ -557,6 +558,10 @@ func TestRoutersCostShardSets(t *testing.T) {
 		},
 		{name: "pool router, index without a shard map", path: "/idx/_search?routing=" + keyA, wantErr: ErrShardMapUnknown},
 		{name: "pool router, cluster-level request", path: "/_cluster/health", wantErr: ErrNoRoutingKey},
+		{
+			name: "pool router, cluster-level request with shard-exact routing disabled", path: "/_cluster/health",
+			features: routingSkipShardExact,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -575,6 +580,7 @@ func TestRoutersCostShardSets(t *testing.T) {
 				conns[i].Name = id
 			}
 			cache := testIndexSlotCache()
+			cache.features = tt.features
 			if tt.shardMap != nil {
 				cache.getOrCreate("idx").shardMap.Store(tt.shardMap)
 			}
@@ -614,7 +620,7 @@ func TestRoutersCostShardSets(t *testing.T) {
 			events := rec.getRouteEvents()
 			require.Len(t, events, 1)
 			require.Equal(t, tt.wantExact, events[0].ShardExactMatch)
-			requireErrorIs(t, tt.wantErr, events[0].ShardMissErr)
+			requireErrorIs(t, tt.wantErr, events[0].Err)
 		})
 	}
 }

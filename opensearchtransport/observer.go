@@ -145,7 +145,7 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 // or [Transport.LookupDocShard] call that cannot name a node for the shard, so
 // it must return quickly. The same restrictions as [ConnectionObserver] apply.
 // Request routing does not call it; a request that falls back from shard-exact
-// routing reports why in [RouteEvent].ShardMissErr.
+// routing reports why in [RouteEvent].Err.
 type ShardLookupObserver interface {
 	// OnShardLookupMiss is called when a shard lookup cannot be answered
 	// directly. It is not called for a lookup that finds the shard's node.
@@ -158,12 +158,12 @@ type ShardLookupMissEvent struct {
 	// Index is the index the lookup was for.
 	Index string
 
-	// Err is why the lookup missed, and never nil. It is one of
-	// [ErrShardMapUnknown], also when the transport never collects a shard map
-	// ([Transport.ShardMapUnavailable] says why), [ErrDocumentIDRequired], or
-	// [ErrShardNoNode] when the shard's primary is not a ready connection. The set
-	// is bounded, so a metrics label can be derived per sentinel; test it with
-	// [errors.Is].
+	// Err is why the lookup missed, and never nil. It is [ErrShardMapUnknown],
+	// [ErrDocumentIDRequired], or [ErrShardNoNode] when the shard's primary is
+	// not a ready connection; or, when the transport never collects a shard map,
+	// the reason from [Transport.ShardMapUnavailable]. The set is bounded, so a
+	// metrics label can be derived per sentinel; test it with [errors.Is].
+	// [ErrNoRoutingKey] is reported only by request routing, in [RouteEvent].Err.
 	Err error
 }
 

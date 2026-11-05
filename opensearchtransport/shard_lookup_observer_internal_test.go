@@ -207,7 +207,7 @@ func TestRouteEventReportsWhyShardExactRoutingMissed(t *testing.T) {
 			require.NotNil(t, hop.Conn)
 
 			require.Equal(t, tt.wantExact, captured.ShardExactMatch)
-			requireErrorIs(t, tt.wantErr, captured.ShardMissErr)
+			requireErrorIs(t, tt.wantErr, captured.Err)
 		})
 	}
 }
