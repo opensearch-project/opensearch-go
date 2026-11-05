@@ -12,6 +12,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -104,7 +105,9 @@ func TestRewriteCorpus(t *testing.T) {
 			// Params value that became a pointer gains & (literal) or new(x) (any
 			// other value). retype: a field retyped to a pointer of another type is
 			// reported MANUAL where it is set or read and left in place; a constant
-			// moves into new(x) only when new(x) keeps the field's type. templates:
+			// moves into new(x) only when new(x) keeps the field's type; a field
+			// retyped without becoming a pointer (*int -> int, string -> []string)
+			// is reported MANUAL too, each line naming its position. templates:
 			// sub-client regroups per argument shape (a *Req that v5 takes by value
 			// loses its & or becomes an empty Req for nil, a Req that v5 takes by
 			// pointer gains &). templateimport: the empty Req adds the v5 import to a
@@ -143,6 +146,10 @@ func TestRewriteCorpus(t *testing.T) {
 				`opensearchapi.BulkByScrollTaskStatus": field Created is now *int64 - new(x) would not have that type`,
 				`opensearchapi.SearchHit": field Score - field type changed from "float32" to "*float64"`,
 				`opensearchapi.SearchHit": access .Score - field type changed from "float32" to "*float64"`,
+				`opensearchapi.SearchParams": field From - field type changed from "*int" to "int"; ` +
+					`migrate this use by hand at retype.go:35:36`,
+				`opensearchapi.SearchParams": field ExpandWildcards - field type changed from "string" to "[]string"; ` +
+					`migrate this use by hand at retype.go:35:48`,
 				"call client.IndexTemplate.Create(...) -> client.Indices.PutIndexTemplate(...)",
 				"call client.IndexTemplate.Get(...) -> client.Indices.GetIndexTemplate(...)",
 				"call client.Template.Exists(...) -> client.Indices.ExistsTemplate(...)",
@@ -182,6 +189,15 @@ func TestRewriteCorpus(t *testing.T) {
 			report := reportText(results)
 			for _, want := range tt.edits {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
+			}
+			// Every MANUAL line names its site, whichever walk branch reported it,
+			// so the worklist locates it without a build.
+			for _, r := range results {
+				for _, e := range r.edits {
+					if isManual(e) {
+						require.Regexp(t, manualPositionRE, e, "MANUAL line must end with its position")
+					}
+				}
 			}
 
 			archivePath := filepath.Join("testdata", "corpus", tt.corpus+".txtar")
@@ -275,6 +291,9 @@ func stageCorpus(t *testing.T, corpus string) string {
 }
 
 // reportText flattens per-file edit lines into one string for substring checks.
+// manualPositionRE matches the position manualAt appends to a MANUAL line.
+var manualPositionRE = regexp.MustCompile(` at [\w.-]+\.go:\d+:\d+$`)
+
 func reportText(results []rewriteResult) string {
 	var b strings.Builder
 	for _, r := range results {

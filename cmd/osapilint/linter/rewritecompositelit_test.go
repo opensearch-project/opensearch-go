@@ -23,7 +23,7 @@ import (
 
 // typeCheckCompositeLit type-checks src and returns the type info plus its first
 // composite literal.
-func typeCheckCompositeLit(t *testing.T, src string) (*types.Info, *ast.CompositeLit) {
+func typeCheckCompositeLit(t *testing.T, src string) (*token.FileSet, *types.Info, *ast.CompositeLit) {
 	t.Helper()
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "src.go", src, 0)
@@ -45,7 +45,7 @@ func typeCheckCompositeLit(t *testing.T, src string) (*types.Info, *ast.Composit
 		return true
 	})
 	require.NotNil(t, found, "no composite literal in src")
-	return info, found
+	return fset, info, found
 }
 
 // TestRewriteCompositeLit_FieldArms pins what each field-change kind does to a
@@ -90,7 +90,7 @@ func use() Config { return Config{Metrics: true, Addresses: nil} }
 			name:      "manual keeps the key and reports it",
 			change:    apirev.FieldChange{Kind: apirev.KindManual, From: "Metrics", Note: "decode it from Body instead"},
 			wantKeys:  []string{"Metrics", "Addresses"},
-			wantEdits: []string{`MANUAL "` + qual + `": field Metrics - decode it from Body instead`},
+			wantEdits: []string{`MANUAL "` + qual + `": field Metrics - decode it from Body instead at src.go:8:35`},
 		},
 		{
 			name:             "unclassified keeps the key and is a bug",
@@ -104,12 +104,12 @@ func use() Config { return Config{Metrics: true, Addresses: nil} }
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			info, lit := typeCheckCompositeLit(t, src)
+			fset, info, lit := typeCheckCompositeLit(t, src)
 			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
 				From: qual, Changes: []apirev.FieldChange{tt.change},
 			}}}
 
-			edits, unclassified := rewriteCompositeLit(lit, info, delta, nil)
+			edits, unclassified := rewriteCompositeLit(fset, lit, info, delta, nil)
 
 			// rewriteCompositeLit rewrites the element list in place, so the
 			// surviving keys are read back off the literal.
@@ -131,7 +131,7 @@ func use() Config { return Config{Metrics: true, Addresses: nil} }
 
 // typeCheckNamedLit type-checks src and returns the type info plus the composite
 // literal whose resolved type is named want.
-func typeCheckNamedLit(t *testing.T, src, want string) (*types.Info, *ast.CompositeLit) {
+func typeCheckNamedLit(t *testing.T, src, want string) (*token.FileSet, *types.Info, *ast.CompositeLit) {
 	t.Helper()
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "src.go", src, 0)
@@ -155,7 +155,7 @@ func typeCheckNamedLit(t *testing.T, src, want string) (*types.Info, *ast.Compos
 		return true
 	})
 	require.NotNilf(t, found, "no composite literal of type %q in src", want)
-	return info, found
+	return fset, info, found
 }
 
 // TestRewriteCompositeLit_ElementShapes pins the elements rewriteCompositeLit
@@ -233,9 +233,9 @@ func mapKeyed() Lookup       { return Lookup{"a": 1} }
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			info, lit := typeCheckNamedLit(t, src, tt.litType)
+			fset, info, lit := typeCheckNamedLit(t, src, tt.litType)
 
-			edits, unclassified := rewriteCompositeLit(lit, info, tt.delta, tt.renames)
+			edits, unclassified := rewriteCompositeLit(fset, lit, info, tt.delta, tt.renames)
 
 			require.Equal(t, tt.wantEdits, edits)
 			require.Empty(t, unclassified)

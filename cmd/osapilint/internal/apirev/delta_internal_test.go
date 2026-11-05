@@ -286,3 +286,125 @@ func TestDeriveDelta_PointerFieldClassification(t *testing.T) {
 		})
 	}
 }
+
+// TestDeriveDelta_RetypedFieldClassification pins how a surviving field whose
+// type changed without becoming a pointer is classified. A scalar, element or
+// pointer-ness change (*int -> int, string -> []string, string -> a named
+// string type) is manual: a value or access of the old type no longer fits. A
+// change between struct shapes is compared field by field: one whose fields all
+// still fit (an anonymous struct gaining a field, or becoming a named struct
+// with the same fields) is left alone, and one with an inner field retyped or
+// removed is manual, naming that inner field.
+func TestDeriveDelta_RetypedFieldClassification(t *testing.T) {
+	t.Parallel()
+	const (
+		v4api = "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+		v5api = "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	)
+	renames := []TypeRename{{FromPkgPath: v4api, FromName: "ResponseShards", ToPkgPath: v5api, ToName: "ShardStatistics"}}
+	// Named struct types each snapshot declares, so a field typed with one
+	// reads as a struct shape and compares through its fields.
+	sourceStructs := []Struct{
+		{PkgPath: v4api, Name: "ErrorCause", Fields: []Field{{Name: "Type", Type: "string"}}},
+		{PkgPath: v4api, Name: "OldShards", Fields: []Field{{Name: "Total", Type: "int"}}},
+		{PkgPath: v4api, Name: "OldStats", Fields: []Field{{Name: "Count", Type: "int"}}},
+		{PkgPath: v4api, Name: "TreeA", Fields: []Field{{Name: "Kids", Type: "[]" + v4api + ".TreeA"}}},
+	}
+	targetStructs := []Struct{
+		{PkgPath: v5api, Name: "ShardStatistics", Fields: []Field{{Name: "Total", Type: "int"}}},
+		{PkgPath: v5api, Name: "ErrorCause", Fields: []Field{{Name: "Type", Type: "string"}}},
+		{PkgPath: v5api, Name: "CatClient"},
+		{PkgPath: v5api, Name: "Translog", Fields: []Field{{Name: "TotalTimeInMillis", Type: "int64"}}},
+		{PkgPath: v5api, Name: "Stats", Fields: []Field{{Name: "Count", Type: "int64"}}},
+		{PkgPath: v5api, Name: "TreeB", Fields: []Field{{Name: "Kids", Type: "[]" + v5api + ".TreeB"}}},
+	}
+	manual := func(from, to string) []FieldChange {
+		return []FieldChange{{
+			Kind: KindManual, From: "F", NewType: to,
+			Note: `field type changed from "` + from + `" to "` + to + `"; migrate this use by hand`,
+		}}
+	}
+	// manualInner is the change for field F whose type, now to, broke at an
+	// inner field.
+	manualInner := func(to, note string) []FieldChange {
+		return []FieldChange{{Kind: KindManual, From: "F", NewType: to, Note: note + "; migrate this use by hand"}}
+	}
+
+	cases := []struct {
+		name     string
+		from, to string // the field's type in each version
+		want     []FieldChange
+	}{
+		{name: "pointer to value", from: "*int", to: "int", want: manual("*int", "int")},
+		{name: "scalar to slice", from: "string", to: "[]string", want: manual("string", "[]string")},
+		{name: "scalar to named scalar", from: "string", to: v5api + ".SearchType", want: manual("string", v5api+".SearchType")},
+		{name: "numeric width", from: "int", to: "int64", want: manual("int", "int64")},
+		{name: "pointer elem", from: "*int", to: "*float64", want: manual("*int", "*float64")},
+		{
+			name: "struct to map of structs", from: v4api + ".ErrorCause", to: "map[string]" + v5api + ".ErrorCause",
+			want: manual(v4api+".ErrorCause", "map[string]"+v5api+".ErrorCause"),
+		},
+		{
+			name: "slice elem loses its pointer", from: "[]*" + v4api + ".ErrorCause", to: "[]" + v5api + ".ErrorCause",
+			want: manual("[]*"+v4api+".ErrorCause", "[]"+v5api+".ErrorCause"),
+		},
+		{name: "same type across majors", from: v4api + ".SearchType", to: v5api + ".SearchType"},
+		{name: "interface{} spelled any", from: "map[string]interface{}", to: "map[string]any"},
+		{name: "type rename", from: v4api + ".ResponseShards", to: v5api + ".ShardStatistics"},
+		{name: "type rename in a slice", from: "[]" + v4api + ".ResponseShards", to: "[]" + v5api + ".ShardStatistics"},
+		{name: "unexported to exported struct", from: v4api + ".catClient", to: v5api + ".CatClient"},
+		{
+			name: "anonymous struct gains a field",
+			from: `struct{Total int "json:\"total\""}`, to: `struct{Total int "json:\"total\""; Failed int "json:\"failed\""}`,
+		},
+		{name: "anonymous struct to named struct", from: `struct{Total int "json:\"total\""}`, to: v5api + ".ShardStatistics"},
+		{name: "slice of structs", from: `[]struct{Type string "json:\"type\""}`, to: "[]" + v5api + ".ErrorCause"},
+		{
+			name: "map of structs",
+			from: `map[string]struct{Lang string "json:\"lang\""}`,
+			to:   `map[string]struct{Lang string "json:\"lang\""; Options *string "json:\"options\""}`,
+		},
+		{name: "named struct with no counterpart, same fields", from: v4api + ".OldShards", to: v5api + ".ShardStatistics"},
+		{name: "self-referencing structs", from: v4api + ".TreeA", to: v5api + ".TreeB"},
+		{
+			name: "anonymous struct embeds a named struct",
+			from: `struct{` + v4api + `.ErrorCause}`, to: v5api + ".ErrorCause",
+		},
+		{
+			name: "anonymous struct to named struct, inner field retyped",
+			from: `struct{TotalTimeInMillis int "json:\"total_time_in_millis\""}`, to: v5api + ".Translog",
+			want: manualInner(v5api+".Translog", `its field "TotalTimeInMillis" changed type from "int" to "int64"`),
+		},
+		{
+			name: "named struct with no counterpart, inner field retyped",
+			from: v4api + ".OldStats", to: v5api + ".Stats",
+			want: manualInner(v5api+".Stats", `its field "Count" changed type from "int" to "int64"`),
+		},
+		{
+			name: "nested anonymous struct, inner field retyped",
+			from: `struct{Script struct{Sum int "json:\"sum\""} "json:\"script\""}`,
+			to:   `struct{Script struct{Sum int64 "json:\"sum\""} "json:\"script\""}`,
+			want: manualInner(`struct{Script struct{Sum int64 "json:\"sum\""} "json:\"script\""}`,
+				`its field "Script.Sum" changed type from "int" to "int64"`),
+		},
+		{
+			name: "anonymous struct loses a field",
+			from: `struct{Total int "json:\"total\""; Gone string "json:\"gone\""}`, to: `struct{Total int "json:\"total\""}`,
+			want: manualInner(`struct{Total int "json:\"total\""}`, `its field "Gone" was removed`),
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			req := func(pkgPath, typ string) Struct {
+				return Struct{PkgPath: pkgPath, Name: "Req", Fields: []Field{{Name: "F", Type: typ}}}
+			}
+			from := &Snapshot{Structs: append([]Struct{req(v4api, tc.from)}, sourceStructs...)}
+			to := &Snapshot{Structs: append([]Struct{req(v5api, tc.to)}, targetStructs...)}
+
+			d := DeriveDelta(from, to, renames, nil)
+
+			require.Equal(t, tc.want, d.Structs[v4api+".Req"].Changes)
+		})
+	}
+}

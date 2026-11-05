@@ -293,6 +293,13 @@ func counts(n int64) opensearchapi.BulkByScrollTaskStatus {
 func score(h opensearchapi.SearchHit) float32 {
 	return h.Score
 }
+
+// params: v5 makes SearchParams.From an int and ExpandWildcards a []string.
+// Neither has a mechanical rewrite (a nil *int has no int value), so both keys
+// stay put, reported MANUAL with their position.
+func params(from *int) opensearchapi.SearchParams {
+	return opensearchapi.SearchParams{From: from, ExpandWildcards: "all"}
+}
 -- retype.go.golden --
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -322,6 +329,13 @@ func counts(n int64) opensearchapi.BulkByScrollTaskStatus {
 // arithmetic or printing on what is now a *float64 breaks or changes behavior.
 func score(h opensearchapi.SearchHit) float32 {
 	return h.Score
+}
+
+// params: v5 makes SearchParams.From an int and ExpandWildcards a []string.
+// Neither has a mechanical rewrite (a nil *int has no int value), so both keys
+// stay put, reported MANUAL with their position.
+func params(from *int) opensearchapi.SearchParams {
+	return opensearchapi.SearchParams{From: from, ExpandWildcards: "all"}
 }
 -- templates.go --
 // SPDX-License-Identifier: Apache-2.0
