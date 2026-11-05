@@ -253,7 +253,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 			routingValue:        routingValue,
 			effectiveRoutingKey: effectiveRoutingKey,
 			targetShard:         shardNum,
-			shardMissErr:        missErr,
+			err:                 missErr,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			scoreFunc:           p.scoreFunc,
 		})

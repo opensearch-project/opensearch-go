@@ -15,6 +15,17 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
+// noRoutingKeyErr is the miss for a request that carries no routing key at all:
+// [ErrNoRoutingKey], or nil when shard-exact routing is disabled, which is not a
+// miss.
+func noRoutingKeyErr(features routingFeatures) error {
+	if !features.shardExactEnabled() {
+		return nil
+	}
+
+	return ErrNoRoutingKey
+}
+
 // calcSingleKeyCost resolves a single routing key to the shard it targets and
 // returns the connections hosting that shard. The 1:1 relationship between key
 // and shard makes this a direct lookup with no intermediate data structures.
@@ -25,10 +36,14 @@ import (
 // derived from the ID, so on such an index a request without an ID has no
 // known shard and the result is -1.
 //
-// Returns a zero-value pooledConns when shard-exact routing is disabled via
-// features, shard map data is unavailable, there is neither a routing value
-// nor an ID, or no connections match. Callers must call Release on the
-// returned pooledConns when done.
+// The error is nil exactly when shard-exact candidates are returned. Otherwise
+// the pooledConns is zero-valued, the shard number is -1, and the error is
+// [ErrNoRoutingKey] when there is neither a routing value nor an ID,
+// [ErrShardMapUnknown] when no shard map data is available,
+// [ErrDocumentIDRequired] on a partitioned index without an ID, or
+// [ErrShardNoNode] when no connection hosts the shard. Shard-exact routing
+// disabled via features returns no candidates and a nil error, since that is not
+// a miss. Callers must call Release on the returned pooledConns when done.
 //
 // Per-shard cost is derived from the returned [shardNodes] by the caller via
 // [shardCostMultiplier.forShard].
@@ -52,7 +67,7 @@ func calcSingleKeyCost(
 		return pooledConns{}, -1, nil, ErrShardMapUnknown
 	}
 
-	shardNum, ok := shardhash.ForDocument(routingValue, docID, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
+	shardNum, ok := sm.shardForDocument(routingValue, docID)
 	if !ok {
 		return pooledConns{}, -1, nil, ErrDocumentIDRequired
 	}
@@ -128,8 +143,11 @@ func needsShardSetCost(slot *indexSlot, routingValue, docID string) bool {
 // number of distinct target shards. A node hosting all target shards has
 // extraCost=0; a node hosting one of five has extraCost=4.
 //
-// Returns nil, nil when shard-exact routing is disabled, shard data is
-// unavailable, or no connections match.
+// The error is nil exactly when candidates are returned. Otherwise the result is
+// empty and the error is [ErrNoRoutingKey] when there is no routing value,
+// [ErrShardMapUnknown] when no shard map data is available, or [ErrShardNoNode]
+// when no connection hosts any target shard. Shard-exact routing disabled via
+// features returns no candidates and a nil error, since that is not a miss.
 func calcMultiKeyCost(
 	features routingFeatures,
 	slot *indexSlot,

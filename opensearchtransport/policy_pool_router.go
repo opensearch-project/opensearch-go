@@ -133,7 +133,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				costs:         p.shardCosts,
 				poolName:      p.poolName,
 				targetShard:   -1,
-				shardMissErr:  ErrNoRoutingKey,
+				err:           noRoutingKeyErr(p.cache.features),
 				poolInfoReady: pir,
 				scoreFunc:     p.scoreFunc,
 			})
@@ -277,7 +277,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			routingValue:        routingValue,
 			effectiveRoutingKey: effectiveRoutingKey,
 			targetShard:         shardNum,
-			shardMissErr:        missErr,
+			err:                 missErr,
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,

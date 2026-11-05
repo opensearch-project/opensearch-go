@@ -266,7 +266,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 			routingValue:        routingValue,
 			effectiveRoutingKey: routingValue,
 			targetShard:         shardNum,
-			shardMissErr:        missErr,
+			err:                 missErr,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,
