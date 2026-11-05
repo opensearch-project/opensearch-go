@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -199,35 +200,51 @@ func TestCalcSingleKeyCostPartitionedIndex(t *testing.T) {
 	id := docWithOffset(t, routing)
 	wantShard, _ := shardhash.ForDocument(routing, id, partitionedRoutingNumShards, partitionedPrimaryShards, partitionSize)
 
-	slot := &indexSlot{clock: realClock{}}
-	slot.shardMap.Store(&indexShardMap{
-		NumberOfPrimaryShards: partitionedPrimaryShards,
-		RoutingNumShards:      partitionedRoutingNumShards,
-		RoutingPartitionSize:  partitionSize,
-		Shards: map[int]*shardNodes{
-			wantShard: {Primary: "nodeA"},
-			shardhash.ForRouting(routing, partitionedRoutingNumShards, partitionedPrimaryShards): {Primary: "nodeB"},
-		},
+	withShards := func(shards map[int]*shardNodes) *indexSlot {
+		slot := &indexSlot{clock: realClock{}}
+		slot.shardMap.Store(&indexShardMap{
+			NumberOfPrimaryShards: partitionedPrimaryShards,
+			RoutingNumShards:      partitionedRoutingNumShards,
+			RoutingPartitionSize:  partitionSize,
+			Shards:                shards,
+		})
+
+		return slot
+	}
+	hosted := withShards(map[int]*shardNodes{
+		wantShard: {Primary: "nodeA"},
+		shardhash.ForRouting(routing, partitionedRoutingNumShards, partitionedPrimaryShards): {Primary: "nodeB"},
 	})
 	conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
 
 	tests := []struct {
 		name         string
+		slot         *indexSlot
 		routing, id  string
 		wantShard    int
 		wantNodeName string
+		wantReason   ShardMissReason
 	}{
-		{name: "routing and id", routing: routing, id: id, wantShard: wantShard, wantNodeName: "nodeA"},
-		{name: "no id cannot claim a shard", routing: routing, id: "", wantShard: -1},
+		{name: "routing and id", slot: hosted, routing: routing, id: id, wantShard: wantShard, wantNodeName: "nodeA"},
+		{name: "no id cannot claim a shard", slot: hosted, routing: routing, id: "", wantShard: -1, wantReason: ShardMissDocumentIDRequired},
+		{
+			name: "target shard has no entry in the shard map", slot: withShards(map[int]*shardNodes{wantShard + 1: {Primary: "nodeA"}}),
+			routing: routing, id: id, wantShard: -1, wantReason: ShardMissNoNode,
+		},
+		{
+			name: "target shard entry names no primary and no replica", slot: withShards(map[int]*shardNodes{wantShard: {}}),
+			routing: routing, id: id, wantShard: -1, wantReason: ShardMissNoNode,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, tt.routing, tt.id, conns)
+			buf, shardNum, _, reason := calcSingleKeyCost(routingFeatures(0), tt.slot, tt.routing, tt.id, conns)
 			defer buf.Release()
 
 			require.Equal(t, tt.wantShard, shardNum)
+			require.Equal(t, tt.wantReason, reason)
 			if tt.wantNodeName == "" {
 				require.Empty(t, buf.Slice())
 
@@ -275,7 +292,9 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 		routingPartitionSize int
 		routing              string
 		onB                  []keyOffset
+		unplaced             []keyOffset // target shards dropped from the shard map
 		wantExtraCost        map[string]float64
+		wantReason           ShardMissReason
 	}{
 		{
 			name: "partitioned, one key's offsets on distinct shards", primaries: partitionedPrimaryShards, routingPartitionSize: partitionSize,
@@ -301,6 +320,19 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			routing: "user-7,u682", onB: []keyOffset{{"u682", 2}, {"u682", 3}},
 			wantExtraCost: map[string]float64{"nodeA": 2, "nodeB": 4},
 		},
+		{
+			// k3's shard has no entry; it still counts as a target, so nodeB, which
+			// hosts only k1's shard, is one short.
+			name: "a target shard missing from the shard map is skipped", primaries: 5,
+			routing: "k1,k3", onB: []keyOffset{{"k1", 0}}, unplaced: []keyOffset{{"k3", 0}},
+			wantExtraCost: map[string]float64{"nodeB": 1},
+		},
+		{
+			// The map holds a shard, but not one the routing value targets.
+			name: "no target shard has a host", primaries: 5,
+			routing: "k1", onB: []keyOffset{{"k3", 0}}, unplaced: []keyOffset{{"k1", 0}},
+			wantExtraCost: map[string]float64{}, wantReason: ShardMissNoNode,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -318,10 +350,13 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			for _, ko := range tt.onB {
 				placement[shardOf(ko)] = "nodeB"
 			}
+			for _, ko := range tt.unplaced {
+				delete(placement, shardOf(ko))
+			}
 			slot := partitionedSlot(tt.primaries, tt.routingPartitionSize, placement)
 			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
 
-			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
+			cBuf, ecBuf, reason := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
 			defer cBuf.Release()
 			defer ecBuf.Release()
 
@@ -330,6 +365,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 				got[c.Name] = ecBuf.Slice()[i]
 			}
 			require.Equal(t, tt.wantExtraCost, got)
+			require.Equal(t, tt.wantReason, reason)
 		})
 	}
 }
@@ -388,4 +424,184 @@ func TestIndexRouterPartitionedSearchPrefersTheNodeHostingMostPartitionShards(t 
 	require.NoError(t, err)
 	require.NotNil(t, hop.Conn)
 	require.Equal(t, "nodeC", hop.Conn.Name)
+}
+
+func TestFetchRoutingNumShardsCarriesForwardTheCachedShardMap(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		cached indexShardMap
+	}{
+		{
+			name: "partitioned segment-replicated index",
+			cached: indexShardMap{
+				NumberOfPrimaryShards: 8, RoutingNumShards: 1024, RoutingPartitionSize: 4, Replication: ReplicationSegment,
+			},
+		},
+		{
+			name:   "unpartitioned document-replicated index",
+			cached: indexShardMap{NumberOfPrimaryShards: 8, RoutingNumShards: 1024, Replication: ReplicationDocument},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tr, r := shardMapTransport(routableConn(t, "n1", time.Millisecond))
+			var metadataRequests atomic.Int32
+			tr.transport = mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				if strings.HasPrefix(req.URL.Path, "/_cluster/state/metadata") {
+					metadataRequests.Add(1)
+				}
+
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(http.NoBody)}, nil
+			})
+			cached := tt.cached
+			r.cache.getOrCreate("idx").shardMap.Store(&cached)
+
+			placement := &indexShardPlacement{}
+			tr.fetchRoutingNumShards(t.Context(), map[string]*indexShardPlacement{"idx": placement})
+
+			require.Equal(t, int32(0), metadataRequests.Load(), "a cached shard map needs no metadata fetch")
+			require.Equal(t, tt.cached.RoutingNumShards, placement.RoutingNumShards)
+			require.Equal(t, tt.cached.RoutingPartitionSize, placement.RoutingPartitionSize)
+			require.Equal(t, tt.cached.Replication, placement.Replication)
+			require.Equal(t, tt.cached.NumberOfPrimaryShards, placement.NumberOfPrimaryShards)
+		})
+	}
+}
+
+// Requests that name several shards (a comma-separated routing list, or one
+// routing value without an ID on a partitioned index) go to the node hosting
+// most of them, and a router that cannot do that says why on the RouteEvent.
+func TestRoutersCostShardSets(t *testing.T) {
+	t.Parallel()
+
+	const (
+		keyA = "user-7"
+		keyB = "u682"
+	)
+	shardA := shardhash.ForRouting(keyA, partitionedRoutingNumShards, partitionedPrimaryShards)
+	shardB := shardhash.ForRouting(keyB, partitionedRoutingNumShards, partitionedPrimaryShards)
+	require.NotEqual(t, shardA, shardB)
+
+	var partitionTargets [partitionSize]int
+	for i := range partitionTargets {
+		partitionTargets[i] = shardhash.ForRoutingOffset(keyA, i, partitionedRoutingNumShards, partitionedPrimaryShards)
+	}
+
+	shardMap := func(partition int, shards map[int]*shardNodes) *indexShardMap {
+		return &indexShardMap{
+			NumberOfPrimaryShards: partitionedPrimaryShards,
+			RoutingNumShards:      partitionedRoutingNumShards,
+			RoutingPartitionSize:  partition,
+			Shards:                shards,
+		}
+	}
+	// node1 hosts both of the comma list's shards, node0 only one.
+	listMap := shardMap(0, map[int]*shardNodes{shardA: {Primary: "node0", Replicas: []string{"node1"}}, shardB: {Primary: "node1"}})
+	// node1 hosts three of the four partition shards, node0 one.
+	partitionMap := shardMap(partitionSize, map[int]*shardNodes{
+		partitionTargets[0]: {Primary: "node1"}, partitionTargets[1]: {Primary: "node1"},
+		partitionTargets[2]: {Primary: "node1"}, partitionTargets[3]: {Primary: "node0"},
+	})
+	unhosted := shardMap(0, map[int]*shardNodes{shardA: {Primary: "gone"}, shardB: {Primary: "gone"}})
+
+	tests := []struct {
+		name       string
+		doc        bool // route through DocRouter instead of the pool router
+		path       string
+		shardMap   *indexShardMap
+		wantNil    bool   // the router leaves the request to the inner policy
+		wantNode   string // "" accepts any node
+		wantExact  bool
+		wantReason ShardMissReason
+	}{
+		{
+			name: "doc router, routing list", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
+			shardMap: listMap, wantNode: "node1", wantExact: true,
+		},
+		{
+			name: "doc router, routing list on shards no node hosts", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
+			shardMap: unhosted, wantReason: ShardMissNoNode,
+		},
+		{
+			name: "doc router sees no request without a document ID", doc: true, path: "/idx/_search?routing=" + keyA,
+			shardMap: partitionMap, wantNil: true,
+		},
+		{
+			name: "pool router, routing list", path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
+			shardMap: listMap, wantNode: "node1", wantExact: true,
+		},
+		{
+			name: "pool router, routing without an ID on a partitioned index", path: "/idx/_search?routing=" + keyA,
+			shardMap: partitionMap, wantNode: "node1", wantExact: true,
+		},
+		{
+			name: "pool router, routing list on shards no node hosts", path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
+			shardMap: unhosted, wantReason: ShardMissNoNode,
+		},
+		{name: "pool router, index without a shard map", path: "/idx/_search?routing=" + keyA, wantReason: ShardMissMapUnknown},
+		{name: "pool router, cluster-level request", path: "/_cluster/health", wantReason: ShardMissNoRoutingKey},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conns := make([]*Connection, 3)
+			for i := range conns {
+				id := "node" + string(rune('0'+i))
+				// node1, the node hosting most shards, is the farthest, so only a cost
+				// for the shards a node lacks makes it the pick.
+				rtt := 200 * time.Microsecond
+				if i == 1 {
+					rtt = 1 * time.Millisecond
+				}
+				conns[i] = makeTestConn(t, "http://"+id+":9200", id, rtt)
+				conns[i].Name = id
+			}
+			cache := testIndexSlotCache()
+			if tt.shardMap != nil {
+				cache.getOrCreate("idx").shardMap.Store(tt.shardMap)
+			}
+
+			var router Policy
+			var observer *atomic.Pointer[ConnectionObserver]
+			if tt.doc {
+				d := newDocRouter(cache, defaultDecayFactor)
+				require.NoError(t, d.DiscoveryUpdate(conns, nil, nil))
+				router, observer = d, &d.observer
+			} else {
+				p := wrapWithRouter(&mockPolicy{hop: NextHop{Conn: conns[0]}, enabled: true}, cache, &shardCostForReads, "get", nil).(*poolRouter)
+				p.mu.Lock()
+				p.mu.sortedConns = conns
+				p.mu.Unlock()
+				router, observer = p, &p.observer
+			}
+			rec := newRecordingObserver()
+			var obs ConnectionObserver = rec
+			observer.Store(&obs)
+
+			req, err := http.NewRequest(http.MethodGet, tt.path, nil)
+			require.NoError(t, err)
+			hop, err := router.Eval(t.Context(), req)
+			require.NoError(t, err)
+
+			if tt.wantNil {
+				require.Nil(t, hop.Conn)
+				require.Empty(t, rec.getRouteEvents())
+
+				return
+			}
+			require.NotNil(t, hop.Conn)
+			if tt.wantNode != "" {
+				require.Equal(t, tt.wantNode, hop.Conn.Name)
+			}
+			events := rec.getRouteEvents()
+			require.Len(t, events, 1)
+			require.Equal(t, tt.wantExact, events[0].ShardExactMatch)
+			require.Equal(t, tt.wantReason, events[0].ShardMissReason)
+		})
+	}
 }

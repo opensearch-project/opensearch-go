@@ -33,6 +33,9 @@ func TestBaseConnectionObserver_NoOps(_ *testing.T) {
 	obs.OnWarmupRequest(event)
 	obs.OnRoute(RouteEvent{})
 	obs.OnShardMapInvalidation(ShardMapInvalidationEvent{})
+
+	var lookupObs ShardLookupObserver = obs
+	lookupObs.OnShardLookupMiss(ShardLookupMissEvent{})
 }
 
 func TestNewConnectionEvent(t *testing.T) {
