@@ -130,7 +130,8 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 		node := c.Node()
 		if isV2Hop {
 			if edits, imports, handled := rewriteIdiom2Node(c, info, apiName, apiImportPath); handled {
-				res.edits = append(res.edits, manualAt(pkg.Fset, node, edits)...)
+				manualAt(pkg.Fset, node, edits)
+				res.edits = append(res.edits, edits...)
 				needImports = append(needImports, imports...)
 				// Stop descending: the rewritten call's stale selector (or the
 				// synthetic subtree) must not be re-walked, or rewriteFieldAccess would
@@ -139,18 +140,17 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 				return false
 			}
 		}
+		var edits []string // this node's lines; a literal positions its own per key
 		switch n := node.(type) {
 		case *ast.CallExpr:
-			edits, imports := rewriteCall(c, n, info, rules, apiName, apiImportPath)
-			res.edits = append(res.edits, manualAt(pkg.Fset, n, edits)...)
+			var imports []string
+			edits, imports = rewriteCall(c, n, info, rules, apiName, apiImportPath)
 			needImports = append(needImports, imports...)
 		case *ast.CompositeLit:
-			// Positioned per key inside, so each line names its own key.
-			edits, unclassified := rewriteCompositeLit(pkg.Fset, n, info, rules.delta, rules.renameByFrom)
-			res.edits = append(res.edits, edits...)
+			litEdits, unclassified := rewriteCompositeLit(pkg.Fset, n, info, rules.delta, rules.renameByFrom)
+			res.edits = append(res.edits, litEdits...)
 			res.unclassified = append(res.unclassified, unclassified...)
 		case *ast.SelectorExpr:
-			var edits []string
 			// Type reference rename: opensearchapi.DocumentGetReq -> .GetReq.
 			if e := rewriteTypeRef(n, info, rules.renameByFrom); e != "" {
 				edits = append(edits, e)
@@ -167,8 +167,9 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			} else if edit != "" {
 				edits = append(edits, edit)
 			}
-			res.edits = append(res.edits, manualAt(pkg.Fset, n, edits)...)
 		}
+		manualAt(pkg.Fset, node, edits)
+		res.edits = append(res.edits, edits...)
 		return true
 	}, nil)
 
@@ -231,24 +232,34 @@ type sourceImport struct {
 }
 
 // manualTag marks a worklist line as MANUAL: a site the rewrite leaves for a
-// human. A rename line can carry it after a "; " for a type change it reports.
+// human.
 const manualTag = "MANUAL "
 
+// manualAfterRename joins a MANUAL report onto a rename line, for a type change
+// the rename leaves for a human.
+const manualAfterRename = "; " + manualTag
+
+// isManual reports whether edit is a MANUAL worklist line: one that starts
+// with manualTag, or a rename line that carries manualAfterRename. Matching
+// only there keeps a Note that quotes the tag from marking a line MANUAL.
+func isManual(edit string) bool {
+	return strings.HasPrefix(edit, manualTag) || strings.Contains(edit, manualAfterRename)
+}
+
 // manualAt appends node's position (" at file.go:line:col") to each MANUAL
-// line in edits, in place, and returns edits. A node the rewrite synthesized
-// has no position, so its lines stay as they are.
-func manualAt(fset *token.FileSet, node ast.Node, edits []string) []string {
+// line in edits, in place. A node the rewrite synthesized has no position, so
+// its lines stay as they are.
+func manualAt(fset *token.FileSet, node ast.Node, edits []string) {
 	if node == nil || !node.Pos().IsValid() {
-		return edits
+		return
 	}
 	p := fset.Position(node.Pos())
 	at := fmt.Sprintf(" at %s:%d:%d", filepath.Base(p.Filename), p.Line, p.Column)
 	for i, e := range edits {
-		if strings.Contains(e, manualTag) {
+		if isManual(e) {
 			edits[i] = e + at
 		}
 	}
-	return edits
 }
 
 // sourceImportsOf returns the file's imports of packages under the hop's source
@@ -538,7 +549,7 @@ func rewriteFieldChange(
 			sel.Sel.Name = ch.To
 			edit := fmt.Sprintf("%q: field %s -> %s", sd.From, ch.From, ch.To)
 			if ch.Note != "" {
-				edit += fmt.Sprintf("; MANUAL %q: access .%s - %s", sd.From, ch.To, ch.Note)
+				edit += fmt.Sprintf("%s%q: access .%s - %s", manualAfterRename, sd.From, ch.To, ch.Note)
 			}
 			return edit, "", true
 		case apirev.KindManual:

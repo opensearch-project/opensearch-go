@@ -9,6 +9,7 @@ package apirev
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -178,26 +179,15 @@ func fieldDispKey(pkgPath, typeName, field string) string {
 func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldDisposition) Delta {
 	// Index explicit renames by qualified source key.
 	renameByFrom := map[string]TypeRename{}
-	// renamedType maps a version-agnostic source type string to its target, so a
-	// field whose type follows a type rename still compares equal (see sameElem).
-	renamedType := map[string]string{}
+	types := hopTypes{renamed: map[string]string{}, from: namedStructs(from), to: namedStructs(to)}
 	for _, r := range renames {
 		renameByFrom[r.FromPkgPath+"."+r.FromName] = r
-		renamedType[versionAgnosticType(r.FromPkgPath+"."+r.FromName)] = versionAgnosticType(r.ToPkgPath + "." + r.ToName)
+		types.renamed[versionAgnosticType(r.FromPkgPath+"."+r.FromName)] = versionAgnosticType(r.ToPkgPath + "." + r.ToName)
 	}
 	// Index field dispositions by qualified-source-type + field.
 	dispByFrom := map[string]FieldDisposition{}
 	for _, d := range dispositions {
 		dispByFrom[fieldDispKey(d.FromPkgPath, d.FromType, d.FromField)] = d
-	}
-	// structTypes is every named struct either version declares, version
-	// agnostic, so a field typed with one reads as a struct shape (see
-	// retypedValue).
-	structTypes := map[string]struct{}{}
-	for _, snap := range []*Snapshot{from, to} {
-		for _, s := range snap.Structs {
-			structTypes[versionAgnosticType(s.Qualified())] = struct{}{}
-		}
 	}
 
 	out := Delta{Structs: map[string]StructDelta{}, RemovedTypes: map[string]bool{}}
@@ -223,7 +213,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 		}
 
 		sd := StructDelta{From: sFrom.Qualified(), To: sTo.Qualified()}
-		sd.Changes = diffFields(sFrom, sTo, dispByFrom, renamedType, structTypes)
+		sd.Changes = diffFields(sFrom, sTo, dispByFrom, types)
 		if len(sd.Changes) > 0 {
 			out.Structs[sFrom.Qualified()] = sd
 		}
@@ -241,9 +231,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 // linter fails loudly if the consumer references it. This is deliberate:
 // inferring from name/type similarity silently drops a caller's value whenever a
 // struct changed by more than one field, which is common across a major version.
-func diffFields(
-	sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renamedType map[string]string, structTypes map[string]struct{},
-) []FieldChange {
+func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, types hopTypes) []FieldChange {
 	toByName := map[string]Field{}
 	for _, f := range sTo.Fields {
 		toByName[f.Name] = f
@@ -264,12 +252,12 @@ func diffFields(
 			// The raw request body moved to BodyReader when the target added a
 			// typed Body. Same io.Reader value, new field name.
 			changes = append(changes, FieldChange{Kind: KindRename, From: fFrom.Name, To: bodyReaderField, NewType: ioReader})
-		case still && fTo.IsPointer() && !fFrom.IsPointer() && sameElem(fFrom.Type, fTo.Type, renamedType):
+		case still && fTo.IsPointer() && !fFrom.IsPointer() && sameElem(fFrom.Type, fTo.Type, types.renamed):
 			changes = append(changes, FieldChange{Kind: KindPointerWrap, From: fFrom.Name, NewType: fTo.Type})
 		case still && fTo.IsPointer() && !fFrom.IsPointer():
 			// Became a pointer to a DIFFERENT type (int -> *int64, io.Reader ->
 			// *XBody): neither & nor new(x) would type-check.
-			changes = append(changes, retypedChange(fFrom, fTo))
+			changes = append(changes, retypedChange(fFrom, fTo, retype{}))
 		case still && incompatibleTypeChange(fFrom.Type, fTo.Type):
 			// Field kept its name but its type changed in a way that breaks
 			// existing access patterns (e.g. json.RawMessage []byte -> a typed
@@ -281,11 +269,12 @@ func diffFields(
 					"field type changed from %q to %q; existing access (e.g. json.Unmarshal on a []byte) must be reworked to the target type",
 					fFrom.Type, fTo.Type),
 			})
-		case still && retypedValue(fFrom.Type, fTo.Type, renamedType, structTypes):
-			changes = append(changes, retypedChange(fFrom, fTo))
 		case still:
-			// unchanged, or a change between struct shapes that field reads
-			// still compile through (see retypedValue)
+			if r, ok := types.retypedValue(fFrom.Type, fTo.Type); ok {
+				changes = append(changes, retypedChange(fFrom, fTo, r))
+			}
+			// else unchanged, or a change between struct shapes whose fields all
+			// still fit (see retypedValue)
 		default:
 			// Field is present only on the source side: resolve via the explicit
 			// disposition table, the raw-body-collapse classifier, or mark
@@ -349,24 +338,100 @@ func incompatibleTypeChange(fromType, toType string) bool {
 	return fromRaw != toRaw
 }
 
-// retypedValue reports whether a surviving field's type changed so that a value
-// or access of the old type no longer fits: *int -> int, string -> []string,
-// string -> a named string type, int -> int64, X -> map[string]X. Types are
-// compared with version segments normalized, interface{} spelled any, and the
-// source element type mapped through the hop's type renames. Only a change
-// between two struct shapes under the same pointer, slice and map layers does
-// not count (an anonymous struct gaining a field, or becoming a named struct),
-// because callers read those through their fields, which still compile.
-func retypedValue(fromType, toType string, renamedType map[string]string, structTypes map[string]struct{}) bool {
+// hopTypes is what field pairing knows about a hop's types beyond the two
+// structs it compares.
+type hopTypes struct {
+	// renamed maps a version-agnostic source type to its target, so a field
+	// whose type follows a type rename still compares equal (see sameElem).
+	renamed map[string]string
+	// from and to are the named structs each version declares, by
+	// version-agnostic qualified name, so a field typed with one is compared
+	// through its fields (see retypedValue).
+	from, to map[string]Struct
+}
+
+// namedStructs indexes snap's structs by version-agnostic qualified name.
+func namedStructs(snap *Snapshot) map[string]Struct {
+	out := make(map[string]Struct, len(snap.Structs))
+	for _, s := range snap.Structs {
+		out[versionAgnosticType(s.Qualified())] = s
+	}
+	return out
+}
+
+// retype is how a surviving field's type broke. path is the dotted path of the
+// inner field that broke when the break is inside a struct shape, and empty
+// when the field's own type broke. from and to are the types at path, unset
+// for an inner field the target no longer has, which removed marks.
+type retype struct {
+	path     string
+	from, to string
+	removed  bool
+}
+
+// retypedValue reports whether a surviving field's type changed so that a
+// typed value or a read of the old type no longer fits: *int -> int, string ->
+// []string, string -> a named string type, int -> int64, X -> map[string]X.
+// Types are compared with version segments normalized, interface{} spelled
+// any, and the source element type mapped through the hop's type renames.
+//
+// Two struct shapes under the same pointer, slice and map layers (an anonymous
+// struct, or a named struct either version declares) are compared field by
+// field: an inner field that vanished or broke the same way breaks a read
+// through it, so the field is reported with that inner path. An unexported
+// named type with no recorded fields (the opensearchapi.Client sub-clients) is
+// left alone, as callers cannot spell it.
+//
+// An untyped constant can still fit a retyped field (Size: 10 for int ->
+// int64), so such a site gets a line it does not strictly need.
+func (h hopTypes) retypedValue(fromType, toType string) (retype, bool) {
+	return h.retyped(fromType, toType, map[[2]string]struct{}{})
+}
+
+// retyped is retypedValue, with seen holding the struct pairs already being
+// compared so a self-referencing struct ends the walk.
+func (h hopTypes) retyped(fromType, toType string, seen map[[2]string]struct{}) (retype, bool) {
+	broken := retype{from: fromType, to: toType}
 	fromLayers, fromElem := splitLayers(comparableType(fromType))
-	if to, ok := renamedType[fromElem]; ok {
+	if to, ok := h.renamed[fromElem]; ok {
 		fromElem = to
 	}
 	toLayers, toElem := splitLayers(comparableType(toType))
 	if fromLayers != toLayers {
-		return true
+		return broken, true
 	}
-	return fromElem != toElem && (!structShaped(fromElem, structTypes) || !structShaped(toElem, structTypes))
+	if fromElem == toElem {
+		return retype{}, false
+	}
+	fromFields, fromShape := fieldsOf(fromElem, h.from)
+	toFields, toShape := fieldsOf(toElem, h.to)
+	switch {
+	case fromShape == notStruct || toShape == notStruct:
+		return broken, true
+	case fromShape == structNoFields || toShape == structNoFields:
+		return retype{}, false
+	}
+	pair := [2]string{fromElem, toElem}
+	if _, ok := seen[pair]; ok {
+		return retype{}, false
+	}
+	seen[pair] = struct{}{}
+
+	toByName := make(map[string]Field, len(toFields))
+	for _, f := range toFields {
+		toByName[f.Name] = f
+	}
+	for _, f := range fromFields {
+		t, still := toByName[f.Name]
+		if !still {
+			return retype{path: f.Name, removed: true}, true
+		}
+		if r, ok := h.retyped(f.Type, t.Type, seen); ok {
+			r.path = strings.TrimSuffix(f.Name+"."+r.path, ".")
+			return r, true
+		}
+	}
+	return retype{}, false
 }
 
 // comparableType is typ version agnostic, with interface{} spelled any: the two
@@ -380,8 +445,9 @@ func comparableType(typ string) string {
 var mapKeyPrefix = regexp.MustCompile(`^map\[[^\[\]]*\]`)
 
 // splitLayers splits typ into its leading pointer, slice and map layers
-// ("[]map[string]*") and the element type under them.
-func splitLayers(typ string) (layers, elem string) {
+// ("[]map[string]*") and the element type under them, in that order.
+func splitLayers(typ string) (string, string) {
+	var layers string
 	for {
 		var layer string
 		switch {
@@ -400,32 +466,137 @@ func splitLayers(typ string) (layers, elem string) {
 	}
 }
 
-// structShaped reports whether elem, a version-agnostic element type, is only
-// ever read through its fields and methods: an anonymous struct, a named
-// struct in structTypes, or an unexported named type, which callers cannot
-// spell (the opensearchapi.Client sub-clients).
-func structShaped(elem string, structTypes map[string]struct{}) bool {
+// shape is what fieldsOf knows about an element type.
+type shape int
+
+const (
+	// notStruct is read as a value, so any change of type breaks it.
+	notStruct shape = iota
+	// structNoFields is only read through its fields and methods, but its
+	// fields are not recorded, so a change of type is left alone.
+	structNoFields
+	// structFields is only read through its fields, which fieldsOf returns.
+	structFields
+)
+
+// fieldsOf returns the shape of elem, a version-agnostic element type, and its
+// fields when they are recorded. An element is struct shaped, only ever read
+// through its fields and methods, when it is an anonymous struct, a named
+// struct in named (one version's structs), or an unexported named type, which
+// callers cannot spell. The fields are not recorded for an unexported type
+// outside named, or an anonymous struct that does not parse.
+func fieldsOf(elem string, named map[string]Struct) ([]Field, shape) {
 	if strings.HasPrefix(elem, "struct{") {
-		return true
+		if fields, ok := anonFields(elem, named); ok {
+			return fields, structFields
+		}
+		return nil, structNoFields
 	}
-	if _, ok := structTypes[elem]; ok {
-		return true
+	if s, ok := named[elem]; ok {
+		return s.Fields, structFields
 	}
 	dot := strings.LastIndex(elem, ".")
 	if dot < 0 || dot == len(elem)-1 {
-		return false
+		return nil, notStruct
 	}
-	r := elem[dot+1]
-	return 'a' <= r && r <= 'z'
+	if r := elem[dot+1]; 'a' <= r && r <= 'z' {
+		return nil, structNoFields
+	}
+	return nil, notStruct
 }
 
-// retypedChange is the manual FieldChange for a surviving field whose type
-// changed with no mechanical rewrite.
-func retypedChange(fFrom, fTo Field) FieldChange {
-	return FieldChange{
-		Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
-		Note: fmt.Sprintf("field type changed from %q to %q; migrate this use by hand", fFrom.Type, fTo.Type),
+// anonFields parses an anonymous struct type as types.Type.String renders it
+// (struct{Name T "tag"; Embedded}) into its fields. An embedded named struct in
+// named stands for the fields it promotes, as the surface records a named
+// struct's. ok is false when typ is not an anonymous struct.
+func anonFields(typ string, named map[string]Struct) ([]Field, bool) {
+	body, ok := strings.CutPrefix(typ, "struct{")
+	if !ok {
+		return nil, false
 	}
+	body, ok = strings.CutSuffix(body, "}")
+	if !ok {
+		return nil, false
+	}
+	var fields []Field
+	for _, decl := range splitFieldDecls(body) {
+		decl = trimTag(decl)
+		if name, typ, ok := strings.Cut(decl, " "); ok {
+			fields = append(fields, Field{Name: name, Type: typ})
+			continue
+		}
+		// Embedded: named after its type.
+		embedded := strings.TrimPrefix(decl, "*")
+		if s, ok := named[embedded]; ok {
+			fields = append(fields, s.Fields...)
+			continue
+		}
+		fields = append(fields, Field{Name: embedded[strings.LastIndex(embedded, ".")+1:], Type: decl})
+	}
+	return fields, true
+}
+
+// splitFieldDecls splits an anonymous struct body at the "; " between field
+// declarations, skipping any inside a nested type or a quoted tag.
+func splitFieldDecls(body string) []string {
+	var decls []string
+	depth, start, inTag := 0, 0, false
+	for i := 0; i < len(body); i++ {
+		c := body[i]
+		switch {
+		case inTag && c == '\\':
+			i++ // the escaped byte cannot end the tag
+		case inTag:
+			inTag = c != '"'
+		case c == '"':
+			inTag = true
+		case c == '{' || c == '[' || c == '(':
+			depth++
+		case c == '}' || c == ']' || c == ')':
+			depth--
+		case c == ';' && depth == 0:
+			decls = append(decls, body[start:i])
+			i++ // the space after ";"
+			start = i + 1
+		}
+	}
+	if start < len(body) {
+		decls = append(decls, body[start:])
+	}
+	return decls
+}
+
+// trimTag drops a field declaration's trailing struct tag. types.Type.String
+// quotes the tag, so every quote inside it is escaped and the tag starts at
+// the last ` "`.
+func trimTag(decl string) string {
+	if !strings.HasSuffix(decl, `"`) {
+		return decl
+	}
+	i := strings.LastIndex(decl, ` "`)
+	if i < 0 {
+		return decl
+	}
+	if _, err := strconv.Unquote(decl[i+1:]); err != nil {
+		return decl
+	}
+	return decl[:i]
+}
+
+// migrateByHand ends the note of every manual retype change.
+const migrateByHand = "; migrate this use by hand"
+
+// retypedChange is the manual FieldChange for a surviving field whose type
+// changed with no mechanical rewrite, as r describes.
+func retypedChange(fFrom, fTo Field, r retype) FieldChange {
+	note := fmt.Sprintf("field type changed from %q to %q", fFrom.Type, fTo.Type)
+	switch {
+	case r.removed:
+		note = fmt.Sprintf("its field %q was removed", r.path)
+	case r.path != "":
+		note = fmt.Sprintf("its field %q changed type from %q to %q", r.path, r.from, r.to)
+	}
+	return FieldChange{Kind: KindManual, From: fFrom.Name, NewType: fTo.Type, Note: note + migrateByHand}
 }
 
 // isRawBodyCollapse reports whether a target struct is the "dynamic schema

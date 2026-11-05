@@ -12,6 +12,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -189,6 +190,15 @@ func TestRewriteCorpus(t *testing.T) {
 			for _, want := range tt.edits {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
 			}
+			// Every MANUAL line names its site, whichever walk branch reported it,
+			// so the worklist locates it without a build.
+			for _, r := range results {
+				for _, e := range r.edits {
+					if isManual(e) {
+						require.Regexp(t, manualPositionRE, e, "MANUAL line must end with its position")
+					}
+				}
+			}
 
 			archivePath := filepath.Join("testdata", "corpus", tt.corpus+".txtar")
 			archive, err := txtar.ParseFile(archivePath)
@@ -281,6 +291,9 @@ func stageCorpus(t *testing.T, corpus string) string {
 }
 
 // reportText flattens per-file edit lines into one string for substring checks.
+// manualPositionRE matches the position manualAt appends to a MANUAL line.
+var manualPositionRE = regexp.MustCompile(` at [\w.-]+\.go:\d+:\d+$`)
+
 func reportText(results []rewriteResult) string {
 	var b strings.Builder
 	for _, r := range results {
