@@ -231,6 +231,24 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 			tt.check(t, s.SignRequest(req), req)
 		})
 	}
+
+	// With the credentials already cached, retrieval answers without looking at
+	// the context, so the signer itself must refuse a cancelled request.
+	t.Run("honors a cancelled request context when the credentials are cached", func(t *testing.T) {
+		s, err := awsv2.NewSigner(loadTestAWSConfig(t, nil))
+		require.NoError(t, err)
+
+		warm, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://localhost:9200", nil)
+		require.NoError(t, err)
+		require.NoError(t, s.SignRequest(warm))
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://localhost:9200", nil)
+		require.NoError(t, err)
+		require.ErrorIs(t, s.SignRequest(req), context.Canceled)
+		require.Empty(t, req.Header.Get("Authorization"), "a cancelled request must not be signed")
+	})
 }
 
 // brokenReadCloser fails on Read and records whether Close was called, so a
