@@ -1201,10 +1201,14 @@ func TestMGetCoverReuseDoesNotAllocate(t *testing.T) {
 	}
 	run()
 
-	require.Zero(t, testing.AllocsPerRun(20, run), "a recycled cover reuses everything it grew")
+	allocs := testing.AllocsPerRun(20, run)
 	for i := range picks {
 		require.NotNil(t, picks[i].node, "position %d", i)
 	}
+	if raceEnabled {
+		t.Skip("the race detector allocates on its own")
+	}
+	require.Zero(t, allocs, "a recycled cover reuses everything it grew")
 }
 
 func TestMGetCoverRecycleDropsWhatOutgrewItsBounds(t *testing.T) {
