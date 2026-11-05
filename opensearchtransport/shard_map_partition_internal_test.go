@@ -223,28 +223,28 @@ func TestCalcSingleKeyCostPartitionedIndex(t *testing.T) {
 		routing, id  string
 		wantShard    int
 		wantNodeName string
-		wantReason   ShardMissReason
+		wantErr      error
 	}{
 		{name: "routing and id", slot: hosted, routing: routing, id: id, wantShard: wantShard, wantNodeName: "nodeA"},
-		{name: "no id cannot claim a shard", slot: hosted, routing: routing, id: "", wantShard: -1, wantReason: ShardMissDocumentIDRequired},
+		{name: "no id cannot claim a shard", slot: hosted, routing: routing, id: "", wantShard: -1, wantErr: ErrDocumentIDRequired},
 		{
 			name: "target shard has no entry in the shard map", slot: withShards(map[int]*shardNodes{wantShard + 1: {Primary: "nodeA"}}),
-			routing: routing, id: id, wantShard: -1, wantReason: ShardMissNoNode,
+			routing: routing, id: id, wantShard: -1, wantErr: ErrShardNoNode,
 		},
 		{
 			name: "target shard entry names no primary and no replica", slot: withShards(map[int]*shardNodes{wantShard: {}}),
-			routing: routing, id: id, wantShard: -1, wantReason: ShardMissNoNode,
+			routing: routing, id: id, wantShard: -1, wantErr: ErrShardNoNode,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			buf, shardNum, _, reason := calcSingleKeyCost(routingFeatures(0), tt.slot, tt.routing, tt.id, conns)
+			buf, shardNum, _, err := calcSingleKeyCost(routingFeatures(0), tt.slot, tt.routing, tt.id, conns)
 			defer buf.Release()
 
 			require.Equal(t, tt.wantShard, shardNum)
-			require.Equal(t, tt.wantReason, reason)
+			requireErrorIs(t, tt.wantErr, err)
 			if tt.wantNodeName == "" {
 				require.Empty(t, buf.Slice())
 
@@ -254,6 +254,19 @@ func TestCalcSingleKeyCostPartitionedIndex(t *testing.T) {
 			require.Equal(t, tt.wantNodeName, buf.Slice()[0].Name)
 		})
 	}
+}
+
+// requireErrorIs requires err to be nil when want is nil, and to match want
+// otherwise.
+func requireErrorIs(t *testing.T, want, err error) {
+	t.Helper()
+
+	if want == nil {
+		require.NoError(t, err)
+
+		return
+	}
+	require.ErrorIs(t, err, want)
 }
 
 // partitionedSlot builds a slot whose index has the given geometry and
@@ -294,7 +307,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 		onB                  []keyOffset
 		unplaced             []keyOffset // target shards dropped from the shard map
 		wantExtraCost        map[string]float64
-		wantReason           ShardMissReason
+		wantErr              error
 	}{
 		{
 			name: "partitioned, one key's offsets on distinct shards", primaries: partitionedPrimaryShards, routingPartitionSize: partitionSize,
@@ -331,7 +344,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			// The map holds a shard, but not one the routing value targets.
 			name: "no target shard has a host", primaries: 5,
 			routing: "k1", onB: []keyOffset{{"k3", 0}}, unplaced: []keyOffset{{"k1", 0}},
-			wantExtraCost: map[string]float64{}, wantReason: ShardMissNoNode,
+			wantExtraCost: map[string]float64{}, wantErr: ErrShardNoNode,
 		},
 	}
 	for _, tt := range tests {
@@ -356,7 +369,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			slot := partitionedSlot(tt.primaries, tt.routingPartitionSize, placement)
 			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
 
-			cBuf, ecBuf, reason := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
+			cBuf, ecBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
 			defer cBuf.Release()
 			defer ecBuf.Release()
 
@@ -365,7 +378,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 				got[c.Name] = ecBuf.Slice()[i]
 			}
 			require.Equal(t, tt.wantExtraCost, got)
-			require.Equal(t, tt.wantReason, reason)
+			requireErrorIs(t, tt.wantErr, err)
 		})
 	}
 }
@@ -509,14 +522,14 @@ func TestRoutersCostShardSets(t *testing.T) {
 	unhosted := shardMap(0, map[int]*shardNodes{shardA: {Primary: "gone"}, shardB: {Primary: "gone"}})
 
 	tests := []struct {
-		name       string
-		doc        bool // route through DocRouter instead of the pool router
-		path       string
-		shardMap   *indexShardMap
-		wantNil    bool   // the router leaves the request to the inner policy
-		wantNode   string // "" accepts any node
-		wantExact  bool
-		wantReason ShardMissReason
+		name      string
+		doc       bool // route through DocRouter instead of the pool router
+		path      string
+		shardMap  *indexShardMap
+		wantNil   bool   // the router leaves the request to the inner policy
+		wantNode  string // "" accepts any node
+		wantExact bool
+		wantErr   error
 	}{
 		{
 			name: "doc router, routing list", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
@@ -524,7 +537,7 @@ func TestRoutersCostShardSets(t *testing.T) {
 		},
 		{
 			name: "doc router, routing list on shards no node hosts", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
-			shardMap: unhosted, wantReason: ShardMissNoNode,
+			shardMap: unhosted, wantErr: ErrShardNoNode,
 		},
 		{
 			name: "doc router sees no request without a document ID", doc: true, path: "/idx/_search?routing=" + keyA,
@@ -540,10 +553,10 @@ func TestRoutersCostShardSets(t *testing.T) {
 		},
 		{
 			name: "pool router, routing list on shards no node hosts", path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
-			shardMap: unhosted, wantReason: ShardMissNoNode,
+			shardMap: unhosted, wantErr: ErrShardNoNode,
 		},
-		{name: "pool router, index without a shard map", path: "/idx/_search?routing=" + keyA, wantReason: ShardMissMapUnknown},
-		{name: "pool router, cluster-level request", path: "/_cluster/health", wantReason: ShardMissNoRoutingKey},
+		{name: "pool router, index without a shard map", path: "/idx/_search?routing=" + keyA, wantErr: ErrShardMapUnknown},
+		{name: "pool router, cluster-level request", path: "/_cluster/health", wantErr: ErrNoRoutingKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -601,7 +614,7 @@ func TestRoutersCostShardSets(t *testing.T) {
 			events := rec.getRouteEvents()
 			require.Len(t, events, 1)
 			require.Equal(t, tt.wantExact, events[0].ShardExactMatch)
-			require.Equal(t, tt.wantReason, events[0].ShardMissReason)
+			requireErrorIs(t, tt.wantErr, events[0].ShardMissErr)
 		})
 	}
 }

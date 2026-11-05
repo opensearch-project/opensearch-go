@@ -196,7 +196,10 @@ func TestRoutingPartitionSizeShardPrediction_Integration(t *testing.T) {
 	misses.reset()
 	var missTargets []*ShardTarget
 	require.ErrorIs(t, transport.LookupShard(index, "tenant-0", &missTargets), ErrDocumentIDRequired)
-	require.Equal(t, []ShardLookupMissEvent{{Index: index, Reason: ShardMissDocumentIDRequired}}, misses.snapshot())
+	missEvents := misses.snapshot()
+	require.Len(t, missEvents, 1)
+	require.Equal(t, index, missEvents[0].Index)
+	require.ErrorIs(t, missEvents[0].Err, ErrDocumentIDRequired)
 
 	// A search with only a routing value targets the shards of every partition
 	// offset; the server names them in _search_shards.

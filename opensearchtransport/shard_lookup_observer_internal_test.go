@@ -49,26 +49,36 @@ func TestLookupDocShardReportsMisses(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		noRouter   bool
-		setup      func(*Transport, *IndexRouter)
-		routing    string
-		id         string
-		wantReason ShardMissReason
+		name     string
+		noRouter bool
+		setup    func(*Transport, *IndexRouter)
+		routing  string
+		id       string
+		wantErr  error
+		// lookupErr is what LookupDocShard returns when it differs from wantErr.
+		lookupErr error
 	}{
-		{name: "transport collects no shard map", noRouter: true, routing: routing, id: id, wantReason: ShardMissMapUnknown},
-		{name: "shard map not fetched yet", setup: func(*Transport, *IndexRouter) {}, routing: routing, id: id, wantReason: ShardMissMapUnknown},
+		{
+			name: "transport collects no shard map", noRouter: true, routing: routing, id: id,
+			wantErr: ErrShardMapUnknown, lookupErr: errShardMapNoRouter,
+		},
+		{
+			// A router that is not a Policy keeps no shard map, though discovery would fetch one.
+			name: "router keeps no shard map", setup: func(tr *Transport, _ *IndexRouter) { tr.router = struct{ Router }{tr.router} },
+			routing: routing, id: id, wantErr: ErrShardMapUnknown, lookupErr: ErrShardMapUnknown,
+		},
+		{name: "shard map not fetched yet", setup: func(*Transport, *IndexRouter) {}, routing: routing, id: id, wantErr: ErrShardMapUnknown},
 		{
 			name: "partitioned index without a document ID", setup: partitioned(nil),
-			routing: routing, wantReason: ShardMissDocumentIDRequired,
+			routing: routing, wantErr: ErrDocumentIDRequired,
 		},
 		{
 			name: "primary node is not a ready connection", setup: partitioned(map[int]*shardNodes{shard: {Primary: "gone"}}),
-			routing: routing, id: id, wantReason: ShardMissNoNode,
+			routing: routing, id: id, wantErr: ErrShardNoNode,
 		},
 		{
 			name: "shard has no placement", setup: partitioned(map[int]*shardNodes{}),
-			routing: routing, id: id, wantReason: ShardMissNoNode,
+			routing: routing, id: id, wantErr: ErrShardNoNode,
 		},
 		{name: "hit", setup: partitioned(map[int]*shardNodes{shard: {Primary: "n1"}}), routing: routing, id: id},
 	}
@@ -87,14 +97,19 @@ func TestLookupDocShardReportsMisses(t *testing.T) {
 			tr.observer.Store(&obs)
 
 			var dst []*ShardTarget
-			_ = tr.LookupDocShard("idx", tt.routing, tt.id, &dst)
+			err := tr.LookupDocShard("idx", tt.routing, tt.id, &dst)
+			if tt.lookupErr != nil {
+				require.ErrorIs(t, err, tt.lookupErr)
+			}
 
-			if tt.wantReason == ShardMissNone {
+			if tt.wantErr == nil {
 				require.Empty(t, rec.events)
 
 				return
 			}
-			require.Equal(t, []ShardLookupMissEvent{{Index: "idx", Reason: tt.wantReason}}, rec.events)
+			require.Len(t, rec.events, 1)
+			require.Equal(t, "idx", rec.events[0].Index)
+			require.ErrorIs(t, rec.events[0].Err, tt.wantErr)
 		})
 	}
 }
@@ -117,23 +132,13 @@ func TestLookupDocShardWithAnObserverThatIgnoresMisses(t *testing.T) {
 	})
 }
 
-func TestShardMissReasonString(t *testing.T) {
+func TestShardLookupErrors(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		reason ShardMissReason
-		want   string
-	}{
-		{ShardMissNone, "none"},
-		{ShardMissMapUnknown, "map_unknown"},
-		{ShardMissDocumentIDRequired, "document_id_required"},
-		{ShardMissNoRoutingKey, "no_routing_key"},
-		{ShardMissNoNode, "no_node"},
-		{ShardMissReason(200), "unknown"},
-	}
-	for _, tt := range tests {
-		require.Equal(t, tt.want, tt.reason.String())
-	}
+	require.ErrorIs(t, ErrDocumentIDRequired, ErrShardMapUnknown)
+	require.NotErrorIs(t, ErrNoRoutingKey, ErrShardMapUnknown)
+	require.NotErrorIs(t, ErrShardNoNode, ErrShardMapUnknown)
+	require.NotErrorIs(t, ErrNoRoutingKey, ErrShardNoNode)
 }
 
 func TestRouteEventReportsWhyShardExactRoutingMissed(t *testing.T) {
@@ -158,25 +163,25 @@ func TestRouteEventReportsWhyShardExactRoutingMissed(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		index      string
-		query      string
-		slot       *indexSlot
-		wantReason ShardMissReason
-		wantExact  bool
+		name      string
+		index     string
+		query     string
+		slot      *indexSlot
+		wantErr   error
+		wantExact bool
 	}{
 		{name: "routing value on a known shard", index: "my-index", query: "routing=" + routing, wantExact: true},
-		{name: "no routing value", index: "my-index", query: "", wantReason: ShardMissNoRoutingKey},
-		{name: "no shard map", index: "no-map", query: "routing=" + routing, wantReason: ShardMissMapUnknown},
+		{name: "no routing value", index: "my-index", query: "", wantErr: ErrNoRoutingKey},
+		{name: "no shard map", index: "no-map", query: "routing=" + routing, wantErr: ErrShardMapUnknown},
 		{
 			name: "no connection hosts the shard", index: "ghost", query: "routing=" + routing,
-			slot:       partitionedSlot(3, 0, hosted("nodeZ", 0, 1, 2)),
-			wantReason: ShardMissNoNode,
+			slot:    partitionedSlot(3, 0, hosted("nodeZ", 0, 1, 2)),
+			wantErr: ErrShardNoNode,
 		},
 		{
 			name: "no connection hosts a partitioned index's shards", index: "ghost-partitioned", query: "routing=" + routing,
-			slot:       partitionedSlot(partitionedPrimaryShards, partitionSize, hosted("nodeZ", partitionTargets...)),
-			wantReason: ShardMissNoNode,
+			slot:    partitionedSlot(partitionedPrimaryShards, partitionSize, hosted("nodeZ", partitionTargets...)),
+			wantErr: ErrShardNoNode,
 		},
 		{
 			name: "connection hosts a partitioned index's shards", index: "partitioned", query: "routing=" + routing,
@@ -202,7 +207,7 @@ func TestRouteEventReportsWhyShardExactRoutingMissed(t *testing.T) {
 			require.NotNil(t, hop.Conn)
 
 			require.Equal(t, tt.wantExact, captured.ShardExactMatch)
-			require.Equal(t, tt.wantReason, captured.ShardMissReason)
+			requireErrorIs(t, tt.wantErr, captured.ShardMissErr)
 		})
 	}
 }

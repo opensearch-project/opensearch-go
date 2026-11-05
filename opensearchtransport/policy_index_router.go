@@ -164,12 +164,12 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
-	var missReason ShardMissReason
+	var missErr error
 
 	if !needsShardSetCost(slot, routingValue, "") {
-		candidatesBuf, shardNum, shard, missReason = calcSingleKeyCost(p.cache.features, slot, routingValue, "", conns)
+		candidatesBuf, shardNum, shard, missErr = calcSingleKeyCost(p.cache.features, slot, routingValue, "", conns)
 	} else {
-		candidatesBuf, extraCost, missReason = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
@@ -266,7 +266,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 			routingValue:        routingValue,
 			effectiveRoutingKey: routingValue,
 			targetShard:         shardNum,
-			shardMissReason:     missReason,
+			shardMissErr:        missErr,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,

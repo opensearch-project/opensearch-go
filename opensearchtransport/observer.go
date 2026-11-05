@@ -145,7 +145,7 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 // or [Transport.LookupDocShard] call that cannot name a node for the shard, so
 // it must return quickly. The same restrictions as [ConnectionObserver] apply.
 // Request routing does not call it; a request that falls back from shard-exact
-// routing reports why in [RouteEvent].ShardMissReason.
+// routing reports why in [RouteEvent].ShardMissErr.
 type ShardLookupObserver interface {
 	// OnShardLookupMiss is called when a shard lookup cannot be answered
 	// directly. It is not called for a lookup that finds the shard's node.
@@ -158,51 +158,13 @@ type ShardLookupMissEvent struct {
 	// Index is the index the lookup was for.
 	Index string
 
-	// Reason is why the lookup missed. It is never [ShardMissNone].
-	Reason ShardMissReason
-}
-
-// ShardMissReason says why a shard could not be hit directly.
-type ShardMissReason uint8
-
-const (
-	// ShardMissNone is the zero value: the shard was found.
-	ShardMissNone ShardMissReason = iota
-
-	// ShardMissMapUnknown means the index has no shard map yet, or the
-	// transport never collects one (see [Transport.ShardMapUnavailable]).
-	ShardMissMapUnknown
-
-	// ShardMissDocumentIDRequired means the index is partitioned and the
-	// lookup had no document ID; see [ErrDocumentIDRequired].
-	ShardMissDocumentIDRequired
-
-	// ShardMissNoRoutingKey means the request had neither a routing value nor
-	// a document ID.
-	ShardMissNoRoutingKey
-
-	// ShardMissNoNode means the shard is known, but its primary's node is not
-	// a ready connection.
-	ShardMissNoNode
-)
-
-// String returns the reason's name, or "unknown" for a value outside the
-// constants above.
-func (r ShardMissReason) String() string {
-	switch r {
-	case ShardMissNone:
-		return "none"
-	case ShardMissMapUnknown:
-		return "map_unknown"
-	case ShardMissDocumentIDRequired:
-		return "document_id_required"
-	case ShardMissNoRoutingKey:
-		return "no_routing_key"
-	case ShardMissNoNode:
-		return "no_node"
-	default:
-		return "unknown"
-	}
+	// Err is why the lookup missed, and never nil. It is one of
+	// [ErrShardMapUnknown], also when the transport never collects a shard map
+	// ([Transport.ShardMapUnavailable] says why), [ErrDocumentIDRequired], or
+	// [ErrShardNoNode] when the shard's primary is not a ready connection. The set
+	// is bounded, so a metrics label can be derived per sentinel; test it with
+	// [errors.Is].
+	Err error
 }
 
 // BaseConnectionObserver is an embeddable no-op implementation of

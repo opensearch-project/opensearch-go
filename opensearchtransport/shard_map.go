@@ -147,6 +147,16 @@ type ShardTarget struct {
 // shard map is not known yet; see [Transport.ShardMap].
 var ErrShardMapUnknown = errors.New("the shard map of the index is not known")
 
+// ErrNoRoutingKey means a request has neither a routing value nor a document ID,
+// so no shard can be derived from it. Unlike [ErrDocumentIDRequired] it does not
+// wrap [ErrShardMapUnknown].
+var ErrNoRoutingKey = errors.New("the request has neither a routing value nor a document ID")
+
+// ErrShardNoNode means the shard is known, but no ready connection hosts it; for
+// [Transport.LookupDocShard], that its primary's node is not a ready connection.
+// It does not wrap [ErrShardMapUnknown].
+var ErrShardNoNode = errors.New("no ready connection hosts the shard")
+
 // ErrDocumentIDRequired is returned by [Transport.LookupShard] and
 // [Transport.LookupDocShard] when the index's shard map is known but its
 // routing_partition_size is above 1 and no document ID was given: the shard of
@@ -203,7 +213,7 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 
 	cache := tr.shardMapCache()
 	if cache == nil {
-		tr.shardLookupMiss(index, ShardMissMapUnknown)
+		tr.shardLookupMiss(index, ErrShardMapUnknown)
 
 		if err := tr.ShardMapUnavailable(); err != nil {
 			return err
@@ -214,14 +224,14 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 
 	sm := cache.register(index).shardMap.Load()
 	if sm == nil || sm.RoutingNumShards <= 0 || sm.NumberOfPrimaryShards <= 0 {
-		tr.shardLookupMiss(index, ShardMissMapUnknown)
+		tr.shardLookupMiss(index, ErrShardMapUnknown)
 
 		return ErrShardMapUnknown
 	}
 
 	shard, ok := shardhash.ForDocument(routing, id, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
 	if !ok {
-		tr.shardLookupMiss(index, ShardMissDocumentIDRequired)
+		tr.shardLookupMiss(index, ErrDocumentIDRequired)
 
 		return ErrDocumentIDRequired
 	}
@@ -232,7 +242,7 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 	*primary = ShardTarget{Shard: shard, Primary: true, Replication: sm.Replication, Generation: sm.Generation}
 
 	if nodes == nil {
-		tr.shardLookupMiss(index, ShardMissNoNode)
+		tr.shardLookupMiss(index, ErrShardNoNode)
 
 		return nil
 	}
@@ -244,7 +254,7 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 	}
 
 	if primary.Node == nil {
-		tr.shardLookupMiss(index, ShardMissNoNode)
+		tr.shardLookupMiss(index, ErrShardNoNode)
 	}
 
 	for _, name := range nodes.Replicas {
@@ -262,9 +272,9 @@ func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarg
 
 // shardLookupMiss tells the observer, when it is a [ShardLookupObserver], that a
 // lookup in index missed. It does not allocate.
-func (tr *Transport) shardLookupMiss(index string, reason ShardMissReason) {
+func (tr *Transport) shardLookupMiss(index string, err error) {
 	if obs, ok := observerFromAtomic(&tr.observer).(ShardLookupObserver); ok {
-		obs.OnShardLookupMiss(ShardLookupMissEvent{Index: index, Reason: reason})
+		obs.OnShardLookupMiss(ShardLookupMissEvent{Index: index, Err: err})
 	}
 }
 
