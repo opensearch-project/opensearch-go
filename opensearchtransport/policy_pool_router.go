@@ -9,7 +9,6 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -134,6 +133,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				costs:         p.shardCosts,
 				poolName:      p.poolName,
 				targetShard:   -1,
+				shardMissErr:  ErrNoRoutingKey,
 				poolInfoReady: pir,
 				scoreFunc:     p.scoreFunc,
 			})
@@ -167,11 +167,12 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
+	var missErr error
 
-	if !strings.Contains(routingValue, routingValueSeparator) {
-		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+	if !needsShardSetCost(slot, routingValue, keyB) {
+		candidatesBuf, shardNum, shard, missErr = calcSingleKeyCost(p.cache.features, slot, routingValue, keyB, conns)
 	} else {
-		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
@@ -276,6 +277,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			routingValue:        routingValue,
 			effectiveRoutingKey: effectiveRoutingKey,
 			targetShard:         shardNum,
+			shardMissErr:        missErr,
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,

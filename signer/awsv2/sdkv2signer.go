@@ -81,10 +81,15 @@ func (s *awsSdkV2Signer) OverrideSigningPort(signaturePort uint16) {
 //
 // Credential retrieval and SigV4 signing honor r.Context(), so a
 // health-check or request timeout cancels a hung STS call rather than
-// blocking past the caller's deadline. http.Request.Context() is never
-// nil (it falls back to context.Background()).
+// blocking past the caller's deadline. A request whose context is already done
+// is not signed: the credentials cache can answer it from memory without
+// looking at the context. http.Request.Context() is never nil (it falls back
+// to context.Background()).
 func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 	ctx := r.Context()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	t := time.Now()
 
 	creds, err := s.awsCfg.Credentials.Retrieve(ctx)

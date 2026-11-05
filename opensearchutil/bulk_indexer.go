@@ -1275,7 +1275,11 @@ func (bi *bulkClient) addFailed(ctx context.Context, err error) error {
 // The server's own order for the routing value: a routing value on the action
 // line, else the ?routing= of the request, which is only a default for actions
 // that carry none, else the document ID. An action with none of them gets a
-// generated ID and lands on a random shard.
+// generated ID and lands on a random shard. On an index with a
+// routing_partition_size above 1 the server also adds an offset derived from
+// the document ID, so an action without an ID is unplaced there even when it
+// has a routing value (see [ErrDocumentIDRequired]), without affecting the
+// placement of the index's other documents.
 func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKey, Node, uint64, error) {
 	index := item.Index
 	if index == "" {
@@ -1288,18 +1292,20 @@ func (bi *bulkClient) place(ctx context.Context, item BulkIndexerItem) (*shardKe
 		routing = *item.Routing
 	case bi.config.Routing != "":
 		routing = bi.config.Routing
-	default:
-		routing = item.DocumentID
 	}
 
-	if index == "" || routing == "" {
+	if index == "" || (routing == "" && item.DocumentID == "") {
 		return nil, Node{}, 0, nil
 	}
 
 	targets := shardTargetPool.Get()
 	defer shardTargetPool.Put(targets)
 
-	if err := bi.router.LookupShard(index, routing, targets); err != nil || len(*targets) == 0 {
+	err := lookupDoc(bi.router, index, routing, item.DocumentID, targets)
+	if errors.Is(err, ErrDocumentIDRequired) {
+		return nil, Node{}, 0, nil
+	}
+	if err != nil || len(*targets) == 0 {
 		return nil, Node{}, 0, bi.unplaceable(ctx, index)
 	}
 	target := *(*targets)[0]

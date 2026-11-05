@@ -167,11 +167,12 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
+	var missErr error
 
-	if !strings.Contains(routingValue, routingValueSeparator) {
-		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+	if !needsShardSetCost(slot, routingValue, docID) {
+		candidatesBuf, shardNum, shard, missErr = calcSingleKeyCost(p.cache.features, slot, routingValue, docID, conns)
 	} else {
-		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
@@ -252,6 +253,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 			routingValue:        routingValue,
 			effectiveRoutingKey: effectiveRoutingKey,
 			targetShard:         shardNum,
+			shardMissErr:        missErr,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			scoreFunc:           p.scoreFunc,
 		})

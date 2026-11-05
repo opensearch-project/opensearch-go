@@ -84,7 +84,7 @@ func TestShardExactCandidates_CorrectNodes(t *testing.T) {
 	for _, routing := range routingValues {
 		t.Run("routing="+routing, func(t *testing.T) {
 			t.Parallel()
-			buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, conns)
+			buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, "", conns)
 			candidates := buf.Slice()
 			defer buf.Release()
 
@@ -128,7 +128,7 @@ func TestShardExactCandidates_EmptyRouting(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
+	buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, "", "", []*Connection{connA})
 	candidates := buf.Slice()
 	defer buf.Release()
 	require.Nil(t, candidates)
@@ -144,7 +144,7 @@ func TestShardExactCandidates_DisabledByFeatureFlag(t *testing.T) {
 
 	// With routingSkipShardExact set, shard-exact routing is disabled
 	// even when shard map and routing value are valid.
-	buf, shardNum, _ := calcSingleKeyCost(routingSkipShardExact, slot, "test-routing", []*Connection{connA})
+	buf, shardNum, _, _ := calcSingleKeyCost(routingSkipShardExact, slot, "test-routing", "", []*Connection{connA})
 	candidates := buf.Slice()
 	defer buf.Release()
 	require.Nil(t, candidates)
@@ -158,7 +158,7 @@ func TestShardExactCandidates_NilShardMap(t *testing.T) {
 	// No shardMap stored.
 	connA := newTestConn(t, "nodeA")
 
-	buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, "abc", []*Connection{connA})
+	buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, "abc", "", []*Connection{connA})
 	candidates := buf.Slice()
 	defer buf.Release()
 	require.Nil(t, candidates)
@@ -188,7 +188,7 @@ func TestShardExactCandidates_MissingConnection(t *testing.T) {
 	}
 	require.NotEmpty(t, routingForShard1, "could not find a routing value mapping to shard 1")
 
-	buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routingForShard1, conns)
+	buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingForShard1, "", conns)
 	candidates := buf.Slice()
 	defer buf.Release()
 	require.Equal(t, 1, shardNum)
@@ -477,7 +477,7 @@ func TestShardExactRouting_AllShardsReachable(t *testing.T) {
 	shardsHit := make(map[int]bool)
 	for i := range 200 {
 		routing := fmt.Sprintf("probe-%d", i)
-		buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, conns)
+		buf, shardNum, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, "", conns)
 		candidates := buf.Slice()
 		require.NotNil(t, candidates)
 		require.GreaterOrEqual(t, shardNum, 0)
@@ -615,7 +615,7 @@ func TestCalcMultiKeyCost_PicksHighestHitNode(t *testing.T) {
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
@@ -641,7 +641,7 @@ func TestCalcMultiKeyCost_AllKeysOnSameShard(t *testing.T) {
 	routes := routingValuesForShard(t, sm, 1, "s1pair-9", 2)
 
 	routingValue := routes[0] + routingValueSeparator + routes[1]
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
@@ -676,7 +676,7 @@ func TestCalcMultiKeyCost_ExtraCostReflectsRemoteHops(t *testing.T) {
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
@@ -697,7 +697,7 @@ func TestCalcMultiKeyCost_DisabledByFeatureFlag(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost := calcMultiKeyCost(routingSkipShardExact, slot, "a,b", []*Connection{connA})
+	candidates, extraCost, _ := calcMultiKeyCost(routingSkipShardExact, slot, "a,b", []*Connection{connA})
 	require.Nil(t, candidates.Slice())
 	require.Nil(t, extraCost.Slice())
 }
@@ -708,7 +708,7 @@ func TestCalcMultiKeyCost_NilShardMap(t *testing.T) {
 	slot := &indexSlot{clock: realClock{}}
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, "a,b", []*Connection{connA})
+	candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "a,b", []*Connection{connA})
 	require.Nil(t, candidates.Slice())
 	require.Nil(t, extraCost.Slice())
 }
@@ -720,7 +720,7 @@ func TestCalcMultiKeyCost_EmptyRoutingValue(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
+	candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
 	require.Nil(t, candidates.Slice())
 	require.Nil(t, extraCost.Slice())
 }
@@ -864,14 +864,14 @@ func TestCalcMultiKeyCost_HighReplicaCount(t *testing.T) {
 			}
 
 			if len(parts) == 0 {
-				candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, "", conns)
+				candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "", conns)
 				require.Nil(t, candidates.Slice())
 				require.Nil(t, extraCost.Slice())
 				return
 			}
 
 			routingValue := strings.Join(parts, routingValueSeparator)
-			cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 			candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 			defer cBuf.Release()
 			defer ecBuf.Release()

@@ -137,6 +137,36 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	OnStreamResponse(ctx context.Context, event StreamResponseEvent)
 }
 
+// ShardLookupObserver is an optional interface a [ConnectionObserver] may also
+// implement. The transport type-asserts [Config].Observer for it, so an existing
+// ConnectionObserver keeps compiling and simply receives no shard lookup events.
+//
+// OnShardLookupMiss is called on the hot path, once per [Transport.LookupShard]
+// or [Transport.LookupDocShard] call that cannot name a node for the shard, so
+// it must return quickly. The same restrictions as [ConnectionObserver] apply.
+// Request routing does not call it; a request that falls back from shard-exact
+// routing reports why in [RouteEvent].ShardMissErr.
+type ShardLookupObserver interface {
+	// OnShardLookupMiss is called when a shard lookup cannot be answered
+	// directly. It is not called for a lookup that finds the shard's node.
+	OnShardLookupMiss(event ShardLookupMissEvent)
+}
+
+// ShardLookupMissEvent describes a shard lookup that could not be answered
+// directly.
+type ShardLookupMissEvent struct {
+	// Index is the index the lookup was for.
+	Index string
+
+	// Err is why the lookup missed, and never nil. It is one of
+	// [ErrShardMapUnknown], also when the transport never collects a shard map
+	// ([Transport.ShardMapUnavailable] says why), [ErrDocumentIDRequired], or
+	// [ErrShardNoNode] when the shard's primary is not a ready connection. The set
+	// is bounded, so a metrics label can be derived per sentinel; test it with
+	// [errors.Is].
+	Err error
+}
+
 // BaseConnectionObserver is an embeddable no-op implementation of
 // ConnectionObserver. Embed it in your own struct and override only the
 // methods you care about.
@@ -195,6 +225,9 @@ func (BaseConnectionObserver) OnShardMapInvalidation(ShardMapInvalidationEvent) 
 // OnAddressRewrite implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnAddressRewrite(AddressRewriteEvent) {}
 
+// OnShardLookupMiss implements ShardLookupObserver (no-op).
+func (BaseConnectionObserver) OnShardLookupMiss(ShardLookupMissEvent) {}
+
 // OnRequestStart implements ConnectionObserver (no-op; returns ctx unchanged).
 func (BaseConnectionObserver) OnRequestStart(ctx context.Context, event RequestEvent) context.Context {
 	_ = event
@@ -225,6 +258,9 @@ func (BaseConnectionObserver) OnStreamResponse(ctx context.Context, event Stream
 
 // Compile-time check that BaseConnectionObserver implements ConnectionObserver.
 var _ ConnectionObserver = (*BaseConnectionObserver)(nil)
+
+// Compile-time check that BaseConnectionObserver implements ShardLookupObserver.
+var _ ShardLookupObserver = (*BaseConnectionObserver)(nil)
 
 // observerFromAtomic loads a ConnectionObserver from an atomic pointer.
 // Returns nil if the pointer is nil or stores nil.

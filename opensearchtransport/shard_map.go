@@ -15,9 +15,10 @@ import (
 	"slices"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
-// ShardMap is the routing half of an index's shard map: the two numbers that
+// ShardMap is the routing half of an index's shard map: the numbers that
 // decide which shard a routing value belongs to. It is a snapshot; an index's
 // shard count does not change once the index exists, so it does not go stale.
 type ShardMap struct {
@@ -25,12 +26,26 @@ type ShardMap struct {
 	RoutingNumShards int
 	// PrimaryShards is the index's number_of_shards.
 	PrimaryShards int
+	// RoutingPartitionSize is the index's routing_partition_size; see
+	// [shardhash.ForDocument] for how it affects the shard.
+	RoutingPartitionSize int
 }
 
 // Shard returns the shard the routing value maps to, the way the server
 // computes it. A document with no routing value is routed by its ID.
+//
+// It ignores RoutingPartitionSize, so on a partitioned index use
+// [ShardMap.ShardForDocument].
 func (m ShardMap) Shard(routing string) int {
 	return shardForRouting(routing, m.RoutingNumShards, m.PrimaryShards)
+}
+
+// ShardForDocument returns the shard of the document with the given routing
+// value and ID, the way the server computes it, partition offset included. An
+// empty routing value means the document is routed by its ID. The second result
+// is false when the shard is not known without an ID; see [shardhash.ForDocument].
+func (m ShardMap) ShardForDocument(routing, id string) (int, bool) {
+	return shardhash.ForDocument(routing, id, m.RoutingNumShards, m.PrimaryShards, m.RoutingPartitionSize)
 }
 
 // shardMapCache returns the router's index cache, or nil when the transport
@@ -71,7 +86,11 @@ func (tr *Transport) ShardMap(index string) (ShardMap, bool) {
 		return ShardMap{}, false
 	}
 
-	return ShardMap{RoutingNumShards: sm.RoutingNumShards, PrimaryShards: sm.NumberOfPrimaryShards}, true
+	return ShardMap{
+		RoutingNumShards:     sm.RoutingNumShards,
+		PrimaryShards:        sm.NumberOfPrimaryShards,
+		RoutingPartitionSize: sm.RoutingPartitionSize,
+	}, true
 }
 
 // ReplicationType is how an index's replicas are kept up to date: its
@@ -128,6 +147,27 @@ type ShardTarget struct {
 // shard map is not known yet; see [Transport.ShardMap].
 var ErrShardMapUnknown = errors.New("the shard map of the index is not known")
 
+// ErrNoRoutingKey means a request has neither a routing value nor a document ID,
+// so no shard can be derived from it. Unlike [ErrDocumentIDRequired] it does not
+// wrap [ErrShardMapUnknown].
+var ErrNoRoutingKey = errors.New("the request has neither a routing value nor a document ID")
+
+// ErrShardNoNode means the shard is known, but no ready connection hosts it; for
+// [Transport.LookupDocShard], that its primary's node is not a ready connection.
+// It does not wrap [ErrShardMapUnknown].
+var ErrShardNoNode = errors.New("no ready connection hosts the shard")
+
+// ErrDocumentIDRequired is returned by [Transport.LookupShard] and
+// [Transport.LookupDocShard] when the index's shard map is known but its
+// routing_partition_size is above 1 and no document ID was given: the shard of
+// such an index depends on the ID, so one key cannot name it. It wraps
+// [ErrShardMapUnknown], and unlike that error it says nothing about the shard
+// map itself being missing.
+var ErrDocumentIDRequired = fmt.Errorf(
+	"%w: the index has a routing_partition_size above 1, so its shard depends on the document ID",
+	ErrShardMapUnknown,
+)
+
 // LookupShard maps key in index to its shard and fills *dst with the shard's
 // copies: the primary first, then each replica whose node is ready to take a
 // request. The primary is always listed, with a nil Node when the transport does
@@ -146,16 +186,35 @@ var ErrShardMapUnknown = errors.New("the shard map of the index is not known")
 //
 // It returns [ErrShardMapUnknown] when the index's shard map is not known yet
 // (see [Transport.ShardMap]), and the reason from [Transport.ShardMapUnavailable]
-// when the transport can never answer. *dst is empty on an error.
+// when the transport can never answer. *dst is empty on an error. For an index
+// with a routing_partition_size above 1 it returns [ErrDocumentIDRequired],
+// because the shard there depends on the document ID as well as the key; use
+// [Transport.LookupDocShard].
 //
 // Nodes are looked up in the transport's current placement on every call, so a
 // shard that has moved is found where it is now. A caller that holds on to the
 // result decides for itself how long to trust it.
 func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
+	return tr.LookupDocShard(index, key, "", dst)
+}
+
+// LookupDocShard is [Transport.LookupShard] for a document identified by its
+// routing value and ID, which names the shard on an index with a
+// routing_partition_size above 1 as well as on any other. routing may be empty,
+// in which case the document is routed by id. On a partitioned index it returns
+// [ErrDocumentIDRequired] when id is empty, as for a document whose ID the server
+// generates.
+//
+// A lookup that cannot name a node for the shard is reported to
+// [Config].Observer when it implements [ShardLookupObserver]; the targets are
+// still returned as for [Transport.LookupShard].
+func (tr *Transport) LookupDocShard(index, routing, id string, dst *[]*ShardTarget) error {
 	*dst = (*dst)[:0]
 
 	cache := tr.shardMapCache()
 	if cache == nil {
+		tr.shardLookupMiss(index, ErrShardMapUnknown)
+
 		if err := tr.ShardMapUnavailable(); err != nil {
 			return err
 		}
@@ -165,16 +224,26 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 
 	sm := cache.register(index).shardMap.Load()
 	if sm == nil || sm.RoutingNumShards <= 0 || sm.NumberOfPrimaryShards <= 0 {
+		tr.shardLookupMiss(index, ErrShardMapUnknown)
+
 		return ErrShardMapUnknown
 	}
 
-	shard := shardForRouting(key, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+	shard, ok := shardhash.ForDocument(routing, id, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
+	if !ok {
+		tr.shardLookupMiss(index, ErrDocumentIDRequired)
+
+		return ErrDocumentIDRequired
+	}
+
 	nodes := sm.Shards[shard]
 
 	primary := slicepool.Append(dst)
 	*primary = ShardTarget{Shard: shard, Primary: true, Replication: sm.Replication, Generation: sm.Generation}
 
 	if nodes == nil {
+		tr.shardLookupMiss(index, ErrShardNoNode)
+
 		return nil
 	}
 
@@ -182,6 +251,10 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 		if conn := tr.readyConnectionByName(nodes.Primary); conn != nil && !conn.needsCatUpdate() {
 			primary.Node = conn
 		}
+	}
+
+	if primary.Node == nil {
+		tr.shardLookupMiss(index, ErrShardNoNode)
 	}
 
 	for _, name := range nodes.Replicas {
@@ -195,6 +268,14 @@ func (tr *Transport) LookupShard(index, key string, dst *[]*ShardTarget) error {
 	}
 
 	return nil
+}
+
+// shardLookupMiss tells the observer, when it is a [ShardLookupObserver], that a
+// lookup in index missed. It does not allocate.
+func (tr *Transport) shardLookupMiss(index string, err error) {
+	if obs, ok := observerFromAtomic(&tr.observer).(ShardLookupObserver); ok {
+		obs.OnShardLookupMiss(ShardLookupMissEvent{Index: index, Err: err})
+	}
 }
 
 // connectionNamer is implemented by the built-in connection pools.

@@ -36,6 +36,10 @@ func (f copiesTransportRouter) LookupShard(_, _ string, dst *[]*opensearchtransp
 	return nil
 }
 
+func (f copiesTransportRouter) LookupDocShard(_, _, _ string, dst *[]*opensearchtransport.ShardTarget) error {
+	return f.LookupShard("", "", dst)
+}
+
 func (copiesTransportRouter) WriteNodes() []*opensearchtransport.Connection { return nil }
 
 // errRouter is a ShardRouter that always fails with err.

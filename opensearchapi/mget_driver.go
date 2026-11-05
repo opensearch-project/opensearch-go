@@ -333,7 +333,7 @@ func WithMGetFanOut(ctx context.Context, fanOut MGetFanOut) context.Context {
 // shardLookup is what the direct driver needs of a transport;
 // [opensearchtransport.Transport] provides it.
 type shardLookup interface {
-	LookupShard(index, key string, dst *[]*opensearchtransport.ShardTarget) error
+	LookupDocShard(index, routing, id string, dst *[]*opensearchtransport.ShardTarget) error
 }
 
 // newMGetDriver builds the driver a client's MGet tries first. It is built even

@@ -9,17 +9,26 @@ package opensearchtransport
 import (
 	"cmp"
 	"slices"
+	"strings"
 	"sync"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
 // calcSingleKeyCost resolves a single routing key to the shard it targets and
 // returns the connections hosting that shard. The 1:1 relationship between key
 // and shard makes this a direct lookup with no intermediate data structures.
 //
+// routingValue is the request's routing value, or "" for none; docID is the
+// document ID, or "" when the request has none. The server routes by the ID
+// when there is no routing value, and a partitioned index adds an offset
+// derived from the ID, so on such an index a request without an ID has no
+// known shard and the result is -1.
+//
 // Returns a zero-value pooledConns when shard-exact routing is disabled via
-// features, shard map data is unavailable, the routing value is empty, or no
-// connections match. Callers must call Release on the returned pooledConns
-// when done.
+// features, shard map data is unavailable, there is neither a routing value
+// nor an ID, or no connections match. Callers must call Release on the
+// returned pooledConns when done.
 //
 // Per-shard cost is derived from the returned [shardNodes] by the caller via
 // [shardCostMultiplier.forShard].
@@ -27,26 +36,30 @@ func calcSingleKeyCost(
 	features routingFeatures,
 	slot *indexSlot,
 	routingValue string,
+	docID string,
 	conns []*Connection,
-) (pooledConns, int, *shardNodes) {
+) (pooledConns, int, *shardNodes, error) {
 	if !features.shardExactEnabled() {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, nil
 	}
 
-	if routingValue == "" {
-		return pooledConns{}, -1, nil
+	if routingValue == "" && docID == "" {
+		return pooledConns{}, -1, nil, ErrNoRoutingKey
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ErrShardMapUnknown
 	}
 
-	shardNum := shardForRouting(routingValue, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+	shardNum, ok := shardhash.ForDocument(routingValue, docID, sm.RoutingNumShards, sm.NumberOfPrimaryShards, sm.RoutingPartitionSize)
+	if !ok {
+		return pooledConns{}, -1, nil, ErrDocumentIDRequired
+	}
 
 	shardCopy := sm.Shards[shardNum]
 	if shardCopy == nil {
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ErrShardNoNode
 	}
 
 	// Build a set of node names hosting this shard.
@@ -60,7 +73,7 @@ func calcSingleKeyCost(
 
 	if nodeNames.Len() == 0 {
 		nodeNames.Release()
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ErrShardNoNode
 	}
 
 	// Resolve node names to connections. Filter out connections that
@@ -78,21 +91,42 @@ func calcSingleKeyCost(
 
 	if len(*bp) == 0 {
 		putConnSlice(bp)
-		return pooledConns{}, -1, nil
+		return pooledConns{}, -1, nil, ErrShardNoNode
 	}
 
-	return pooledConns{p: bp}, shardNum, shardCopy
+	return pooledConns{p: bp}, shardNum, shardCopy, nil
 }
 
-// calcMultiKeyCost resolves multiple comma-separated routing keys to their
-// target shards and computes a per-node extra cost based on how many target
-// shards each node is missing. When multiple keys target different shards
-// spread across the cluster, the ideal coordinator is the node hosting the
-// most target shards - it can serve those locally and only proxies the rest.
+// needsShardSetCost reports whether a request is costed by [calcMultiKeyCost]
+// rather than [calcSingleKeyCost]: a comma-separated routing list, or a single
+// routing value without a document ID on a partitioned index, which targets
+// several shards (see [shardhash.ForDocument]).
+func needsShardSetCost(slot *indexSlot, routingValue, docID string) bool {
+	if strings.Contains(routingValue, routingValueSeparator) {
+		return true
+	}
+
+	sm := slot.shardMap.Load()
+
+	return routingValue != "" && docID == "" && sm != nil && sm.RoutingPartitionSize > 1
+}
+
+// calcMultiKeyCost resolves routing values, either a comma-separated list or
+// one value on a partitioned index, to the set of shards they target and
+// computes a per-node extra cost based on how many target shards each node is
+// missing. When the target shards are spread across the cluster, the ideal
+// coordinator is the node hosting the most of them - it can serve those locally
+// and only proxies the rest.
+//
+// The target set is the union over all keys, as the server builds it: a shard
+// reached by several keys or partition offsets counts once. On a partitioned
+// index each key targets one shard per partition offset (see
+// [shardhash.ForRoutingOffset]).
 //
 // Returns candidates sorted by hit-count descending and a parallel extraCost
-// slice where extraCost[i] = totalKeys - hitsForNode[i]. A node hosting all
-// target shards has extraCost=0; a node hosting one of five has extraCost=4.
+// slice where extraCost[i] = totalShards - hitsForNode[i], with totalShards the
+// number of distinct target shards. A node hosting all target shards has
+// extraCost=0; a node hosting one of five has extraCost=4.
 //
 // Returns nil, nil when shard-exact routing is disabled, shard data is
 // unavailable, or no connections match.
@@ -101,39 +135,52 @@ func calcMultiKeyCost(
 	slot *indexSlot,
 	routingValue string,
 	conns []*Connection,
-) (pooledConns, pooledFloats) {
-	if !features.shardExactEnabled() || routingValue == "" {
-		return pooledConns{}, pooledFloats{}
+) (pooledConns, pooledFloats, error) {
+	if !features.shardExactEnabled() {
+		return pooledConns{}, pooledFloats{}, nil
+	}
+	if routingValue == "" {
+		return pooledConns{}, pooledFloats{}, ErrNoRoutingKey
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, ErrShardMapUnknown
 	}
 
 	rvBuf := acquireRoutingValues()
 	routingValues := splitRoutingValues(routingValue, rvBuf)
-	totalKeys := len(routingValues)
+	offsets := max(sm.RoutingPartitionSize, 1)
+	var targetsBuf [16]int // spills to the heap only for a large target set
+	targets := targetsBuf[:0]
 
 	hits := acquireNodeHits()
 	for _, rv := range routingValues {
-		shardNum := shardForRouting(rv, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
-		shard := sm.Shards[shardNum]
-		if shard == nil {
-			continue
-		}
-		if shard.Primary != "" {
-			(*hits)[shard.Primary]++
-		}
-		for _, r := range shard.Replicas {
-			(*hits)[r]++
+		for i := range offsets {
+			shardNum := shardhash.ForRoutingOffset(rv, i, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+			if slices.Contains(targets, shardNum) {
+				continue
+			}
+			targets = append(targets, shardNum)
+
+			shard := sm.Shards[shardNum]
+			if shard == nil {
+				continue
+			}
+			if shard.Primary != "" {
+				(*hits)[shard.Primary]++
+			}
+			for _, r := range shard.Replicas {
+				(*hits)[r]++
+			}
 		}
 	}
+	totalShards := len(targets)
 	releaseRoutingValues(rvBuf)
 
 	if len(*hits) == 0 {
 		releaseNodeHits(hits)
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, ErrShardNoNode
 	}
 
 	scored := acquireScoredConns()
@@ -149,7 +196,7 @@ func calcMultiKeyCost(
 
 	if len(*scored) == 0 {
 		releaseScoredConns(scored)
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, ErrShardNoNode
 	}
 
 	slices.SortFunc(*scored, func(a, b scoredConn) int {
@@ -161,11 +208,11 @@ func calcMultiKeyCost(
 	extraCost := acquireFloats(n)
 	for i, s := range *scored {
 		result.Slice()[i] = s.conn
-		extraCost.Slice()[i] = float64(totalKeys - s.hits)
+		extraCost.Slice()[i] = float64(totalShards - s.hits)
 	}
 	releaseScoredConns(scored)
 
-	return result, extraCost
+	return result, extraCost, nil
 }
 
 type scoredConn struct {
