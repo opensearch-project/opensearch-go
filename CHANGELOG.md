@@ -6,6 +6,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Dependencies
+
+## [5.2.0]
+
+### Added
+
 - Add `compress.ZstdTable(level)`, a `CompressorTable` that sends zstd request bodies to OpenSearch 3.0.0 and later and gzip at level 6 otherwise; see the [`ZstdTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/compress/v5#ZstdTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 - Add `opensearchtransport.CompressorTable` and `Config.CompressorTable` (also on `opensearch.Config`), which choose the request `Compressor` by server version; see the [`CompressorTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#CompressorTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 - Add the optional `ShardLookupObserver` interface with `OnShardLookupMiss`, called with a `ShardLookupMissEvent` whose `Err` is `ErrShardMapUnknown`, `ErrDocumentIDRequired` or `ErrShardNoNode` when `Transport.LookupShard` or `LookupDocShard` cannot name a node for a shard, and `RouteEvent.Err`, which holds the reason (those errors or `ErrNoRoutingKey`) when a request falls back from shard-exact routing ([#1292](https://github.com/opensearch-project/opensearch-go/pull/1292))
@@ -15,15 +31,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Size the buffer a compressed request body is written into from the last body's compression ratio, when the body's length is known, instead of growing it from empty for every request. Growing it was 60% to 71% of the compressing request path's allocations. The output is the same ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 - **BREAKING**: Send request bodies shorter than 4096 bytes uncompressed, and add `CompressMinBytes` to `opensearch.Config` and `opensearchtransport.Config` to change the limit. The measurements behind the limit are in [`compress/README.md`](compress/README.md#minimum-body-size). Bulk bodies are far larger and are compressed as before. Set `CompressMinBytes` to a negative value to compress every body, as earlier releases did; a body whose length is not known is always compressed. See [`UPGRADING_V5.md`](UPGRADING_V5.md#request-bodies-under-4-kib-are-sent-uncompressed) for migration ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
-
-### Deprecated
-
-### Removed
+- Add OpenSearch 3.9.0 to the CI compatibility matrix and make it the default integration test version, replacing 3.8.0. Earlier releases stay in the matrix under the 12-month support policy. No client code change ([#1257](https://github.com/opensearch-project/opensearch-go/pull/1257))
 
 ### Fixed
 
 - Do not panic in `ColorLogger` and `CurlLogger` when logging a request that never received a response, such as a routing failure. `stream` already passes a nil response into `LogRoundTrip` when `pool.Next` or `router.Route` fails; `TextLogger` and `JSONLogger` already treated that as status -1, and `ColorLogger` now prints `ERROR`, the status it already used for an unknown code. ([#1289](https://github.com/opensearch-project/opensearch-go/pull/1289))
-- Close the original response body when `duplicateBody` fails mid-read while response-body logging is enabled. The success path already closed it; the error path left the live HTTP body open after the caller replaced `res.Body`, which could leak a keep-alive connection.
+- Close the original response body when `duplicateBody` fails mid-read while response-body logging is enabled. The success path already closed it; the error path left the live HTTP body open after the caller replaced `res.Body`, which could leak a keep-alive connection. ([#1274](https://github.com/opensearch-project/opensearch-go/pull/1274))
 - `cmd/osapilint`: rename `IndicesRefreshReq.Index`, `IndicesCloseReq.Index` and `IndicesOpenReq.Index` to `Indices` on the v4 -> v5 hop, so a rewrite no longer aborts with an unclassified-field error on code that sets or reads them. v4.7.0 through v4.8.1 spell the refresh field `Index`, unlike the other v4 multi-index requests and v5. The close and open fields change from `string` to `[]string`, which is reported `MANUAL`, and `Indices.Close` and `Indices.Open` calls now pass the request by pointer, as v5 requires. Correct `UPGRADING_V4.md` to say multi-index `Req` types use `Indices []string` on v5 ([#1275](https://github.com/opensearch-project/opensearch-go/pull/1275))
 - Honor a disabled `HealthCheckTimeout` (`< 0`) on seed startup health checks and node-stats polls. Both now run without a deadline instead of failing immediately. ([#1273](https://github.com/opensearch-project/opensearch-go/pull/1273))
 - Keep nodes available when a transport attempt returns an error while the caller's context is canceled or its deadline has expired, including seed fallback. These failures no longer demote the node, invalidate shard placement, or trigger a retry. ([#1254](https://github.com/opensearch-project/opensearch-go/pull/1254))
@@ -35,13 +48,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Return the context error from the AWS SDK v2 signer's `SignRequest` when the request's context is already done, instead of signing it. The credentials cache can return cached credentials without checking the context, so a canceled request was sometimes signed and the error lost. ([#1292](https://github.com/opensearch-project/opensearch-go/pull/1292))
 - `cmd/osapilint`: report a field whose type changed without becoming a pointer, such as `SearchParams.From` (`*int` -> `int`) or `ExpandWildcards` (`string` -> `[]string`), as `MANUAL` wherever it is set or read. These sites used to pass silently and only failed later at build time. A change between struct shapes, such as an anonymous struct becoming a named one, is compared field by field and reported with the inner field that broke, such as `Translog.TotalTimeInMillis` (`int` -> `int64`). A `MANUAL` line for a site in the consumer's source now ends with that site's position (`at file.go:line:col`). ([#1293](https://github.com/opensearch-project/opensearch-go/pull/1293))
 
-### Security
-
 ### Dependencies
 
 - Update the `toolchain` line to go1.26.10 in the root and all nested modules, so builds in this repository use Go 1.26.10. The go directive stays 1.26.0, so consumers are not affected ([#1256](https://github.com/opensearch-project/opensearch-go/pull/1256))
 - Bump `github.com/getkin/kin-openapi` from 0.151.0 to 0.152.0 in `cmd/osgen` ([#1258](https://github.com/opensearch-project/opensearch-go/pull/1258))
-- Bump the `opensearch-go/v5` requirement in `compress` to v5.2.0, the first root release with `CompressorTable` ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
+- Bump the `opensearch-go/v5` requirement in `compress` to the v5.2.0 release commit, the first with `CompressorTable` ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286), [#1287](https://github.com/opensearch-project/opensearch-go/pull/1287))
 
 ## [5.1.3]
 
@@ -57,7 +68,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
-- Add OpenSearch 3.9.0 to the CI compatibility matrix and make it the default integration test version, replacing 3.8.0. Earlier releases stay in the matrix under the 12-month support policy. No client code change
 - **BREAKING**: Read the direct mget driver's documents from as few nodes as hold their shards by default, rather than from the least loaded copy of each shard as 5.1.3 did. Set `MGetConfig.FanOut` to `MGetFanOutLeastLoaded` for the previous behavior. See [`UPGRADING_V5.md`](UPGRADING_V5.md#direct-mget-driver-reads-from-the-fewest-nodes) for migration. ([#1240](https://github.com/opensearch-project/opensearch-go/pull/1240))
 - Document the requests each mget driver sends, with sequence diagrams on `opensearchapi.MGetDriver` that set the coordinator's per-shard fan-out beside the direct driver's per-node fan-out, and a table of each driver's client requests, node-to-node requests, get thread pool tasks and hops. ([#1240](https://github.com/opensearch-project/opensearch-go/pull/1240))
 - Decode and encode every request and response on the `encoding/json/v2` engine on every supported toolchain. On Go 1.27 the client uses `encoding/json`, which already runs on it; on Go 1.26, with or without `GOEXPERIMENT=jsonv2`, it runs a copy of the standard library's `encoding/json/v2` from Go 1.27.3, in `internal/third_party/jsonv2`, in place of the original `encoding/json` engine. The copy adds no dependency, and goes once the module requires Go 1.27. Decoding a 1000-document mget response there makes 4,051 allocations where it made 11,057. The semantics are `encoding/json`'s, and errors are `encoding/json`'s types. On Go 1.26 without the experiment, three details change: a Go string holding invalid UTF-8 is written with U+FFFD as the character rather than as a `\u` escape, as Go 1.27's `encoding/json` does; a few failures `encoding/json` reported with an untyped error, such as a `,string` field holding an unquoted value, are reported as `*json.UnmarshalTypeError`; and a `*json.MarshalerError` may name the pointer type of the value whose method failed. ([#1240](https://github.com/opensearch-project/opensearch-go/pull/1240))
@@ -747,7 +757,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.3...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.3...v5.2.0
 [5.1.3]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.2...v5.1.3
 [5.1.2]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.0...v5.1.1
