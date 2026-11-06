@@ -6,7 +6,7 @@ toolchain go1.26.10
 
 require (
 	github.com/klauspost/compress v1.20.3
-	github.com/opensearch-project/opensearch-go/v5 v5.1.4-0.20261104171957-a9d2b307d868
+	github.com/opensearch-project/opensearch-go/v5 v5.1.4-0.20261106001247-8737ed09df10
 	github.com/stretchr/testify v1.12.1
 )
 
