@@ -45619,6 +45619,7 @@ components:
       type: object
       discriminator:
         propertyName: type
+        x-default: custom
       oneOf:
         - $ref: '#/components/schemas/_common.analysis___CustomAnalyzer'
         - $ref: '#/components/schemas/_common.analysis___FingerprintAnalyzer'
@@ -46638,6 +46639,7 @@ components:
       type: object
       discriminator:
         propertyName: type
+        x-default: custom
       oneOf:
         - $ref: '#/components/schemas/_common.analysis___LowercaseNormalizer'
         - $ref: '#/components/schemas/_common.analysis___CustomNormalizer'

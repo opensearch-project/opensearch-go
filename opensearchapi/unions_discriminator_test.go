@@ -130,3 +130,94 @@ func TestDiscRoundTrip(t *testing.T) {
 	require.NoError(t, json.Unmarshal(wire, &back))
 	require.Equal(t, opensearchapi.CommonMappingPropertyKeywordPropertyType, back.Type())
 }
+
+// 7. OpenSearch treats an analyzer or normalizer with no type as custom, and
+// returns stored settings without one, so the absent type decodes as the custom
+// branch and marshals back as an explicit "custom" rather than an empty type.
+func TestDiscAnalysisCustomDefault(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		decode   func(data []byte) (branch string, wire []byte, err error)
+		payload  string
+		wantType string
+		wantWire string
+	}{
+		{
+			name: "analyzer without type",
+			decode: func(data []byte) (string, []byte, error) {
+				var a opensearchapi.CommonAnalysisAnalyzer
+				if err := json.Unmarshal(data, &a); err != nil {
+					return "", nil, err
+				}
+				wire, err := json.Marshal(a)
+				return a.Type().String(), wire, err
+			},
+			payload:  `{"filter":["lowercase"],"tokenizer":"keyword"}`,
+			wantType: "CustomAnalyzer",
+			wantWire: `{"filter":["lowercase"],"tokenizer":"keyword","type":"custom"}`,
+		},
+		{
+			name: "analyzer with explicit custom type",
+			decode: func(data []byte) (string, []byte, error) {
+				var a opensearchapi.CommonAnalysisAnalyzer
+				if err := json.Unmarshal(data, &a); err != nil {
+					return "", nil, err
+				}
+				wire, err := json.Marshal(a)
+				return a.Type().String(), wire, err
+			},
+			payload:  `{"type":"custom","filter":["lowercase"],"tokenizer":"keyword"}`,
+			wantType: "CustomAnalyzer",
+			wantWire: `{"filter":["lowercase"],"tokenizer":"keyword","type":"custom"}`,
+		},
+		{
+			name: "normalizer without type",
+			decode: func(data []byte) (string, []byte, error) {
+				var n opensearchapi.CommonAnalysisNormalizer
+				if err := json.Unmarshal(data, &n); err != nil {
+					return "", nil, err
+				}
+				wire, err := json.Marshal(n)
+				return n.Type().String(), wire, err
+			},
+			payload:  `{"filter":["lowercase"]}`,
+			wantType: "CustomNormalizer",
+			wantWire: `{"filter":["lowercase"],"type":"custom"}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			branch, wire, err := tt.decode([]byte(tt.payload))
+			require.NoError(t, err)
+			require.Equal(t, tt.wantType, branch)
+			require.JSONEq(t, tt.wantWire, string(wire))
+		})
+	}
+}
+
+// 7b. a get-index response for an index created with a lowercase keyword
+// analyzer decodes; the stored settings carry no analyzer type.
+func TestDiscIndicesGetAnalyzerWithoutType(t *testing.T) {
+	t.Parallel()
+
+	body := `{"my-index":{"aliases":{},"mappings":{},"settings":{"index":{"analysis":{` +
+		`"analyzer":{"lowercase_keyword":{"filter":["lowercase"],"tokenizer":"keyword"}},` +
+		`"normalizer":{"lowercase_normalizer":{"filter":["lowercase"]}}}}}}}`
+
+	var resp opensearchapi.IndicesGetResp
+	require.NoError(t, json.Unmarshal([]byte(body), &resp))
+
+	analysis := resp.Entries["my-index"].Settings.Index.Analysis
+	analyzer := analysis.Analyzer["lowercase_keyword"]
+	custom, err := analyzer.CustomAnalyzer()
+	require.NoError(t, err)
+	require.Equal(t, "keyword", custom.Tokenizer)
+	require.Equal(t, []string{"lowercase"}, custom.Filter)
+
+	normalizer := analysis.Normalizer["lowercase_normalizer"]
+	_, err = normalizer.CustomNormalizer()
+	require.NoError(t, err)
+}

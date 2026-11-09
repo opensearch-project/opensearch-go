@@ -347,6 +347,14 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
+{{- $df := discField $t .Name}}
+{{- if and $df (eq .Value $t.Discriminator.DefaultValue)}}
+		if !present {
+			// v.{{$df.Field}} is a plain string, so left empty it would marshal as
+			// "", which names no branch; record the value its absence implied.
+			v.{{$df.Field}} = {{printf "%q" $df.Value}}
+		}
+{{- end}}
 		u.typ = {{.Const}}
 		u.value = &v
 {{- end}}
