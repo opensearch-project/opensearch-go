@@ -36179,19 +36179,22 @@
                             "type": {
                               "ref": "_common___Type"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_index": {
                             "type": {
                               "ref": "_common___IndexName"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_id": {
                             "type": {
                               "ref": "_common___Id"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_score": {
                             "type": {
@@ -36207,13 +36210,15 @@
                               "union_kind": "scalar",
                               "exclusive": true
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_explanation": {
                             "type": {
                               "ref": "_core.explain___Explanation"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "fields": {
                             "type": {
@@ -36221,7 +36226,8 @@
                                 "any": true
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "highlight": {
                             "type": {
@@ -36231,7 +36237,8 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "inner_hits": {
                             "type": {
@@ -36239,7 +36246,8 @@
                                 "ref": "_core.search___InnerHitsResult"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "matched_queries": {
                             "type": {
@@ -36264,13 +36272,15 @@
                               ]
                             },
                             "required": false,
-                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                            "declared_in": "_core.search___Hit"
                           },
                           "_nested": {
                             "type": {
                               "ref": "_core.search___NestedIdentity"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_ignored": {
                             "type": {
@@ -36278,7 +36288,8 @@
                                 "scalar": "string"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "ignored_field_values": {
                             "type": {
@@ -36288,25 +36299,29 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_shard": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_node": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_routing": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_source": {
                             "type": {
@@ -36318,29 +36333,36 @@
                             "type": {
                               "ref": "_common___SequenceNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_primary_term": {
                             "type": {
                               "scalar": "integer",
                               "format": "int64"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_version": {
                             "type": {
                               "ref": "_common___VersionNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "sort": {
                             "type": {
                               "ref": "_common___SortResults"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           }
                         },
                         "constraints": [],
+                        "bases": [
+                          "_core.search___Hit"
+                        ],
                         "additional_fields": {
                           "any": true
                         }
@@ -40119,19 +40141,22 @@
                     "type": {
                       "ref": "_common___Type"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_index": {
                     "type": {
                       "ref": "_common___IndexName"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_id": {
                     "type": {
                       "ref": "_common___Id"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_score": {
                     "type": {
@@ -40147,13 +40172,15 @@
                       "union_kind": "scalar",
                       "exclusive": true
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_explanation": {
                     "type": {
                       "ref": "_core.explain___Explanation"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "fields": {
                     "type": {
@@ -40161,7 +40188,8 @@
                         "any": true
                       }
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "highlight": {
                     "type": {
@@ -40171,7 +40199,8 @@
                         }
                       }
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "inner_hits": {
                     "type": {
@@ -40179,7 +40208,8 @@
                         "ref": "_core.search___InnerHitsResult"
                       }
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "matched_queries": {
                     "type": {
@@ -40204,13 +40234,15 @@
                       ]
                     },
                     "required": false,
-                    "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                    "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                    "declared_in": "_core.search___Hit"
                   },
                   "_nested": {
                     "type": {
                       "ref": "_core.search___NestedIdentity"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_ignored": {
                     "type": {
@@ -40218,7 +40250,8 @@
                         "scalar": "string"
                       }
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "ignored_field_values": {
                     "type": {
@@ -40228,25 +40261,29 @@
                         }
                       }
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_shard": {
                     "type": {
                       "scalar": "string"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_node": {
                     "type": {
                       "scalar": "string"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_routing": {
                     "type": {
                       "scalar": "string"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_source": {
                     "type": {
@@ -40258,29 +40295,36 @@
                     "type": {
                       "ref": "_common___SequenceNumber"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_primary_term": {
                     "type": {
                       "scalar": "integer",
                       "format": "int64"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "_version": {
                     "type": {
                       "ref": "_common___VersionNumber"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   },
                   "sort": {
                     "type": {
                       "ref": "_common___SortResults"
                     },
-                    "required": false
+                    "required": false,
+                    "declared_in": "_core.search___Hit"
                   }
                 },
                 "constraints": [],
+                "bases": [
+                  "_core.search___Hit"
+                ],
                 "additional_fields": {
                   "any": true
                 }
@@ -41171,19 +41215,22 @@
                             "type": {
                               "ref": "_common___Type"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_index": {
                             "type": {
                               "ref": "_common___IndexName"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_id": {
                             "type": {
                               "ref": "_common___Id"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_score": {
                             "type": {
@@ -41199,13 +41246,15 @@
                               "union_kind": "scalar",
                               "exclusive": true
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_explanation": {
                             "type": {
                               "ref": "_core.explain___Explanation"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "fields": {
                             "type": {
@@ -41213,7 +41262,8 @@
                                 "any": true
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "highlight": {
                             "type": {
@@ -41223,7 +41273,8 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "inner_hits": {
                             "type": {
@@ -41231,7 +41282,8 @@
                                 "ref": "_core.search___InnerHitsResult"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "matched_queries": {
                             "type": {
@@ -41256,13 +41308,15 @@
                               ]
                             },
                             "required": false,
-                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                            "declared_in": "_core.search___Hit"
                           },
                           "_nested": {
                             "type": {
                               "ref": "_core.search___NestedIdentity"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_ignored": {
                             "type": {
@@ -41270,7 +41324,8 @@
                                 "scalar": "string"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "ignored_field_values": {
                             "type": {
@@ -41280,25 +41335,29 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_shard": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_node": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_routing": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_source": {
                             "type": {
@@ -41310,29 +41369,36 @@
                             "type": {
                               "ref": "_common___SequenceNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_primary_term": {
                             "type": {
                               "scalar": "integer",
                               "format": "int64"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_version": {
                             "type": {
                               "ref": "_common___VersionNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "sort": {
                             "type": {
                               "ref": "_common___SortResults"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           }
                         },
                         "constraints": [],
+                        "bases": [
+                          "_core.search___Hit"
+                        ],
                         "additional_fields": {
                           "any": true
                         }
@@ -41511,19 +41577,22 @@
                             "type": {
                               "ref": "_common___Type"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_index": {
                             "type": {
                               "ref": "_common___IndexName"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_id": {
                             "type": {
                               "ref": "_common___Id"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_score": {
                             "type": {
@@ -41539,13 +41608,15 @@
                               "union_kind": "scalar",
                               "exclusive": true
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_explanation": {
                             "type": {
                               "ref": "_core.explain___Explanation"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "fields": {
                             "type": {
@@ -41553,7 +41624,8 @@
                                 "any": true
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "highlight": {
                             "type": {
@@ -41563,7 +41635,8 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "inner_hits": {
                             "type": {
@@ -41571,7 +41644,8 @@
                                 "ref": "_core.search___InnerHitsResult"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "matched_queries": {
                             "type": {
@@ -41596,13 +41670,15 @@
                               ]
                             },
                             "required": false,
-                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                            "declared_in": "_core.search___Hit"
                           },
                           "_nested": {
                             "type": {
                               "ref": "_core.search___NestedIdentity"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_ignored": {
                             "type": {
@@ -41610,7 +41686,8 @@
                                 "scalar": "string"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "ignored_field_values": {
                             "type": {
@@ -41620,25 +41697,29 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_shard": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_node": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_routing": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_source": {
                             "type": {
@@ -41650,29 +41731,36 @@
                             "type": {
                               "ref": "_common___SequenceNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_primary_term": {
                             "type": {
                               "scalar": "integer",
                               "format": "int64"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_version": {
                             "type": {
                               "ref": "_common___VersionNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "sort": {
                             "type": {
                               "ref": "_common___SortResults"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           }
                         },
                         "constraints": [],
+                        "bases": [
+                          "_core.search___Hit"
+                        ],
                         "additional_fields": {
                           "any": true
                         }
@@ -41830,7 +41918,8 @@
                     "exclusive": true
                   },
                   "required": false,
-                  "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request."
+                  "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.",
+                  "declared_in": "_core.search___HitsMetadata"
                 },
                 "hits": {
                   "type": {
@@ -41841,19 +41930,22 @@
                             "type": {
                               "ref": "_common___Type"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_index": {
                             "type": {
                               "ref": "_common___IndexName"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_id": {
                             "type": {
                               "ref": "_common___Id"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_score": {
                             "type": {
@@ -41869,13 +41961,15 @@
                               "union_kind": "scalar",
                               "exclusive": true
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_explanation": {
                             "type": {
                               "ref": "_core.explain___Explanation"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "fields": {
                             "type": {
@@ -41883,7 +41977,8 @@
                                 "any": true
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "highlight": {
                             "type": {
@@ -41893,7 +41988,8 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "inner_hits": {
                             "type": {
@@ -41901,7 +41997,8 @@
                                 "ref": "_core.search___InnerHitsResult"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "matched_queries": {
                             "type": {
@@ -41926,13 +42023,15 @@
                               ]
                             },
                             "required": false,
-                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                            "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                            "declared_in": "_core.search___Hit"
                           },
                           "_nested": {
                             "type": {
                               "ref": "_core.search___NestedIdentity"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_ignored": {
                             "type": {
@@ -41940,7 +42039,8 @@
                                 "scalar": "string"
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "ignored_field_values": {
                             "type": {
@@ -41950,25 +42050,29 @@
                                 }
                               }
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_shard": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_node": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_routing": {
                             "type": {
                               "scalar": "string"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_source": {
                             "type": {
@@ -41980,29 +42084,36 @@
                             "type": {
                               "ref": "_common___SequenceNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_primary_term": {
                             "type": {
                               "scalar": "integer",
                               "format": "int64"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "_version": {
                             "type": {
                               "ref": "_common___VersionNumber"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           },
                           "sort": {
                             "type": {
                               "ref": "_common___SortResults"
                             },
-                            "required": false
+                            "required": false,
+                            "declared_in": "_core.search___Hit"
                           }
                         },
                         "constraints": [],
+                        "bases": [
+                          "_core.search___Hit"
+                        ],
                         "additional_fields": {
                           "any": true
                         }
@@ -42025,10 +42136,14 @@
                     "union_kind": "scalar",
                     "exclusive": true
                   },
-                  "required": true
+                  "required": true,
+                  "declared_in": "_core.search___HitsMetadata"
                 }
               },
-              "constraints": []
+              "constraints": [],
+              "bases": [
+                "_core.search___HitsMetadata"
+              ]
             }
           },
           "required": true
@@ -89521,7 +89636,8 @@
                         "exclusive": true
                       },
                       "required": false,
-                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request."
+                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.",
+                      "declared_in": "_core.search___HitsMetadata"
                     },
                     "hits": {
                       "type": {
@@ -89532,19 +89648,22 @@
                                 "type": {
                                   "ref": "_common___Type"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_index": {
                                 "type": {
                                   "ref": "_common___IndexName"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_id": {
                                 "type": {
                                   "ref": "_common___Id"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_score": {
                                 "type": {
@@ -89560,13 +89679,15 @@
                                   "union_kind": "scalar",
                                   "exclusive": true
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_explanation": {
                                 "type": {
                                   "ref": "_core.explain___Explanation"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "fields": {
                                 "type": {
@@ -89574,7 +89695,8 @@
                                     "any": true
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "highlight": {
                                 "type": {
@@ -89584,7 +89706,8 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "inner_hits": {
                                 "type": {
@@ -89592,7 +89715,8 @@
                                     "ref": "_core.search___InnerHitsResult"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "matched_queries": {
                                 "type": {
@@ -89617,13 +89741,15 @@
                                   ]
                                 },
                                 "required": false,
-                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                                "declared_in": "_core.search___Hit"
                               },
                               "_nested": {
                                 "type": {
                                   "ref": "_core.search___NestedIdentity"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_ignored": {
                                 "type": {
@@ -89631,7 +89757,8 @@
                                     "scalar": "string"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "ignored_field_values": {
                                 "type": {
@@ -89641,25 +89768,29 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_shard": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_node": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_routing": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_source": {
                                 "type": {
@@ -89671,29 +89802,36 @@
                                 "type": {
                                   "ref": "_common___SequenceNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_primary_term": {
                                 "type": {
                                   "scalar": "integer",
                                   "format": "int64"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_version": {
                                 "type": {
                                   "ref": "_common___VersionNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "sort": {
                                 "type": {
                                   "ref": "_common___SortResults"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               }
                             },
                             "constraints": [],
+                            "bases": [
+                              "_core.search___Hit"
+                            ],
                             "additional_fields": {
                               "any": true
                             }
@@ -89716,10 +89854,14 @@
                         "union_kind": "scalar",
                         "exclusive": true
                       },
-                      "required": true
+                      "required": true,
+                      "declared_in": "_core.search___HitsMetadata"
                     }
                   },
-                  "constraints": []
+                  "constraints": [],
+                  "bases": [
+                    "_core.search___HitsMetadata"
+                  ]
                 }
               },
               "required": true,
@@ -90286,7 +90428,8 @@
                         "exclusive": true
                       },
                       "required": false,
-                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request."
+                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.",
+                      "declared_in": "_core.search___HitsMetadata"
                     },
                     "hits": {
                       "type": {
@@ -90297,19 +90440,22 @@
                                 "type": {
                                   "ref": "_common___Type"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_index": {
                                 "type": {
                                   "ref": "_common___IndexName"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_id": {
                                 "type": {
                                   "ref": "_common___Id"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_score": {
                                 "type": {
@@ -90325,13 +90471,15 @@
                                   "union_kind": "scalar",
                                   "exclusive": true
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_explanation": {
                                 "type": {
                                   "ref": "_core.explain___Explanation"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "fields": {
                                 "type": {
@@ -90339,7 +90487,8 @@
                                     "any": true
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "highlight": {
                                 "type": {
@@ -90349,7 +90498,8 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "inner_hits": {
                                 "type": {
@@ -90357,7 +90507,8 @@
                                     "ref": "_core.search___InnerHitsResult"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "matched_queries": {
                                 "type": {
@@ -90382,13 +90533,15 @@
                                   ]
                                 },
                                 "required": false,
-                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                                "declared_in": "_core.search___Hit"
                               },
                               "_nested": {
                                 "type": {
                                   "ref": "_core.search___NestedIdentity"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_ignored": {
                                 "type": {
@@ -90396,7 +90549,8 @@
                                     "scalar": "string"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "ignored_field_values": {
                                 "type": {
@@ -90406,25 +90560,29 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_shard": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_node": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_routing": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_source": {
                                 "type": {
@@ -90436,29 +90594,36 @@
                                 "type": {
                                   "ref": "_common___SequenceNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_primary_term": {
                                 "type": {
                                   "scalar": "integer",
                                   "format": "int64"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_version": {
                                 "type": {
                                   "ref": "_common___VersionNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "sort": {
                                 "type": {
                                   "ref": "_common___SortResults"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               }
                             },
                             "constraints": [],
+                            "bases": [
+                              "_core.search___Hit"
+                            ],
                             "additional_fields": {
                               "any": true
                             }
@@ -90481,10 +90646,14 @@
                         "union_kind": "scalar",
                         "exclusive": true
                       },
-                      "required": true
+                      "required": true,
+                      "declared_in": "_core.search___HitsMetadata"
                     }
                   },
-                  "constraints": []
+                  "constraints": [],
+                  "bases": [
+                    "_core.search___HitsMetadata"
+                  ]
                 }
               },
               "required": true,
@@ -90687,7 +90856,8 @@
                         "exclusive": true
                       },
                       "required": false,
-                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request."
+                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.",
+                      "declared_in": "_core.search___HitsMetadata"
                     },
                     "hits": {
                       "type": {
@@ -90698,19 +90868,22 @@
                                 "type": {
                                   "ref": "_common___Type"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_index": {
                                 "type": {
                                   "ref": "_common___IndexName"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_id": {
                                 "type": {
                                   "ref": "_common___Id"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_score": {
                                 "type": {
@@ -90726,13 +90899,15 @@
                                   "union_kind": "scalar",
                                   "exclusive": true
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_explanation": {
                                 "type": {
                                   "ref": "_core.explain___Explanation"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "fields": {
                                 "type": {
@@ -90740,7 +90915,8 @@
                                     "any": true
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "highlight": {
                                 "type": {
@@ -90750,7 +90926,8 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "inner_hits": {
                                 "type": {
@@ -90758,7 +90935,8 @@
                                     "ref": "_core.search___InnerHitsResult"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "matched_queries": {
                                 "type": {
@@ -90783,13 +90961,15 @@
                                   ]
                                 },
                                 "required": false,
-                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                                "declared_in": "_core.search___Hit"
                               },
                               "_nested": {
                                 "type": {
                                   "ref": "_core.search___NestedIdentity"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_ignored": {
                                 "type": {
@@ -90797,7 +90977,8 @@
                                     "scalar": "string"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "ignored_field_values": {
                                 "type": {
@@ -90807,25 +90988,29 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_shard": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_node": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_routing": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_source": {
                                 "type": {
@@ -90837,29 +91022,36 @@
                                 "type": {
                                   "ref": "_common___SequenceNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_primary_term": {
                                 "type": {
                                   "scalar": "integer",
                                   "format": "int64"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_version": {
                                 "type": {
                                   "ref": "_common___VersionNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "sort": {
                                 "type": {
                                   "ref": "_common___SortResults"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               }
                             },
                             "constraints": [],
+                            "bases": [
+                              "_core.search___Hit"
+                            ],
                             "additional_fields": {
                               "any": true
                             }
@@ -90882,10 +91074,14 @@
                         "union_kind": "scalar",
                         "exclusive": true
                       },
-                      "required": true
+                      "required": true,
+                      "declared_in": "_core.search___HitsMetadata"
                     }
                   },
-                  "constraints": []
+                  "constraints": [],
+                  "bases": [
+                    "_core.search___HitsMetadata"
+                  ]
                 }
               },
               "required": true,
@@ -91088,7 +91284,8 @@
                         "exclusive": true
                       },
                       "required": false,
-                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request."
+                      "description": "The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.",
+                      "declared_in": "_core.search___HitsMetadata"
                     },
                     "hits": {
                       "type": {
@@ -91099,19 +91296,22 @@
                                 "type": {
                                   "ref": "_common___Type"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_index": {
                                 "type": {
                                   "ref": "_common___IndexName"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_id": {
                                 "type": {
                                   "ref": "_common___Id"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_score": {
                                 "type": {
@@ -91127,13 +91327,15 @@
                                   "union_kind": "scalar",
                                   "exclusive": true
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_explanation": {
                                 "type": {
                                   "ref": "_core.explain___Explanation"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "fields": {
                                 "type": {
@@ -91141,7 +91343,8 @@
                                     "any": true
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "highlight": {
                                 "type": {
@@ -91151,7 +91354,8 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "inner_hits": {
                                 "type": {
@@ -91159,7 +91363,8 @@
                                     "ref": "_core.search___InnerHitsResult"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "matched_queries": {
                                 "type": {
@@ -91184,13 +91389,15 @@
                                   ]
                                 },
                                 "required": false,
-                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                                "declared_in": "_core.search___Hit"
                               },
                               "_nested": {
                                 "type": {
                                   "ref": "_core.search___NestedIdentity"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_ignored": {
                                 "type": {
@@ -91198,7 +91405,8 @@
                                     "scalar": "string"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "ignored_field_values": {
                                 "type": {
@@ -91208,25 +91416,29 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_shard": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_node": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_routing": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_source": {
                                 "type": {
@@ -91238,29 +91450,36 @@
                                 "type": {
                                   "ref": "_common___SequenceNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_primary_term": {
                                 "type": {
                                   "scalar": "integer",
                                   "format": "int64"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_version": {
                                 "type": {
                                   "ref": "_common___VersionNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "sort": {
                                 "type": {
                                   "ref": "_common___SortResults"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               }
                             },
                             "constraints": [],
+                            "bases": [
+                              "_core.search___Hit"
+                            ],
                             "additional_fields": {
                               "any": true
                             }
@@ -91283,10 +91502,14 @@
                         "union_kind": "scalar",
                         "exclusive": true
                       },
-                      "required": true
+                      "required": true,
+                      "declared_in": "_core.search___HitsMetadata"
                     }
                   },
-                  "constraints": []
+                  "constraints": [],
+                  "bases": [
+                    "_core.search___HitsMetadata"
+                  ]
                 }
               },
               "required": true,
@@ -93397,19 +93620,22 @@
                                 "type": {
                                   "ref": "_common___Type"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_index": {
                                 "type": {
                                   "ref": "_common___IndexName"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_id": {
                                 "type": {
                                   "ref": "_common___Id"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_score": {
                                 "type": {
@@ -93425,13 +93651,15 @@
                                   "union_kind": "scalar",
                                   "exclusive": true
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_explanation": {
                                 "type": {
                                   "ref": "_core.explain___Explanation"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "fields": {
                                 "type": {
@@ -93439,7 +93667,8 @@
                                     "any": true
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "highlight": {
                                 "type": {
@@ -93449,7 +93678,8 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "inner_hits": {
                                 "type": {
@@ -93457,7 +93687,8 @@
                                     "ref": "_core.search___InnerHitsResult"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "matched_queries": {
                                 "type": {
@@ -93482,13 +93713,15 @@
                                   ]
                                 },
                                 "required": false,
-                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores."
+                                "description": "The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.",
+                                "declared_in": "_core.search___Hit"
                               },
                               "_nested": {
                                 "type": {
                                   "ref": "_core.search___NestedIdentity"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_ignored": {
                                 "type": {
@@ -93496,7 +93729,8 @@
                                     "scalar": "string"
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "ignored_field_values": {
                                 "type": {
@@ -93506,25 +93740,29 @@
                                     }
                                   }
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_shard": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_node": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_routing": {
                                 "type": {
                                   "scalar": "string"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_source": {
                                 "type": {
@@ -93536,29 +93774,36 @@
                                 "type": {
                                   "ref": "_common___SequenceNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_primary_term": {
                                 "type": {
                                   "scalar": "integer",
                                   "format": "int64"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "_version": {
                                 "type": {
                                   "ref": "_common___VersionNumber"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               },
                               "sort": {
                                 "type": {
                                   "ref": "_common___SortResults"
                                 },
-                                "required": false
+                                "required": false,
+                                "declared_in": "_core.search___Hit"
                               }
                             },
                             "constraints": [],
+                            "bases": [
+                              "_core.search___Hit"
+                            ],
                             "additional_fields": {
                               "any": true
                             }

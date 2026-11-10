@@ -21,6 +21,8 @@ const lowerModel = `{
       "id": {"type": {"scalar": "string"}, "required": true, "declared_in": "Base"},
       "zeta": {"type": {"scalar": "integer", "format": "int64"}, "required": true, "versions": {"added": "2.1"}},
       "alpha": {"type": {"ref": "Unit"}, "required": true, "description": "Alpha."}}},
+    "Same": {"type_kind": "object", "bases": ["Base"], "fields": {
+      "id": {"type": {"scalar": "string"}, "required": true, "description": "Redeclared."}}},
     "Unit": {"type_kind": "alias", "type": {"scalar": "integer", "format": "int64"}, "description": "A unit."},
     "UnitAlias": {"type_kind": "alias", "type": {"ref": "Unit"}},
     "Container": {"type_kind": "object", "fields": {"meta": {"type": {"any": true}, "required": false}},
@@ -80,6 +82,13 @@ func TestLowerObjectWithBases(t *testing.T) {
 	}
 	if alpha.Value.Extensions["x-type-name"] != "Unit" {
 		t.Error("alpha lost Unit's x-type-name")
+	}
+}
+
+func TestLowerIdenticalRedeclarationIsInherited(t *testing.T) {
+	same := lowered(t).Components.Schemas["Same"].Value
+	if len(same.AllOf) != 1 || same.AllOf[0].Ref != schemaRefPrefix+"Base" {
+		t.Errorf("Same = %+v, want only allOf [$ref Base]", same)
 	}
 }
 

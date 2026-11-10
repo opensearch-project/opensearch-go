@@ -33,27 +33,32 @@ The walker then renders that canonical form. Without `-model` nothing changes.
 
 ## Status: opt-in, not the default yet
 
-With `-model`, generation produces 11 changed files. Most of the changes are fixes; one
-breaks the build:
+With `-model`, the generated client builds and vets, and 4 generated files change
+(`types_gen.go`, `unions_gen.go`, and two security plugin files). The changes, all
+compatible with the hand-written code:
 
-- **Blocking.** `SearchResult.hits.hits` and the other hits overlays become new flat
-  inline types (`SearchResultHitsHitsItem`, …) instead of `[]SearchHit`, so the
-  hand-written `opensearchapi/search_after.go` no longer compiles. Cause: when a field is
-  redeclared with a partial object, the model merges the two into a flat object and drops
-  the earlier object's `bases` and its fields' `declared_in`, even when the overlay adds
-  nothing (`hits.items: {_source: {}}` over `allOf: [Hit, {_source: TDocument}]`). The
-  model must keep the earlier type when an overlay adds nothing, and keep `bases` when
-  merging objects.
 - **Fixes:**
   - Redeclared fields keep the base's requiredness, so five buckets fields (rare and
-    multi/significant terms aggregates), `SearchSuggestCompletion.options` and three
-    neural `stat_type` fields are no longer pointers to required values. osgen's own
-    tagshadow allowlist flagged these as "makes a required field optional".
-  - `type: [number, string]` fields are typed unions instead of `json.RawMessage`
-    (security `peer_certificates`, `ssl_openssl_version`).
+    multi/significant terms aggregates) and three neural `stat_type` fields are no longer
+    pointers to required values. osgen's own tagshadow allowlist flagged them as "makes a
+    required field optional".
+  - `type: [number, string]` fields are typed unions instead of `json.RawMessage` (security
+    `peer_certificates` ×2 and `ssl_openssl_version`: 3 new union types). `type: [null,
+    object]` (`RollupsExplain.rollup_metadata`) is `map[string]json.RawMessage`.
+  - A union branch that only restates a named type resolves to it. The suggest
+    `completion` branch is `SearchCompletionSuggest` rather than a duplicate
+    `SearchSuggestCompletion` type.
 - **Equivalent:**
-  - Fields are sorted together instead of by `allOf` member.
+  - Fields are sorted together instead of by `allOf` member (`TermsAggregationFields`,
+    `MetricAggregationBase`, `AggregationContainer`, `FunctionScoreContainer`,
+    `ReplicationUpdateSettingsSettings`).
   - Type comments come from the schema's own description instead of a referencing
     branch's.
   - The always-empty `Void` buckets of the unmapped aggregates fall back to the embedded
     generic buckets.
+- **New wrapper types:** `ExtendedBoundsDouble` and `ExtendedBoundsFieldDateMath` are
+  emitted as embed-only wrappers instead of collapsing onto `ExtendedBounds`, because the
+  model's merged requiredness re-requires `max`/`min`. The model can't tell whether the
+  spec repeated `required` on the redeclaration.
+
+Making `-model` the default is a decision about these public API changes.
