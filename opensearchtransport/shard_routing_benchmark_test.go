@@ -56,9 +56,9 @@ func BenchmarkCalcMultiKeyCost(b *testing.B) {
 		b.Run(fmt.Sprintf("keys=%d", numKeys), func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+				candidates, locality, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
 				candidates.Release()
-				extraCost.Release()
+				locality.Release()
 			}
 		})
 	}
@@ -116,30 +116,37 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 	}
 	slot.shardNodeNames.Store(&shardInfo)
 
-	b.Run("8_candidates_no_extraCost", func(b *testing.B) {
+	b.Run("8_candidates_no_locality", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, nil, nil)
+				scores.Slice(), nil, nil, nil, 0, nil)
 			scores.Release()
 		}
 	})
 
-	extraCost := make([]float64, 8)
-	for i := range extraCost {
-		extraCost[i] = float64(4 - i)
-		if extraCost[i] < 0 {
-			extraCost[i] = 0
-		}
+	locality := make([]float64, 8)
+	for i := range locality {
+		locality[i] = 1 + 0.5*float64(max(4-i, 0))/4
 	}
 
-	b.Run("8_candidates_with_extraCost", func(b *testing.B) {
+	b.Run("8_candidates_with_locality", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, extraCost, nil)
+				scores.Slice(), nil, locality, nil, 0, nil)
+			scores.Release()
+		}
+	})
+
+	b.Run("8_candidates_with_locality_and_spread", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			scores := acquireFloats(len(conns))
+			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
+				scores.Slice(), nil, locality, nil, defaultSpread, nil)
 			scores.Release()
 		}
 	})

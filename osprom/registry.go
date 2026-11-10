@@ -54,6 +54,7 @@ const (
 	labelMode   = "mode"
 	labelPool   = "pool"
 	labelState  = "state"
+	labelNode   = "node"
 
 	modeRequestLabel = "request"
 	modeStreamLabel  = "stream"
@@ -184,7 +185,8 @@ type Registry struct {
 	reqOverflow    RequestOverflowHandler
 	streamOverflow StreamOverflowHandler
 
-	dropped prometheus.Counter
+	dropped       prometheus.Counter
+	routeSelected *prometheus.CounterVec // routing decisions by selected node
 }
 
 // Option configures a [Registry].
@@ -324,14 +326,23 @@ func NewWithOptions(reg prometheus.Registerer, observers []Observer, opts []Opti
 			Name:      "observer_dropped_total",
 			Help:      "Number of observer events dropped because the osprom buffer was full.",
 		}),
+		routeSelected: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
+			Name:      "route_selected_total",
+			Help: "Routing decisions by the node the router selected, labeled by node. " +
+				"Uneven counts across nodes serving the same traffic show requests concentrating on one coordinator.",
+		}, []string{labelNode}),
 	}
 	obs := append([]Observer(nil), observers...)
 	r.observers.Store(&obs)
 	r.pool.New = func() any { return new(envelope) }
 	r.stop = sync.OnceFunc(func() { close(r.done) })
 
-	if err := reg.Register(r.dropped); err != nil {
-		return nil, err
+	for _, c := range []prometheus.Collector{r.dropped, r.routeSelected} {
+		if err := reg.Register(c); err != nil {
+			return nil, err
+		}
 	}
 	for _, o := range observers {
 		if err := o.Register(reg); err != nil {
@@ -508,6 +519,21 @@ func (r *Registry) OnStreamResponse(_ context.Context, e opensearchtransport.Str
 			r.streamOverflow(queueLen, &e)
 		}
 	}
+}
+
+// OnRoute counts the routing decision against the selected node. It runs on the
+// request goroutine and only increments a counter, so it neither buffers the
+// event nor retains it; the node label is the selected node's name, or its ID
+// when the name is not yet known. A decision that selected no node is not counted.
+func (r *Registry) OnRoute(e opensearchtransport.RouteEvent) {
+	node := e.Selected.Name
+	if node == "" {
+		node = e.Selected.ID
+	}
+	if node == "" {
+		return
+	}
+	r.routeSelected.WithLabelValues(node).Inc()
 }
 
 // Close stops the dispatch workers started by [Registry.Run]. It is idempotent

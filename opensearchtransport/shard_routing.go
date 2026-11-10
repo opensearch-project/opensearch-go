@@ -128,20 +128,22 @@ func needsShardSetCost(slot *indexSlot, routingValue, docID string) bool {
 
 // calcMultiKeyCost resolves routing values, either a comma-separated list or
 // one value on a partitioned index, to the set of shards they target and
-// computes a per-node extra cost based on how many target shards each node is
-// missing. When the target shards are spread across the cluster, the ideal
-// coordinator is the node hosting the most of them - it can serve those locally
-// and only proxies the rest.
+// computes a per-node locality multiplier based on how many target shards each
+// node is missing. When the target shards are spread across the cluster, the
+// ideal coordinator is the node hosting the most of them - it can serve those
+// locally and only proxies the rest.
 //
 // The target set is the union over all keys, as the server builds it: a shard
 // reached by several keys or partition offsets counts once. On a partitioned
 // index each key targets one shard per partition offset (see
 // [shardhash.ForRoutingOffset]).
 //
-// Returns candidates sorted by hit-count descending and a parallel extraCost
-// slice where extraCost[i] = totalShards - hitsForNode[i], with totalShards the
-// number of distinct target shards. A node hosting all target shards has
-// extraCost=0; a node hosting one of five has extraCost=4.
+// Returns candidates sorted by hit-count descending and a parallel slice of
+// score multipliers, 1 + locality*(totalShards-hitsForNode[i])/totalShards, with
+// totalShards the number of distinct target shards. A node hosting all target
+// shards has multiplier 1; with locality 0.5 a node hosting one of five has
+// multiplier 1.4. The multiplier is bounded by 1+locality, so locality never
+// outweighs the RTT and load terms of the score by more than that factor.
 //
 // The error is nil exactly when candidates are returned. Otherwise the result is
 // empty and the error is [ErrNoRoutingKey] when there is no routing value,
@@ -152,6 +154,7 @@ func calcMultiKeyCost(
 	features routingFeatures,
 	slot *indexSlot,
 	routingValue string,
+	locality float64,
 	conns []*Connection,
 ) (pooledConns, pooledFloats, error) {
 	if !features.shardExactEnabled() {
@@ -223,14 +226,14 @@ func calcMultiKeyCost(
 
 	n := len(*scored)
 	result := acquireConns(n)
-	extraCost := acquireFloats(n)
+	multipliers := acquireFloats(n)
 	for i, s := range *scored {
 		result.Slice()[i] = s.conn
-		extraCost.Slice()[i] = float64(totalShards - s.hits)
+		multipliers.Slice()[i] = 1 + locality*float64(totalShards-s.hits)/float64(totalShards)
 	}
 	releaseScoredConns(scored)
 
-	return result, extraCost, nil
+	return result, multipliers, nil
 }
 
 type scoredConn struct {

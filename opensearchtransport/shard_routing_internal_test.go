@@ -610,19 +610,19 @@ func TestCalcMultiKeyCost_PicksHighestHitNode(t *testing.T) {
 
 	// Shard 0: nodeA (primary), nodeB (replica)
 	// Shard 2: nodeC (primary), nodeA (replica)
-	// nodeA hosts both -> highest hit count (2), extraCost=0.
+	// nodeA hosts both -> highest hit count (2), multiplier 1.
 	routeToShard0 := routingValueForShard(t, sm, 0, "rt0-4")
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
-	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+	candidates, locality := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
 
 	require.NotNil(t, candidates)
 	require.Equal(t, "nodeA", candidates[0].Name)
-	require.InDelta(t, 0.0, extraCost[0], 1e-9)
+	require.InDelta(t, 1.0, locality[0], 1e-9)
 }
 
 func TestCalcMultiKeyCost_AllKeysOnSameShard(t *testing.T) {
@@ -641,22 +641,22 @@ func TestCalcMultiKeyCost_AllKeysOnSameShard(t *testing.T) {
 	routes := routingValuesForShard(t, sm, 1, "s1pair-9", 2)
 
 	routingValue := routes[0] + routingValueSeparator + routes[1]
-	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
-	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+	candidates, locality := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
 
 	require.NotNil(t, candidates)
-	// Both keys hit shard 1 -> nodeB gets hits=2, nodeC gets hits=2, extraCost=0 for both.
+	// Both keys hit shard 1 -> nodeB gets hits=2, nodeC gets hits=2, multiplier 1 for both.
 	require.Len(t, candidates, 2)
-	require.InDelta(t, 0.0, extraCost[0], 1e-9)
-	require.InDelta(t, 0.0, extraCost[1], 1e-9)
+	require.InDelta(t, 1.0, locality[0], 1e-9)
+	require.InDelta(t, 1.0, locality[1], 1e-9)
 	names := map[string]bool{candidates[0].Name: true, candidates[1].Name: true}
 	require.True(t, names["nodeB"])
 	require.True(t, names["nodeC"])
 }
 
-func TestCalcMultiKeyCost_ExtraCostReflectsRemoteHops(t *testing.T) {
+func TestCalcMultiKeyCost_LocalityReflectsRemoteHops(t *testing.T) {
 	t.Parallel()
 
 	sm := shardMap3()
@@ -670,24 +670,24 @@ func TestCalcMultiKeyCost_ExtraCostReflectsRemoteHops(t *testing.T) {
 
 	// Shard 0: nodeA (primary), nodeB (replica)
 	// Shard 2: nodeC (primary), nodeA (replica)
-	// 2 keys total. nodeA hosts both (extraCost=0), nodeB hosts 1 (extraCost=1),
-	// nodeC hosts 1 (extraCost=1).
+	// 2 target shards. With locality 1, nodeA hosts both (multiplier 1), nodeB
+	// hosts 1 (1.5), nodeC hosts 1 (1.5).
 	routeToShard0 := routingValueForShard(t, sm, 0, "rt0-4")
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
-	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+	candidates, locality := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
 
 	require.Len(t, candidates, 3)
-	// First candidate is nodeA (hits=2, extraCost=0).
+	// First candidate is nodeA (hits=2, multiplier 1).
 	require.Equal(t, "nodeA", candidates[0].Name)
-	require.InDelta(t, 0.0, extraCost[0], 1e-9)
-	// Remaining have extraCost=1.
-	require.InDelta(t, 1.0, extraCost[1], 1e-9)
-	require.InDelta(t, 1.0, extraCost[2], 1e-9)
+	require.InDelta(t, 1.0, locality[0], 1e-9)
+	// Remaining each miss one of two target shards.
+	require.InDelta(t, 1.5, locality[1], 1e-9)
+	require.InDelta(t, 1.5, locality[2], 1e-9)
 }
 
 func TestCalcMultiKeyCost_DisabledByFeatureFlag(t *testing.T) {
@@ -697,9 +697,9 @@ func TestCalcMultiKeyCost_DisabledByFeatureFlag(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost, _ := calcMultiKeyCost(routingSkipShardExact, slot, "a,b", []*Connection{connA})
+	candidates, locality, _ := calcMultiKeyCost(routingSkipShardExact, slot, "a,b", 1, []*Connection{connA})
 	require.Nil(t, candidates.Slice())
-	require.Nil(t, extraCost.Slice())
+	require.Nil(t, locality.Slice())
 }
 
 func TestCalcMultiKeyCost_NilShardMap(t *testing.T) {
@@ -708,9 +708,9 @@ func TestCalcMultiKeyCost_NilShardMap(t *testing.T) {
 	slot := &indexSlot{clock: realClock{}}
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "a,b", []*Connection{connA})
+	candidates, locality, _ := calcMultiKeyCost(routingFeatures(0), slot, "a,b", 1, []*Connection{connA})
 	require.Nil(t, candidates.Slice())
-	require.Nil(t, extraCost.Slice())
+	require.Nil(t, locality.Slice())
 }
 
 func TestCalcMultiKeyCost_EmptyRoutingValue(t *testing.T) {
@@ -720,9 +720,9 @@ func TestCalcMultiKeyCost_EmptyRoutingValue(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
+	candidates, locality, _ := calcMultiKeyCost(routingFeatures(0), slot, "", 1, []*Connection{connA})
 	require.Nil(t, candidates.Slice())
-	require.Nil(t, extraCost.Slice())
+	require.Nil(t, locality.Slice())
 }
 
 func TestCalcMultiKeyCost_E2E_IndexRouter(t *testing.T) {
@@ -733,7 +733,7 @@ func TestCalcMultiKeyCost_E2E_IndexRouter(t *testing.T) {
 
 	// Shard 0: nodeA (primary), nodeB (replica)
 	// Shard 2: nodeC (primary), nodeA (replica)
-	// nodeA hosts both -> should be selected (extraCost=0, best score).
+	// nodeA hosts both -> should be selected (multiplier 1, best score).
 	routeToShard0 := routingValueForShard(t, sm, 0, "rt0-4")
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
@@ -798,48 +798,48 @@ func TestCalcMultiKeyCost_HighReplicaCount(t *testing.T) {
 		wantFirstOneOf []string
 		// wantCount is how many candidate nodes should be returned.
 		wantCount int
-		// wantFirstExtraCost is the expected extraCost for the first candidate.
-		wantFirstExtraCost float64
+		// wantFirstLocality is the expected locality multiplier for the first candidate.
+		wantFirstLocality float64
 	}{
 		{
-			// All 5 shards targeted: n4 and n5 host all 5 -> extraCost=0.
-			name:               "5_shards_all_targeted",
-			targetShards:       []int{0, 1, 2, 3, 4},
-			wantFirstOneOf:     []string{"n4", "n5"},
-			wantCount:          8,
-			wantFirstExtraCost: 0,
+			// All 5 shards targeted: n4 and n5 host all 5 -> multiplier 1.
+			name:              "5_shards_all_targeted",
+			targetShards:      []int{0, 1, 2, 3, 4},
+			wantFirstOneOf:    []string{"n4", "n5"},
+			wantCount:         8,
+			wantFirstLocality: 1,
 		},
 		{
-			// 4 shards targeted (0,1,2,3): n3,n4,n5 host all 4 -> extraCost=0.
-			name:               "4_shards_targeted",
-			targetShards:       []int{0, 1, 2, 3},
-			wantFirstOneOf:     []string{"n3", "n4", "n5"},
-			wantCount:          8,
-			wantFirstExtraCost: 0,
+			// 4 shards targeted (0,1,2,3): n3,n4,n5 host all 4 -> multiplier 1.
+			name:              "4_shards_targeted",
+			targetShards:      []int{0, 1, 2, 3},
+			wantFirstOneOf:    []string{"n3", "n4", "n5"},
+			wantCount:         8,
+			wantFirstLocality: 1,
 		},
 		{
-			// 3 shards targeted (0,1,2): n2,n3,n4,n5 host all 3 -> extraCost=0.
-			name:               "3_shards_targeted_012",
-			targetShards:       []int{0, 1, 2},
-			wantFirstOneOf:     []string{"n2", "n3", "n4", "n5"},
-			wantCount:          8,
-			wantFirstExtraCost: 0,
+			// 3 shards targeted (0,1,2): n2,n3,n4,n5 host all 3 -> multiplier 1.
+			name:              "3_shards_targeted_012",
+			targetShards:      []int{0, 1, 2},
+			wantFirstOneOf:    []string{"n2", "n3", "n4", "n5"},
+			wantCount:         8,
+			wantFirstLocality: 1,
 		},
 		{
-			// 2 shards targeted (0,4): n0,n1,n4,n5 host both -> extraCost=0.
-			name:               "2_shards_targeted_04",
-			targetShards:       []int{0, 4},
-			wantFirstOneOf:     []string{"n0", "n1", "n4", "n5"},
-			wantCount:          8,
-			wantFirstExtraCost: 0,
+			// 2 shards targeted (0,4): n0,n1,n4,n5 host both -> multiplier 1.
+			name:              "2_shards_targeted_04",
+			targetShards:      []int{0, 4},
+			wantFirstOneOf:    []string{"n0", "n1", "n4", "n5"},
+			wantCount:         8,
+			wantFirstLocality: 1,
 		},
 		{
-			// 1 shard targeted (2): all 6 nodes hosting shard 2 have extraCost=0.
-			name:               "1_shard_targeted_2",
-			targetShards:       []int{2},
-			wantFirstOneOf:     []string{"n2", "n3", "n4", "n5", "n6", "n7"},
-			wantCount:          6,
-			wantFirstExtraCost: 0,
+			// 1 shard targeted (2): all 6 nodes hosting shard 2 have multiplier 1.
+			name:              "1_shard_targeted_2",
+			targetShards:      []int{2},
+			wantFirstOneOf:    []string{"n2", "n3", "n4", "n5", "n6", "n7"},
+			wantCount:         6,
+			wantFirstLocality: 1,
 		},
 		{
 			// 0 shards targeted: empty routing -> nil result.
@@ -864,27 +864,27 @@ func TestCalcMultiKeyCost_HighReplicaCount(t *testing.T) {
 			}
 
 			if len(parts) == 0 {
-				candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "", conns)
+				candidates, locality, _ := calcMultiKeyCost(routingFeatures(0), slot, "", 1, conns)
 				require.Nil(t, candidates.Slice())
-				require.Nil(t, extraCost.Slice())
+				require.Nil(t, locality.Slice())
 				return
 			}
 
 			routingValue := strings.Join(parts, routingValueSeparator)
-			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
-			candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
+			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+			candidates, locality := cBuf.Slice(), ecBuf.Slice()
 			defer cBuf.Release()
 			defer ecBuf.Release()
 
 			require.Len(t, candidates, tt.wantCount,
 				"expected %d candidates, got %d", tt.wantCount, len(candidates))
-			require.Len(t, extraCost, tt.wantCount)
+			require.Len(t, locality, tt.wantCount)
 
 			if len(tt.wantFirstOneOf) > 0 {
 				found := slices.Contains(tt.wantFirstOneOf, candidates[0].Name)
 				require.True(t, found,
 					"first candidate %q not in expected set %v", candidates[0].Name, tt.wantFirstOneOf)
-				require.InDelta(t, tt.wantFirstExtraCost, extraCost[0], 1e-9)
+				require.InDelta(t, tt.wantFirstLocality, locality[0], 1e-9)
 			}
 		})
 	}

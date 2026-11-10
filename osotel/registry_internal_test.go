@@ -793,3 +793,81 @@ func TestDefaultLoggerResolvesPerMessage(t *testing.T) {
 	require.NotContains(t, first.messages(), "osotel registry stopped",
 		"shutdown message went to the logger installed at construction time")
 }
+
+// routeSelectedCounts returns the route.selected data points as node -> count.
+func routeSelectedCounts(t *testing.T, rm metricdata.ResourceMetrics) map[string]int64 {
+	t.Helper()
+	const name = instrumentPrefix + "route.selected"
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name != name {
+				continue
+			}
+			sum, ok := m.Data.(metricdata.Sum[int64])
+			require.True(t, ok, "metric %q is an Int64 sum", name)
+			counts := make(map[string]int64, len(sum.DataPoints))
+			for _, dp := range sum.DataPoints {
+				node, _ := dp.Attributes.Value(attrNode)
+				counts[node.AsString()] = dp.Value
+			}
+			return counts
+		}
+	}
+	return map[string]int64{}
+}
+
+func TestRegistryOnRouteCountsSelectedNode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		events []opensearchtransport.RouteEvent
+		want   map[string]int64
+	}{
+		{name: "no events", want: map[string]int64{}},
+		{
+			name: "counts per selected node",
+			events: []opensearchtransport.RouteEvent{
+				{Selected: opensearchtransport.RouteCandidate{Name: "node-a", ID: "id-a"}},
+				{Selected: opensearchtransport.RouteCandidate{Name: "node-b", ID: "id-b"}},
+				{Selected: opensearchtransport.RouteCandidate{Name: "node-a", ID: "id-a"}},
+			},
+			want: map[string]int64{"node-a": 2, "node-b": 1},
+		},
+		{
+			name:   "falls back to the ID when the node has no name",
+			events: []opensearchtransport.RouteEvent{{Selected: opensearchtransport.RouteCandidate{ID: "id-a"}}},
+			want:   map[string]int64{"id-a": 1},
+		},
+		{
+			name:   "no selected node is not counted",
+			events: []opensearchtransport.RouteEvent{{IndexName: "idx"}},
+			want:   map[string]int64{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mp, collect := newTestMeter(t)
+			reg, err := New(mp.Meter("test"))
+			require.NoError(t, err)
+
+			for _, e := range tt.events {
+				reg.OnRoute(e)
+			}
+
+			require.Equal(t, tt.want, routeSelectedCounts(t, collect()))
+		})
+	}
+}
+
+func TestRegistryOnRouteDoesNotAllocate(t *testing.T) {
+	// Not parallel: testing.AllocsPerRun panics in a parallel test.
+	mp, _ := newTestMeter(t)
+	reg, err := New(mp.Meter("test"))
+	require.NoError(t, err)
+
+	e := opensearchtransport.RouteEvent{Selected: opensearchtransport.RouteCandidate{Name: "node-a", ID: "id-a"}}
+	require.InDelta(t, 0.0, testing.AllocsPerRun(100, func() { reg.OnRoute(e) }), 0)
+}

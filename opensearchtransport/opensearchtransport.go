@@ -505,6 +505,11 @@ type Config struct {
 	// (r:base, r:amplify, r:exponent) and control the read-primary cost curve.
 	// Static keys (unknown, relocating, initializing, replica, write_primary,
 	// write_replica) override shard state costs in the lookup tables.
+	// The coordinator selection keys "locality" (default 0.5, the penalty on a
+	// coordinator hosting fewer of a multi-shard request's target shards) and
+	// "spread" (default 0.25, the relative score band for the random first
+	// pick) accept 0: locality=0 turns the locality penalty off and spread=0
+	// always picks the lowest score.
 	ShardCostConfig string
 
 	// Context for background operations (node discovery, health checks, stats polling).

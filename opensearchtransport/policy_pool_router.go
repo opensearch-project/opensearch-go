@@ -117,7 +117,8 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 
 		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil,
+			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 		scores.Release()
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
@@ -166,22 +167,23 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	var candidatesBuf pooledConns
 	var shardNum int
 	var shard *shardNodes
-	var extraCost pooledFloats
+	var locality pooledFloats
 	var missErr error
 
 	if !needsShardSetCost(slot, routingValue, keyB) {
 		candidatesBuf, shardNum, shard, missErr = calcSingleKeyCost(p.cache.features, slot, routingValue, keyB, conns)
 	} else {
-		candidatesBuf, extraCost, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, locality, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, p.cache.locality, conns)
 		shardNum = -1
 	}
 
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), routeAttemptFrom(ctx))
+			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, locality.Slice(),
+			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 		scores.Release()
-		extraCost.Release()
+		locality.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := keyA
@@ -241,7 +243,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
+		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests

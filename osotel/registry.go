@@ -33,6 +33,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
@@ -50,6 +51,7 @@ const (
 	attrMode   = "mode"
 	attrPool   = "pool"
 	attrState  = "state"
+	attrNode   = "node"
 
 	modeRequestLabel = "request"
 	modeStreamLabel  = "stream"
@@ -181,7 +183,12 @@ type Registry struct {
 	reqOverflow    RequestOverflowHandler
 	streamOverflow StreamOverflowHandler
 
-	dropped metric.Int64Counter
+	dropped       metric.Int64Counter
+	routeSelected metric.Int64Counter // routing decisions by selected node
+
+	// routeAttrs caches, per node, the Add options carrying the node attribute,
+	// so recording a routing decision does not build them each time.
+	routeAttrs sync.Map // node name -> []metric.AddOption
 }
 
 // Option configures a [Registry].
@@ -315,6 +322,16 @@ func NewWithOptions(meter metric.Meter, observers []Observer, opts []Option) (*R
 		return nil, err
 	}
 
+	routeSelected, err := meter.Int64Counter(
+		instrumentPrefix+"route.selected",
+		metric.WithDescription("Routing decisions by the node the router selected. "+
+			"Uneven counts across nodes serving the same traffic show requests concentrating on one coordinator."),
+		metric.WithUnit("{decision}"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	r := &Registry{
 		ch:             make(chan *envelope, cfg.bufferSize),
 		done:           make(chan struct{}),
@@ -325,6 +342,7 @@ func NewWithOptions(meter metric.Meter, observers []Observer, opts []Option) (*R
 		reqOverflow:    cfg.reqOverflow,
 		streamOverflow: cfg.streamOverflow,
 		dropped:        dropped,
+		routeSelected:  routeSelected,
 	}
 	obs := append([]Observer(nil), observers...)
 	r.observers.Store(&obs)
@@ -506,6 +524,25 @@ func (r *Registry) OnStreamResponse(ctx context.Context, e opensearchtransport.S
 			r.streamOverflow(queueLen, &e)
 		}
 	}
+}
+
+// OnRoute counts the routing decision against the selected node. It runs on the
+// request goroutine and only increments a counter, so it neither buffers the
+// event nor retains it; the node attribute is the selected node's name, or its ID
+// when the name is not yet known. A decision that selected no node is not counted.
+func (r *Registry) OnRoute(e opensearchtransport.RouteEvent) {
+	node := e.Selected.Name
+	if node == "" {
+		node = e.Selected.ID
+	}
+	if node == "" {
+		return
+	}
+	opts, ok := r.routeAttrs.Load(node)
+	if !ok {
+		opts, _ = r.routeAttrs.LoadOrStore(node, []metric.AddOption{metric.WithAttributes(attribute.String(attrNode, node))})
+	}
+	r.routeSelected.Add(context.Background(), 1, opts.([]metric.AddOption)...) //nolint:forcetypeassert // map only stores []metric.AddOption
 }
 
 // Close stops the dispatch workers started by [Registry.Run]. It is idempotent

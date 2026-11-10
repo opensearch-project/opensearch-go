@@ -893,6 +893,11 @@ func WithAdaptiveConcurrencyLimits(minVal, maxVal int) RouterOption {
 //     dynamic read curve keys are prefixed with "r:". Static keys
 //     (unknown, relocating, initializing, replica, write_primary,
 //     write_replica) override shard state costs in the lookup tables.
+//   - "locality" (default 0.5) scales the penalty on a coordinator hosting
+//     fewer of a multi-shard request's target shards; "spread" (default
+//     0.25) is the relative score band within which the first pick is
+//     random. Both accept 0 to turn the behavior off ("spread=0" always
+//     picks the lowest score).
 //   - Any static value ≤ 0 is replaced by the compile-time default.
 //
 // The environment variable takes precedence over this option.
@@ -991,6 +996,7 @@ func NewDefaultPolicy(opts ...RouterOption) (Policy, error) {
 
 	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
 	cache := newIndexSlotCache(cacheCfg)
+	cache.locality, cache.spread = costCfg.locality, costCfg.spread
 
 	coordinatingPolicy := mustRolePolicy(RoleCoordinatingOnly)
 

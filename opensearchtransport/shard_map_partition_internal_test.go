@@ -8,8 +8,10 @@ package opensearchtransport
 
 import (
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -369,17 +371,91 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			slot := partitionedSlot(tt.primaries, tt.routingPartitionSize, placement)
 			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
 
-			cBuf, ecBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
+			// At locality 1 the factor is 1 + missing/total, so the missing count
+			// is (factor-1)*total.
+			total := map[int]struct{}{}
+			for key := range strings.SplitSeq(tt.routing, routingValueSeparator) {
+				for offset := range max(tt.routingPartitionSize, 1) {
+					total[shardOf(keyOffset{key, offset})] = struct{}{}
+				}
+			}
+			cBuf, ecBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, 1, conns)
 			defer cBuf.Release()
 			defer ecBuf.Release()
 
 			got := map[string]float64{}
 			for i, c := range cBuf.Slice() {
-				got[c.Name] = ecBuf.Slice()[i]
+				got[c.Name] = math.Round((ecBuf.Slice()[i] - 1) * float64(len(total)))
 			}
 			require.Equal(t, tt.wantExtraCost, got)
 			requireErrorIs(t, tt.wantErr, err)
 		})
+	}
+}
+
+// calcMultiKeyCost returns, per candidate, 1 + locality*(missing/total) where
+// total is the number of distinct target shards and missing those the node does
+// not host.
+func TestCalcMultiKeyCostLocalityFactor(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                 string
+		routingPartitionSize int
+		routing              string
+		bHosts               int // how many target shards nodeB hosts; nodeA hosts all
+		total                int
+	}{
+		{name: "p=1, two keys", routing: "user-7,u682", bHosts: 1, total: 2},
+		{name: "p=2", routingPartitionSize: 2, routing: "user-7", bHosts: 1, total: 2},
+		{name: "p=4, one of four", routingPartitionSize: 4, routing: "user-7", bHosts: 1, total: 4},
+		{name: "p=4, three of four", routingPartitionSize: 4, routing: "user-7", bHosts: 3, total: 4},
+	}
+	for _, tt := range tests {
+		for _, locality := range []float64{0, 0.5, 2} {
+			t.Run(tt.name+"/locality="+strconv.FormatFloat(locality, 'g', -1, 64), func(t *testing.T) {
+				t.Parallel()
+
+				var targets []int
+				for key := range strings.SplitSeq(tt.routing, routingValueSeparator) {
+					for offset := range max(tt.routingPartitionSize, 1) {
+						targets = append(targets, shardhash.ForRoutingOffset(key, offset, partitionedRoutingNumShards, partitionedPrimaryShards))
+					}
+				}
+				require.Len(t, targets, tt.total)
+
+				placement := map[int]string{}
+				for i, shard := range targets {
+					placement[shard] = "nodeA"
+					if i < tt.bHosts {
+						placement[shard] = "nodeB"
+					}
+				}
+				// nodeA hosts every target shard: it is a replica of nodeB's.
+				slot := partitionedSlot(partitionedPrimaryShards, tt.routingPartitionSize, placement)
+				for _, sn := range slot.shardMap.Load().Shards {
+					if sn.Primary == "nodeB" {
+						sn.Replicas = []string{"nodeA"}
+					}
+				}
+				conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
+
+				cBuf, fBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, locality, conns)
+				require.NoError(t, err)
+				defer cBuf.Release()
+				defer fBuf.Release()
+
+				got := map[string]float64{}
+				for i, c := range cBuf.Slice() {
+					got[c.Name] = fBuf.Slice()[i]
+				}
+				want := map[string]float64{
+					"nodeA": 1,
+					"nodeB": 1 + locality*float64(tt.total-tt.bHosts)/float64(tt.total),
+				}
+				require.InDeltaMapValues(t, want, got, 1e-12)
+			})
+		}
 	}
 }
 
@@ -570,16 +646,13 @@ func TestRoutersCostShardSets(t *testing.T) {
 			conns := make([]*Connection, 3)
 			for i := range conns {
 				id := "node" + string(rune('0'+i))
-				// node1, the node hosting most shards, is the farthest, so only a cost
-				// for the shards a node lacks makes it the pick.
-				rtt := 200 * time.Microsecond
-				if i == 1 {
-					rtt = 1 * time.Millisecond
-				}
-				conns[i] = makeTestConn(t, "http://"+id+":9200", id, rtt)
+				// Equal RTT, so only the locality penalty for the shards a node lacks
+				// makes node1, the node hosting most of them, the pick.
+				conns[i] = makeTestConn(t, "http://"+id+":9200", id, 200*time.Microsecond)
 				conns[i].Name = id
 			}
 			cache := testIndexSlotCache()
+			cache.locality = defaultLocality
 			cache.features = tt.features
 			if tt.shardMap != nil {
 				cache.getOrCreate("idx").shardMap.Store(tt.shardMap)

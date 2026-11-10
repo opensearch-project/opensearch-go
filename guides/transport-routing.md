@@ -569,6 +569,20 @@ Winner: **Node B** (score 0.58). With the write pool idle, the primary's dynamic
 
 If Node B had 50% write utilization: cost = 0.95 + 2.0 \* 0.5^2 = 1.45, score = 0.89. Node C would win instead.
 
+### Multi-Shard Requests and Near-Ties
+
+A request that targets several shards -- a comma-separated `?routing=` list, or one routing value without a document ID on an index with `index.routing_partition_size` above 1 -- is scored on the nodes that host at least one of those shards. Each such node's score is multiplied by a locality factor:
+
+```
+locality = 1 + α × (targetShards - hostedShards) / targetShards
+```
+
+`α` is the `locality` shard-cost key (default `0.5`). A node hosting every target shard has a factor of 1.0, and a node hosting one of four has 1.375. The factor never exceeds `1 + α`, so hosting more of the target shards is worth at most that factor in score. A node whose RTT and utilization terms are better by more than the factor still beats a node that hosts all of the shards. `locality=0` turns the factor off.
+
+The first candidate tried is then drawn at random from the near-best rather than always being the single lowest score. Candidates scoring within `best × (1 + spread)` form a band (`spread` defaults to `0.25`), and one is chosen with probability proportional to `1 / score`. Without this, every client that sees the same ranking sends its next request to the same coordinator until its own in-flight count moves the ranking, and clients sharing a cluster pile onto one node. The draw only widens the choice among near-equal nodes: a node outside the band is never picked first, and a band holding one node selects it. When the first pick is warming up and skips, later candidates are tried in ascending score order, and a retried request still skips the nodes it has tried. `spread=0` always picks the lowest score.
+
+The `opensearch_client_route_selected_total{node}` counter in `osprom` (`opensearch.client.route.selected` in `osotel`) counts routing decisions per selected node, which shows whether requests concentrate on one coordinator.
+
 ### AZ-Aware Crossover
 
 The multiplicative score formula creates natural tier-based overflow. Crossover between a local node (bucket=8) and a remote node (bucket=B) is immediate when the local node has higher utilization:
@@ -2084,7 +2098,7 @@ OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-
 
 #### Shard Cost Configuration
 
-`OPENSEARCH_GO_SHARD_COST` configures the shard cost scoring parameters used by the connection scorer. Values are resolved once at client initialization. The env var takes precedence over the programmatic `WithShardCosts()` option, which takes precedence over compile-time defaults. Any static cost value <= 0 is replaced by the compile-time default for that slot.
+`OPENSEARCH_GO_SHARD_COST` configures the shard cost scoring parameters used by the connection scorer. Values are resolved once at client initialization. The env var takes precedence over the programmatic `WithShardCosts()` option, which takes precedence over compile-time defaults. Any static cost value <= 0 is replaced by the compile-time default for that slot; `locality` and `spread` accept `0`.
 
 **Format:**
 
@@ -2106,6 +2120,15 @@ OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-
 
    The dynamic primary read cost is: `r:base + r:amplify * (writeUtil ^ r:exponent)`
 
+   **Coordinator selection keys** (multi-shard locality and near-tie spread; see [Multi-Shard Requests and Near-Ties](#multi-shard-requests-and-near-ties)):
+
+   | Key        | Default | Description                                                                          |
+   | ---------- | ------- | ------------------------------------------------------------------------------------ |
+   | `locality` | `0.5`   | Score penalty for hosting fewer of the target shards; `0` turns it off               |
+   | `spread`   | `0.25`  | Relative score band for the randomized first pick; `0` always picks the lowest score |
+
+   Both must be finite and >= 0, and `0` is kept as given.
+
    **Static cost keys** (override shard state costs in the lookup tables):
 
    | Key             | Table(s)    | Default | Description                                      |
@@ -2126,6 +2149,9 @@ OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-
 
    # Override a static cost: reduce unknown penalty
    OPENSEARCH_GO_SHARD_COST=unknown=16.0,r:amplify=2.0
+
+   # Always pick the lowest-scoring coordinator, with no locality penalty
+   OPENSEARCH_GO_SHARD_COST=spread=0,locality=0
    ```
 
 **Programmatic equivalent:**

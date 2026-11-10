@@ -17,7 +17,7 @@ import (
 
 // shardCostValidKeysHint is appended to "unknown key" messages to enumerate
 // the parser's accepted key set in a consistent order.
-const shardCostValidKeysHint = "valid keys: r:base, r:amplify, r:exponent, unknown, " +
+const shardCostValidKeysHint = "valid keys: r:base, r:amplify, r:exponent, locality, spread, unknown, " +
 	"relocating, initializing, replica, write_primary, write_replica"
 
 // Shard cost config error message constants.
@@ -33,6 +33,12 @@ const (
 	shardCostKeyBase     = "r:base"
 	shardCostKeyAmplify  = "r:amplify"
 	shardCostKeyExponent = "r:exponent"
+)
+
+// Shard cost config key constants for coordinator selection.
+const (
+	shardCostKeyLocality = "locality"
+	shardCostKeySpread   = "spread"
 )
 
 // Shard cost config key constants for static overrides.
@@ -89,6 +95,16 @@ func (e *ShardCostConfigError) Unwrap() error { return e.Err }
 //	r:base      - primary read cost at write-idle (default 0.95)
 //	r:amplify   - amplification factor (default 2.0)
 //	r:exponent  - curve shape (default 2.0 = quadratic)
+//
+// Coordinator selection keys:
+//
+//	locality - penalty for a coordinator that hosts fewer of a multi-shard
+//	           request's target shards: score *= 1 + locality*(missing/total)
+//	           (default 0.5, 0 = off)
+//	spread   - relative score band for the first pick: coordinators scoring
+//	           within best*(1+spread) are chosen at random, weighted by
+//	           1/score, so concurrent clients do not herd onto one node
+//	           (default 0.25, 0 = always the lowest score)
 //
 // Static keys (shard state costs):
 //
@@ -272,6 +288,12 @@ func calcNodePrimaryPct(node *shardNodeInfo) float64 {
 	return float64(node.Primaries) / float64(total)
 }
 
+// Default coordinator selection parameters.
+const (
+	defaultLocality = 0.5  // a node hosting none of the target shards costs 1.5x one hosting all
+	defaultSpread   = 0.25 // nodes scoring within 25% of the best share the first pick
+)
+
 // Default read cost curve parameters.
 const (
 	defaultReadCurveBase     = 0.95 // slightly prefer primary at idle (< replica's 1.0)
@@ -354,6 +376,13 @@ type shardCostConfig struct {
 	reads     shardCostMultiplier
 	writes    shardCostMultiplier
 	scoreFunc connScoreFunc // non-nil: dynamic read scoring via newReadScoreFunc
+
+	// locality scales how strongly a coordinator that hosts fewer of a
+	// multi-shard request's target shards is penalized; 0 disables it.
+	locality float64
+	// spread is the relative score band within which a coordinator is
+	// chosen at random, weighted by 1/score; 0 always picks the lowest score.
+	spread float64
 }
 
 // parseShardCostConfig parses a shard cost configuration string into
@@ -366,6 +395,11 @@ type shardCostConfig struct {
 //	r:base      - primary read cost at write-idle (default 0.95)
 //	r:amplify   - amplification factor (default 2.0)
 //	r:exponent  - curve shape (default 2.0 = quadratic)
+//
+// Coordinator selection keys (finite, >= 0; 0 is kept, not defaulted):
+//
+//	locality - multi-shard locality penalty factor (default 0.5)
+//	spread   - near-best random selection band (default 0.25)
 //
 // Static keys override shard state costs in the lookup tables:
 //
@@ -384,8 +418,10 @@ func parseShardCostConfig(spec string) (*shardCostConfig, error) {
 	curveExponent := defaultReadCurveExponent
 
 	cfg := shardCostConfig{
-		reads:  shardCostForReads,
-		writes: shardCostForWrites,
+		reads:    shardCostForReads,
+		writes:   shardCostForWrites,
+		locality: defaultLocality,
+		spread:   defaultSpread,
 	}
 
 	spec = strings.TrimSpace(spec)
@@ -441,6 +477,17 @@ func parseShardCostConfig(spec string) (*shardCostConfig, error) {
 				curveAmplify = v
 			case shardCostKeyExponent:
 				curveExponent = v
+			}
+
+		case shardCostKeyLocality, shardCostKeySpread:
+			// 0 is meaningful (locality off, argmin selection) and is kept.
+			if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
+			if key == shardCostKeyLocality {
+				cfg.locality = v
+			} else {
+				cfg.spread = v
 			}
 
 		// Static costs: shared (both tables).

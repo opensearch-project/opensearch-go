@@ -6,9 +6,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `opensearch_client_route_selected_total{node}` to `osprom` and `opensearch.client.route.selected` to `osotel`, counting routing decisions by selected node so uneven coordinator load is visible.
+
 ### Changed
 
 - Configure Dependabot to open weekly Go module and GitHub Actions updates against the `v5` maintenance branch, covering the same modules as `main` ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Spread multi-shard requests across near-equal coordinators instead of sending every client to the same one. The router scores a node that hosts fewer of a request's target shards with a bounded multiplier, `1 + locality × (missing / total)`, in place of the additive cost that could outweigh the RTT and load terms, and draws the first coordinator at random, weighted by `1 / score`, from the nodes scoring within `best × (1 + spread)`. The new shard-cost keys `locality` (default `0.5`) and `spread` (default `0.25`) set the two; `spread=0` always picks the lowest score and `locality=0` drops the penalty. Set them with `OPENSEARCH_GO_SHARD_COST`, `Config.ShardCostConfig` or `WithShardCosts`.
 - Make the direct driver the default for `DocumentClient.MGet`, as shard-aware buffering already is for the `BulkIndexer`. An mget the client cannot split, because the transport keeps no shard map or none of its documents can be routed to a node, still goes to the cluster as one request. Set `MGetConfig.Driver` to `MGetDriverCoordinator`, `OPENSEARCH_GO_MGET=coordinator`, or use `WithMGetDriver` per call to keep sending every mget as one request. ([#1298](https://github.com/opensearch-project/opensearch-go/pull/1298))
 
 ### Deprecated

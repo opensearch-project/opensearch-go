@@ -34,7 +34,9 @@ type RouteEvent struct {
 	// (may be less than FanOut if fewer nodes are available).
 	CandidateCount int
 
-	// Selected holds the score breakdown for the node that won.
+	// Selected holds the score breakdown for the node that won. It is drawn at
+	// random from the candidates within the spread band of the best score, so
+	// it need not hold the lowest Score.
 	Selected RouteCandidate
 
 	// Candidates holds the score breakdown for all K candidates, including
@@ -167,8 +169,10 @@ type RouteCandidate struct {
 	// the selection Score (warmup is handled by skip/accept gating).
 	WarmupPenalty float64
 
-	// Score is the composite routing score:
+	// Score is the base connection score:
 	//   RTTBucket * (InFlight + 1) / Cwnd * ShardCostMultiplier.
+	// It excludes the multi-shard locality multiplier and the retry factor
+	// that [connScoreSelect] applies when ranking candidates.
 	// Lower score = preferred node. Warmup state is handled separately by
 	// [connScoreSelect] via skip/accept gating, not included in the score.
 	Score float64
@@ -178,9 +182,11 @@ type RouteCandidate struct {
 // When shard is non-nil (shard lookup path), uses [forShard] for per-shard
 // primary/replica cost. When nil, uses [forNode] with per-node aggregate data.
 //
-// When scoreFunc is non-nil, it is used to compute the score (matching
-// the dynamic scoring logic in [connScoreSelect]). When nil, the static
-// formula is used via [calcConnDefaultScore].
+// When scoreFunc is non-nil, it is used to compute the base score (matching
+// the per-connection scoring in [connScoreSelect]). When nil, the static
+// formula is used via [calcConnDefaultScore]. The score omits the locality
+// multiplier and retry factor, so it can differ from the value
+// [connScoreSelect] ranks on.
 func newRouteCandidate(
 	conn *Connection,
 	slot *indexSlot,
@@ -208,7 +214,8 @@ func newRouteCandidate(
 	cwnd := conn.loadCwnd(poolName, poolInfoReady)
 	overloaded := conn.isPoolOverloaded(poolName)
 
-	// Compute score using the same logic as connScoreSelect.
+	// Compute the base per-connection score, as connScoreSelect does before
+	// applying the locality multiplier and retry factor.
 	var score float64
 	switch {
 	case scoreFunc != nil:

@@ -115,6 +115,8 @@ Connection-pool Utilization, Saturation, and Errors, attributed by `pool`, deriv
 
 The Registry also records `opensearch.client.observer.dropped`, the count of request events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
 
+It records `opensearch.client.route.selected` (unit `{decision}`), attributed by `node`, counting routing decisions by the node the router selected. Requests that share one routing key should spread across the nodes hosting it; a single dominant `node` series shows requests concentrating on one coordinator. The attribute is the node's name, or its ID when the name is not yet known. Routing decisions are only emitted when the client router is enabled (see the routing guide).
+
 ## Bulk indexer metrics -- `NewBulkIndexerObserver`
 
 `opensearchutil.BulkIndexer` has its own observer, separate from the transport [Registry]: the bulk client calls it directly, so it is not wired into `New`. Create it, register its instruments with a meter, and set it as the bulk client's `Observer`:
@@ -201,7 +203,7 @@ reg, err := osotel.NewWithOptions(meter, []osotel.Observer{osotel.NewRequestObse
 
 ## Lifecycle
 
-- `New(meter, observers...)` creates every observer's instruments (plus the dropped counter) from `meter` and returns the Registry.
+- `New(meter, observers...)` creates every observer's instruments (plus the dropped and route-selected counters) from `meter` and returns the Registry.
 - `Run(ctx)` starts the dispatch workers (default `GOMAXPROCS/2`, override with `WithWorkers`) and processes events until `ctx` is cancelled or `Close` is called, draining already-buffered events before returning. The context is passed to each observer's request hooks, so recordings carry its cancellation and baggage. Run it in its own goroutine.
 - `Close()` stops the dispatch workers. It is idempotent and safe to call concurrently.
 

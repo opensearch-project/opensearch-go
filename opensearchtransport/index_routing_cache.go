@@ -70,6 +70,17 @@ type indexSlotCache struct {
 
 	// Adaptive max_concurrent_shard_requests limits.
 	adaptiveConcurrency adaptiveConcurrencyConfig
+
+	// Coordinator selection, set from the parsed shard cost config (see
+	// [shardCostConfig]) and immutable after init. The zero values turn the
+	// locality penalty off and pick the lowest score, so a cache built
+	// directly keeps argmin selection.
+	locality float64 // multi-shard locality penalty factor; 0 = off
+	spread   float64 // relative score band for the randomized first pick; 0 = argmin
+
+	// randFloat returns a uniform float in [0, 1) for the randomized pick;
+	// nil uses [rand.Float64]. Tests inject a seeded source.
+	randFloat func() float64
 }
 
 // indexSlot is the per-index routing state.

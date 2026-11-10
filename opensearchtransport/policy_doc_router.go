@@ -74,6 +74,7 @@ func NewDocRouter(opts ...RouterOption) (*DocRouter, error) {
 	}
 	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
 	r := newDocRouter(newIndexSlotCache(cacheCfg), cfg.decay)
+	r.cache.locality, r.cache.spread = costCfg.locality, costCfg.spread
 	r.scoreFunc = costCfg.scoreFunc
 	return r, nil
 }
@@ -166,22 +167,23 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 	var candidatesBuf pooledConns
 	var shardNum int
 	var shard *shardNodes
-	var extraCost pooledFloats
+	var locality pooledFloats
 	var missErr error
 
 	if !needsShardSetCost(slot, routingValue, docID) {
 		candidatesBuf, shardNum, shard, missErr = calcSingleKeyCost(p.cache.features, slot, routingValue, docID, conns)
 	} else {
-		candidatesBuf, extraCost, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, locality, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, p.cache.locality, conns)
 		shardNum = -1
 	}
 
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), routeAttemptFrom(ctx))
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, locality.Slice(),
+			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 		scores.Release()
-		extraCost.Release()
+		locality.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
@@ -235,7 +237,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {

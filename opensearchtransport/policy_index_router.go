@@ -9,6 +9,7 @@ package opensearchtransport
 import (
 	"context"
 	"math"
+	"math/rand/v2"
 	"net/http"
 	"strings"
 	"sync"
@@ -73,6 +74,7 @@ func NewIndexRouter(opts ...RouterOption) (*IndexRouter, error) {
 	}
 	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
 	r := newIndexRouter(cacheCfg)
+	r.cache.locality, r.cache.spread = costCfg.locality, costCfg.spread
 	r.shardCosts = &costCfg.reads
 	r.scoreFunc = costCfg.scoreFunc
 	return r, nil
@@ -138,7 +140,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 
 		scores := acquireFloats(len(conns))
 		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 		scores.Release()
 		if best == nil {
 			return NextHop{}, nil
@@ -163,13 +165,13 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	var candidatesBuf pooledConns
 	var shardNum int
 	var shard *shardNodes
-	var extraCost pooledFloats
+	var locality pooledFloats
 	var missErr error
 
 	if !needsShardSetCost(slot, routingValue, "") {
 		candidatesBuf, shardNum, shard, missErr = calcSingleKeyCost(p.cache.features, slot, routingValue, "", conns)
 	} else {
-		candidatesBuf, extraCost, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, locality, missErr = calcMultiKeyCost(p.cache.features, slot, routingValue, p.cache.locality, conns)
 		shardNum = -1
 	}
 
@@ -177,9 +179,10 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), routeAttemptFrom(ctx))
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, locality.Slice(),
+			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 		scores.Release()
-		extraCost.Release()
+		locality.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			dispatchRoute(obs, routeEventParams{
@@ -236,7 +239,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -447,9 +450,16 @@ func warmupPenalty(cs connState) float64 {
 // dynamic read cost that adjusts primary shard cost based on write-pool
 // utilization). When nil, the static formula is used via [calcConnDefaultScore].
 //
+// locality, when non-nil, holds a per-candidate score multiplier.
+//
 // att is the request's failed attempts, nil for a request routed for the first
 // time: candidates it tried in the current pass are skipped, and each earlier try
 // of a candidate raises its score; see [routeAttempt].
+//
+// With spread > 0 the first candidate tried is drawn at random from those
+// scoring within best*(1+spread), see [pickWithinBand]; the candidates tried
+// after it (when the first is warming and skips) follow in ascending order.
+// spread == 0 always tries the lowest score first. The draw does not allocate.
 func connScoreSelect(
 	candidates []*Connection,
 	slot *indexSlot,
@@ -459,8 +469,10 @@ func connScoreSelect(
 	poolInfoReady bool,
 	scores []float64,
 	scoreFunc connScoreFunc,
-	extraCost []float64,
+	locality []float64,
 	att *routeAttempt,
+	spread float64,
+	randFloat func() float64,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -503,8 +515,10 @@ func connScoreSelect(
 			scores[i] = calcConnDefaultScore(c, sc, poolName, poolInfoReady)
 		}
 
-		if extraCost != nil {
-			scores[i] += extraCost[i]
+		// locality[i] >= 1 scales the score of a coordinator that hosts fewer
+		// of a multi-shard request's target shards (see [calcMultiKeyCost]).
+		if locality != nil {
+			scores[i] *= locality[i]
 		}
 
 		// Each time the request tried this node raises its cost, and a node tried
@@ -523,7 +537,7 @@ func connScoreSelect(
 	var bestWarming *Connection
 	bestWarmingSkip := int(^uint(0) >> 1) // max int sentinel
 
-	for range n {
+	for pick := range n {
 		// Find untried candidate with lowest score.
 		bestIdx := -1
 		bestScore := math.MaxFloat64
@@ -535,6 +549,9 @@ func connScoreSelect(
 		}
 		if bestIdx < 0 {
 			break
+		}
+		if pick == 0 && spread > 0 {
+			bestIdx = pickWithinBand(scores, bestIdx, spread, randFloat)
 		}
 		scores[bestIdx] = math.Inf(1) // mark as tried
 		c := candidates[bestIdx]
@@ -561,6 +578,46 @@ func connScoreSelect(
 		return bestWarming
 	}
 	return candidates[0] // Defensive; shouldn't reach here.
+}
+
+// pickWithinBand returns the index of a randomly chosen candidate among those
+// scoring within best*(1+spread), where bestIdx is the lowest-scoring one.
+// Each in-band candidate's weight is 1/score, so a cheaper node is likelier but
+// concurrent clients that all see the same near-tie do not converge on one node.
+// Returns bestIdx when the band holds only that candidate or the best score is
+// not positive. A nil randFloat uses [rand.Float64].
+func pickWithinBand(scores []float64, bestIdx int, spread float64, randFloat func() float64) int {
+	best := scores[bestIdx]
+	if best <= 0 {
+		return bestIdx
+	}
+	limit := best * (1 + spread)
+
+	var total float64
+	inBand := 0
+	for _, s := range scores {
+		if s <= limit {
+			total += 1 / s
+			inBand++
+		}
+	}
+	if inBand < 2 {
+		return bestIdx
+	}
+
+	if randFloat == nil {
+		randFloat = rand.Float64
+	}
+	target := randFloat() * total
+	for i, s := range scores {
+		if s <= limit {
+			target -= 1 / s
+			if target < 0 {
+				return i
+			}
+		}
+	}
+	return bestIdx // rounding left target >= 0
 }
 
 // sortConnectionsByRTT sorts connections by [rttBucket] ascending.

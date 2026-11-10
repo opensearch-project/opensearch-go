@@ -767,3 +767,60 @@ func TestDefaultLoggerResolvesPerMessage(t *testing.T) {
 	require.NotContains(t, first.messages(), "osprom registry stopped",
 		"shutdown message went to the logger installed at construction time")
 }
+
+func TestRegistryOnRouteCountsSelectedNode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		events []opensearchtransport.RouteEvent
+		want   map[string]float64
+	}{
+		{name: "no events"},
+		{
+			name: "counts per selected node",
+			events: []opensearchtransport.RouteEvent{
+				{Selected: opensearchtransport.RouteCandidate{Name: "node-a", ID: "id-a"}},
+				{Selected: opensearchtransport.RouteCandidate{Name: "node-b", ID: "id-b"}},
+				{Selected: opensearchtransport.RouteCandidate{Name: "node-a", ID: "id-a"}},
+			},
+			want: map[string]float64{"node-a": 2, "node-b": 1},
+		},
+		{
+			name:   "falls back to the ID when the node has no name",
+			events: []opensearchtransport.RouteEvent{{Selected: opensearchtransport.RouteCandidate{ID: "id-a"}}},
+			want:   map[string]float64{"id-a": 1},
+		},
+		{
+			name:   "no selected node is not counted",
+			events: []opensearchtransport.RouteEvent{{IndexName: "idx"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			promReg := prometheus.NewRegistry()
+			reg, err := New(promReg)
+			require.NoError(t, err)
+
+			for _, e := range tt.events {
+				reg.OnRoute(e)
+			}
+
+			for node, want := range tt.want {
+				require.InDelta(t, want, testutil.ToFloat64(reg.routeSelected.WithLabelValues(node)), 0, node)
+			}
+			require.Equal(t, len(tt.want), testutil.CollectAndCount(reg.routeSelected))
+		})
+	}
+}
+
+func TestRegistryOnRouteDoesNotAllocate(t *testing.T) {
+	// Not parallel: testing.AllocsPerRun panics in a parallel test.
+	reg, err := New(prometheus.NewRegistry())
+	require.NoError(t, err)
+
+	e := opensearchtransport.RouteEvent{Selected: opensearchtransport.RouteCandidate{Name: "node-a", ID: "id-a"}}
+	require.InDelta(t, 0.0, testing.AllocsPerRun(100, func() { reg.OnRoute(e) }), 0)
+}

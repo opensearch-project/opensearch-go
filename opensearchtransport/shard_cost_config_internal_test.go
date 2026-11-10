@@ -443,3 +443,98 @@ func TestCalcNodePrimaryPct(t *testing.T) {
 		require.InDelta(t, 0.5, calcNodePrimaryPct(&shardNodeInfo{Primaries: 1, Replicas: 1}), 0)
 	})
 }
+
+func TestParseShardCostConfigLocalitySpread(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		spec         string
+		wantLocality float64
+		wantSpread   float64
+		wantErrKey   string // non-empty: parse must fail on this key
+	}{
+		{name: "empty uses defaults", spec: "", wantLocality: defaultLocality, wantSpread: defaultSpread},
+		{name: "bare numeric uses defaults", spec: "3.0", wantLocality: defaultLocality, wantSpread: defaultSpread},
+		{name: "other keys use defaults", spec: "replica=2", wantLocality: defaultLocality, wantSpread: defaultSpread},
+		{name: "locality set", spec: "locality=0.1", wantLocality: 0.1, wantSpread: defaultSpread},
+		{name: "spread set", spec: "spread=1.5", wantLocality: defaultLocality, wantSpread: 1.5},
+		{name: "both set", spec: "locality=2,spread=0.5", wantLocality: 2, wantSpread: 0.5},
+		{name: "locality zero kept", spec: "locality=0", wantLocality: 0, wantSpread: defaultSpread},
+		{name: "spread zero kept", spec: "spread=0", wantLocality: defaultLocality, wantSpread: 0},
+		{name: "locality negative", spec: "locality=-1", wantErrKey: shardCostKeyLocality},
+		{name: "locality NaN", spec: "locality=NaN", wantErrKey: shardCostKeyLocality},
+		{name: "locality Inf", spec: "locality=+Inf", wantErrKey: shardCostKeyLocality},
+		{name: "spread negative", spec: "spread=-0.1", wantErrKey: shardCostKeySpread},
+		{name: "spread NaN", spec: "spread=NaN", wantErrKey: shardCostKeySpread},
+		{name: "spread Inf", spec: "spread=+Inf", wantErrKey: shardCostKeySpread},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cfg, err := parseShardCostConfig(tt.spec)
+			if tt.wantErrKey != "" {
+				var scErr *ShardCostConfigError
+				require.ErrorAs(t, err, &scErr)
+				require.Equal(t, tt.wantErrKey, scErr.Key)
+				require.ErrorContains(t, err, shardCostMessageNotFinite)
+				return
+			}
+			require.NoError(t, err)
+			require.InDelta(t, tt.wantLocality, cfg.locality, 0)
+			require.InDelta(t, tt.wantSpread, cfg.spread, 0)
+		})
+	}
+
+	require.Contains(t, shardCostValidKeysHint, "locality")
+	require.Contains(t, shardCostValidKeysHint, "spread")
+}
+
+func TestRouterConstructorsCarryLocalitySpread(t *testing.T) {
+	// Not parallel: OPENSEARCH_GO_SHARD_COST takes precedence over WithShardCosts.
+	t.Setenv(envShardCost, "")
+
+	cacheOf := map[string]func(t *testing.T, opts ...RouterOption) *indexSlotCache{
+		"NewIndexRouter": func(t *testing.T, opts ...RouterOption) *indexSlotCache {
+			t.Helper()
+			r, err := NewIndexRouter(opts...)
+			require.NoError(t, err)
+			return r.routerCache()
+		},
+		"NewDocRouter": func(t *testing.T, opts ...RouterOption) *indexSlotCache {
+			t.Helper()
+			r, err := NewDocRouter(opts...)
+			require.NoError(t, err)
+			return r.routerCache()
+		},
+		"NewDefaultPolicy": func(t *testing.T, opts ...RouterOption) *indexSlotCache {
+			t.Helper()
+			p, err := NewDefaultPolicy(opts...)
+			require.NoError(t, err)
+			cache := findRouterCache(p)
+			require.NotNil(t, cache)
+			return cache
+		},
+	}
+
+	tests := []struct {
+		name         string
+		opts         []RouterOption
+		wantLocality float64
+		wantSpread   float64
+	}{
+		{name: "defaults", wantLocality: defaultLocality, wantSpread: defaultSpread},
+		{name: "explicit", opts: []RouterOption{WithShardCosts("locality=0.1,spread=0")}, wantLocality: 0.1, wantSpread: 0},
+	}
+
+	for ctor, build := range cacheOf {
+		for _, tt := range tests {
+			t.Run(ctor+"/"+tt.name, func(t *testing.T) {
+				cache := build(t, tt.opts...)
+				require.InDelta(t, tt.wantLocality, cache.locality, 0)
+				require.InDelta(t, tt.wantSpread, cache.spread, 0)
+			})
+		}
+	}
+}

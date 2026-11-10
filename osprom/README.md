@@ -109,6 +109,8 @@ Connection-pool Utilization, Saturation, and Errors, labeled by `pool`, derived 
 
 The Registry also exports `opensearch_client_observer_dropped_total`, the count of request events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
 
+It exports `opensearch_client_route_selected_total`, labeled by `node`, counting routing decisions by the node the router selected. Requests that share one routing key should spread across the nodes hosting it; a single dominant `node` series shows requests concentrating on one coordinator. The label is the node's name, or its ID when the name is not yet known. Routing decisions are only emitted when the client router is enabled (see the routing guide).
+
 Tune the histogram buckets:
 
 ```go
@@ -216,7 +218,7 @@ reg, err := osprom.NewWithOptions(promReg, []osprom.Observer{osprom.NewRequestOb
 
 ## Lifecycle
 
-- `New(reg, observers...)` registers every observer's metrics (plus the dropped counter) with `reg` and returns the Registry.
+- `New(reg, observers...)` registers every observer's metrics (plus the dropped and route-selected counters) with `reg` and returns the Registry.
 - `Run(ctx)` starts the dispatch workers (default `GOMAXPROCS/2`, override with `WithWorkers`) and processes events until `ctx` is cancelled or `Close` is called, draining already-buffered events before returning. Run it in its own goroutine.
 - `Close()` stops the dispatch workers. It is idempotent and safe to call concurrently.
 
