@@ -1842,6 +1842,62 @@ func TestRefreshClusterHealth_PermissionRevoked_DebugLogging(t *testing.T) {
 	require.True(t, conn.clusterHealthPending())
 }
 
+func TestFetchAndEvaluateNodeStatsAdaptiveSelection(t *testing.T) {
+	t.Parallel()
+
+	self := AdaptiveSelectionStats{OutgoingSearches: 3, AvgQueueSize: 4, AvgServiceTimeNs: 5, AvgResponseTimeNs: 6}
+	other := AdaptiveSelectionStats{OutgoingSearches: 9}
+	tests := []struct {
+		name     string
+		ars      map[string]AdaptiveSelectionStats
+		heap     int
+		want     AdaptiveSelectionStats
+		wantSeen bool
+		wantOver bool
+	}{
+		{
+			name: "self entry recorded", heap: 30, want: self, wantSeen: true,
+			ars: map[string]AdaptiveSelectionStats{"testnode": self, "peer": other},
+		},
+		{name: "other target only", ars: map[string]AdaptiveSelectionStats{"peer": other}, heap: 30},
+		{name: "field absent, overload unchanged", heap: 95, wantOver: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var reqs atomic.Int32
+			var gotPath atomic.Value
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				reqs.Add(1)
+				gotPath.Store(r.URL.Path)
+				b, err := json.Marshal(NodeStatsResponse{Nodes: map[string]NodeStats{
+					"testnode": {JVM: JVMStats{Mem: JVMMemStats{HeapUsedPercent: tt.heap}}, AdaptiveSelection: tt.ars},
+				}})
+				if err != nil {
+					panic(err)
+				}
+				w.Write(b)
+			}))
+			defer server.Close()
+
+			serverURL, _ := url.Parse(server.URL)
+			conn := &Connection{URL: serverURL}
+			conn.setLifecycleBit(lcActive)
+			pool := newStandbyPool([]*Connection{conn}, []*Connection{newStandbyConn("backup")})
+			client := newTestClientWithPool(server.Client().Transport, pool)
+			client.overloadedHeapThreshold = 85
+			client.fetchAndEvaluateNodeStats(conn, pool)
+
+			require.Equal(t, int32(1), reqs.Load())
+			require.Equal(t, nodeStatsPath, gotPath.Load())
+			got, ok := conn.ars.load(time.Now().Add(adaptiveSelectionBlackout))
+			require.Equal(t, tt.wantSeen, ok)
+			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantOver, conn.loadConnState().lifecycle().has(lcOverloaded))
+		})
+	}
+}
+
 // --- fetchAndEvaluateNodeStats debug logging ---
 
 func TestFetchAndEvaluateNodeStats_DebugLogging(t *testing.T) {

@@ -32,7 +32,7 @@ func TestBulkIndexerTransportDoesNotCapRequests(t *testing.T) {
 	const (
 		shards     = 8
 		numWorkers = 4
-		statsPath  = "/_nodes/_local/stats/jvm,breaker,thread_pool"
+		statsPath  = "/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection"
 	)
 
 	tests := []struct {

@@ -164,6 +164,10 @@ type Connection struct {
 	// Atomic: set during discovery, read during selection and observer events.
 	weight atomic.Int32
 
+	// ars holds this node's adaptive_selection stats, written by the node
+	// stats poller. Nothing in scoring reads it yet.
+	ars adaptiveSelection
+
 	// allocatedProcessors is the node's core count discovered from /_nodes/_local/http,os.
 	// 0 means unknown (not yet discovered or unavailable).
 	// Atomic: written by hardwareInfoHealthCheck, read by computeWeights/recalculateCapacityModel.

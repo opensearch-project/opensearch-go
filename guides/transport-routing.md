@@ -1354,7 +1354,7 @@ Transient errors (5xx, network timeout) keep the state at Pending and retry on t
 
 ### Load Shedding via Node Stats
 
-A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool` on each live node:
+A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection` on each live node:
 
 | Condition                                     | Action                        |
 | --------------------------------------------- | ----------------------------- |
@@ -1364,7 +1364,7 @@ A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool` on each
 | Cluster health status `"red"`                 | `demoteOverloaded(conn)`      |
 | All metrics clear                             | `promoteFromOverloaded(conn)` |
 
-Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve.
+Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve. The same poll collects each node's `adaptive_selection` stats. They become usable after a 10s blackout, expire after 3min without a changed report, and are not used in scoring yet.
 
 ### Background Goroutines
 

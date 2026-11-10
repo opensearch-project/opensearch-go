@@ -36,7 +36,10 @@ import (
 
 const clusterStatusRed = "red"
 
-// NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool.
+// nodeStatsPath is the node stats poll's request path.
+const nodeStatsPath = "/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection"
+
+// NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection.
 // Only the "nodes" map is used; the top-level "_nodes" and "cluster_name" fields are ignored.
 // All fields are present in OpenSearch 1.3.0+.
 type NodeStatsResponse struct {
@@ -49,6 +52,18 @@ type NodeStats struct {
 	JVM         JVMStats                   `json:"jvm"`
 	Breakers    map[string]BreakerStats    `json:"breakers"`
 	ThreadPools map[string]ThreadPoolStats `json:"thread_pool,omitempty"`
+	// AdaptiveSelection is the polled node's view of each target node as a
+	// coordinator, keyed by target node ID.
+	AdaptiveSelection map[string]AdaptiveSelectionStats `json:"adaptive_selection,omitempty"`
+}
+
+// AdaptiveSelectionStats is one target's adaptive replica selection stats.
+// The server's rank and human-readable time strings are ignored.
+type AdaptiveSelectionStats struct {
+	OutgoingSearches  int64 `json:"outgoing_searches"`
+	AvgQueueSize      int64 `json:"avg_queue_size"`
+	AvgServiceTimeNs  int64 `json:"avg_service_time_ns"`
+	AvgResponseTimeNs int64 `json:"avg_response_time_ns"`
 }
 
 // JVMStats contains JVM-level statistics.
@@ -177,7 +192,7 @@ func (tr *Transport) pollNodeStats() {
 // congestion windows (AIMD), and evaluates node-level overload state.
 //
 // Two data sources are combined for the overload decision:
-//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker,thread_pool (fetched here)
+//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection (fetched here)
 //  2. Cluster health from conn.mu.clusterHealth (already populated by clusterHealthCheck)
 //
 // Thread pool stats drive per-pool AIMD congestion control via [updatePoolCongestion].
@@ -193,7 +208,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 	ctx, cancel := tr.healthCheckContext(tr.ctx)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodeStatsPath, nil)
 	if err != nil {
 		return sample, false
 	}
@@ -251,13 +266,21 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 	}
 
 	// The response contains a map with a single node entry (since we used _local)
+	// The map key is the node ID; conn.ID may be unset for seed connections.
 	var nodeStats *NodeStats
-	for _, ns := range stats.Nodes {
-		nodeStats = &ns
+	var nodeID string
+	for id, ns := range stats.Nodes {
+		nodeID, nodeStats = id, &ns
 		break
 	}
 	if nodeStats == nil {
 		return sample, false
+	}
+
+	// Only the node's entry for itself is kept: its view of other targets
+	// includes reporter network time, which the node's own entry lacks.
+	if as, found := nodeStats.AdaptiveSelection[nodeID]; found {
+		conn.ars.record(time.Now(), nodeID, as)
 	}
 
 	// Update per-pool congestion windows (AIMD) from thread pool stats.
@@ -303,7 +326,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 // evaluateOverload checks both node-level stats and cluster health against overload thresholds.
 // Returns true if any overload condition is met.
 //
-// # Node-level checks (from /_nodes/_local/stats/jvm,breaker)
+// # Node-level checks (jvm and breaker sections of the node stats poll)
 //
 //   - JVM heap_used_percent >= overloadedHeapThreshold (default 85%)
 //   - Any circuit breaker's estimated_size / limit_size >= overloadedBreakerRatio (default 0.90)
