@@ -10,9 +10,8 @@
 // alias entry with merged fields, requiredness, union kind and constraints, so
 // a generator reads types instead of interpreting allOf/oneOf/anyOf.
 //
-// It is the seam through which osgen's walker is meant to take its type input.
-// The walker does not use it yet: see README.md for what the model must carry
-// first (version metadata and allOf bases).
+// [Lower] turns the model back into composition-free OpenAPI schemas, which is
+// how osgen's walker takes its type input from it.
 package clientmodel
 
 import (
@@ -50,7 +49,10 @@ type TypeEntry struct {
 	TypeKind    string `json:"type_kind"`
 	Description string `json:"description,omitempty"`
 
+	Versions *Versions `json:"versions,omitempty"`
+
 	// object
+	Bases           []string       `json:"bases,omitempty"`
 	Fields          Ordered[Field] `json:"fields"`
 	AdditionalField *TypeExpr      `json:"additional_fields,omitempty"`
 	Constraints     []Constraint   `json:"constraints,omitempty"`
@@ -63,6 +65,7 @@ type TypeEntry struct {
 	Variants       Ordered[TypeExpr] `json:"variants"`
 	Members        []TypeExpr        `json:"members,omitempty"`
 	Titles         []*string         `json:"titles,omitempty"`
+	BranchVersions []*Versions       `json:"branch_versions,omitempty"`
 
 	// alias
 	Type             *TypeExpr `json:"type,omitempty"`
@@ -71,13 +74,27 @@ type TypeEntry struct {
 
 // Field is a field of an object.
 type Field struct {
-	Type        TypeExpr `json:"type"`
-	Required    bool     `json:"required"`
-	Description string   `json:"description,omitempty"`
+	Type        TypeExpr  `json:"type"`
+	Required    bool      `json:"required"`
+	Description string    `json:"description,omitempty"`
+	Versions    *Versions `json:"versions,omitempty"`
+	// DeclaredIn is the base (a named allOf member) the field is inherited
+	// from; empty for the type's own fields.
+	DeclaredIn string `json:"declared_in,omitempty"`
+}
+
+// Versions is version and deprecation metadata (x-version-added,
+// x-version-removed, x-version-deprecated, x-deprecation-message).
+type Versions struct {
+	Added              string `json:"added,omitempty"`
+	Removed            string `json:"removed,omitempty"`
+	Deprecated         string `json:"deprecated,omitempty"`
+	DeprecationMessage string `json:"deprecation_message,omitempty"`
 }
 
 // ObjectShape is an inline object.
 type ObjectShape struct {
+	Bases           []string       `json:"bases,omitempty"`
 	Fields          Ordered[Field] `json:"fields"`
 	AdditionalField *TypeExpr      `json:"additional_fields,omitempty"`
 	Constraints     []Constraint   `json:"constraints,omitempty"`
@@ -86,18 +103,21 @@ type ObjectShape struct {
 // TypeExpr is the type of a field, map value, array item or union member.
 // Exactly one of Ref, Scalar, Enum, Array, Map, Union, Object or Any is set.
 type TypeExpr struct {
-	Ref       string       `json:"ref,omitempty"`
-	Scalar    string       `json:"scalar,omitempty"`
-	Format    string       `json:"format,omitempty"`
-	Enum      []any        `json:"enum,omitempty"`
-	Array     *TypeExpr    `json:"array,omitempty"`
-	Map       *TypeExpr    `json:"map,omitempty"`
-	Union     []TypeExpr   `json:"union,omitempty"`
-	UnionKind string       `json:"union_kind,omitempty"`
-	Exclusive bool         `json:"exclusive,omitempty"`
-	Titles    []*string    `json:"titles,omitempty"`
-	Object    *ObjectShape `json:"object,omitempty"`
-	Any       bool         `json:"any,omitempty"`
+	Ref       string     `json:"ref,omitempty"`
+	Scalar    string     `json:"scalar,omitempty"`
+	Format    string     `json:"format,omitempty"`
+	Enum      []any      `json:"enum,omitempty"`
+	Array     *TypeExpr  `json:"array,omitempty"`
+	Map       *TypeExpr  `json:"map,omitempty"`
+	Union     []TypeExpr `json:"union,omitempty"`
+	UnionKind string     `json:"union_kind,omitempty"`
+	Exclusive bool       `json:"exclusive,omitempty"`
+	Titles    []*string  `json:"titles,omitempty"`
+	// BranchVersions is each union member's version metadata, by position.
+	BranchVersions []*Versions  `json:"branch_versions,omitempty"`
+	Object         *ObjectShape `json:"object,omitempty"`
+	Description    string       `json:"description,omitempty"`
+	Any            bool         `json:"any,omitempty"`
 }
 
 // Constraint restricts which fields of an object may be set together. Which

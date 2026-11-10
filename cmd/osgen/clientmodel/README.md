@@ -2,8 +2,8 @@
 
 Reads the resolved client model (`opensearch-client-model.json`, format 0.2.0) that
 opensearch-api-specification builds from a bundled spec (`npm run model`). The model
-states every type's merged fields, requiredness, union kind and constraints, so a
-generator doesn't have to interpret `allOf`/`oneOf`/`anyOf` itself.
+states every type's merged fields, requiredness, bases, union kind, constraints and
+version metadata, so a generator doesn't have to interpret `allOf`/`oneOf`/`anyOf`.
 
 The model at the repository root is built from the vendored `opensearch-openapi.yaml`,
 so both describe the same types:
@@ -12,30 +12,48 @@ so both describe the same types:
 make gen-client-model SPEC_REPO=<checkout of opensearch-api-specification with the model tooling>
 ```
 
-## Status
+## Reading types from the model
 
-The package is the seam for osgen's type input. The walker (`resp_walk.go` and the files
-around it) still reads the OpenAPI file. `TestClientModelAgreesOnTaggedUnions` checks the
-model against osgen's own reading: all 8 discriminated unions of the vendored spec match
-(same property, default, and tag per branch, in order).
+`osgen api -model opensearch-client-model.json` (or `make gen-api GEN_FROM_MODEL=1`)
+takes every type from the model. `Lower` replaces the component schemas and the JSON
+bodies of the response and request body components with schemas built from the model,
+in one canonical form:
 
-Switching the walker to the model without changing the generated API requires the model
-to carry two things it drops today:
+- an object is its own fields, plus one `allOf` `$ref` per base (osgen embeds it), plus
+  one union member for a container or other union constraint;
+- a union is a plain `oneOf`/`anyOf` of its members, with titles, version metadata and
+  discriminator;
+- version and deprecation metadata become the `x-version-*` extensions osgen reads.
 
-1. **Version and deprecation metadata** on types, fields and union branches:
-   `x-version-added`, `x-version-removed`, `x-version-deprecated`,
-   `x-deprecation-message`. osgen filters by them (`-min-version`, `-max-version`,
-   `-remove-deprecated`), emits breadcrumbs for what it excludes, and writes deprecation
-   comments. The vendored spec has them on about 147 properties, 15 union branches and 29
-   schemas.
-2. **`allOf` bases.** osgen embeds each `allOf` `$ref` member as a Go struct
-   (`IsEmbed`, e.g. `CommonAggregationsAggregation` inside
-   `CommonAggregationsAggregationContainer`); about 452 named schemas do this. The model
-   flattens bases into `fields`, so a reader would emit flat structs, a breaking change to
-   the public Go API. The model would need to list the bases (for example
-   `bases: [ref, …]` next to the merged `fields`, with each field marking which base
-   declares it).
+Operations, paths and parameters still come from the OpenAPI file, and so do a few
+non-composition details the model doesn't carry: `x-type-name`, `x-enum-name` and the
+error wrapper extensions, and the descriptions of a union's inline branches.
 
-Smaller items, which the walker can keep reading from the OpenAPI file because they are not
-composition: `x-type-name` and `x-enum-name` (naming), `x-error-status` and
-`x-error-root-cause-type` on error wrapper schemas, and operations, paths and parameters.
+The walker then renders that canonical form. Without `-model` nothing changes.
+
+## Status: opt-in, not the default yet
+
+With `-model`, generation produces 11 changed files. Most of the changes are fixes; one
+breaks the build:
+
+- **Blocking.** `SearchResult.hits.hits` and the other hits overlays become new flat
+  inline types (`SearchResultHitsHitsItem`, …) instead of `[]SearchHit`, so the
+  hand-written `opensearchapi/search_after.go` no longer compiles. Cause: when a field is
+  redeclared with a partial object, the model merges the two into a flat object and drops
+  the earlier object's `bases` and its fields' `declared_in`, even when the overlay adds
+  nothing (`hits.items: {_source: {}}` over `allOf: [Hit, {_source: TDocument}]`). The
+  model must keep the earlier type when an overlay adds nothing, and keep `bases` when
+  merging objects.
+- **Fixes:**
+  - Redeclared fields keep the base's requiredness, so five buckets fields (rare and
+    multi/significant terms aggregates), `SearchSuggestCompletion.options` and three
+    neural `stat_type` fields are no longer pointers to required values. osgen's own
+    tagshadow allowlist flagged these as "makes a required field optional".
+  - `type: [number, string]` fields are typed unions instead of `json.RawMessage`
+    (security `peer_certificates`, `ssl_openssl_version`).
+- **Equivalent:**
+  - Fields are sorted together instead of by `allOf` member.
+  - Type comments come from the schema's own description instead of a referencing
+    branch's.
+  - The always-empty `Void` buckets of the unmapped aggregates fall back to the embedded
+    generic buckets.
