@@ -6,10 +6,10 @@ This guide covers `DocumentClient.MGet`: how the client fetches the documents of
 
 | Driver | `OPENSEARCH_GO_MGET` | What it sends |
 | --- | --- | --- |
-| `MGetDriverCoordinator` (default) | `coordinator` | One request. The node that receives it groups the documents by shard, sends each shard's group to a node that holds a copy, and answers when every shard has. |
-| `MGetDriverDirect` | `direct` | One request to each node it reads from, with `preference=_local`, carrying only the documents that node holds. The node reads them from its own shard copies, with no second hop, and the client puts the answers back in the order they were asked for. |
+| `MGetDriverCoordinator` | `coordinator` | One request. The node that receives it groups the documents by shard, sends each shard's group to a node that holds a copy, and answers when every shard has. |
+| `MGetDriverDirect` (default) | `direct` | One request to each node it reads from, with `preference=_local`, carrying only the documents that node holds. The node reads them from its own shard copies, with no second hop, and the client puts the answers back in the order they were asked for. |
 
-Select a driver with `MGetConfig.Driver`, `OPENSEARCH_GO_MGET`, or per call with `opensearchapi.WithMGetDriver`. `opensearchutil.MGet` always uses the direct driver. A document the direct driver cannot route to a node, such as one named through an alias or in an index whose shard map is not known yet, goes through a coordinating node in a request of its own, alongside the direct requests.
+Select a driver with `MGetConfig.Driver`, `OPENSEARCH_GO_MGET`, or per call with `opensearchapi.WithMGetDriver`. When the client's transport keeps no shard map, as with `OPENSEARCH_GO_ROUTER=false` or a custom transport, the direct driver sends each mget as one coordinated request. `opensearchutil.MGet` always uses the direct driver. A document the direct driver cannot route to a node, such as one named through an alias or in an index whose shard map is not known yet, goes through a coordinating node in a request of its own, alongside the direct requests.
 
 ## What each driver costs
 
