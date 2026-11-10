@@ -240,7 +240,7 @@ func (l *lowerer) object(o *ObjectShape) *openapi3.Schema {
 	own := &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeObject}}
 	for _, name := range o.Fields.Keys {
 		f := o.Fields.Values[name]
-		if f.DeclaredIn != "" {
+		if f.DeclaredIn != "" || l.sameAsBase(o.Bases, name, &f) {
 			continue
 		}
 		if own.Properties == nil {
@@ -343,6 +343,45 @@ func (l *lowerer) field(f *Field) *openapi3.SchemaRef {
 		setVersions(&ref.Extensions, f.Versions)
 	}
 	return ref
+}
+
+// sameAsBase reports whether a base declares the field with the same type and
+// requiredness: a redeclaration that changes nothing is inherited, not the
+// object's own field (`SearchResult.hits` redeclares `hits` exactly as
+// `HitsMetadata` does).
+func (l *lowerer) sameAsBase(bases []string, name string, f *Field) bool {
+	for _, base := range bases {
+		if e := l.model.Types[base]; e != nil {
+			if b, ok := e.Fields.Get(name); ok && b.Required == f.Required && reflect.DeepEqual(stripDocs(b.Type), stripDocs(f.Type)) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// stripDocs returns a type without descriptions, which don't change it.
+func stripDocs(t TypeExpr) TypeExpr {
+	t.Description = ""
+	if t.Object != nil {
+		o := *t.Object
+		o.Fields = Ordered[Field]{Keys: o.Fields.Keys, Values: make(map[string]Field, len(o.Fields.Values))}
+		for k, v := range t.Object.Fields.Values {
+			v.Description = ""
+			v.Type = stripDocs(v.Type)
+			o.Fields.Values[k] = v
+		}
+		t.Object = &o
+	}
+	if t.Array != nil {
+		a := stripDocs(*t.Array)
+		t.Array = &a
+	}
+	if t.Map != nil {
+		m := stripDocs(*t.Map)
+		t.Map = &m
+	}
+	return t
 }
 
 // baseHasAdditional reports whether one of the bases declares the same
