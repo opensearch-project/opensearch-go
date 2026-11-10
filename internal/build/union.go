@@ -7,6 +7,7 @@
 package build
 
 import (
+	"bytes"
 	"sync"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
@@ -92,7 +93,7 @@ func JSONDiscriminator(data []byte, key string) (string, bool, error) {
 		return "", false, err
 	}
 	raw, ok := fields[key]
-	if !ok || string(raw) == "null" {
+	if !ok || bytes.Equal(raw, NullJSON) {
 		return "", false, nil
 	}
 	var value string

@@ -553,13 +553,16 @@ func TestUnionFragment_ImportsByStrategy(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			paths := map[string]bool{}
+			paths := make(map[string]struct{})
 			for _, imp := range (&emit.UnionFragment{Types: []*ir.Type{tt.typ}}).Imports() {
-				paths[imp.Path] = true
+				paths[imp.Path] = struct{}{}
 			}
-			require.True(t, paths[emit.JSONImportPath])
-			require.Equal(t, tt.wantBytes, paths["bytes"], "bytes import")
-			require.Equal(t, tt.wantFmt, paths["fmt"], "fmt import")
+			_, hasJSON := paths[emit.JSONImportPath]
+			require.True(t, hasJSON)
+			_, hasBytes := paths["bytes"]
+			require.Equal(t, tt.wantBytes, hasBytes, "bytes import")
+			_, hasFmt := paths["fmt"]
+			require.Equal(t, tt.wantFmt, hasFmt, "fmt import")
 		})
 	}
 }
