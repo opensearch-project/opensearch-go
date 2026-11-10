@@ -75,6 +75,8 @@ type Policy interface {
 	//   - added: newly discovered nodes (nil if none)
 	//   - removed: nodes that left since the last cycle (nil if none)
 	//   - unchanged: nodes present in both the previous and current topology
+	// Connection identity is pointer-based: removed and unchanged contain previously
+	// supplied objects. A replacement can have the same URL as a removed connection.
 	DiscoveryUpdate(added, removed, unchanged []*Connection) error
 
 	// CheckDead health-checks dead connections and resurrects those that respond.

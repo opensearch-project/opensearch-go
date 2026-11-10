@@ -159,9 +159,9 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 
 	// Remove old connections
 	if removed != nil { //nolint:nestif // filtering ready and dead lists requires nested iteration
-		removedMap := make(map[string]struct{}, len(removed))
+		removedMap := make(map[*Connection]struct{}, len(removed))
 		for _, conn := range removed {
-			removedMap[conn.URL.String()] = struct{}{}
+			removedMap[conn] = struct{}{}
 		}
 
 		// Filter ready connections (both active and standby partitions)
@@ -171,7 +171,7 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 			ready := p.pool.mu.ready[:0]
 			activeCount := 0
 			for i, conn := range p.pool.mu.ready {
-				if _, found := removedMap[conn.URL.String()]; !found {
+				if _, found := removedMap[conn]; !found {
 					ready = append(ready, conn)
 					if i < p.pool.mu.activeCount {
 						activeCount++
@@ -186,7 +186,7 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 			// Filter dead connections
 			dead := p.pool.mu.dead[:0]
 			for _, conn := range p.pool.mu.dead {
-				if _, found := removedMap[conn.URL.String()]; !found {
+				if _, found := removedMap[conn]; !found {
 					dead = append(dead, conn)
 				} else {
 					delete(p.pool.mu.members, conn)
