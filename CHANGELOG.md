@@ -18,6 +18,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Decode an analyzer or normalizer that has no `type` as the custom branch instead of failing with `payload has no type discriminator`. OpenSearch treats such an analyzer as `custom` and returns index settings as stored, so `Indices.Get` and other responses that carry index analysis settings failed to decode for an index created with, for example, `{"tokenizer":"keyword","filter":["lowercase"]}`. The decoded value carries `Type: "custom"`, so it marshals back to a definition OpenSearch accepts. The vendored spec now sets `x-default: custom` on the `Analyzer` and `Normalizer` discriminators ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
 - Add a copy of `LICENSE.txt` to each nested module (`compress`, `osprom`, `osotel`, `log-slog`, `log-zerolog`, `cmd/osgen`, `cmd/osapilint`). A module zip holds only the files under its `go.mod`, so pkg.go.dev detected no license for these modules and did not display their documentation. `.github/check-license-headers.sh` now fails when a nested module's copy is missing or differs from the root file ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
+- Split routing-metadata discovery into scoped requests within the default HTTP request-line limit, including escaped index names, the query string, and node base paths. ([#1307](https://github.com/opensearch-project/opensearch-go/pull/1307))
 
 ### Security
 

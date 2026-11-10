@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"math/rand/v2"
 	"net"
@@ -2219,6 +2220,13 @@ func parseReplicationType(s string) ReplicationType {
 	return ReplicationDocument
 }
 
+// routingMetadataMaxLineLength matches OpenSearch's default http.max_initial_line_length.
+const routingMetadataMaxLineLength = 4096
+
+func calcHTTPLineLen(req *http.Request) int {
+	return len(req.Method + " " + req.URL.RequestURI() + " HTTP/1.1")
+}
+
 // getRoutingMeta fetches routing metadata (routing_num_shards, number_of_shards
 // and routing_partition_size) for the given indexes from _cluster/state/metadata.
 //
@@ -2228,9 +2236,14 @@ func parseReplicationType(s string) ReplicationType {
 // uses the configured number_of_shards (via routingFactor), so the client
 // must use the same value for correct murmur3 shard computation.
 func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
-	path := "/_cluster/state/metadata/" + strings.Join(indexes, ",")
+	const metadataPath = "/_cluster/state/metadata"
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+	result := make(map[string]indexRoutingMeta, len(indexes))
+	if len(indexes) == 0 {
+		return result, nil
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataPath+"/", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating routing metadata request: %w", err)
 	}
@@ -2247,8 +2260,64 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 		return nil, fmt.Errorf("getting connection for routing metadata: %w", err)
 	}
 
-	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
+	tr.setReqURL(conn.URL, req)
+	requestOverhead := calcHTTPLineLen(req)
+
+	for len(indexes) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		requestLength, batchSize := requestOverhead, 0
+		for batchSize < len(indexes) {
+			indexURL := url.URL{Path: indexes[batchSize]}
+			indexLength := len(indexURL.EscapedPath())
+			if batchSize > 0 {
+				indexLength++ // Comma between index names.
+			}
+			if requestLength+indexLength > routingMetadataMaxLineLength {
+				break
+			}
+
+			requestLength += indexLength
+			batchSize++
+		}
+
+		if batchSize == 0 {
+			return nil, fmt.Errorf(
+				"routing metadata request for index %q exceeds the %d-byte request-line limit",
+				indexes[0], routingMetadataMaxLineLength,
+			)
+		}
+
+		batchReq := req.Clone(ctx)
+		// prepareInternalRequest adds the node's base path to each logical path.
+		batchReq.URL.Path = metadataPath + "/" + strings.Join(indexes[:batchSize], ",")
+		batchReq.URL.RawPath = ""
+
+		metadata, err := tr.getRoutingMetaBatch(batchReq, conn)
+		if err != nil {
+			return nil, err
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		maps.Copy(result, metadata)
+		indexes = indexes[batchSize:]
+	}
+
+	return result, nil
+}
+
+// getRoutingMetaBatch sends one sized request and closes its response before
+// the next batch starts.
+func (tr *Transport) getRoutingMetaBatch(req *http.Request, conn *Connection) (map[string]indexRoutingMeta, error) {
+	if err := tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
 		return nil, err
+	}
+	if calcHTTPLineLen(req) > routingMetadataMaxLineLength {
+		return nil, fmt.Errorf("prepared routing metadata request exceeds the %d-byte request-line limit", routingMetadataMaxLineLength)
 	}
 
 	res, err := tr.transport.RoundTrip(req)
