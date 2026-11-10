@@ -92,7 +92,7 @@ type MGetDriver uint8
 const (
 	// MGetDriverDefault leaves the choice to the OPENSEARCH_GO_MGET environment
 	// variable and, when that is not set, to this release's default,
-	// MGetDriverCoordinator.
+	// MGetDriverDirect.
 	MGetDriverDefault MGetDriver = iota
 
 	// MGetDriverCoordinator sends each mget as one request. The node that
@@ -116,8 +116,10 @@ const (
 )
 
 // defaultMGetDriver is the driver MGetDriverDefault resolves to when
-// OPENSEARCH_GO_MGET is not set.
-const defaultMGetDriver = MGetDriverCoordinator
+// OPENSEARCH_GO_MGET is not set. The direct driver sends an mget as one
+// coordinated request whenever it cannot split it: when the client's transport
+// keeps no shard map, or none of the documents can be routed to a node.
+const defaultMGetDriver = MGetDriverDirect
 
 // mgetDriverNames spells each driver as OPENSEARCH_GO_MGET does.
 //
