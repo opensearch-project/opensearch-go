@@ -1156,6 +1156,13 @@ func (tr *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadC
 }
 
 func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
+	if tr.requestTimeout > 0 {
+		var cancel context.CancelFunc
+
+		ctx, cancel = context.WithTimeout(ctx, tr.requestTimeout)
+		defer cancel()
+	}
+
 	scheme := tr.urls[0].Scheme
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
@@ -1298,6 +1305,12 @@ func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 			p.node.url = p.defaultURL
 			out = append(out, p.node)
 		}
+	}
+
+	// A request timeout may leave partial resolver results while the caller's
+	// context is still active. Do not apply them as a complete inventory.
+	if err := ctx.Err(); err != nil && tr.requestTimeout > 0 {
+		return nil, err
 	}
 
 	// Report connection success to the pool.
@@ -1951,6 +1964,13 @@ func (p *indexShardPlacement) nodeNameSet() map[string]struct{} {
 // credentials lack this privilege, the call returns an error and callers
 // should fall back gracefully.
 func (tr *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
+	if tr.requestTimeout > 0 {
+		var cancel context.CancelFunc
+
+		ctx, cancel = context.WithTimeout(ctx, tr.requestTimeout)
+		defer cancel()
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_cat/shards", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating shard placement request: %w", err)
@@ -2228,6 +2248,13 @@ func parseReplicationType(s string) ReplicationType {
 // uses the configured number_of_shards (via routingFactor), so the client
 // must use the same value for correct murmur3 shard computation.
 func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
+	if tr.requestTimeout > 0 {
+		var cancel context.CancelFunc
+
+		ctx, cancel = context.WithTimeout(ctx, tr.requestTimeout)
+		defer cancel()
+	}
+
 	path := "/_cluster/state/metadata/" + strings.Join(indexes, ",")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
