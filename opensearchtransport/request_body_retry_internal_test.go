@@ -772,3 +772,12 @@ func (b *stallingBody) Read(p []byte) (int, error) {
 }
 
 func (*stallingBody) Close() error { return nil }
+
+func TestStreamRejectsUnsetBodyMode(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res, _, err := (&Transport{}).stream(req, bodyUnknown) //nolint:bodyclose // no response on this path
+	require.ErrorIs(t, err, errBodyModeUnset)
+	require.Nil(t, res)
+}

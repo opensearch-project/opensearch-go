@@ -85,6 +85,8 @@ const (
 var (
 	reGoVersion          = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 	errHealthCheckFailed = errors.New("connection health check error")
+	// errBodyModeUnset is what [Transport.stream] returns for bodyUnknown.
+	errBodyModeUnset = errors.New("opensearchtransport: stream called without a body mode")
 
 	// ErrResponseBodyRead identifies an error that occurred while reading the
 	// response body. Callers that receive a non-nil response together with a
@@ -1769,6 +1771,10 @@ const headerContentEncoding = "Content-Encoding"
 // RoundTrip, and the returned body is already buffered (a body-logging logger
 // may replace it).
 func (tr *Transport) stream(req *http.Request, mode bodyMode) (*http.Response, streamResult, error) {
+	if mode == bodyUnknown {
+		return nil, streamResult{}, errBodyModeUnset
+	}
+
 	var (
 		res *http.Response
 		err error
@@ -2423,9 +2429,13 @@ var defaultOperationClassifier = sync.OnceValue(NewOperationClassifier)
 type bodyMode uint8
 
 const (
+	// bodyUnknown is the zero value: no mode chosen. [Transport.stream] returns
+	// errBodyModeUnset for it before sending anything, so a caller that forgets
+	// to pick a mode fails at once instead of getting a guessed one.
+	bodyUnknown bodyMode = iota
 	// bodyStreamed leaves the body unread for the caller, as [Transport.Stream]
 	// returns it.
-	bodyStreamed bodyMode = iota
+	bodyStreamed
 	// bodyBuffered has each attempt read the body whole into a [bufbody.Bytes]
 	// before the attempt is judged, as [Transport.Request] returns it.
 	bodyBuffered
