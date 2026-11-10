@@ -34,8 +34,20 @@ var (
 	WrapperMethodName = wrapperMethodName
 
 	// frag_union.go helpers.
-	QuotedKeys = quotedKeys
+	QuotedKeys     = quotedKeys
+	EmbedFieldName = embedFieldName
 )
+
+// DiscriminatorFieldFor returns the field and value discriminatorFieldFor
+// assigns for a branch, and false when it returns nil. Returning plain values
+// avoids leaking the unexported assignment type.
+func DiscriminatorFieldFor(t *ir.Type, branchName string) (string, string, bool) {
+	a := discriminatorFieldFor(t, branchName)
+	if a == nil {
+		return "", "", false
+	}
+	return a.Field, a.Value, true
+}
 
 // UnionFromResponses returns the resolved union shape for the test
 // caller as three strings (UnionName, Success, ErrorBranch). Returning
