@@ -37,6 +37,17 @@ for f in $(git ls-files | grep '\.go$' | grep -v '/third_party/'); do
     fi
 done
 
+# A module zip holds only the files under its go.mod, so each nested module
+# carries its own copy of the root LICENSE.txt. Without it pkg.go.dev detects no
+# license and does not display the module's documentation.
+for mod in $(git ls-files '*/go.mod'); do
+    dir=$(dirname "$mod")
+    if ! cmp -s LICENSE.txt "$dir/LICENSE.txt"; then
+        echo "check-license-headers: error: '$dir/LICENSE.txt' is missing or differs from LICENSE.txt, see 'cp LICENSE.txt $dir/LICENSE.txt'"
+        nErrors=$((nErrors+1))
+    fi
+done
+
 if [[ $nErrors -eq 0 ]]; then
     exit 0
 else
