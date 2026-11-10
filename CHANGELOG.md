@@ -14,7 +14,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- Decode an analyzer or normalizer that has no `type` as the custom branch instead of failing with `payload has no type discriminator`. OpenSearch treats such an analyzer as `custom` and returns index settings as stored, so `Indices.Get` and other responses that carry index analysis settings failed to decode for an index created with, for example, `{"tokenizer":"keyword","filter":["lowercase"]}`. The decoded value carries `Type: "custom"`, so it marshals back to a definition OpenSearch accepts. The vendored spec now sets `x-default: custom` on the `Analyzer` and `Normalizer` discriminators ([#PR_NUMBER](https://github.com/opensearch-project/opensearch-go/pull/PR_NUMBER))
+- Decode an analyzer or normalizer that has no `type` as the custom branch instead of failing with `payload has no type discriminator`. OpenSearch treats such an analyzer as `custom` and returns index settings as stored, so `Indices.Get` and other responses that carry index analysis settings failed to decode for an index created with, for example, `{"tokenizer":"keyword","filter":["lowercase"]}`. The decoded value carries `Type: "custom"`, so it marshals back to a definition OpenSearch accepts. The vendored spec now sets `x-default: custom` on the `Analyzer` and `Normalizer` discriminators ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
 
 ### Security
 
