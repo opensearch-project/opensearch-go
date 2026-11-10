@@ -311,8 +311,8 @@ func (u {{.Name}}) MarshalJSONTo(enc *json.TextEncoder) error {
 // decodes exactly that branch -- it never guesses, and a {{$t.Discriminator.PropertyName}} naming
 // no known branch is an error rather than a silent mis-decode.
 {{- if $t.Discriminator.DefaultValue}}
-// A payload with no {{$t.Discriminator.PropertyName}} at all decodes as {{$t.Discriminator.DefaultValue}}, per the spec's
-// x-default.
+// A payload with no {{$t.Discriminator.PropertyName}}, or a null one, decodes as {{$t.Discriminator.DefaultValue}}, per the
+// spec's x-default.
 {{- end}}
 //
 // Use Type() to learn which branch was decoded, then call the corresponding

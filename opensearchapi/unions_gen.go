@@ -17308,8 +17308,8 @@ func (u CommonMappingSemanticPropertyChunking) MarshalJSONTo(enc *json.TextEncod
 // property carries the branch name, so UnmarshalJSON reads that one property and
 // decodes exactly that branch -- it never guesses, and a type naming
 // no known branch is an error rather than a silent mis-decode.
-// A payload with no type at all decodes as object, per the spec's
-// x-default.
+// A payload with no type, or a null one, decodes as object, per the
+// spec's x-default.
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
@@ -19039,8 +19039,8 @@ func (u CommonMappingProperty) MarshalJSONTo(enc *json.TextEncoder) error {
 // property carries the branch name, so UnmarshalJSON reads that one property and
 // decodes exactly that branch -- it never guesses, and a type naming
 // no known branch is an error rather than a silent mis-decode.
-// A payload with no type at all decodes as custom, per the spec's
-// x-default.
+// A payload with no type, or a null one, decodes as custom, per the
+// spec's x-default.
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
@@ -22257,8 +22257,8 @@ func (u CommonAnalysisTokenFilter) MarshalJSONTo(enc *json.TextEncoder) error {
 // property carries the branch name, so UnmarshalJSON reads that one property and
 // decodes exactly that branch -- it never guesses, and a type naming
 // no known branch is an error rather than a silent mis-decode.
-// A payload with no type at all decodes as custom, per the spec's
-// x-default.
+// A payload with no type, or a null one, decodes as custom, per the
+// spec's x-default.
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.

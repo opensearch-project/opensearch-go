@@ -183,6 +183,54 @@ func TestUnionFragment_MergedDecode(t *testing.T) {
 	require.Contains(t, body, "u.raw = data")
 }
 
+func TestUnionFragment_DiscriminatorDefault(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		discField      string
+		wantAssignment bool
+	}{
+		{name: "plain string field", discField: "Type", wantAssignment: true},
+		{name: "pointer string field", discField: "", wantAssignment: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			types := []*ir.Type{
+				{
+					Name: "Analyzer",
+					Kind: ir.TypeAmbiguousWire,
+					Discriminator: &ir.UnionDiscriminator{
+						PropertyName: "type",
+						DefaultConst: "AnalyzerCustomAnalyzerType",
+						DefaultValue: "custom",
+						Branches: []ir.DiscriminatorBranch{
+							{
+								Value: "custom", Const: "AnalyzerCustomAnalyzerType", Name: "CustomAnalyzer",
+								GoType: "CustomAnalyzer", DiscriminatorField: tt.discField,
+							},
+							{Value: "keyword", Const: "AnalyzerKeywordAnalyzerType", Name: "KeywordAnalyzer", GoType: "KeywordAnalyzer"},
+						},
+					},
+				},
+			}
+
+			body, err := (&emit.UnionFragment{Types: types}).Body()
+			require.NoError(t, err)
+
+			// An absent property selects the default branch.
+			require.Contains(t, body, `discriminator = "custom"`)
+			if tt.wantAssignment {
+				require.Contains(t, body, `v.Type = "custom"`)
+			} else {
+				require.NotContains(t, body, `v.Type = `)
+			}
+		})
+	}
+}
+
 func TestUnionFragment_RequestSelected(t *testing.T) {
 	t.Parallel()
 

@@ -84,11 +84,10 @@ func TestJSONDiscriminator(t *testing.T) {
 		{name: "primitive payload", data: `42`, key: "type", wantErr: true},
 		{name: "malformed json", data: `{`, key: "type", wantErr: true},
 
-		// A JSON null unmarshals into a string as the empty string rather than
-		// failing, so an explicit null discriminator reads as present-but-empty.
-		// No branch is named by "", so the generated decoder reports an unknown
-		// discriminator, which is the same outcome as any unrecognized value.
-		{name: "null value reads as empty", data: `{"type":null}`, key: "type", wantValue: "", wantPresent: true},
+		// An explicit null discriminator is treated as absent, matching the
+		// server, which reads a null type as missing. The caller then takes the
+		// x-default branch, or reports a missing discriminator when there is none.
+		{name: "null value reads as absent", data: `{"type":null}`, key: "type", wantPresent: false},
 
 		// A null payload leaves the map untouched, so it is indistinguishable
 		// from an object with no such key. The generated decoder handles null

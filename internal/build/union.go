@@ -73,8 +73,9 @@ func HasJSONKeys(data []byte, keys ...string) bool {
 // discriminator call it to learn which branch the payload is before decoding,
 // so exactly one branch is ever attempted.
 //
-// present is false when data is a JSON object that simply lacks the key, which
-// the caller distinguishes from a decode failure so it can fall back to the
+// present is false when data is a JSON object that lacks the key or carries it
+// as null (OpenSearch reads a null discriminator as missing), which the caller
+// distinguishes from a decode failure so it can fall back to the
 // discriminator's x-default branch. A non-object payload, or a key whose value
 // is not a JSON string, yields an error: neither can name a branch.
 func JSONDiscriminator(data []byte, key string) (string, bool, error) {
@@ -91,7 +92,7 @@ func JSONDiscriminator(data []byte, key string) (string, bool, error) {
 		return "", false, err
 	}
 	raw, ok := fields[key]
-	if !ok {
+	if !ok || string(raw) == "null" {
 		return "", false, nil
 	}
 	var value string

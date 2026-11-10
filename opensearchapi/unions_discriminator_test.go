@@ -131,9 +131,32 @@ func TestDiscRoundTrip(t *testing.T) {
 	require.Equal(t, opensearchapi.CommonMappingPropertyKeywordPropertyType, back.Type())
 }
 
-// 7. OpenSearch treats an analyzer or normalizer with no type as custom, and
-// returns stored settings without one, so the absent type decodes as the custom
-// branch and marshals back as an explicit "custom" rather than an empty type.
+// decodeAnalyzer decodes data as an analyzer and returns the decoded branch
+// and its re-marshaled wire form.
+func decodeAnalyzer(data []byte) (string, []byte, error) {
+	var a opensearchapi.CommonAnalysisAnalyzer
+	if err := json.Unmarshal(data, &a); err != nil {
+		return "", nil, err
+	}
+	wire, err := json.Marshal(a)
+	return a.Type().String(), wire, err
+}
+
+// decodeNormalizer decodes data as a normalizer and returns the decoded branch
+// and its re-marshaled wire form.
+func decodeNormalizer(data []byte) (string, []byte, error) {
+	var n opensearchapi.CommonAnalysisNormalizer
+	if err := json.Unmarshal(data, &n); err != nil {
+		return "", nil, err
+	}
+	wire, err := json.Marshal(n)
+	return n.Type().String(), wire, err
+}
+
+// 7. OpenSearch treats an analyzer or normalizer with no type, or a null one,
+// as custom, and returns stored settings without one, so the absent type
+// decodes as the custom branch and marshals back as an explicit "custom" rather
+// than an empty type.
 func TestDiscAnalysisCustomDefault(t *testing.T) {
 	t.Parallel()
 
@@ -145,44 +168,37 @@ func TestDiscAnalysisCustomDefault(t *testing.T) {
 		wantWire string
 	}{
 		{
-			name: "analyzer without type",
-			decode: func(data []byte) (string, []byte, error) {
-				var a opensearchapi.CommonAnalysisAnalyzer
-				if err := json.Unmarshal(data, &a); err != nil {
-					return "", nil, err
-				}
-				wire, err := json.Marshal(a)
-				return a.Type().String(), wire, err
-			},
+			name:     "analyzer without type",
+			decode:   decodeAnalyzer,
 			payload:  `{"filter":["lowercase"],"tokenizer":"keyword"}`,
 			wantType: "CustomAnalyzer",
 			wantWire: `{"filter":["lowercase"],"tokenizer":"keyword","type":"custom"}`,
 		},
 		{
-			name: "analyzer with explicit custom type",
-			decode: func(data []byte) (string, []byte, error) {
-				var a opensearchapi.CommonAnalysisAnalyzer
-				if err := json.Unmarshal(data, &a); err != nil {
-					return "", nil, err
-				}
-				wire, err := json.Marshal(a)
-				return a.Type().String(), wire, err
-			},
+			name:     "analyzer with explicit custom type",
+			decode:   decodeAnalyzer,
 			payload:  `{"type":"custom","filter":["lowercase"],"tokenizer":"keyword"}`,
 			wantType: "CustomAnalyzer",
 			wantWire: `{"filter":["lowercase"],"tokenizer":"keyword","type":"custom"}`,
 		},
 		{
-			name: "normalizer without type",
-			decode: func(data []byte) (string, []byte, error) {
-				var n opensearchapi.CommonAnalysisNormalizer
-				if err := json.Unmarshal(data, &n); err != nil {
-					return "", nil, err
-				}
-				wire, err := json.Marshal(n)
-				return n.Type().String(), wire, err
-			},
+			name:     "analyzer with null type",
+			decode:   decodeAnalyzer,
+			payload:  `{"type":null,"filter":["lowercase"],"tokenizer":"keyword"}`,
+			wantType: "CustomAnalyzer",
+			wantWire: `{"filter":["lowercase"],"tokenizer":"keyword","type":"custom"}`,
+		},
+		{
+			name:     "normalizer without type",
+			decode:   decodeNormalizer,
 			payload:  `{"filter":["lowercase"]}`,
+			wantType: "CustomNormalizer",
+			wantWire: `{"filter":["lowercase"],"type":"custom"}`,
+		},
+		{
+			name:     "normalizer with null type",
+			decode:   decodeNormalizer,
+			payload:  `{"type":null,"filter":["lowercase"]}`,
 			wantType: "CustomNormalizer",
 			wantWire: `{"filter":["lowercase"],"type":"custom"}`,
 		},
@@ -194,6 +210,30 @@ func TestDiscAnalysisCustomDefault(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tt.wantType, branch)
 			require.JSONEq(t, tt.wantWire, string(wire))
+		})
+	}
+}
+
+// 7a. An analyzer with no type and no tokenizer is not a valid custom analyzer,
+// and the server never returns one. The decoder still takes the custom default
+// without error and does not validate required custom fields; this pins that
+// behavior so a change to it is deliberate.
+func TestDiscAnalyzerNoTypeNoTokenizer(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{name: "empty object", payload: `{}`},
+		{name: "filter only", payload: `{"filter":["lowercase"]}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			branch, _, err := decodeAnalyzer([]byte(tt.payload))
+			require.NoError(t, err)
+			require.Equal(t, "CustomAnalyzer", branch)
 		})
 	}
 }
