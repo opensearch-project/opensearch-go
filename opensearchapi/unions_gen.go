@@ -17308,8 +17308,8 @@ func (u CommonMappingSemanticPropertyChunking) MarshalJSONTo(enc *json.TextEncod
 // property carries the branch name, so UnmarshalJSON reads that one property and
 // decodes exactly that branch -- it never guesses, and a type naming
 // no known branch is an error rather than a silent mis-decode.
-// A payload with no type at all decodes as object, per the spec's
-// x-default.
+// A payload with no type, or a null one, decodes as object, per the
+// spec's x-default.
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
@@ -19039,6 +19039,8 @@ func (u CommonMappingProperty) MarshalJSONTo(enc *json.TextEncoder) error {
 // property carries the branch name, so UnmarshalJSON reads that one property and
 // decodes exactly that branch -- it never guesses, and a type naming
 // no known branch is an error rather than a silent mis-decode.
+// A payload with no type, or a null one, decodes as custom, per the
+// spec's x-default.
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
@@ -19591,13 +19593,20 @@ func (u *CommonAnalysisAnalyzer) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("CommonAnalysisAnalyzer: reading type discriminator: %w", err)
 	}
 	if !present {
-		return fmt.Errorf("CommonAnalysisAnalyzer: payload has no type discriminator: %s", data[:min(len(data), 64)])
+		// The spec's x-default: this branch leaves type optional, so its
+		// absence identifies the branch just as a value would.
+		discriminator = "custom"
 	}
 	switch discriminator {
 	case "custom":
 		var v CommonAnalysisCustomAnalyzer
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
+		}
+		if !present {
+			// v.Type is a plain string, so left empty it would marshal as
+			// "", which names no branch; record the value its absence implied.
+			v.Type = "custom"
 		}
 		u.typ = CommonAnalysisAnalyzerCustomAnalyzerType
 		u.value = &v
@@ -22248,6 +22257,8 @@ func (u CommonAnalysisTokenFilter) MarshalJSONTo(enc *json.TextEncoder) error {
 // property carries the branch name, so UnmarshalJSON reads that one property and
 // decodes exactly that branch -- it never guesses, and a type naming
 // no known branch is an error rather than a silent mis-decode.
+// A payload with no type, or a null one, decodes as custom, per the
+// spec's x-default.
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
@@ -22360,7 +22371,9 @@ func (u *CommonAnalysisNormalizer) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("CommonAnalysisNormalizer: reading type discriminator: %w", err)
 	}
 	if !present {
-		return fmt.Errorf("CommonAnalysisNormalizer: payload has no type discriminator: %s", data[:min(len(data), 64)])
+		// The spec's x-default: this branch leaves type optional, so its
+		// absence identifies the branch just as a value would.
+		discriminator = "custom"
 	}
 	switch discriminator {
 	case "lowercase":
@@ -22374,6 +22387,11 @@ func (u *CommonAnalysisNormalizer) UnmarshalJSON(data []byte) error {
 		var v CommonAnalysisCustomNormalizer
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
+		}
+		if !present {
+			// v.Type is a plain string, so left empty it would marshal as
+			// "", which names no branch; record the value its absence implied.
+			v.Type = "custom"
 		}
 		u.typ = CommonAnalysisNormalizerCustomNormalizerType
 		u.value = &v

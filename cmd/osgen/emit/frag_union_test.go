@@ -183,6 +183,54 @@ func TestUnionFragment_MergedDecode(t *testing.T) {
 	require.Contains(t, body, "u.raw = data")
 }
 
+func TestUnionFragment_DiscriminatorDefault(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		discField      string
+		wantAssignment bool
+	}{
+		{name: "plain string field", discField: "Type", wantAssignment: true},
+		{name: "pointer string field", discField: "", wantAssignment: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			types := []*ir.Type{
+				{
+					Name: "Analyzer",
+					Kind: ir.TypeAmbiguousWire,
+					Discriminator: &ir.UnionDiscriminator{
+						PropertyName: "type",
+						DefaultConst: "AnalyzerCustomAnalyzerType",
+						DefaultValue: "custom",
+						Branches: []ir.DiscriminatorBranch{
+							{
+								Value: "custom", Const: "AnalyzerCustomAnalyzerType", Name: "CustomAnalyzer",
+								GoType: "CustomAnalyzer", DiscriminatorField: tt.discField,
+							},
+							{Value: "keyword", Const: "AnalyzerKeywordAnalyzerType", Name: "KeywordAnalyzer", GoType: "KeywordAnalyzer"},
+						},
+					},
+				},
+			}
+
+			body, err := (&emit.UnionFragment{Types: types}).Body()
+			require.NoError(t, err)
+
+			// An absent property selects the default branch.
+			require.Contains(t, body, `discriminator = "custom"`)
+			if tt.wantAssignment {
+				require.Contains(t, body, `v.Type = "custom"`)
+			} else {
+				require.NotContains(t, body, `v.Type = `)
+			}
+		})
+	}
+}
+
 func TestUnionFragment_RequestSelected(t *testing.T) {
 	t.Parallel()
 
@@ -401,4 +449,282 @@ func TestNewSharedTypesFile_FiltersStructs(t *testing.T) {
 	require.Contains(t, output, "StructType")
 	require.NotContains(t, output, "LocalStruct")
 	require.NotContains(t, output, "UnionType")
+}
+
+func TestEmbedFieldName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		goType string
+		want   string
+	}{
+		{name: "unqualified", goType: "GetResult", want: "GetResult"},
+		{name: "package qualified", goType: "opensearchapi.GetResult", want: "GetResult"},
+		{name: "last qualifier wins", goType: "a.b.GetResult", want: "GetResult"},
+		{name: "empty", goType: "", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.EmbedFieldName(tt.goType))
+		})
+	}
+}
+
+func TestDiscriminatorFieldFor(t *testing.T) {
+	t.Parallel()
+
+	disc := &ir.Type{
+		Name: "Analyzer",
+		Discriminator: &ir.UnionDiscriminator{
+			PropertyName: "type",
+			Branches: []ir.DiscriminatorBranch{
+				{Name: "Custom", Value: "custom", DiscriminatorField: "Type"},
+				{Name: "Keyword", Value: "keyword"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		typ        *ir.Type
+		branch     string
+		wantField  string
+		wantValue  string
+		wantAssign bool
+	}{
+		{name: "settable string field", typ: disc, branch: "Custom", wantField: "Type", wantValue: "custom", wantAssign: true},
+		{name: "branch without settable field", typ: disc, branch: "Keyword"},
+		{name: "branch the discriminator does not list", typ: disc, branch: "Unlisted"},
+		{name: "union without discriminator", typ: &ir.Type{Name: "Plain"}, branch: "Custom"},
+		{name: "nil type", typ: nil, branch: "Custom"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			field, value, ok := emit.DiscriminatorFieldFor(tt.typ, tt.branch)
+			require.Equal(t, tt.wantAssign, ok)
+			require.Equal(t, tt.wantField, field)
+			require.Equal(t, tt.wantValue, value)
+		})
+	}
+}
+
+func TestUnionFragment_ImportsByStrategy(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		typ       *ir.Type
+		wantBytes bool
+		wantFmt   bool
+	}{
+		{
+			name:      "discriminator needs bytes and fmt",
+			typ:       &ir.Type{Name: "D", Kind: ir.TypeAmbiguousWire, Discriminator: &ir.UnionDiscriminator{PropertyName: "type"}},
+			wantBytes: true,
+			wantFmt:   true,
+		},
+		{
+			name:      "merge needs bytes only",
+			typ:       &ir.Type{Name: "M", Kind: ir.TypeAmbiguousWire, Merge: &ir.UnionMerge{}},
+			wantBytes: true,
+		},
+		{
+			name:    "request-selected needs fmt only",
+			typ:     &ir.Type{Name: "R", Kind: ir.TypeAmbiguousWire, RequestSelected: true},
+			wantFmt: true,
+		},
+		{
+			name:      "try-each needs bytes and fmt",
+			typ:       &ir.Type{Name: "T", Kind: ir.TypeAmbiguousWire},
+			wantBytes: true,
+			wantFmt:   true,
+		},
+		{
+			name:      "token-class switch needs bytes and fmt",
+			typ:       &ir.Type{Name: "S", Kind: ir.TypeUnion},
+			wantBytes: true,
+			wantFmt:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			paths := make(map[string]struct{})
+			for _, imp := range (&emit.UnionFragment{Types: []*ir.Type{tt.typ}}).Imports() {
+				paths[imp.Path] = struct{}{}
+			}
+			_, hasJSON := paths[emit.JSONImportPath]
+			require.True(t, hasJSON)
+			_, hasBytes := paths["bytes"]
+			require.Equal(t, tt.wantBytes, hasBytes, "bytes import")
+			_, hasFmt := paths["fmt"]
+			require.Equal(t, tt.wantFmt, hasFmt, "fmt import")
+		})
+	}
+}
+
+func TestUnionFragment_BodyEmpty(t *testing.T) {
+	t.Parallel()
+
+	body, err := (&emit.UnionFragment{}).Body()
+	require.NoError(t, err)
+	require.Empty(t, body)
+}
+
+func TestUnionFragment_BodyRenderError(t *testing.T) {
+	t.Parallel()
+
+	_, err := (&emit.UnionFragment{Types: []*ir.Type{nil}}).Body()
+	require.ErrorContains(t, err, "rendering UnionFragment")
+}
+
+func TestUnionFragment_DiscriminatorWithoutDefault(t *testing.T) {
+	t.Parallel()
+
+	typ := &ir.Type{
+		Name: "Analyzer",
+		Kind: ir.TypeAmbiguousWire,
+		Branches: []ir.UnionBranch{
+			{Name: "Custom", GoType: "CustomAnalyzer"},
+			{Name: "Keyword", GoType: "KeywordAnalyzer"},
+		},
+		Discriminator: &ir.UnionDiscriminator{
+			PropertyName: "type",
+			Branches: []ir.DiscriminatorBranch{
+				{Value: "custom", Const: "AnalyzerCustomType", Name: "Custom", GoType: "CustomAnalyzer", DiscriminatorField: "Type"},
+				{Value: "keyword", Const: "AnalyzerKeywordType", Name: "Keyword", GoType: "KeywordAnalyzer"},
+			},
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: []*ir.Type{typ}}).Body()
+	require.NoError(t, err)
+
+	// No x-default: an absent discriminator is an error, not a fallback branch.
+	require.Contains(t, body, `payload has no type discriminator`)
+	require.NotContains(t, body, `discriminator = "`)
+	require.Contains(t, body, `unknown type discriminator %q`)
+	require.Contains(t, body, `case "custom":`)
+	require.Contains(t, body, `case "keyword":`)
+
+	// Only the branch with a settable field gets its discriminator assigned.
+	require.Contains(t, body, "func NewAnalyzerFromCustom(v CustomAnalyzer) Analyzer {\n\tv.Type = \"custom\"")
+	require.Contains(t, body, "func NewAnalyzerFromKeyword(v KeywordAnalyzer) Analyzer {\n\treturn Analyzer{")
+}
+
+func TestUnionFragment_MergedQualifiedPrimary(t *testing.T) {
+	t.Parallel()
+
+	typ := &ir.Type{
+		Name: "DocsItem",
+		Kind: ir.TypeAmbiguousWire,
+		Branches: []ir.UnionBranch{
+			{Name: "GetResult", GoType: "shared.GetResult", TokenClass: ir.TokenObject},
+		},
+		Merge: &ir.UnionMerge{
+			PrimaryGoType: "shared.GetResult",
+			PrimaryConst:  "DocsItemGetResultType",
+			PrimaryName:   "GetResult",
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: []*ir.Type{typ}}).Body()
+	require.NoError(t, err)
+
+	// The embedded field is selected by its bare name, not the qualified type.
+	require.Contains(t, body, "\t\tshared.GetResult\n")
+	require.Contains(t, body, "u.value = &m.GetResult\n")
+	require.NotContains(t, body, "&m.shared.GetResult")
+}
+
+func TestUnionFragment_TokenClassBranches(t *testing.T) {
+	t.Parallel()
+
+	typ := &ir.Type{
+		Name: "Mixed",
+		Kind: ir.TypeUnion,
+		Branches: []ir.UnionBranch{
+			{Name: "Obj", GoType: "ObjShape", TokenClass: ir.TokenObject},
+			{Name: "List", GoType: "[]string", TokenClass: ir.TokenArray},
+			{Name: "Text", GoType: "string", TokenClass: ir.TokenString},
+			{Name: "Num", GoType: "float64", TokenClass: ir.TokenNumber},
+			{Name: "Flag", GoType: "bool", TokenClass: ir.TokenBool},
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: []*ir.Type{typ}}).Body()
+	require.NoError(t, err)
+
+	for _, want := range []string{
+		"case data[0] == '{':",
+		"case data[0] == '[':",
+		`case data[0] == '"':`,
+		"case data[0] >= '0' && data[0] <= '9' || data[0] == '-':",
+		"case data[0] == 't' || data[0] == 'f':",
+		"\tcase '{':\n",
+		"\tcase '[':\n",
+		"\tcase '\"':\n",
+		"\tcase '0':\n",
+		"\tcase 't', 'f':\n",
+		`unexpected JSON token`,
+	} {
+		require.Contains(t, body, want)
+	}
+}
+
+func TestUnionFragment_PluginCrossPackage(t *testing.T) {
+	t.Parallel()
+
+	reg := ir.NewTypeRegistry("opensearchapi", "github.com/opensearch-project/opensearch-go/v5/opensearchapi")
+	reg.Register(&ir.Type{Name: "FieldSort", SchemaRef: "#/test/FieldSort", Scope: ir.ScopeShared})
+
+	typ := &ir.Type{
+		Name: "SortUnion",
+		Kind: ir.TypeUnion,
+		Branches: []ir.UnionBranch{
+			{Name: "Sort", GoType: "FieldSort", TokenClass: ir.TokenObject},
+			{Name: "Local", GoType: "LocalShape", TokenClass: ir.TokenString},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		op         *ir.Operation
+		wantSort   string
+		wantErrTyp string
+	}{
+		{
+			name:       "plugin qualifies shared types and the core error type",
+			op:         &ir.Operation{IsPlugin: true},
+			wantSort:   "opensearchapi.FieldSort",
+			wantErrTyp: "&opensearchapi.UnionBranchError{",
+		},
+		{
+			name:       "non-plugin op leaves names bare",
+			op:         &ir.Operation{},
+			wantSort:   "FieldSort",
+			wantErrTyp: "&UnionBranchError{",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			body, err := (&emit.UnionFragment{Op: tt.op, Types: []*ir.Type{typ}, Registry: reg}).Body()
+			require.NoError(t, err)
+
+			require.Contains(t, body, "func (u *SortUnion) Sort() ("+tt.wantSort+", error)")
+			require.Contains(t, body, "u.value.(*"+tt.wantSort+")")
+			require.Contains(t, body, tt.wantErrTyp)
+			// Branches local to the plugin are never qualified.
+			require.Contains(t, body, "func (u *SortUnion) Local() (LocalShape, error)")
+			if !tt.op.IsPlugin {
+				require.NotContains(t, body, "opensearchapi.")
+			}
+		})
+	}
 }

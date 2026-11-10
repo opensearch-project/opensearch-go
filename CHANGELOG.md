@@ -14,6 +14,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Decode an analyzer or normalizer that has no `type` as the custom branch instead of failing with `payload has no type discriminator`. OpenSearch treats such an analyzer as `custom` and returns index settings as stored, so `Indices.Get` and other responses that carry index analysis settings failed to decode for an index created with, for example, `{"tokenizer":"keyword","filter":["lowercase"]}`. The decoded value carries `Type: "custom"`, so it marshals back to a definition OpenSearch accepts. The vendored spec now sets `x-default: custom` on the `Analyzer` and `Normalizer` discriminators ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
+- Add a copy of `LICENSE.txt` to each nested module (`compress`, `osprom`, `osotel`, `log-slog`, `log-zerolog`, `cmd/osgen`, `cmd/osapilint`). A module zip holds only the files under its `go.mod`, so pkg.go.dev detected no license for these modules and did not display their documentation. `.github/check-license-headers.sh` now fails when a nested module's copy is missing or differs from the root file ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
+
 ### Security
 
 ### Dependencies
@@ -22,7 +25,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Add `compress.ZstdTable(level)`, a `CompressorTable` that sends zstd request bodies to OpenSearch 3.0.0 and later and gzip at level 6 otherwise; see the [`ZstdTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/compress/v5#ZstdTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
+- Add `compress.ZstdTable(level)`, a `CompressorTable` that sends zstd request bodies to OpenSearch 3.0.0 and later and gzip at level 6 otherwise; see [`ZstdTable` in `compress/compress.go`](https://github.com/opensearch-project/opensearch-go/blob/main/compress/compress.go) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 - Add `opensearchtransport.CompressorTable` and `Config.CompressorTable` (also on `opensearch.Config`), which choose the request `Compressor` by server version; see the [`CompressorTable` godoc](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#CompressorTable) ([#1286](https://github.com/opensearch-project/opensearch-go/pull/1286))
 - Add the optional `ShardLookupObserver` interface with `OnShardLookupMiss`, called with a `ShardLookupMissEvent` whose `Err` is `ErrShardMapUnknown`, `ErrDocumentIDRequired` or `ErrShardNoNode` when `Transport.LookupShard` or `LookupDocShard` cannot name a node for a shard, and `RouteEvent.Err`, which holds the reason (those errors or `ErrNoRoutingKey`) when a request falls back from shard-exact routing ([#1292](https://github.com/opensearch-project/opensearch-go/pull/1292))
 - Add `ShardMap.RoutingPartitionSize`, `ShardMap.ShardForDocument`, `Transport.LookupDocShard`, `shardhash.ForDocument`, `shardhash.ForRoutingOffset`, the optional `opensearchutil.DocShardRouter` interface and `ErrDocumentIDRequired`, so a router can find a document's shard from its routing value and ID together. `ShardForDocument` also reports whether the shard can be known. ([#1292](https://github.com/opensearch-project/opensearch-go/pull/1292))

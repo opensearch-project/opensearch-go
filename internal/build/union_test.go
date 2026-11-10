@@ -7,6 +7,8 @@
 package build_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
@@ -84,11 +86,10 @@ func TestJSONDiscriminator(t *testing.T) {
 		{name: "primitive payload", data: `42`, key: "type", wantErr: true},
 		{name: "malformed json", data: `{`, key: "type", wantErr: true},
 
-		// A JSON null unmarshals into a string as the empty string rather than
-		// failing, so an explicit null discriminator reads as present-but-empty.
-		// No branch is named by "", so the generated decoder reports an unknown
-		// discriminator, which is the same outcome as any unrecognized value.
-		{name: "null value reads as empty", data: `{"type":null}`, key: "type", wantValue: "", wantPresent: true},
+		// An explicit null discriminator is treated as absent, matching the
+		// server, which reads a null type as missing. The caller then takes the
+		// x-default branch, or reports a missing discriminator when there is none.
+		{name: "null value reads as absent", data: `{"type":null}`, key: "type", wantPresent: false},
 
 		// A null payload leaves the map untouched, so it is indistinguishable
 		// from an object with no such key. The generated decoder handles null
@@ -140,6 +141,42 @@ func TestJSONDiscriminatorReusesPooledMap(t *testing.T) {
 		}
 		if value != "" {
 			t.Errorf("value = %q, want empty", value)
+		}
+	}
+}
+
+// TestKeySetPoolOversizedPayload covers the pool's size cap: a payload with
+// more keys than the cap is decoded correctly and its map is dropped rather
+// than recycled, so later calls neither see its keys nor misbehave.
+func TestKeySetPoolOversizedPayload(t *testing.T) {
+	t.Parallel()
+
+	var sb strings.Builder
+	sb.WriteString(`{"type":"wide"`)
+	for i := range 64 {
+		fmt.Fprintf(&sb, `,"k%d":%d`, i, i)
+	}
+	sb.WriteString(`}`)
+	wide := []byte(sb.String())
+
+	for range 3 {
+		value, present, err := build.JSONDiscriminator(wide, "type")
+		if err != nil || !present || value != "wide" {
+			t.Fatalf("oversized JSONDiscriminator = (%q, %v, %v), want (\"wide\", true, nil)", value, present, err)
+		}
+		if !build.HasJSONKeys(wide, "k0", "k63") {
+			t.Error("oversized HasJSONKeys(k0, k63) = false, want true")
+		}
+		if build.HasJSONKeys(wide, "k64") {
+			t.Error("oversized HasJSONKeys(k64) = true, want false")
+		}
+
+		// A small payload afterwards must not see keys from the wide one.
+		if build.HasJSONKeys([]byte(`{"a":1}`), "k0") {
+			t.Error("HasJSONKeys saw a key leaked from the oversized payload")
+		}
+		if _, present, err := build.JSONDiscriminator([]byte(`{}`), "type"); err != nil || present {
+			t.Errorf("JSONDiscriminator({}) = (present %v, err %v), want absent", present, err)
 		}
 	}
 }
