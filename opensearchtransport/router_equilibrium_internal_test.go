@@ -361,7 +361,7 @@ func TestLatencyEquilibrium(t *testing.T) {
 	)
 	for range steps {
 		best := 0
-		if calcConnDefaultScore(conns[1], 1, poolSearch, true) < calcConnDefaultScore(conns[0], 1, poolSearch, true) {
+		if calcConnDefaultScore(conns[1], 1, poolSearch, true, c3Inputs{}) < calcConnDefaultScore(conns[0], 1, poolSearch, true, c3Inputs{}) {
 			best = 1
 		}
 		picks[best]++

@@ -39,7 +39,7 @@ With no additional configuration, this enables:
 - Consistent per-index node assignment via rendezvous hashing
 - RTT-based availability-zone preference (local nodes preferred, with overflow to remote)
 - Dynamic shard cost scoring: primary preferred at idle, reads shed to replicas as write load increases
-- Per-pool AIMD congestion control: capacity-aware connection scoring via `(inFlight + 1) / cwnd`
+- Per-pool AIMD congestion control: capacity-aware connection scoring via `(inFlight + 1) / cwnd`, or a C3 queue term on search and get when adaptive_selection stats are fresh
 - Shard-aware node partitioning derived from `/_cat/shards` data
 - Murmur3 shard-exact routing for `?routing=` requests and document ID operations
 
@@ -245,7 +245,7 @@ Activated when the URL contains both an index and a document ID (e.g., `GET /ord
     ┌──────────────────────────────────────────────────────┐
     │  3. SCORE (1-3 candidates)                           │
     │     For each node hosting this exact shard:          │
-    │       score = latency × (inFlight+1)/cwnd            │
+    │       score = load (see section 4)                   │
     │             × shardCost(primary vs replica)          │
     │     Return lowest-scoring node                       │
     └──────────────────────────────────────────────────────┘
@@ -284,7 +284,7 @@ Activated when the URL contains an index but no document ID (e.g., `POST /orders
     │  3. SCORE (K candidates)                             │
     │     For each candidate in fan-out set:               │
     │       shardInfo = slot.shardNodeInfo(candidate)      │
-    │       score = latency × (inFlight+1)/cwnd            │
+    │       score = load (see section 4)                   │
     │             × shardCost(shardInfo, operation)        │
     │     Return lowest-scoring node                       │
     └──────────────────────────────────────────────────────┘
@@ -312,7 +312,7 @@ Activated when the URL has no index component (e.g., `GET /_cluster/health`, `GE
     ┌──────────────────────────────────────────────────────┐
     │  2. SCORE ALL ACTIVE CONNECTIONS                     │
     │     For each active connection:                      │
-    │       score = latency × (inFlight+1)/cwnd            │
+    │       score = load (see section 4)                   │
     │             × costUnknown (32.0 -- constant,         │
     │               cancels out across all nodes)          │
     │     Return lowest-scoring node                       │
@@ -380,15 +380,24 @@ This amortizes pool management cost: expensive operations (acquiring write locks
 Once the candidate set is determined, each candidate is scored:
 
 ```
-score = latency × (inFlight + 1) / cwnd × shardCost
+score = load × shardCost
 ```
 
-**Lower score wins.** The three multiplicative factors are independent signals:
+**Lower score wins.** The `load` term has two forms, both in microseconds:
+
+```
+linear:  load = latency × (inFlight + 1) / cwnd
+C3:      load = latency − S + q̂³ × S,   q̂ = 1 + inFlight × n + queue
+```
+
+The C3 form (the queue-cost function from the C3 paper, Suresh et al., "C3: Cutting Tail Latency in Cloud Data Stores via Adaptive Replica Selection", NSDI 2015, also used by Elasticsearch adaptive replica selection) applies on the search and get pools when every candidate has fresh `adaptive_selection` stats with a positive average service time. `S` is the node's reported average service time, `queue` its reported average queue size, and `n` the number of candidates, which stands in for the other clients sending to the same node. Under C3 the congestion window does not enter the score. A cwnd halved by a 429 does not raise it, because the node's own queue carries that signal. In every other case (write pools, stats inside the 10s blackout or expired 3min after the last changed report, any candidate without stats) all candidates use the linear form. The router picks the form once per selection rather than per node, because the two forms sit on different scales: an idle node scores about `latency / cwnd` under the linear form and about `latency` under C3, so mixing them would penalize the nodes that report stats.
+
+The multiplicative factors are independent signals:
 
 | Factor                  | Source                          | What It Measures                                                                                                                                                                                                          |
 | ----------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `latency`               | `conn.loadLatencyMicros(pool)`  | Peak-EWMA of request latency per thread pool, in microseconds. A slower response replaces the value at once; faster ones decay in over a 10-second window. Until the pool has a sample it is the health-check RTT median. |
-| `(inFlight + 1) / cwnd` | Per-pool AIMD congestion window | Utilization ratio. Atomic per-pool counter.                                                                                                                                                                               |
+| `(inFlight + 1) / cwnd` | Per-pool AIMD congestion window | Utilization ratio of the linear form. Atomic per-pool counter.                                                                                                                                                            |
 | `shardCost`             | Shard cost table lookup         | Whether the node hosts relevant shards.                                                                                                                                                                                   |
 
 When a thread pool is overloaded (rejected requests or HTTP 429), the score is `math.MaxFloat64` -- the node is effectively removed from consideration for that pool.
@@ -489,7 +498,7 @@ Writes always land on the primary shard. Routing a write request to a replica-ho
 | Initializing | 24.0 | Shard not yet ready, coordination may fail                                                                                                    |
 | Unknown      | 32.0 | No shard data from discovery yet                                                                                                              |
 
-These defaults can be overridden at runtime via the `OPENSEARCH_GO_SHARD_COST` environment variable or the `WithShardCosts()` router option (env var takes precedence). See [Shard Cost Configuration](#shard-cost-configuration) for format details. A non-shard node at idle still scores far worse than a busy shard node:
+These defaults can be overridden at runtime via the `OPENSEARCH_GO_SHARD_COST` environment variable or the `WithShardCosts()` router option (env var takes precedence). See [Shard Cost Configuration](#shard-cost-configuration) for format details. A non-shard node at idle still scores far worse than a busy shard node (linear form: no fresh adaptive_selection stats; see section 4):
 
 ```
 Shard node, busy:      11 * (13+1)/13 *  1.0 =  11.8   (replica read)
@@ -498,10 +507,10 @@ Non-shard node, idle:  11 *  (0+1)/13 * 32.0 =  27.1   <- still loses
 
 ### Score Components Visualization
 
-The three multiplicative components interact to create a composite score that ranks every candidate connection:
+The three multiplicative components of the linear form interact to create a composite score that ranks every candidate connection:
 
 ```
-    score = latency * (inFlight + 1) / cwnd * shardCost
+    score = latency * (inFlight + 1) / cwnd * shardCost     (linear form; see section 4 for C3)
             ───┬───   ──────────┬──────────   ─────┬────
                 │                │                   │
                 │                │                   +-- Shard cost (operation-aware)
@@ -532,7 +541,8 @@ The three multiplicative components interact to create a composite score that ra
 
 
     Example: 6-node cluster, index "orders" with fan-out K=4 (read path)
-    (search pool: cwnd=13 on all nodes; write pool idle; latency in ms from client AZ us-e1)
+    (search pool: cwnd=13 on all nodes; write pool idle; latency in ms from client AZ us-e1;
+    linear form, no fresh adaptive_selection stats; see section 4)
 
     Node       AZ     Latency ms  InFlight  Cwnd  Util   Shard Cost        Score   Fan-out?  Rank
     ---------  -----  ----------  --------  ----  -----  ----------------  ------  --------  ----
@@ -554,7 +564,7 @@ The three multiplicative components interact to create a composite score that ra
 
 ### Concrete Scoring Example
 
-Three-node cluster, search request for `my-index` (write pool idle on all nodes):
+Three-node cluster, search request for `my-index` (write pool idle on all nodes). The scores use the linear form, as when no node has fresh adaptive_selection stats; see section 4 for C3:
 
 ```
 Node A: latency=8ms,  inFlight=2, cwnd=13, replica  (read cost 1.0)
@@ -591,7 +601,8 @@ The multiplicative score formula creates natural tier-based overflow. Crossover 
 
 ```
     Score at various in-flight counts -- local (latency=8ms) vs remote (latency=11ms)
-    (search pool cwnd=13 on both nodes; ignoring shard cost)
+    (search pool cwnd=13 on both nodes; ignoring shard cost; linear form,
+    no fresh adaptive_selection stats; see section 4)
 
     score
     4.0 │                       ╭── local: 8 * (inFlight+1)/13
@@ -718,12 +729,11 @@ When a request arrives for an index, the routing pipeline interacts with the ind
     │       info = slot.shardNodeInfo(     │
     │         candidate.Name)              │  ◄── primary/replica counts
     │       cwnd = candidate.loadCwnd(     │
-    │         poolName)                    │  ◄── congestion window
+    │         poolName)                    │  ◄── linear-form input
     │       inFlight = candidate.          │
-    │         loadInFlight(poolName)       │  ◄── in-flight count
-    │       score = latency                │
-    │             * (inFlight + 1) / cwnd  │
-    │             * shardCost(info)        │
+    │         loadInFlight(poolName)       │  ◄── input to both forms
+    │       score = load(candidate)        │
+    │             * shardCost(info)        │  ◄── load: see section 4
     │     candidate with lowest score wins │
     └──────────────────────────────────────┘
 ```
@@ -1364,7 +1374,7 @@ A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive
 | Cluster health status `"red"`                 | `demoteOverloaded(conn)`      |
 | All metrics clear                             | `promoteFromOverloaded(conn)` |
 
-Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve. The same poll collects each node's `adaptive_selection` stats. They become usable after a 10s blackout, expire after 3min without a changed report, and are not used in scoring yet.
+Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve. The same poll collects each node's `adaptive_selection` stats. They become usable after a 10s blackout and expire after 3min without a changed report. Search and get scoring uses them for the C3 queue term when every candidate has fresh stats (see [Connection Scoring](#4-connection-scoring)).
 
 ### Background Goroutines
 
@@ -1896,6 +1906,13 @@ A node is marked overloaded if **any** of these are true:
 
 Overloaded nodes are demoted from the active partition to the standby partition with the `lcOverloaded` flag set. Unlike genuine failures, overloaded connections are not moved to the dead list and their failure counter is not incremented: the connection is healthy, but under excessive load. The stats poller clears the flag and promotes nodes back to active when metrics improve. When all active nodes are overloaded and demoted to standby, requests fall through to the standby partition (emergency promotion) or zombie fallback, providing natural backpressure.
 
+### Server-Side Levers
+
+Two server-side tools steer load alongside client routing:
+
+- Weighted shard routing by zone: `PUT _cluster/routing/awareness/<attribute>/weights` sets a weight per awareness attribute value (OpenSearch 2.4+). Weights are relative ratios, not percentages, and a weight of `0` drains a zone: searches stop being routed to its shards while its nodes stay in the cluster. The PUT body requires `_version` (set it to `-1` on the first request).
+- Search backpressure: `GET _nodes/stats/search_backpressure` reports per-node search cancellation counts, limit-reached counts and resource-tracker stats, which shows whether a node is cancelling search tasks under resource pressure.
+
 ### Observability
 
 The `ConnectionObserver` interface provides 18 callbacks:
@@ -2261,19 +2278,19 @@ The env override is applied once at startup, after policy configuration but befo
 
 ## Appendix A: Summary Formulas
 
-| Metric                             | Formula                                                                                 |
-| ---------------------------------- | --------------------------------------------------------------------------------------- |
-| Hop elimination rate               | `eta = 1 - n_s / N`                                                                     |
-| Availability gain                  | `deltaA = p^2 * eta * (1 - p)`                                                          |
-| Bandwidth saved per request        | `2d * eta`                                                                              |
-| Coordinator heap saved per request | `d * eta`                                                                               |
-| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)                                              |
-| Cross-AZ hops eliminated           | `eta * P(cross_AZ)`                                                                     |
-| Scatter-gather reduction           | `P_before / P_after`                                                                    |
-| Client-side index cache            | ~200-500 B per index                                                                    |
-| Client-side connection overhead    | ~120-300 B per node                                                                     |
-| Scoring formula (static)           | `latency * (inFlight+1)/cwnd * shardCost`                                               |
-| Scoring formula (dynamic read)     | `latency * (inFlight+1)/cwnd * ((1-pPct) * replica + pPct * (base + amplify * wU^exp))` |
+| Metric                             | Formula                                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------------------- |
+| Hop elimination rate               | `eta = 1 - n_s / N`                                                                    |
+| Availability gain                  | `deltaA = p^2 * eta * (1 - p)`                                                         |
+| Bandwidth saved per request        | `2d * eta`                                                                             |
+| Coordinator heap saved per request | `d * eta`                                                                              |
+| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)                                             |
+| Cross-AZ hops eliminated           | `eta * P(cross_AZ)`                                                                    |
+| Scatter-gather reduction           | `P_before / P_after`                                                                   |
+| Client-side index cache            | ~200-500 B per index                                                                   |
+| Client-side connection overhead    | ~120-300 B per node                                                                    |
+| Scoring formula (static)           | `load * shardCost`, `load` per section 4 (linear `latency * (inFlight+1)/cwnd`, or C3) |
+| Scoring formula (dynamic read)     | `load * ((1-pPct) * replica + pPct * (base + amplify * wU^exp))`                       |
 
 ---
 

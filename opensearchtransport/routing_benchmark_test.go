@@ -574,7 +574,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(info), "", true)
+			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(info), "", true, c3Inputs{})
 		}
 	})
 
@@ -583,7 +583,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
+			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true, c3Inputs{})
 		}
 	})
 

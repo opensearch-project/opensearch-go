@@ -395,7 +395,7 @@ func TestNewReadScoreFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			fn := newReadScoreFunc(tt.base, tt.amplify, tt.exponent)
-			score := fn(conn, tt.shardCost, tt.primaryPct, "", true)
+			score := fn(conn, tt.shardCost, tt.primaryPct, "", true, c3Inputs{})
 			require.InDelta(t, rtt*1.0*tt.wantCost, score, 0.001)
 		})
 	}
@@ -404,8 +404,8 @@ func TestNewReadScoreFunc(t *testing.T) {
 	t.Run("non-primary matches calcConnDefaultScore", func(t *testing.T) {
 		t.Parallel()
 		fn := newReadScoreFunc(0.95, 2.0, 2.0)
-		staticScore := calcConnDefaultScore(conn, 1.0, "", true)
-		dynScore := fn(conn, 1.0, 0.0, "", true)
+		staticScore := calcConnDefaultScore(conn, 1.0, "", true, c3Inputs{})
+		dynScore := fn(conn, 1.0, 0.0, "", true, c3Inputs{})
 		require.InDelta(t, staticScore, dynScore, 0.001)
 	})
 }

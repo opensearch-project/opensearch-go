@@ -715,10 +715,10 @@ func TestCalcConnScore_OverloadedIsNotExcluded(t *testing.T) {
 	pc := conn.pools.getOrCreate("search")
 	pc.cwnd.Store(4)
 	cost := shardCostForReads.forNode(&shardNodeInfo{Replicas: 1})
-	before := calcConnDefaultScore(conn, cost, "search", true)
+	before := calcConnDefaultScore(conn, cost, "search", true, c3Inputs{})
 
 	pc.overloaded.Store(true)
-	after := calcConnDefaultScore(conn, cost, "search", true)
+	after := calcConnDefaultScore(conn, cost, "search", true, c3Inputs{})
 
 	require.Less(t, after, math.MaxFloat64)
 	require.InDelta(t, before, after, 1e-9)
@@ -741,7 +741,7 @@ func TestCalcConnScore_EmptyPoolNameNoOverloadCheck(t *testing.T) {
 	// because the condition is `poolName != "" && ...`.
 	conn.pools.defaultPool.overloaded.Store(true)
 
-	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
+	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true, c3Inputs{})
 	require.NotEqual(t, math.MaxFloat64, score,
 		"empty poolName should not trigger overload skip")
 	require.Greater(t, score, 0.0)

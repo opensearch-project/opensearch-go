@@ -30,7 +30,7 @@ var (
 //  1. Reads the pool's active connections
 //  2. Extracts the index (and optionally document ID) from the request path
 //  3. Selects top-K nodes via rendezvous hash within the role pool
-//  4. Picks the best candidate by connection score (RTT * (inFlight+1)/cwnd * shardCost)
+//  4. Picks the best candidate by connection score (load * shardCost; see connLoadScore)
 //  5. Returns a NextHop with the selected node
 //
 // For non-index requests or when the inner policy returns nil, the wrapper

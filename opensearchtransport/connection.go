@@ -165,7 +165,8 @@ type Connection struct {
 	weight atomic.Int32
 
 	// ars holds this node's adaptive_selection stats, written by the node
-	// stats poller. Nothing in scoring reads it yet.
+	// stats poller. Search and get scoring reads it through [newC3Inputs] and
+	// [connLoadScore].
 	ars adaptiveSelection
 
 	// allocatedProcessors is the node's core count discovered from /_nodes/_local/http,os.
@@ -188,8 +189,9 @@ type Connection struct {
 
 	// pools tracks per-thread-pool congestion state for this connection.
 	// Each pool has its own AIMD congestion window, in-flight counter,
-	// and overloaded flag. Used by calcConnScore for the utilization
-	// ratio: (inFlight + 1) / cwnd.
+	// and overloaded flag. [connLoadScore] reads the in-flight count and cwnd
+	// for the linear term, (inFlight + 1) / cwnd, and the in-flight count for
+	// the C3 term.
 	pools poolRegistry
 
 	failures atomic.Int64
@@ -429,7 +431,7 @@ func (conn *Connection) RTTMedian() time.Duration {
 //
 // This is the value used in routing score calculations:
 //
-//	score = latency * (inFlight + 1) / cwnd * shardCostMultiplier
+//	score = load * shardCostMultiplier   (load: see connLoadScore)
 func (conn *Connection) RTTBucket() int64 {
 	if conn.rttRing == nil {
 		return -1

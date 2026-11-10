@@ -55,6 +55,9 @@ func (a *adaptiveSelection) record(now time.Time, nodeID string, s AdaptiveSelec
 	a.p.Store(snap)
 }
 
+// reported reports whether any snapshot was ever recorded, without reading the clock.
+func (a *adaptiveSelection) reported() bool { return a.p.Load() != nil }
+
 // load returns the stats once past the blackout and before expiry.
 func (a *adaptiveSelection) load(now time.Time) (AdaptiveSelectionStats, bool) {
 	cur := a.p.Load()

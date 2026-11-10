@@ -363,9 +363,7 @@ func (tr *Transport) WriteNodes() []*Connection {
 		if conn.isPoolOverloaded(poolWrite) {
 			return math.MaxFloat64
 		}
-		rtt, utilization := connBaseScore(conn, poolWrite, poolInfoReady)
-
-		return rtt * utilization
+		return connLoadScore(conn, poolWrite, poolInfoReady, c3Inputs{})
 	}
 
 	slices.SortStableFunc(ready, func(a, b *Connection) int {

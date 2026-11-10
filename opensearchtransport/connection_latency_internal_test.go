@@ -73,7 +73,7 @@ func TestConnectionLoadLatencyMicrosFlooredAtRTT(t *testing.T) {
 	require.InDelta(t, 512.0, conn.loadLatencyMicros(poolSearch), 0.001)
 }
 
-func TestConnBaseScoreUsesLatency(t *testing.T) {
+func TestConnLoadScoreUsesLatency(t *testing.T) {
 	t.Parallel()
 
 	newConn := func(sample time.Duration) *Connection {
@@ -89,11 +89,11 @@ func TestConnBaseScoreUsesLatency(t *testing.T) {
 	slow := newConn(19 * time.Millisecond)
 	require.Equal(t, fast.rttRing.medianBucket(), slow.rttRing.medianBucket())
 
-	fastScore := calcConnDefaultScore(fast, 1, poolSearch, true)
-	slowScore := calcConnDefaultScore(slow, 1, poolSearch, true)
+	fastScore := calcConnDefaultScore(fast, 1, poolSearch, true, c3Inputs{})
+	slowScore := calcConnDefaultScore(slow, 1, poolSearch, true, c3Inputs{})
 	require.InEpsilon(t, 1.9, slowScore/fastScore, 1e-3)
 
 	// A node with no request sample scores from its health-check RTT.
 	unsampled := newConn(0)
-	require.InEpsilon(t, 256.0/10000.0, calcConnDefaultScore(unsampled, 1, poolSearch, true)/fastScore, 1e-3)
+	require.InEpsilon(t, 256.0/10000.0, calcConnDefaultScore(unsampled, 1, poolSearch, true, c3Inputs{})/fastScore, 1e-3)
 }

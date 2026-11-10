@@ -89,8 +89,8 @@ func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 		warming.setLifecycleBit(lcActive | lcNeedsWarmup)
 		warming.startWarmup(8, 8)
 
-		warmedScore := calcConnDefaultScore(warmed, shardCostForReads.forNode(node), "", true)
-		warmingScore := calcConnDefaultScore(warming, shardCostForReads.forNode(node), "", true)
+		warmedScore := calcConnDefaultScore(warmed, shardCostForReads.forNode(node), "", true, c3Inputs{})
+		warmingScore := calcConnDefaultScore(warming, shardCostForReads.forNode(node), "", true, c3Inputs{})
 
 		require.InDelta(t, warmedScore, warmingScore, 0.01,
 			"calcConnDefaultScore should not include warmup penalty")
@@ -106,8 +106,8 @@ func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 		conn.startWarmup(8, 8)
 
 		// Unknown shard cost (32.0) vs replica shard cost (1.0)
-		scoreUnknown := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
-		scoreReplica := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
+		scoreUnknown := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true, c3Inputs{})
+		scoreReplica := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true, c3Inputs{})
 
 		require.Greater(t, scoreUnknown, scoreReplica,
 			"unknown shard cost should score worse than replica")

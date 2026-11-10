@@ -32,7 +32,7 @@ var (
 //  1. Extracts the index name from the URL path
 //  2. Looks up (or creates) a routing slot in the index cache
 //  3. Selects top-K nodes via rendezvous hash (K = fan-out for that index)
-//  4. Picks the best candidate by connection score (RTT * (inFlight+1)/cwnd * shardCost)
+//  4. Picks the best candidate by connection score (load * shardCost; see connLoadScore)
 //  5. Returns a NextHop with the selected node
 //
 // For system endpoints (no index in path), the policy returns (nil, nil)
@@ -449,6 +449,9 @@ func warmupPenalty(cs connState) float64 {
 // all candidates. This allows operation-specific scoring strategies (e.g.,
 // dynamic read cost that adjusts primary shard cost based on write-pool
 // utilization). When nil, the static formula is used via [calcConnDefaultScore].
+// The load term of every score is the C3 queue term when poolName is the search
+// or get pool and all candidates have fresh adaptive_selection stats, and the
+// linear term otherwise; see [newC3Inputs] and [connLoadScore].
 //
 // locality, when non-nil, holds a per-candidate score multiplier.
 //
@@ -493,7 +496,9 @@ func connScoreSelect(
 		}
 	}
 
-	// Compute scores once upfront.
+	// Compute scores once upfront. The load term is chosen once for the whole
+	// candidate set so every score is on the same scale.
+	c3 := newC3Inputs(candidates, poolName)
 	for i, c := range candidates {
 		var sc float64
 		var primaryPct float64
@@ -510,9 +515,9 @@ func connScoreSelect(
 		}
 
 		if scoreFunc != nil {
-			scores[i] = scoreFunc(c, sc, primaryPct, poolName, poolInfoReady)
+			scores[i] = scoreFunc(c, sc, primaryPct, poolName, poolInfoReady, c3)
 		} else {
-			scores[i] = calcConnDefaultScore(c, sc, poolName, poolInfoReady)
+			scores[i] = calcConnDefaultScore(c, sc, poolName, poolInfoReady, c3)
 		}
 
 		// locality[i] >= 1 scales the score of a coordinator that hosts fewer

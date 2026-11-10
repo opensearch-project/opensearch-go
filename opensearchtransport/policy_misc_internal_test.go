@@ -190,7 +190,7 @@ func TestWithShardCosts(t *testing.T) {
 			// closure. At primaryPct=1.0 on an idle conn the effective cost
 			// is exactly curveBase, so score = rtt * 1.0 * base.
 			require.NotNil(t, parsed.scoreFunc)
-			score := parsed.scoreFunc(conn, 1.0, 1.0, "", true)
+			score := parsed.scoreFunc(conn, 1.0, 1.0, "", true, c3Inputs{})
 			require.InDelta(t, rtt*tt.wantBase, score, 0.001)
 		})
 	}

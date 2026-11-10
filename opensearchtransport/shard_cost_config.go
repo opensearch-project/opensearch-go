@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
@@ -221,7 +222,7 @@ var shardCostForWrites = shardCostMultiplier{
 // (as encoded by the table), it gets the preferred cost. Mixed nodes that
 // host both primaries and replicas get the best (lowest) cost since they
 // can serve both reads and writes locally. Load-based differentiation
-// between nodes is handled by the utilization ratio (inFlight+1)/cwnd, not by this
+// between nodes is handled by the load term (see connLoadScore), not by this
 // multiplier.
 func (m *shardCostMultiplier) forNode(node *shardNodeInfo) float64 {
 	if node == nil {
@@ -306,12 +307,12 @@ const (
 // from 0.0 (pure replica) to 1.0 (pure primary) and drives blending
 // between static and dynamic cost. Implementations may incorporate
 // cross-pool utilization, custom cost curves, or any other signal.
+// c3 selects the load term, see [connLoadScore].
 // Returns the composite score (lower = preferred).
 //
-// When nil in [connScoreSelect], scoring falls back to the static
-// formula: latency * (inFlight+1)/cwnd * shardCost, where latency is
-// [Connection.loadLatencyMicros].
-type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64
+// When nil in [connScoreSelect], scoring falls back to
+// [calcConnDefaultScore]: load * shardCost, where load is [connLoadScore].
+type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool, c3 c3Inputs) float64
 
 // newReadScoreFunc returns a [connScoreFunc] that dynamically adjusts
 // primary shard cost based on write-pool utilization. The effective cost
@@ -331,10 +332,10 @@ type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64,
 // As writes ramp up, the dynamic cost increases and reads progressively
 // shift to replica-hosting nodes.
 //
-// The score is latency × utilization × effectiveCost.
+// The score is [connLoadScore] x effectiveCost.
 func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
-	return func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64 {
-		rtt, utilization := connBaseScore(conn, poolName, poolInfoReady)
+	return func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool, c3 c3Inputs) float64 {
+		load := connLoadScore(conn, poolName, poolInfoReady, c3)
 		cost := shardCost
 		if primaryPct > 0 {
 			writePC := conn.pools.getForScoring(poolWrite)
@@ -347,30 +348,78 @@ func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
 			dynamicCost := base + amplify*math.Pow(writeUtil, exponent)
 			cost = (1-primaryPct)*shardCost + primaryPct*dynamicCost
 		}
-		return rtt * utilization * cost
+		return load * cost
 	}
 }
 
-// connBaseScore computes the common components of connection scoring: the
-// latency in microseconds ([Connection.loadLatencyMicros]) and the utilization
-// ratio. A pool that refused work is not excluded: a
-// 429 has already halved its cwnd, which doubles its utilization, and a request
-// that is retried skips the nodes it has tried (see routeAttempt).
-func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float64, float64) {
+// c3Inputs selects the load term of a selection. The zero value selects the
+// linear term; see [newC3Inputs].
+type c3Inputs struct {
+	n   int       // candidate count, the C3 concurrency-compensation weight
+	now time.Time // instant at which every candidate's stats were checked fresh
+}
+
+// newC3Inputs returns inputs that select the C3 queue term when poolName is the
+// search or get pool and every candidate has fresh adaptive_selection stats
+// with a positive service time; otherwise the zero value, which selects the
+// linear term for every candidate. The choice is made for the whole candidate
+// set because the two terms are on different scales (an idle node scores about
+// latency/cwnd under the linear term and about latency under C3), so mixing them would
+// penalize the nodes that report stats. It calls [time.Now] only for those
+// pools, and only when every candidate has reported at least once.
+func newC3Inputs(candidates []*Connection, poolName string) c3Inputs {
+	if (poolName != poolSearch && poolName != poolGet) || len(candidates) == 0 {
+		return c3Inputs{}
+	}
+	for _, c := range candidates {
+		if !c.ars.reported() {
+			return c3Inputs{}
+		}
+	}
+	now := time.Now()
+	for _, c := range candidates {
+		if st, ok := c.ars.load(now); !ok || st.AvgServiceTimeNs <= 0 {
+			return c3Inputs{}
+		}
+	}
+	return c3Inputs{n: len(candidates), now: now}
+}
+
+// connLoadScore returns the load term of a connection's score, in microseconds.
+//
+// With the zero c3 it is the linear term: latency * (inFlight+1) / cwnd, where
+// latency is [Connection.loadLatencyMicros]. A halved cwnd after a 429 doubles
+// the term, and a retried request skips the nodes it has tried (see routeAttempt).
+//
+// Otherwise it is the C3 term, R - S + qHat^3 * S, where R is that latency, S is
+// the node's reported average service time, and
+// qHat = 1 + inFlight*n + queue is the queue length the node is expected to
+// have, with queue its reported average queue size and n the candidate count
+// (the weight for the other clients that send to it). The cwnd does not enter
+// the C3 term; the reported queue carries that signal.
+func connLoadScore(conn *Connection, poolName string, poolInfoReady bool, c3 c3Inputs) float64 {
 	rtt := conn.loadLatencyMicros(poolName)
-	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
 	inFlight := float64(conn.loadInFlight(poolName))
-	utilization := (inFlight + 1.0) / cwnd
-	return rtt, utilization
+	if c3.n > 0 {
+		// A concurrent poll can replace the snapshot after newC3Inputs checked it.
+		if st, ok := conn.ars.load(c3.now); ok && st.AvgServiceTimeNs > 0 {
+			s := float64(st.AvgServiceTimeNs) / 1000
+			q := 1 + inFlight*float64(c3.n) + float64(st.AvgQueueSize)
+
+			return rtt - s + q*q*q*s
+		}
+	}
+	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
+
+	return rtt * (inFlight + 1.0) / cwnd
 }
 
 // calcConnDefaultScore scores a connection using the static shard cost
-// formula: latency × utilization × shardCost. This is the default scoring
+// formula: [connLoadScore] x shardCost. This is the default scoring
 // path used for write operations and as the fallback when no
 // [connScoreFunc] is configured (scoreFunc == nil in [connScoreSelect]).
-func calcConnDefaultScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
-	rtt, utilization := connBaseScore(conn, poolName, poolInfoReady)
-	return rtt * utilization * shardCost
+func calcConnDefaultScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool, c3 c3Inputs) float64 {
+	return connLoadScore(conn, poolName, poolInfoReady, c3) * shardCost
 }
 
 // shardCostConfig holds the result of parsing a shard cost configuration

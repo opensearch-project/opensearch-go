@@ -169,10 +169,17 @@ type RouteCandidate struct {
 	// the selection Score (warmup is handled by skip/accept gating).
 	WarmupPenalty float64
 
-	// Score is the base connection score:
-	//   Latency * (InFlight + 1) / Cwnd * ShardCostMultiplier,
-	// where Latency is the pool's Peak-EWMA request latency in microseconds,
+	// Score is the base connection score: Load * ShardCostMultiplier, where
+	// Load is in microseconds and is one of two terms. The linear term is
+	// Latency * (InFlight + 1) / Cwnd. On the search and get pools, when every
+	// candidate has fresh adaptive_selection stats, it is the C3 term
+	// Latency - S + qHat^3 * S, with S the node's average service time and
+	// qHat = 1 + InFlight * candidates + the node's average queue size.
+	// Latency is the pool's Peak-EWMA request latency in microseconds,
 	// or the health-check RTT median until the pool has a sample.
+	// The score is recomputed when the event is built, so concurrent changes
+	// to in-flight counts or stats can make it differ slightly from the
+	// ranked value.
 	// It excludes the multi-shard locality multiplier and the retry factor
 	// that [connScoreSelect] applies when ranking candidates.
 	// Lower score = preferred node. Warmup state is handled separately by
@@ -186,7 +193,8 @@ type RouteCandidate struct {
 //
 // When scoreFunc is non-nil, it is used to compute the base score (matching
 // the per-connection scoring in [connScoreSelect]). When nil, the static
-// formula is used via [calcConnDefaultScore]. The score omits the locality
+// formula is used via [calcConnDefaultScore]. c3 selects the load term as in
+// [connScoreSelect]. The score omits the locality
 // multiplier and retry factor, so it can differ from the value
 // [connScoreSelect] ranks on.
 func newRouteCandidate(
@@ -197,6 +205,7 @@ func newRouteCandidate(
 	poolName string,
 	poolInfoReady bool,
 	scoreFunc connScoreFunc,
+	c3 c3Inputs,
 ) RouteCandidate {
 	bucket := conn.rttRing.medianBucket()
 	var scm float64
@@ -221,9 +230,9 @@ func newRouteCandidate(
 	var score float64
 	switch {
 	case scoreFunc != nil:
-		score = scoreFunc(conn, scm, primaryPct, poolName, poolInfoReady)
+		score = scoreFunc(conn, scm, primaryPct, poolName, poolInfoReady, c3)
 	default:
-		score = calcConnDefaultScore(conn, scm, poolName, poolInfoReady)
+		score = calcConnDefaultScore(conn, scm, poolName, poolInfoReady, c3)
 	}
 
 	// Compute warmup penalty for observability.
@@ -294,8 +303,9 @@ func buildRouteEvent(p routeEventParams) RouteEvent {
 // either a fresh slice (buildRouteEvent) or a pooled one (dispatchRoute).
 func buildRouteEventInto(cs []RouteCandidate, p routeEventParams) RouteEvent {
 	var selected RouteCandidate
+	c3 := newC3Inputs(p.candidates, p.poolName)
 	for i, c := range p.candidates {
-		cs[i] = newRouteCandidate(c, p.slot, p.shard, p.costs, p.poolName, p.poolInfoReady, p.scoreFunc)
+		cs[i] = newRouteCandidate(c, p.slot, p.shard, p.costs, p.poolName, p.poolInfoReady, p.scoreFunc, c3)
 		if c == p.best {
 			selected = cs[i]
 		}
