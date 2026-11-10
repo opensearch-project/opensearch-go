@@ -873,9 +873,23 @@ opensearch_client_bulk_errors_total{layer="indexer"}
 opensearch_client_bulk_errors_total{layer="client"}
 ```
 
+## Direct mget driver is the default
+
+From 5.2.1, `DocumentClient.MGet` uses the direct driver unless told otherwise: it splits each mget by shard in the client and sends each node only the documents it holds. The response is the one the cluster's coordinator would have given. An mget the client cannot split, because the transport keeps no shard map (for example with `OPENSEARCH_GO_ROUTER=false`) or none of its documents can be routed to a node, still goes to the cluster as one request.
+
+To keep sending every mget as one request, as 5.2.0 and earlier did:
+
+```go
+client, err := opensearchapi.NewClient(opensearchapi.Config{
+	MGet: opensearchapi.MGetConfig{Driver: opensearchapi.MGetDriverCoordinator},
+})
+```
+
+`OPENSEARCH_GO_MGET=coordinator` selects it without a code change, and `opensearchapi.WithMGetDriver(ctx, opensearchapi.MGetDriverCoordinator)` selects it for the mgets made with that context.
+
 ## Direct mget driver reads from the fewest nodes
 
-The direct mget driver added in 5.1.3 chooses the shard copies it reads from with `MGetConfig.FanOut`. The default, `MGetFanOutFewestNodes`, reads each mget from as few nodes as hold its shards, and each shard once. In 5.1.3 the driver read each document from the least loaded copy of its shard, which reaches more nodes and can read one shard on several. That behavior is now `MGetFanOutLeastLoaded`. The coordinator driver, the default driver, is unchanged.
+The direct mget driver added in 5.1.3 chooses the shard copies it reads from with `MGetConfig.FanOut`. The default, `MGetFanOutFewestNodes`, reads each mget from as few nodes as hold its shards, and each shard once. In 5.1.3 the driver read each document from the least loaded copy of its shard, which reaches more nodes and can read one shard on several. That behavior is now `MGetFanOutLeastLoaded`. The coordinator driver is unchanged.
 
 To read from the least loaded copy, as 5.1.3 did:
 
