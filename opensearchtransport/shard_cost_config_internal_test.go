@@ -342,7 +342,7 @@ func TestNewReadScoreFunc(t *testing.T) {
 	// in-flight requests, utilization = (0+1)/1 = 1.0, so
 	// score = rtt * 1.0 * effectiveCost.
 	conn := scoreTestConn(t, "node-1", 200*time.Microsecond, 0)
-	rtt := float64(conn.rttRing.medianBucket())
+	rtt := conn.loadLatencyMicros("")
 
 	tests := []struct {
 		name       string

@@ -53,11 +53,12 @@ func TestConnScoreSelectRoutesARetryAroundTriedNodes(t *testing.T) {
 			t.Parallel()
 
 			conns := []*Connection{
-				// RTT buckets 8, 22 and 24: close enough that one earlier try (twice the
-				// score) leaves near the best, so only the skip moves a retry off it.
+				// RTT buckets 8, 10 and 11 (256, 1024 and 2048 us): close enough that
+				// one earlier try (twice the score) leaves near the best, so only the
+				// skip moves a retry off it.
 				scoreTestConn(t, "near", 100*time.Microsecond, 0),
-				scoreTestConn(t, "mid", 5*time.Second, 0),
-				scoreTestConn(t, "far", 30*time.Second, 0),
+				scoreTestConn(t, "mid", 1100*time.Microsecond, 0),
+				scoreTestConn(t, "far", 2100*time.Microsecond, 0),
 			}
 			for _, c := range conns {
 				c.setLifecycleBit(lcActive)

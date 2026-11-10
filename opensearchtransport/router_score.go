@@ -197,3 +197,77 @@ func (twc *timeWeightedCounter) store(v float64) {
 	twc.bits.Store(math.Float64bits(v))
 	twc.nanoTime.Store(twc.now().UnixNano())
 }
+
+// peakEWMADecay is the decay window of [peakEWMA]: the time constant tau of
+// the exponential blend. Ten seconds matches Finagle's Peak-EWMA load balancer:
+// long enough that one fast response does not hide a slow node, short enough
+// that a node which spiked and then received no traffic is retried within
+// seconds rather than starved.
+const peakEWMADecay = 10 * time.Second
+
+// peakEWMA is a peak-sensitive, time-decayed moving average of request
+// latency in microseconds (Finagle's Peak-EWMA).
+//
+// A sample at or above the current value, decayed to now, replaces it
+// outright, so a slowdown is seen at once. A lower sample blends in with
+// weight 1 - e^(-dt/tau), where dt is the time since the last sample and the
+// stored value is decayed by e^(-dt/tau) once, so recovery is gradual. load decays the value to the present without storing
+// it, so an idle node drifts back toward zero and is probed again.
+//
+// The value and timestamp are separate atomics. The small race window between
+// them is benign: one read may apply slightly too much or too little decay,
+// corrected by the next sample.
+type peakEWMA struct {
+	bits     atomic.Uint64 // float64 microseconds stored as bits
+	nanoTime atomic.Int64  // last sample time (UnixNano); 0 = never sampled
+	clock    clock         // nil reads time.Now
+}
+
+func (p *peakEWMA) nowNano() int64 {
+	if p.clock == nil {
+		return time.Now().UnixNano()
+	}
+	return p.clock.Now().UnixNano()
+}
+
+// peakDecay returns v decayed over the time between last and now.
+func peakDecay(v float64, last, now int64) float64 {
+	dt := float64(now-last) / float64(peakEWMADecay)
+	if dt <= 0 {
+		return v
+	}
+	return v * math.Exp(-dt)
+}
+
+// sample records one latency observation. Safe for concurrent use.
+func (p *peakEWMA) sample(d time.Duration) {
+	us := float64(d) / float64(time.Microsecond)
+	now := p.nowNano()
+	for {
+		oldBits := p.bits.Load()
+		last := p.nanoTime.Load()
+
+		next := us
+		if last != 0 {
+			v := math.Float64frombits(oldBits)
+			w := math.Exp(-max(float64(now-last), 0) / float64(peakEWMADecay))
+			if us < v*w {
+				next = v*w + us*(1-w)
+			}
+		}
+		if p.bits.CompareAndSwap(oldBits, math.Float64bits(next)) {
+			p.nanoTime.Store(now)
+			return
+		}
+	}
+}
+
+// load returns the value in microseconds decayed to now, and false when no
+// sample has been recorded.
+func (p *peakEWMA) load() (float64, bool) {
+	last := p.nanoTime.Load()
+	if last == 0 {
+		return 0, false
+	}
+	return peakDecay(math.Float64frombits(p.bits.Load()), last, p.nowNano()), true
+}

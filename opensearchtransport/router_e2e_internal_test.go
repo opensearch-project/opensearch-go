@@ -323,9 +323,9 @@ func TestRouterE2E_ThreeTiers_EqualWP(t *testing.T) {
 }
 
 // TestRouterE2E_CrossAZ_MixedWP validates that shard cost can override
-// the RTT advantage. Local-primary (bucket 9, shardCost 2.0) scores
-// 9*(1/cwnd)*2.0 = 18/cwnd, while remote-replica (bucket 12, shardCost 1.0)
-// scores 12*(1/cwnd)*1.0 = 12/cwnd. The remote wins because 12 < 18.
+// the RTT advantage. Local-primary (512 us, shardCost 2.0) scores
+// 512*(1/cwnd)*2.0 = 1024/cwnd, while remote-replica (512 us, shardCost 1.0)
+// scores 512*(1/cwnd)*1.0 = 512/cwnd. The remote wins because 512 < 1024.
 func TestRouterE2E_CrossAZ_MixedWP(t *testing.T) {
 	t.Parallel()
 
@@ -339,8 +339,11 @@ func TestRouterE2E_CrossAZ_MixedWP(t *testing.T) {
 	clk := newTestClock()
 	processors := 8
 
-	localRTT := 1 * time.Millisecond     // bucket 9
-	remoteRTT := 4096 * time.Microsecond // bucket 12
+	// Scores are linear in latency and RTT buckets are powers of two, so the
+	// shard cost can only outweigh an RTT difference when both nodes share a
+	// bucket.
+	localRTT := 1 * time.Millisecond    // bucket 9
+	remoteRTT := 600 * time.Microsecond // bucket 9
 
 	conns := []*Connection{
 		e2eTestConn(t, "local-primary", localRTT, processors, clk),
@@ -360,9 +363,9 @@ func TestRouterE2E_CrossAZ_MixedWP(t *testing.T) {
 	result := runRouterE2E(t, policy, index, clk, interval, warmup, measure)
 
 	// Expected: remote-replica wins because its cwnd score is lower.
-	// local-primary:  score = 9 * (1/cwnd) * 2.0 = 18/cwnd
-	// remote-replica: score = 12 * (1/cwnd) * 1.0 = 12/cwnd
-	// Remote always wins (12 < 18), so remote gets ~100%.
+	// local-primary:  score = 512 us * (1/cwnd) * 2.0 = 1024/cwnd
+	// remote-replica: score = 512 us * (1/cwnd) * 1.0 = 512/cwnd
+	// Remote always wins (512 < 1024), so remote gets ~100%.
 	verifyE2EDistribution(t, result, measure, map[string]float64{
 		"local-primary":  0.0,
 		"remote-replica": 1.0,

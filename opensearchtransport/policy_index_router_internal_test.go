@@ -47,7 +47,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 
 		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
 		// With cwnd scoring: utilization = (0+1)/1 = 1.0, so score = rttBucket * 1.0 * shardCost.
-		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostReplica]
+		expected := conn.loadLatencyMicros("") * shardCostForReads[shardCostReplica]
 		require.InDelta(t, expected, score, 0.01)
 	})
 
@@ -57,7 +57,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		node := &shardNodeInfo{Primaries: 3}
 
 		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
-		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostPrimary]
+		expected := conn.loadLatencyMicros("") * shardCostForReads[shardCostPrimary]
 		require.InDelta(t, expected, score, 0.01)
 	})
 
@@ -66,7 +66,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 
 		score := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
-		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostUnknown]
+		expected := conn.loadLatencyMicros("") * shardCostForReads[shardCostUnknown]
 		require.InDelta(t, expected, score, 0.01)
 	})
 
@@ -77,7 +77,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 
 		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
 		// Mixed = min(replica, primary) = min(1.0, 2.0) = 1.0 for reads.
-		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostReplica]
+		expected := conn.loadLatencyMicros("") * shardCostForReads[shardCostReplica]
 		require.InDelta(t, expected, score, 0.01)
 	})
 
@@ -131,7 +131,7 @@ func TestCalcConnScoreShardCostWrites(t *testing.T) {
 		node := &shardNodeInfo{Primaries: 3}
 
 		score := calcConnDefaultScore(conn, shardCostForWrites.forNode(node), "", true)
-		expected := float64(conn.rttRing.medianBucket()) * shardCostForWrites[shardCostPrimary]
+		expected := conn.loadLatencyMicros("") * shardCostForWrites[shardCostPrimary]
 		require.InDelta(t, expected, score, 0.01)
 	})
 
@@ -141,7 +141,7 @@ func TestCalcConnScoreShardCostWrites(t *testing.T) {
 		node := &shardNodeInfo{Replicas: 3}
 
 		score := calcConnDefaultScore(conn, shardCostForWrites.forNode(node), "", true)
-		expected := float64(conn.rttRing.medianBucket()) * shardCostForWrites[shardCostReplica]
+		expected := conn.loadLatencyMicros("") * shardCostForWrites[shardCostReplica]
 		require.InDelta(t, expected, score, 0.01)
 	})
 
@@ -209,7 +209,7 @@ func TestCalcConnScore_InFlightChangesScores(t *testing.T) {
 	idleScore := calcConnDefaultScore(connIdle, shardCostForReads.forNode(node), "", true)
 	busyScore := calcConnDefaultScore(connBusy, shardCostForReads.forNode(node), "", true)
 
-	bucket := float64(connIdle.rttRing.medianBucket())
+	bucket := connIdle.loadLatencyMicros("")
 
 	// Idle: utilization = (0+1)/1 = 1.0, score = bucket * 1.0 * 1.0
 	require.InDelta(t, bucket*1.0*shardCostForReads[shardCostReplica], idleScore, 0.01)

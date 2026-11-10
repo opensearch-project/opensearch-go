@@ -425,7 +425,7 @@ func (conn *Connection) RTTMedian() time.Duration {
 //
 // This is the value used in routing score calculations:
 //
-//	score = rttBucket * (inFlight + 1) / cwnd * shardCostMultiplier
+//	score = latency * (inFlight + 1) / cwnd * shardCostMultiplier
 func (conn *Connection) RTTBucket() int64 {
 	if conn.rttRing == nil {
 		return -1
@@ -553,6 +553,34 @@ func (conn *Connection) loadCwnd(poolName string, poolInfoReady bool) int32 {
 		return 1
 	}
 	return cwnd
+}
+
+// recordLatency feeds one completed request's latency into the named pool's
+// [peakEWMA]. The pool is per-thread-pool because a bulk request takes
+// seconds where a search takes milliseconds on the same node; one value per
+// connection would let bulk latency dominate search scoring.
+func (conn *Connection) recordLatency(poolName string, d time.Duration) {
+	conn.pools.getForScoring(poolName).latency.sample(d)
+}
+
+// loadLatencyMicros returns the latency, in microseconds, that scoring uses
+// for the named pool: the pool's [peakEWMA] once it has a sample, floored at
+// the health-check RTT median when one is known so that an idle node's decayed
+// value never falls below its wire latency; with no sample, the RTT median;
+// with neither, the [rttBucketUnknown] sentinel so
+// that nodes with no measurement rank last.
+func (conn *Connection) loadLatencyMicros(poolName string) float64 {
+	var rttMicros float64
+	if rtt := conn.RTTMedian(); rtt > 0 {
+		rttMicros = float64(rtt) / float64(time.Microsecond)
+	}
+	if v, ok := conn.pools.getForScoring(poolName).latency.load(); ok {
+		return max(v, rttMicros)
+	}
+	if rttMicros > 0 {
+		return rttMicros
+	}
+	return float64(rttBucketUnknown)
 }
 
 // isPoolOverloaded returns true if the named thread pool is overloaded

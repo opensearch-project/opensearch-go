@@ -309,7 +309,8 @@ const (
 // Returns the composite score (lower = preferred).
 //
 // When nil in [connScoreSelect], scoring falls back to the static
-// formula: rtt * (inFlight+1)/cwnd * shardCost.
+// formula: latency * (inFlight+1)/cwnd * shardCost, where latency is
+// [Connection.loadLatencyMicros].
 type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64
 
 // newReadScoreFunc returns a [connScoreFunc] that dynamically adjusts
@@ -329,6 +330,8 @@ type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64,
 // which is less than the replica's static 1.0 -- the primary is preferred.
 // As writes ramp up, the dynamic cost increases and reads progressively
 // shift to replica-hosting nodes.
+//
+// The score is latency × utilization × effectiveCost.
 func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
 	return func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64 {
 		rtt, utilization := connBaseScore(conn, poolName, poolInfoReady)
@@ -348,12 +351,13 @@ func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
 	}
 }
 
-// connBaseScore computes the common components of connection scoring: the RTT
-// bucket and the utilization ratio. A pool that refused work is not excluded: a
+// connBaseScore computes the common components of connection scoring: the
+// latency in microseconds ([Connection.loadLatencyMicros]) and the utilization
+// ratio. A pool that refused work is not excluded: a
 // 429 has already halved its cwnd, which doubles its utilization, and a request
 // that is retried skips the nodes it has tried (see routeAttempt).
 func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float64, float64) {
-	rtt := float64(conn.rttRing.medianBucket())
+	rtt := conn.loadLatencyMicros(poolName)
 	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
 	inFlight := float64(conn.loadInFlight(poolName))
 	utilization := (inFlight + 1.0) / cwnd
@@ -361,7 +365,7 @@ func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float
 }
 
 // calcConnDefaultScore scores a connection using the static shard cost
-// formula: rtt × utilization × shardCost. This is the default scoring
+// formula: latency × utilization × shardCost. This is the default scoring
 // path used for write operations and as the fallback when no
 // [connScoreFunc] is configured (scoreFunc == nil in [connScoreSelect]).
 func calcConnDefaultScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {

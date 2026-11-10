@@ -245,7 +245,7 @@ Activated when the URL contains both an index and a document ID (e.g., `GET /ord
     ┌──────────────────────────────────────────────────────┐
     │  3. SCORE (1-3 candidates)                           │
     │     For each node hosting this exact shard:          │
-    │       score = rttBucket × (inFlight+1)/cwnd          │
+    │       score = latency × (inFlight+1)/cwnd            │
     │             × shardCost(primary vs replica)          │
     │     Return lowest-scoring node                       │
     └──────────────────────────────────────────────────────┘
@@ -284,7 +284,7 @@ Activated when the URL contains an index but no document ID (e.g., `POST /orders
     │  3. SCORE (K candidates)                             │
     │     For each candidate in fan-out set:               │
     │       shardInfo = slot.shardNodeInfo(candidate)      │
-    │       score = rttBucket × (inFlight+1)/cwnd          │
+    │       score = latency × (inFlight+1)/cwnd            │
     │             × shardCost(shardInfo, operation)        │
     │     Return lowest-scoring node                       │
     └──────────────────────────────────────────────────────┘
@@ -312,7 +312,7 @@ Activated when the URL has no index component (e.g., `GET /_cluster/health`, `GE
     ┌──────────────────────────────────────────────────────┐
     │  2. SCORE ALL ACTIVE CONNECTIONS                     │
     │     For each active connection:                      │
-    │       score = rttBucket × (inFlight+1)/cwnd          │
+    │       score = latency × (inFlight+1)/cwnd            │
     │             × costUnknown (32.0 -- constant,         │
     │               cancels out across all nodes)          │
     │     Return lowest-scoring node                       │
@@ -369,7 +369,7 @@ This design has a critical consequence: **any request flowing through any policy
 
 This amortizes pool management cost: expensive operations (acquiring write locks, shuffling slices) happen only when a policy is actively evaluated, not eagerly across all policies the moment something changes. For policies that serve infrequent request types (e.g., `force_merge`), the pool is untouched until the next request arrives, at which point it catches up in a single pass.
 
-**Concurrency model.** The request path reads all scoring inputs -- RTT bucket, in-flight count, congestion window, shard cost, lifecycle bits -- via atomic loads only. No locks are acquired during `Eval()`. Writes that imply a multi-part state change (pool position transitions, discovery updates, warmup initialization, AIMD window adjustments) are guarded by the appropriate connection pool or connection mutex to avoid concurrent mutations and inconsistent connection state. The expensive work -- topology discovery, stats polling, shard catalog refresh, resurrection health checks -- runs in background goroutines that update atomics behind those mutexes. The request hot path pays only the cost of reading the atomics; all mutation cost is deferred to asynchronous maintenance loops.
+**Concurrency model.** The request path reads all scoring inputs -- request latency, in-flight count, congestion window, shard cost, lifecycle bits -- via atomic loads only. No locks are acquired during `Eval()`. Writes that imply a multi-part state change (pool position transitions, discovery updates, warmup initialization, AIMD window adjustments) are guarded by the appropriate connection pool or connection mutex to avoid concurrent mutations and inconsistent connection state. The expensive work -- topology discovery, stats polling, shard catalog refresh, resurrection health checks -- runs in background goroutines that update atomics behind those mutexes. The request hot path pays only the cost of reading the atomics; all mutation cost is deferred to asynchronous maintenance loops.
 
 ---
 
@@ -380,20 +380,22 @@ This amortizes pool management cost: expensive operations (acquiring write locks
 Once the candidate set is determined, each candidate is scored:
 
 ```
-score = rttBucket × (inFlight + 1) / cwnd × shardCost
+score = latency × (inFlight + 1) / cwnd × shardCost
 ```
 
 **Lower score wins.** The three multiplicative factors are independent signals:
 
-| Factor                  | Source                          | What It Measures                                                            |
-| ----------------------- | ------------------------------- | --------------------------------------------------------------------------- |
-| `rttBucket`             | `conn.rttRing.medianBucket()`   | Network proximity. Power-of-2 quantized RTT. Same-AZ: 8-9, cross-AZ: 10-11. |
-| `(inFlight + 1) / cwnd` | Per-pool AIMD congestion window | Utilization ratio. Atomic per-pool counter.                                 |
-| `shardCost`             | Shard cost table lookup         | Whether the node hosts relevant shards.                                     |
+| Factor                  | Source                          | What It Measures                                                                                                                                                                                                          |
+| ----------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `latency`               | `conn.loadLatencyMicros(pool)`  | Peak-EWMA of request latency per thread pool, in microseconds. A slower response replaces the value at once; faster ones decay in over a 10-second window. Until the pool has a sample it is the health-check RTT median. |
+| `(inFlight + 1) / cwnd` | Per-pool AIMD congestion window | Utilization ratio. Atomic per-pool counter.                                                                                                                                                                               |
+| `shardCost`             | Shard cost table lookup         | Whether the node hosts relevant shards.                                                                                                                                                                                   |
 
 When a thread pool is overloaded (rejected requests or HTTP 429), the score is `math.MaxFloat64` -- the node is effectively removed from consideration for that pool.
 
 ### RTT Bucketing
+
+The RTT bucket orders nodes into tiers (AZ tiering, fan-out, sort order). The score itself uses the pool's request latency, not the bucket; the bucket value stands in for latency only until a pool has a sample.
 
 Health-check RTTs are quantized to power-of-2 buckets (floor 8 = 256 us). This provides a stable network proximity signal immune to jitter:
 
@@ -499,8 +501,8 @@ Non-shard node, idle:  11 *  (0+1)/13 * 32.0 =  27.1   <- still loses
 The three multiplicative components interact to create a composite score that ranks every candidate connection:
 
 ```
-    score = rttBucket * (inFlight + 1) / cwnd * shardCost
-            ────┬───   ──────────┬──────────   ─────┬────
+    score = latency * (inFlight + 1) / cwnd * shardCost
+            ───┬───   ──────────┬──────────   ─────┬────
                 │                │                   │
                 │                │                   +-- Shard cost (operation-aware)
                 │                │                       reads: dynamic for primary (see below)
@@ -514,8 +516,8 @@ The three multiplicative components interact to create a composite score that ra
                 │                    idle=1/cwnd  busy=cwnd/cwnd=1.0
                 │                    (inFlight from atomic counter; cwnd from stats poller)
                 │
-                +-- Network proximity (stable, power-of-two buckets)
-                    same-AZ=8  cross-AZ=9-11  cross-region=14-16
+                +-- Observed request latency (Peak-EWMA)
+                    same-AZ < cross-AZ < cross-region
 
     Read scoring for primary shards uses a dynamic cost function,
     blended by the node's primary percentage (primaryPct):
@@ -530,9 +532,9 @@ The three multiplicative components interact to create a composite score that ra
 
 
     Example: 6-node cluster, index "orders" with fan-out K=4 (read path)
-    (search pool: cwnd=13 on all nodes; write pool idle; RTT from client AZ us-e1)
+    (search pool: cwnd=13 on all nodes; write pool idle; latency in ms from client AZ us-e1)
 
-    Node       AZ     RTT Bucket  InFlight  Cwnd  Util   Shard Cost        Score   Fan-out?  Rank
+    Node       AZ     Latency ms  InFlight  Cwnd  Util   Shard Cost        Score   Fan-out?  Rank
     ---------  -----  ----------  --------  ----  -----  ----------------  ------  --------  ----
     node-1     us-e1  8           5         13    6/13   1.0 (replica)     3.69    K=4       4
     node-2     us-e1  8           2         13    3/13   0.95 (primary*)   1.75    K=4       3
@@ -555,13 +557,13 @@ The three multiplicative components interact to create a composite score that ra
 Three-node cluster, search request for `my-index` (write pool idle on all nodes):
 
 ```
-Node A: bucket=8,  inFlight=2, cwnd=13, replica  (read cost 1.0)
+Node A: latency=8ms,  inFlight=2, cwnd=13, replica  (read cost 1.0)
   score = 8 × (2+1)/13 × 1.0 = 1.85
 
-Node B: bucket=8,  inFlight=0, cwnd=13, primary  (dynamic read cost 0.95 at idle)
+Node B: latency=8ms,  inFlight=0, cwnd=13, primary  (dynamic read cost 0.95 at idle)
   score = 8 * (0+1)/13 * 0.95 = 0.58
 
-Node C: bucket=11, inFlight=0, cwnd=13, replica   (read cost 1.0)
+Node C: latency=11ms, inFlight=0, cwnd=13, replica   (read cost 1.0)
   score = 11 × (0+1)/13 × 1.0 = 0.85
 ```
 
@@ -585,10 +587,10 @@ The `opensearch_client_route_selected_total{node}` counter in `osprom` (`opensea
 
 ### AZ-Aware Crossover
 
-The multiplicative score formula creates natural tier-based overflow. Crossover between a local node (bucket=8) and a remote node (bucket=B) is immediate when the local node has higher utilization:
+The multiplicative score formula creates natural tier-based overflow. Crossover between a local node (latency=8ms) and a remote node (latency=Lms) is immediate when the local node has higher utilization:
 
 ```
-    Score at various in-flight counts -- local (bucket=8) vs remote (bucket=11)
+    Score at various in-flight counts -- local (latency=8ms) vs remote (latency=11ms)
     (search pool cwnd=13 on both nodes; ignoring shard cost)
 
     score
@@ -620,16 +622,16 @@ At sustained load across multiple RTT tiers, the congestion-window scoring produ
         │ ██ ██
      30 │ ██ ██              ██ ██
         │ ██ ██              ██ ██         ██ ██       Per-tier:
-     20 │ ██ ██              ██ ██         ██ ██         AZ-1: slightly more (lowest RTT)
+     20 │ ██ ██              ██ ██         ██ ██         AZ-1: slightly more (lowest latency)
         │ ██ ██              ██ ██         ██ ██         AZ-2: moderate
-     10 │ ██ ██              ██ ██         ██ ██         AZ-3: slightly less (highest RTT)
+     10 │ ██ ██              ██ ██         ██ ██         AZ-3: slightly less (highest latency)
         │ ██ ██              ██ ██         ██ ██
       0 └──────────────────────────────────────────
         n1     n2           n3     n4     n5     n6
         ──── AZ-1 ────     ──── AZ-2 ──  ── AZ-3 ──
-        (bucket=8)         (bucket=11)    (bucket=14)
+        (latency=8ms)         (latency=11ms)    (latency=14ms)
 
-    Within each AZ, nodes split evenly (same bucket, so only utilization
+    Within each AZ, nodes split evenly (same latency, so only utilization
     and shard cost differentiate). On read routes, primary-hosting nodes
     receive slightly more traffic at idle (dynamic cost 0.95 < replica's
     1.0) and progressively less as write load increases.
@@ -719,7 +721,7 @@ When a request arrives for an index, the routing pipeline interacts with the ind
     │         poolName)                    │  ◄── congestion window
     │       inFlight = candidate.          │
     │         loadInFlight(poolName)       │  ◄── in-flight count
-    │       score = rttBucket              │
+    │       score = latency                │
     │             * (inFlight + 1) / cwnd  │
     │             * shardCost(info)        │
     │     candidate with lowest score wins │
@@ -2259,19 +2261,19 @@ The env override is applied once at startup, after policy configuration but befo
 
 ## Appendix A: Summary Formulas
 
-| Metric                             | Formula                                                                                   |
-| ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| Hop elimination rate               | `eta = 1 - n_s / N`                                                                       |
-| Availability gain                  | `deltaA = p^2 * eta * (1 - p)`                                                            |
-| Bandwidth saved per request        | `2d * eta`                                                                                |
-| Coordinator heap saved per request | `d * eta`                                                                                 |
-| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)                                                |
-| Cross-AZ hops eliminated           | `eta * P(cross_AZ)`                                                                       |
-| Scatter-gather reduction           | `P_before / P_after`                                                                      |
-| Client-side index cache            | ~200-500 B per index                                                                      |
-| Client-side connection overhead    | ~120-300 B per node                                                                       |
-| Scoring formula (static)           | `rttBucket * (inFlight+1)/cwnd * shardCost`                                               |
-| Scoring formula (dynamic read)     | `rttBucket * (inFlight+1)/cwnd * ((1-pPct) * replica + pPct * (base + amplify * wU^exp))` |
+| Metric                             | Formula                                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| Hop elimination rate               | `eta = 1 - n_s / N`                                                                     |
+| Availability gain                  | `deltaA = p^2 * eta * (1 - p)`                                                          |
+| Bandwidth saved per request        | `2d * eta`                                                                              |
+| Coordinator heap saved per request | `d * eta`                                                                               |
+| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)                                              |
+| Cross-AZ hops eliminated           | `eta * P(cross_AZ)`                                                                     |
+| Scatter-gather reduction           | `P_before / P_after`                                                                    |
+| Client-side index cache            | ~200-500 B per index                                                                    |
+| Client-side connection overhead    | ~120-300 B per node                                                                     |
+| Scoring formula (static)           | `latency * (inFlight+1)/cwnd * shardCost`                                               |
+| Scoring formula (dynamic read)     | `latency * (inFlight+1)/cwnd * ((1-pPct) * replica + pPct * (base + amplify * wU^exp))` |
 
 ---
 

@@ -38,6 +38,7 @@ type poolCongestion struct {
 	cwnd       atomic.Int32 // current congestion window (>= 1)
 	inFlight   atomic.Int32 // client-tracked in-flight requests
 	overloaded atomic.Bool  // set by stats poller or 429 response
+	latency    peakEWMA     // request latency on this pool; see [Connection.recordLatency]
 
 	// Mutable AIMD state --written only by stats poller under mu.
 	mu struct {

@@ -11,6 +11,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -326,4 +327,60 @@ func verifyEquilibriumDistribution(t *testing.T, nodes []simNode, measure int, t
 			"%s (bucket=%.0f wp=%.1f): expected %.1f%%, got %.1f%%",
 			n.name, n.rttBucket, n.wp, expected[i]*100, actual*100)
 	}
+}
+
+// TestLatencyEquilibrium runs the production score on two nodes in one RTT
+// bucket whose base latency is 1.9x apart, with latency rising as a node
+// takes more concurrent requests. Latency scoring splits traffic between
+// them and favors the faster node; bucket scoring scored them equal.
+func TestLatencyEquilibrium(t *testing.T) {
+	t.Parallel()
+
+	const (
+		fastBase    = 10 * time.Millisecond
+		slowBase    = 19 * time.Millisecond
+		steps       = 4000
+		maxInFlight = 30 // outstanding requests across both nodes
+		loadPenalty = 0.1
+	)
+
+	clk := newTestClock()
+	conns := make([]*Connection, 2)
+	for i := range conns {
+		conns[i] = &Connection{rttRing: newRTTRing(4)}
+		conns[i].rttRing.add(300 * time.Microsecond)
+		pc := conns[i].pools.getOrCreate(poolSearch)
+		pc.cwnd.Store(64)
+		pc.latency.clock = clk
+	}
+	base := []time.Duration{fastBase, slowBase}
+
+	var (
+		picks   [2]int
+		pending []int // node index per outstanding request, oldest first
+	)
+	for range steps {
+		best := 0
+		if calcConnDefaultScore(conns[1], 1, poolSearch, true) < calcConnDefaultScore(conns[0], 1, poolSearch, true) {
+			best = 1
+		}
+		picks[best]++
+		conns[best].addInFlight(poolSearch)
+		pending = append(pending, best)
+
+		load := float64(conns[best].loadInFlight(poolSearch))
+		conns[best].recordLatency(poolSearch, time.Duration(float64(base[best])*(1+loadPenalty*load)))
+		clk.Advance(5 * time.Millisecond)
+
+		if len(pending) > maxInFlight {
+			conns[pending[0]].releaseInFlight(poolSearch)
+			pending = pending[1:]
+		}
+	}
+
+	require.Positive(t, picks[0])
+	require.Positive(t, picks[1], "the slower node still receives traffic")
+	// Equal bucket scores would split about evenly; latency scoring tilts the
+	// split toward the faster node.
+	require.Greater(t, picks[0]*100, 58*(picks[0]+picks[1]), "the faster node receives clearly more")
 }

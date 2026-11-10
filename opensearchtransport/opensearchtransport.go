@@ -2129,6 +2129,13 @@ func (tr *Transport) stream(req *http.Request, mode bodyMode) (*http.Response, s
 		if poolName != "" {
 			conn.releaseInFlight(poolName)
 		}
+		// Scoring input. Only a buffered attempt's dur spans the whole response
+		// (a streamed attempt's is time to first byte), and an error, 5xx or 429
+		// is a failure's latency, not the node's service time.
+		if mode == bodyBuffered && err == nil && res != nil &&
+			res.StatusCode < http.StatusInternalServerError && res.StatusCode != http.StatusTooManyRequests {
+			conn.recordLatency(poolName, dur)
+		}
 
 		// Log request and response. attemptReq carries the URL actually
 		// contacted, so it is what the log should report.

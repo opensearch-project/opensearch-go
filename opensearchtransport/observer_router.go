@@ -170,7 +170,9 @@ type RouteCandidate struct {
 	WarmupPenalty float64
 
 	// Score is the base connection score:
-	//   RTTBucket * (InFlight + 1) / Cwnd * ShardCostMultiplier.
+	//   Latency * (InFlight + 1) / Cwnd * ShardCostMultiplier,
+	// where Latency is the pool's Peak-EWMA request latency in microseconds,
+	// or the health-check RTT median until the pool has a sample.
 	// It excludes the multi-shard locality multiplier and the retry factor
 	// that [connScoreSelect] applies when ranking candidates.
 	// Lower score = preferred node. Warmup state is handled separately by

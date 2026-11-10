@@ -92,7 +92,7 @@ func TestWithShardCosts(t *testing.T) {
 	// to rtt * effectiveCost; rtt is the RTT-bucketed median of a known
 	// fixed input, which is stable across calls.
 	conn := scoreTestConn(t, "node-shard-cost", 200*time.Microsecond, 0)
-	rtt := float64(conn.rttRing.medianBucket())
+	rtt := conn.loadLatencyMicros("")
 
 	// At primaryPct=1.0 on an idle connection (writeUtil=0), the dynamic
 	// formula reduces to: effectiveCost = base + amplify*(0^exponent) = base.
