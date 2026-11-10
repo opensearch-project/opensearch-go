@@ -25,6 +25,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Update the `toolchain` line to go1.26.11 in the root and all nested modules, so builds in this repository use Go 1.26.11, which carries security fixes to cgo, the go command, the compiler, the linker and `net/http`. The go directive stays 1.26.0, so consumers are not affected
+
 ## [5.2.0]
 
 ### Added

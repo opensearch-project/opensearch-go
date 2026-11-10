@@ -2,7 +2,7 @@ module github.com/opensearch-project/opensearch-go/osprom/v5
 
 go 1.26.0
 
-toolchain go1.26.10
+toolchain go1.26.11
 
 require (
 	github.com/opensearch-project/opensearch-go/v5 v5.1.4-0.20261106001247-8737ed09df10
