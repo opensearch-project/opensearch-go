@@ -38,7 +38,7 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_BULK_PID_KP`](#bulk-indexer)                                  | `1`                          | PID proportional gain                   |
 | [`OPENSEARCH_GO_BULK_PID_KI`](#bulk-indexer)                                  | `0.1`                        | PID integral gain                       |
 | [`OPENSEARCH_GO_BULK_PID_KD`](#bulk-indexer)                                  | `0.25`                       | PID derivative gain                     |
-| [`OPENSEARCH_GO_MGET`](#mget)                                                 | `coordinator`                | MGet driver: coordinator or direct      |
+| [`OPENSEARCH_GO_MGET`](#mget)                                                 | `direct`                     | MGet driver: coordinator or direct      |
 | [`OPENSEARCH_GO_MGET_FANOUT`](#mget)                                          | `fewest-nodes`               | Direct MGet: fewest nodes or least load |
 | [`OPENSEARCH_GO_LOG`](#debug-and-diagnostics)                                 | unset                        | Internal log level                      |
 | [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging (superseded by `_LOG`)    |
@@ -155,7 +155,7 @@ Read once, when `opensearchapi.NewClient` builds the client. A variable that is 
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_MGET` | `direct`, `coordinator` (case-insensitive) | `coordinator` | How `DocumentClient.MGet` fetches its documents. `coordinator` sends each mget as one request, and the node that receives it fetches each shard's documents from a node that holds a copy. `direct` sends each node only the documents it holds, with `preference=_local`, and puts the answers back in order. Overrides `MGetConfig.Driver`. | [Multi-Get](usage-mget.md#the-two-drivers) |
+| `OPENSEARCH_GO_MGET` | `direct`, `coordinator` (case-insensitive) | `direct` | How `DocumentClient.MGet` fetches its documents. `coordinator` sends each mget as one request, and the node that receives it fetches each shard's documents from a node that holds a copy. `direct` sends each node only the documents it holds, with `preference=_local`, and puts the answers back in order. Overrides `MGetConfig.Driver`. | [Multi-Get](usage-mget.md#the-two-drivers) |
 | `OPENSEARCH_GO_MGET_FANOUT` | `fewest-nodes`, `least-loaded` (case-insensitive) | `fewest-nodes` | Which copy of each shard the `direct` driver reads from. `fewest-nodes` reads an mget from as few nodes as hold its shards, preferring a node the mget already sends to, and leaves out a node whose get thread pool is rejecting work while another copy is available. `least-loaded` reads each document from the copy on the node with the fewest documents in flight, which spreads an mget over every node that holds its shards. No effect with `coordinator`. Overrides `MGetConfig.FanOut`. | [Multi-Get](usage-mget.md#choosing-the-nodes-fan-out) |
 
 ## Debug and diagnostics
