@@ -563,22 +563,6 @@ func (cp *multiServerPool) connectionByName(name string) *Connection {
 	return nil
 }
 
-// connectionByID returns the ready or dead connection whose node ID is id, or nil.
-func (cp *multiServerPool) connectionByID(id string) *Connection {
-	cp.mu.RLock()
-	defer cp.mu.RUnlock()
-
-	for _, list := range [...][]*Connection{cp.mu.ready, cp.mu.dead} {
-		for _, conn := range list {
-			if conn.ID == id {
-				return conn
-			}
-		}
-	}
-
-	return nil
-}
-
 func (cp *multiServerPool) connections() []*Connection {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()

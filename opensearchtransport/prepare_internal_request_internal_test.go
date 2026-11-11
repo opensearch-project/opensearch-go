@@ -542,7 +542,7 @@ func TestBackgroundPollersSignRequests(t *testing.T) {
 				// swallowed (logged) and still returns ok=false.
 				// fetchAndEvaluateNodeStats uses Transport.ctx; it does not
 				// take a caller context.
-				tp.fetchAndEvaluateNodeStats(conn, nil)
+				tp.fetchAndEvaluateNodeStats(conn, nil, nil)
 				return nil
 			},
 		},

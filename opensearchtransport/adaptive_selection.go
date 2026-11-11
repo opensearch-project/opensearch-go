@@ -119,14 +119,34 @@ func (a *adaptiveSelection) record(now time.Time, reporter, nodeID string, clien
 	a.p.Store(snap)
 }
 
+// connsByID indexes connections by node ID. Seed connections, which have no ID
+// yet, are left out.
+type connsByID map[string]*Connection
+
+// newConnsByID indexes the connections in lists by node ID.
+func newConnsByID(lists ...[]*Connection) connsByID {
+	n := 0
+	for _, l := range lists {
+		n += len(l)
+	}
+	m := make(connsByID, n)
+	for _, l := range lists {
+		for _, c := range l {
+			if c.ID != "" {
+				m[c.ID] = c
+			}
+		}
+	}
+	return m
+}
+
 // recordAdaptiveSelection records the report polled from conn (node ID
-// reporter) on every target this client also connects to; see
-// [adaptiveSelection] for why any reporter will do. pool is nil for a
-// single-node pool, which knows only conn. A self-report is recorded only while
-// conn's ID is unset or matches the reporter: another node answering at conn's
-// URL reports about itself, not about the node conn's ID names, which the
-// peers' reports are about.
-func recordAdaptiveSelection(conn *Connection, pool *multiServerPool, reporter string, report map[string]AdaptiveSelectionStats) {
+// reporter) on every target in peers; see [adaptiveSelection] for why any
+// reporter will do. peers is nil for a single-node pool, which knows only conn.
+// A self-report is recorded only while conn's ID is unset or matches the
+// reporter: another node answering at conn's URL reports about itself, not
+// about the node conn's ID names, which the peers' reports are about.
+func recordAdaptiveSelection(conn *Connection, peers connsByID, reporter string, report map[string]AdaptiveSelectionStats) {
 	if len(report) == 0 {
 		return
 	}
@@ -136,8 +156,8 @@ func recordAdaptiveSelection(conn *Connection, pool *multiServerPool, reporter s
 		switch {
 		case targetID == reporter && (conn.ID == "" || conn.ID == reporter):
 			target = conn
-		case targetID != reporter && pool != nil:
-			target = pool.connectionByID(targetID)
+		case targetID != reporter:
+			target = peers[targetID]
 		}
 		if target != nil {
 			target.ars.record(now, reporter, targetID, len(report), s)

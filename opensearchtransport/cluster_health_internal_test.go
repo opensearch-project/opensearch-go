@@ -1302,7 +1302,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// No overload -> connection should remain active
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
@@ -1323,7 +1323,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
 		client.overloadedHeapThreshold = 85
-		client.fetchAndEvaluateNodeStats(a1, pool)
+		client.fetchAndEvaluateNodeStats(a1, pool, nil)
 
 		// High heap -> should be demoted to standby with overloaded flag
 		require.True(t, a1.loadConnState().lifecycle().has(lcOverloaded))
@@ -1341,7 +1341,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// Non-200 -> no action, connection stays active
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
@@ -1367,7 +1367,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// Network error + was overloaded -> should transition away from overloaded
 		lc := conn.loadConnState().lifecycle()
@@ -1390,7 +1390,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
 		client.healthCheckTimeout = 0
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		require.Equal(t, int64(1), requestCount.Load(), "stats request should reach the server")
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
@@ -1415,7 +1415,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
 		client.overloadedHeapThreshold = 85
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// Stats are healthy -> overloaded flag should be cleared
 		require.False(t, conn.loadConnState().lifecycle().has(lcOverloaded))
@@ -1434,7 +1434,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// Empty nodes -> no action
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
@@ -1453,7 +1453,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// Invalid JSON -> no action
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
@@ -1461,7 +1461,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 	t.Run("nil pool updates AIMD without panic", func(t *testing.T) {
 		// When pollNodeStats discovers a singleServerPool it calls
-		// fetchAndEvaluateNodeStats(conn, nil). AIMD must still run
+		// fetchAndEvaluateNodeStats(conn, nil, nil). AIMD must still run
 		// (updatePoolCongestion), but overload demotion/promotion must
 		// be skipped because there is no multiServerPool to demote within.
 		statsJSON := makeStatsResponseWithThreadPools(30, map[string]ThreadPoolStats{
@@ -1485,7 +1485,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		// Should not panic with nil pool.
 		require.NotPanics(t, func() {
-			client.fetchAndEvaluateNodeStats(conn, nil)
+			client.fetchAndEvaluateNodeStats(conn, nil, nil)
 		})
 
 		// Connection should remain active (healthy stats, no overload).
@@ -1514,7 +1514,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		client.overloadedHeapThreshold = 85
 
 		require.NotPanics(t, func() {
-			client.fetchAndEvaluateNodeStats(conn, nil)
+			client.fetchAndEvaluateNodeStats(conn, nil, nil)
 		})
 
 		// Should NOT have lcOverloaded -- demotion was skipped due to nil pool.
@@ -1906,7 +1906,7 @@ func TestFetchAndEvaluateNodeStatsAdaptiveSelection(t *testing.T) {
 			pool := newStandbyPool([]*Connection{conn}, []*Connection{peer})
 			client := newTestClientWithPool(server.Client().Transport, pool)
 			client.overloadedHeapThreshold = 85
-			client.fetchAndEvaluateNodeStats(conn, pool)
+			client.fetchAndEvaluateNodeStats(conn, pool, newConnsByID(pool.mu.ready, pool.mu.dead))
 
 			require.Equal(t, int32(1), reqs.Load())
 			require.Equal(t, nodeStatsPath, gotPath.Load())
@@ -1948,7 +1948,7 @@ func TestFetchAndEvaluateNodeStats_DebugLogging(t *testing.T) {
 		pool := newStandbyPool([]*Connection{conn}, nil)
 		client := newTestClientWithPool(server.Client().Transport, pool)
 
-		client.fetchAndEvaluateNodeStats(conn, pool)
+		client.fetchAndEvaluateNodeStats(conn, pool, nil)
 
 		// Network error with overloaded flag exercises the debug log
 		lc := conn.loadConnState().lifecycle()
@@ -2099,12 +2099,12 @@ func TestFetchAndEvaluateNodeStatsResourceUsage(t *testing.T) {
 	client := newTestClientWithPool(server.Client().Transport, pool)
 	client.overloadedHeapThreshold = defaultOverloadedHeapThreshold
 
-	client.fetchAndEvaluateNodeStats(conn, pool)
+	client.fetchAndEvaluateNodeStats(conn, pool, nil)
 	require.Equal(t, nodeStatsPathResourceUsage, gotPath.Load())
 	require.True(t, conn.loadConnState().lifecycle().has(lcOverloaded))
 
 	cpu.Store("10.0")
-	client.fetchAndEvaluateNodeStats(conn, pool)
+	client.fetchAndEvaluateNodeStats(conn, pool, nil)
 	require.False(t, conn.loadConnState().lifecycle().has(lcOverloaded))
 }
 
@@ -2147,7 +2147,7 @@ func TestFetchAndEvaluateNodeStatsUnusableReplyClearsOverload(t *testing.T) {
 			client := newTestClientWithPool(server.Client().Transport, pool)
 			client.overloadedHeapThreshold = defaultOverloadedHeapThreshold
 
-			client.fetchAndEvaluateNodeStats(conn, pool)
+			client.fetchAndEvaluateNodeStats(conn, pool, nil)
 			require.Equal(t, tt.wantOverloaded, conn.loadConnState().lifecycle().has(lcOverloaded))
 		})
 	}

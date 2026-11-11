@@ -191,7 +191,8 @@ func (tr *Transport) pollNodeStats() {
 
 	switch pool := cp.(type) {
 	case *multiServerPool:
-		// Snapshot connections to evaluate.
+		// Snapshot connections to evaluate, and index every ready and dead
+		// connection by node ID for the adaptive_selection reports.
 		pool.RLock()
 		snapshot := make([]*Connection, 0, len(pool.mu.ready)+len(pool.mu.dead))
 		snapshot = append(snapshot, pool.mu.ready...)
@@ -201,11 +202,12 @@ func (tr *Transport) pollNodeStats() {
 				snapshot = append(snapshot, conn)
 			}
 		}
+		peers := newConnsByID(pool.mu.ready, pool.mu.dead)
 		pool.RUnlock()
 
 		samples := make([]nodeSearchSample, 0, len(snapshot))
 		for _, conn := range snapshot {
-			if sample, ok := tr.fetchAndEvaluateNodeStats(conn, pool); ok {
+			if sample, ok := tr.fetchAndEvaluateNodeStats(conn, pool, peers); ok {
 				samples = append(samples, sample)
 			}
 		}
@@ -218,7 +220,7 @@ func (tr *Transport) pollNodeStats() {
 		// Overload demotion is not applicable (no pool to demote within).
 		conn := pool.connection
 		if conn != nil {
-			if sample, ok := tr.fetchAndEvaluateNodeStats(conn, nil); ok {
+			if sample, ok := tr.fetchAndEvaluateNodeStats(conn, nil, nil); ok {
 				tr.clusterSearch.update([]nodeSearchSample{sample})
 			}
 		}
@@ -236,10 +238,13 @@ func (tr *Transport) pollNodeStats() {
 // This avoids redundant HTTP calls since the cluster health check already collects
 // cluster health data during normal health check cycles.
 //
+// peers indexes the connections the node's adaptive_selection report may name;
+// nil records only the node's report about itself.
+//
 // Returns the search thread pool sample for cluster-wide aggregation (see
 // [clusterSearchAIMD]). ok is false when the poll fails or the node has no
 // search pool data.
-func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
+func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool, peers connsByID) (nodeSearchSample, bool) {
 	var sample nodeSearchSample
 
 	ctx, cancel := tr.healthCheckContext(tr.ctx)
@@ -322,7 +327,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 		return sample, false
 	}
 
-	recordAdaptiveSelection(conn, pool, nodeID, nodeStats.AdaptiveSelection)
+	recordAdaptiveSelection(conn, peers, nodeID, nodeStats.AdaptiveSelection)
 
 	// Update per-pool congestion windows (AIMD) from thread pool stats.
 	updatePoolCongestion(conn, nodeStats.ThreadPools)
