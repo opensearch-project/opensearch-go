@@ -73,7 +73,7 @@ func TestConnScoreSelectRoutesARetryAroundTriedNodes(t *testing.T) {
 			}
 
 			scores := acquireFloats(len(conns))
-			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, scores.Slice(), nil, nil, att, 0, nil)
+			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, scores.Slice(), nil, nil, att, coordinatorSelection{})
 			scores.Release()
 
 			require.Same(t, conns[tt.want], best)

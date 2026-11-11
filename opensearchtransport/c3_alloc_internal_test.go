@@ -39,7 +39,8 @@ func TestC3ScoreSelectZeroAlloc(t *testing.T) {
 	defer scores.Release()
 
 	allocs := testing.AllocsPerRun(100, func() {
-		_ = connScoreSelect(conns, nil, nil, &shardCostForReads, poolSearch, true, scores.Slice(), nil, nil, nil, 0.25, rng.Float64)
+		_ = connScoreSelect(conns, nil, nil, &shardCostForReads, poolSearch, true, scores.Slice(), nil, nil, nil,
+			coordinatorSelection{spread: 0.25, randFloat: rng.Float64})
 	})
 	require.InDelta(t, 0.0, allocs, 0)
 }

@@ -118,7 +118,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
 		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil,
-			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+			routeAttemptFrom(ctx), p.cache.selection())
 		scores.Release()
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
@@ -137,6 +137,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				err:           noRoutingKeyErr(p.cache.features),
 				poolInfoReady: pir,
 				scoreFunc:     p.scoreFunc,
+				skipC3:        !p.cache.features.c3Enabled(),
 			})
 		}
 
@@ -181,7 +182,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
 			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, locality.Slice(),
-			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+			routeAttemptFrom(ctx), p.cache.selection())
 		scores.Release()
 		locality.Release()
 
@@ -207,6 +208,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 				scoreFunc:           p.scoreFunc,
+				skipC3:              !p.cache.features.c3Enabled(),
 			})
 		}
 		candidatesBuf.Release()
@@ -243,7 +245,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.selection())
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -283,6 +285,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,
+			skipC3:              !p.cache.features.c3Enabled(),
 		})
 	}
 

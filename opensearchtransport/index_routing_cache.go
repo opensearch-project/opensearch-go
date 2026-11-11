@@ -83,6 +83,19 @@ type indexSlotCache struct {
 	randFloat uniformFloatFunc
 }
 
+// coordinatorSelection is how [connScoreSelect] picks among scored
+// candidates. The zero value picks the lowest score and allows the C3 term.
+type coordinatorSelection struct {
+	spread    float64          // relative score band for the randomized first pick; 0 = argmin
+	randFloat uniformFloatFunc // source for the pick; nil uses [rand.Float64]
+	skipC3    bool             // score search and get with the linear term even when stats are fresh
+}
+
+// selection returns the cache's coordinator selection settings.
+func (c *indexSlotCache) selection() coordinatorSelection {
+	return coordinatorSelection{spread: c.spread, randFloat: c.randFloat, skipC3: !c.features.c3Enabled()}
+}
+
 // uniformFloatFunc returns a uniform float in [0, 1).
 type uniformFloatFunc func() float64
 

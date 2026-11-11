@@ -285,6 +285,7 @@ type routeEventParams struct {
 	poolInfoReady       bool
 	adaptiveMCSR        int
 	scoreFunc           connScoreFunc
+	skipC3              bool // see [coordinatorSelection]
 }
 
 // buildRouteEvent constructs a RouteEvent from a completed
@@ -303,7 +304,10 @@ func buildRouteEvent(p routeEventParams) RouteEvent {
 // either a fresh slice (buildRouteEvent) or a pooled one (dispatchRoute).
 func buildRouteEventInto(cs []RouteCandidate, p routeEventParams) RouteEvent {
 	var selected RouteCandidate
-	c3 := newC3Inputs(p.candidates, p.poolName)
+	var c3 c3Inputs
+	if !p.skipC3 {
+		c3 = newC3Inputs(p.candidates, p.poolName)
+	}
 	for i, c := range p.candidates {
 		cs[i] = newRouteCandidate(c, p.slot, p.shard, p.costs, p.poolName, p.poolInfoReady, p.scoreFunc, c3)
 		if c == p.best {

@@ -139,7 +139,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 
 		scores := acquireFloats(len(conns))
 		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.selection())
 		scores.Release()
 		if best == nil {
 			return NextHop{}, nil
@@ -179,7 +179,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
 			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, locality.Slice(),
-			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+			routeAttemptFrom(ctx), p.cache.selection())
 		scores.Release()
 		locality.Release()
 
@@ -201,6 +201,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 				scoreFunc:           p.scoreFunc,
+				skipC3:              !p.cache.features.c3Enabled(),
 			})
 		}
 		candidatesBuf.Release()
@@ -238,7 +239,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.selection())
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -272,6 +273,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,
+			skipC3:              !p.cache.features.c3Enabled(),
 		})
 	}
 
@@ -449,8 +451,9 @@ func warmupPenalty(cs connState) float64 {
 // dynamic read cost that adjusts primary shard cost based on write-pool
 // utilization). When nil, the static formula is used via [calcConnDefaultScore].
 // The load term of every score is the C3 queue term when poolName is the search
-// or get pool and all candidates have fresh adaptive_selection stats, and the
-// linear term otherwise; see [newC3Inputs] and [connLoadScore].
+// or get pool, all candidates have fresh adaptive_selection stats and sel does
+// not skip C3, and the linear term otherwise; see [newC3Inputs] and
+// [connLoadScore].
 //
 // locality, when non-nil, holds a per-candidate score multiplier.
 //
@@ -458,7 +461,7 @@ func warmupPenalty(cs connState) float64 {
 // time: candidates it tried in the current pass are skipped, and each earlier try
 // of a candidate raises its score; see [routeAttempt].
 //
-// With spread > 0 the first candidate tried is drawn at random from those
+// With sel.spread > 0 the first candidate tried is drawn at random from those
 // scoring within best*(1+spread), see [pickWithinBand]; the candidates tried
 // after it (when the first is warming and skips) follow in ascending order.
 // spread == 0 always tries the lowest score first. The draw does not allocate.
@@ -473,8 +476,7 @@ func connScoreSelect(
 	scoreFunc connScoreFunc,
 	locality []float64,
 	att *routeAttempt,
-	spread float64,
-	randFloat uniformFloatFunc,
+	sel coordinatorSelection,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -497,7 +499,10 @@ func connScoreSelect(
 
 	// Compute scores once upfront. The load term is chosen once for the whole
 	// candidate set so every score is on the same scale.
-	c3 := newC3Inputs(candidates, poolName)
+	var c3 c3Inputs
+	if !sel.skipC3 {
+		c3 = newC3Inputs(candidates, poolName)
+	}
 	for i, c := range candidates {
 		var sc float64
 		var primaryPct float64
@@ -554,8 +559,8 @@ func connScoreSelect(
 		if bestIdx < 0 {
 			break
 		}
-		if pick == 0 && spread > 0 {
-			bestIdx = pickWithinBand(scores, bestIdx, spread, randFloat)
+		if pick == 0 && sel.spread > 0 {
+			bestIdx = pickWithinBand(scores, bestIdx, sel.spread, sel.randFloat)
 		}
 		scores[bestIdx] = math.Inf(1) // mark as tried
 		c := candidates[bestIdx]

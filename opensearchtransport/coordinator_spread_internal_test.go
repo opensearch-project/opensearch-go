@@ -111,7 +111,8 @@ func TestConnScoreSelectSpread(t *testing.T) {
 
 			scores := acquireFloats(len(conns))
 			defer scores.Release()
-			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, scores.Slice(), nil, tt.locality, att, tt.spread, randFloat)
+			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, scores.Slice(), nil, tt.locality, att,
+				coordinatorSelection{spread: tt.spread, randFloat: randFloat})
 
 			require.Same(t, conns[tt.want], best)
 			if tt.wantRandom {
@@ -146,7 +147,8 @@ func TestConnScoreSelectSpreadWeights(t *testing.T) {
 	scores := acquireFloats(len(conns))
 	defer scores.Release()
 	for range n {
-		best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, scores.Slice(), nil, locality, nil, 0.25, rng.Float64)
+		best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, scores.Slice(), nil, locality, nil,
+			coordinatorSelection{spread: 0.25, randFloat: rng.Float64})
 		counts[best.ID]++
 	}
 
@@ -197,6 +199,7 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 		loaded string // node with one request in flight on every client
 		c3     bool   // every node has fresh adaptive_selection stats, so search scoring uses C3
 		queued string // with c3, node whose stats report a deep queue
+		skipC3 bool   // turn C3 off on the router, as OPENSEARCH_GO_ROUTING_CONFIG=-c3 does
 		check  func(t *testing.T, share map[string]float64)
 	}{
 		{
@@ -243,6 +246,17 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 			check: func(t *testing.T, share map[string]float64) {
 				t.Helper()
 				require.InDelta(t, 0.0, share["nodeA"], 0)
+			},
+		},
+		{
+			name:   "with C3 off a deep server queue does not move picks",
+			hosts:  hosting{"nodeA": {0, 1, 2}, "nodeB": {0, 1, 2}, "nodeC": {3}},
+			c3:     true,
+			queued: "nodeA",
+			skipC3: true,
+			check: func(t *testing.T, share map[string]float64) {
+				t.Helper()
+				require.Greater(t, share["nodeA"], 0.25)
 			},
 		},
 		{
@@ -298,6 +312,9 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 					// A mux route names the pool; the standalone router has none,
 					// and C3 applies only to the search and get pools.
 					r.poolName = poolSearch
+				}
+				if tt.skipC3 {
+					r.cache.features |= routingSkipC3
 				}
 
 				conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB"), newTestConn(t, "nodeC")}

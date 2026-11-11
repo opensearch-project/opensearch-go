@@ -44,11 +44,13 @@ func TestC3ScoreAvoidsQueuedNode(t *testing.T) {
 	tests := []struct {
 		name         string
 		withStats    bool
+		skipC3       bool
 		wantMaxShare float64 // share of picks that node "a" must stay under; 0 is unchecked
 		wantMinShare float64 // share of picks that node "a" must exceed; 0 is unchecked
 	}{
 		{name: "fresh stats steer away from the queued node", withStats: true, wantMaxShare: 0.02},
 		{name: "no stats spreads across all nodes", withStats: false, wantMinShare: 0.2},
+		{name: "C3 turned off ignores fresh stats", withStats: true, skipC3: true, wantMinShare: 0.2},
 	}
 
 	for _, tt := range tests {
@@ -73,8 +75,9 @@ func TestC3ScoreAvoidsQueuedNode(t *testing.T) {
 
 			const n = 3000
 			counts := map[string]int{}
+			sel := coordinatorSelection{spread: 0.25, randFloat: rng.Float64, skipC3: tt.skipC3}
 			for range n {
-				best := connScoreSelect(conns, nil, nil, &shardCostForReads, poolSearch, true, scores.Slice(), nil, nil, nil, 0.25, rng.Float64)
+				best := connScoreSelect(conns, nil, nil, &shardCostForReads, poolSearch, true, scores.Slice(), nil, nil, nil, sel)
 				counts[best.ID]++
 			}
 

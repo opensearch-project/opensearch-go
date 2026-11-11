@@ -180,7 +180,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName,
 			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, locality.Slice(),
-			routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+			routeAttemptFrom(ctx), p.cache.selection())
 		scores.Release()
 		locality.Release()
 
@@ -203,6 +203,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 				scoreFunc:           p.scoreFunc,
+				skipC3:              !p.cache.features.c3Enabled(),
 			})
 		}
 		candidatesBuf.Release()
@@ -236,7 +237,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.spread, p.cache.randFloat)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx), p.cache.selection())
 	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
@@ -257,6 +258,7 @@ func (p *DocRouter) Eval(ctx context.Context, req *http.Request) (NextHop, error
 			err:                 missErr,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			scoreFunc:           p.scoreFunc,
+			skipC3:              !p.cache.features.c3Enabled(),
 		})
 	}
 

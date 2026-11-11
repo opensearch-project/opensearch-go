@@ -251,7 +251,8 @@ func simC3Spread(c *simClient) *Connection {
 	if !newC3Inputs(c.conns, poolSearch).active {
 		c.c3Dead++
 	}
-	return connScoreSelect(c.conns, nil, nil, &shardCostForReads, poolSearch, true, c.scores, nil, nil, nil, simSpreadBand, c.rng.Float64)
+	return connScoreSelect(c.conns, nil, nil, &shardCostForReads, poolSearch, true, c.scores, nil, nil, nil,
+		coordinatorSelection{spread: simSpreadBand, randFloat: c.rng.Float64})
 }
 
 func simHCL(c *simClient) *Connection { return hclSelect(c.conns, c.rng) }

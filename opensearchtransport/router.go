@@ -845,6 +845,23 @@ func WithAdaptiveConcurrency(enabled bool) RouterOption {
 	}
 }
 
+// WithC3Scoring enables or disables the C3 queue term in search and get
+// scoring. When enabled, a selection whose candidates all have fresh
+// adaptive_selection stats scores load as latency - S + qHat^3 * S; otherwise,
+// or when disabled, it uses latency * (inFlight+1) / cwnd. Default: true.
+//
+// Can also be controlled via OPENSEARCH_GO_ROUTING_CONFIG=-c3.
+// The environment variable takes precedence over this option.
+func WithC3Scoring(enabled bool) RouterOption {
+	return func(c *routerConfig) {
+		if enabled {
+			c.routingFeatures &^= routingSkipC3
+		} else {
+			c.routingFeatures |= routingSkipC3
+		}
+	}
+}
+
 // WithAdaptiveConcurrencyLimits sets the min and max for adaptive
 // max_concurrent_shard_requests. Zero values retain the defaults
 // (minVal=5, maxVal=256). Negative values for both min and max disable

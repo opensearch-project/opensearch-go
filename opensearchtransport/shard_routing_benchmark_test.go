@@ -121,7 +121,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, nil, nil, 0, nil)
+				scores.Slice(), nil, nil, nil, coordinatorSelection{})
 			scores.Release()
 		}
 	})
@@ -136,7 +136,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, locality, nil, 0, nil)
+				scores.Slice(), nil, locality, nil, coordinatorSelection{})
 			scores.Release()
 		}
 	})
@@ -146,7 +146,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, locality, nil, defaultSpread, nil)
+				scores.Slice(), nil, locality, nil, coordinatorSelection{spread: defaultSpread})
 			scores.Release()
 		}
 	})

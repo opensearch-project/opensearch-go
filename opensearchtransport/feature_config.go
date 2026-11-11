@@ -23,6 +23,7 @@ const (
 	// Bitfield flags:
 	//   -shard_exact   Disable murmur3 shard-exact routing
 	//   +shard_exact   Explicitly re-enable (overrides programmatic disable)
+	//   -c3            Score search and get with (inFlight+1)/cwnd, never the C3 queue term
 	//
 	// Example: OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact
 	envRoutingConfig = envvars.RoutingConfig
@@ -101,6 +102,11 @@ const (
 	// When set, the transport does not derive the shard fan-out limit
 	// from the connection's search pool congestion window.
 	routingSkipAdaptiveConcurrency
+
+	// routingSkipC3 scores search and get requests with the linear
+	// (inFlight+1)/cwnd term even when every candidate has fresh
+	// adaptive_selection stats; see [newC3Inputs].
+	routingSkipC3
 )
 
 // shardExactEnabled returns true when murmur3 shard-exact routing is active.
@@ -114,12 +120,18 @@ func (f routingFeatures) adaptiveConcurrencyEnabled() bool {
 	return f&routingSkipAdaptiveConcurrency == 0
 }
 
+// c3Enabled returns true when search and get scoring may use the C3 queue term.
+func (f routingFeatures) c3Enabled() bool {
+	return f&routingSkipC3 == 0
+}
+
 // routingFlagNames maps flag name strings to their bit constants.
 //
 //nolint:gochecknoglobals // Package-level constant map for config parsing.
 var routingFlagNames = map[string]routingFeatures{
 	"shard_exact":   routingSkipShardExact,
 	"adaptive_mcsr": routingSkipAdaptiveConcurrency,
+	"c3":            routingSkipC3,
 }
 
 // discoveryFeatures is a bitfield where zero-value means all discovery

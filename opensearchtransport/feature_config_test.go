@@ -145,6 +145,38 @@ func TestParseRoutingConfig_UnknownFlag(t *testing.T) {
 	require.False(t, features.shardExactEnabled())
 }
 
+// The C3 switch reaches the router's cache from WithC3Scoring and from
+// OPENSEARCH_GO_ROUTING_CONFIG, and the environment wins.
+func TestC3ScoringSwitch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		opts []RouterOption
+		env  string
+		want bool
+	}{
+		{name: "on by default", want: true},
+		{name: "option turns it off", opts: []RouterOption{WithC3Scoring(false)}},
+		{name: "environment turns it off", env: "-c3"},
+		{name: "environment overrides the option", opts: []RouterOption{WithC3Scoring(false)}, env: "+c3", want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			env := map[string]string{}
+			if tt.env != "" {
+				env[envRoutingConfig] = tt.env
+			}
+			r, err := NewIndexRouter(append([]RouterOption{withLookupEnv(envLookup(env))}, tt.opts...)...)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, r.cache.features.c3Enabled())
+			require.Equal(t, !tt.want, r.cache.selection().skipC3)
+		})
+	}
+}
+
 // --- parseDiscoveryConfig tests ---
 
 func TestParseDiscoveryConfig_Empty(t *testing.T) {

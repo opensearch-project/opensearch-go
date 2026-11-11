@@ -390,7 +390,7 @@ linear:  load = latency × (inFlight + 1) / cwnd
 C3:      load = latency − S + q̂³ × S,   q̂ = 1 + inFlight × n + queue
 ```
 
-The C3 form (the queue-cost function from the C3 paper, Suresh et al., "C3: Cutting Tail Latency in Cloud Data Stores via Adaptive Replica Selection", NSDI 2015, also used by Elasticsearch adaptive replica selection) applies on the search and get pools when every candidate has fresh `adaptive_selection` stats with a positive average service time. `S` is the node's reported average service time, `queue` its reported average queue size, and `n` the number of nodes in the `adaptive_selection` report the stats came from. That count is the server's own `clientNum` in adaptive replica selection, and stands in for the other clients sending to the same node. Under C3 the congestion window does not enter the score. A cwnd halved by a 429 does not raise it, because the node's own queue carries that signal. In every other case (write pools, stats inside the 10s blackout or expired 3min after the last changed report, any candidate without stats) all candidates use the linear form. The router picks the form once per selection rather than per node, because the two forms sit on different scales: an idle node scores about `latency / cwnd` under the linear form and about `latency` under C3, so mixing them would penalize the nodes that report stats.
+The C3 form (the queue-cost function from the C3 paper, Suresh et al., "C3: Cutting Tail Latency in Cloud Data Stores via Adaptive Replica Selection", NSDI 2015, also used by Elasticsearch adaptive replica selection) applies on the search and get pools when every candidate has fresh `adaptive_selection` stats with a positive average service time. `S` is the node's reported average service time, `queue` its reported average queue size, and `n` the number of nodes in the `adaptive_selection` report the stats came from. That count is the server's own `clientNum` in adaptive replica selection, and stands in for the other clients sending to the same node. Under C3 the congestion window does not enter the score. A cwnd halved by a 429 does not raise it, because the node's own queue carries that signal. In every other case (write pools, stats inside the 10s blackout or expired 3min after the last changed report, any candidate without stats, or C3 turned off with `WithC3Scoring(false)` or `OPENSEARCH_GO_ROUTING_CONFIG=-c3`) all candidates use the linear form. The router picks the form once per selection rather than per node, because the two forms sit on different scales: an idle node scores about `latency / cwnd` under the linear form and about `latency` under C3, so mixing them would penalize the nodes that report stats.
 
 The multiplicative factors are independent signals:
 
@@ -2062,6 +2062,7 @@ if err != nil {
 | `WithShardExactRouting(bool)`             | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.                                   |
 | `WithShardCosts(spec)`                    | --      | Override shard cost multipliers. Env var overrides. See format below.                            |
 | `WithAdaptiveConcurrency(bool)`           | true    | Enable/disable adaptive `max_concurrent_shard_requests` on search requests.                      |
+| `WithC3Scoring(bool)`                     | true    | Enable/disable the C3 queue term in search and get scoring. Env var overrides.                   |
 | `WithAdaptiveConcurrencyLimits(min, max)` | 5, 256  | Set min/max for adaptive shard concurrency. `(0,0)` = enable with defaults, `(-1,-1)` = disable. |
 
 ### Feature Environment Variables
@@ -2076,21 +2077,22 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 #### Routing and Discovery
 
-| Variable                         | Format                          | Default        | Description                                                                                  |
-| -------------------------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ROUTER`           | Bool                            | `true`         | Auto-construct the DefaultRouter when no programmatic `Config.Router` is set                 |
-| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`)             |
-| `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`   |
-| `OPENSEARCH_GO_SHARD_COST`       | See format below                | (defaults)     | Override shard cost multipliers used in connection scoring                                   |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled)  | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`         | Seed URL fallback when all pools exhausted. `false` = disable                                |
+| Variable                         | Format                          | Default        | Description                                                                                          |
+| -------------------------------- | ------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTER`           | Bool                            | `true`         | Auto-construct the DefaultRouter when no programmatic `Config.Router` is set                         |
+| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`), adaptive MCSR (`-adaptive_mcsr`) and C3 scoring (`-c3`) |
+| `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`           |
+| `OPENSEARCH_GO_SHARD_COST`       | See format below                | (defaults)     | Override shard cost multipliers used in connection scoring                                           |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled)  | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats`         |
+| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`         | Seed URL fallback when all pools exhausted. `false` = disable                                        |
 
 `OPENSEARCH_GO_ROUTING_CONFIG` flags:
 
-| Flag            | Default | `-` effect                                                          |
-| --------------- | ------- | ------------------------------------------------------------------- |
-| `shard_exact`   | enabled | Disable murmur3 shard-exact connection routing                      |
-| `adaptive_mcsr` | enabled | Disable adaptive `max_concurrent_shard_requests` on search requests |
+| Flag            | Default | `-` effect                                                                                                  |
+| --------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `shard_exact`   | enabled | Disable murmur3 shard-exact connection routing                                                              |
+| `adaptive_mcsr` | enabled | Disable adaptive `max_concurrent_shard_requests` on search requests                                         |
+| `c3`            | enabled | Score search and get with `(inFlight + 1) / cwnd`, never the C3 queue term (same as `WithC3Scoring(false)`) |
 
 `OPENSEARCH_GO_DISCOVERY_CONFIG` flags:
 

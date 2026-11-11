@@ -75,7 +75,7 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
 | `OPENSEARCH_GO_ROUTER` | Bool | `true` (router auto-constructed) | Auto-construct `NewDefaultRouter()` when no programmatic `Config.Router` is set. Set `false` or `0` to suppress. A programmatic `Config.Router` always takes precedence. | [Routing: Quick Start](transport-routing.md#quick-start); [Default router injection](#default-router-injection) |
-| `OPENSEARCH_GO_ROUTING_CONFIG` | Comma-separated flags/key=value | all enabled | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`). | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
+| `OPENSEARCH_GO_ROUTING_CONFIG` | Comma-separated flags/key=value | all enabled | Toggle shard-exact routing (`-shard_exact`), adaptive MCSR (`-adaptive_mcsr`) and C3 scoring (`-c3`). | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
 | `OPENSEARCH_GO_SHARD_COST` | Key=value, comma-separated (or bare numeric for `r:base`) | compile-time defaults | Override shard cost multipliers used in connection scoring. Format: key=value pairs (`r:base=0.95`, `unknown=32.0`) or a bare number (sets `r:base`). | [Routing: Shard Cost Configuration](transport-routing.md#shard-cost-configuration) |
 | `OPENSEARCH_GO_SHARD_REQUESTS` | Bool or `min:max` | `true` (5:256) | Adaptive `max_concurrent_shard_requests` bounds. `true`/`false` enable/disable with defaults; `10:512`, `10:`, `:512`, or bare `10` set custom bounds. | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
 
