@@ -11,6 +11,7 @@ package opensearchtransport
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
@@ -69,28 +69,28 @@ func TestDiscoveryRequestTimeout(t *testing.T) {
 	}{
 		{
 			name:           "response headers",
-			requestTimeout: 50 * time.Millisecond,
+			requestTimeout: 500 * time.Millisecond,
 			callerTimeout:  2 * time.Second,
 			wantErr:        context.DeadlineExceeded,
 		},
 		{
 			name:           "response body",
-			requestTimeout: 50 * time.Millisecond,
+			requestTimeout: 500 * time.Millisecond,
 			callerTimeout:  2 * time.Second,
 			flushHeaders:   true,
 			wantErr:        context.DeadlineExceeded,
 		},
 		{
 			name:           "earlier caller deadline",
-			requestTimeout: time.Second,
-			callerTimeout:  50 * time.Millisecond,
+			requestTimeout: 5 * time.Second,
+			callerTimeout:  500 * time.Millisecond,
 			flushHeaders:   true,
 			wantErr:        context.DeadlineExceeded,
 			wantCallerErr:  context.DeadlineExceeded,
 		},
 		{
 			name:          "disabled timeout",
-			callerTimeout: 50 * time.Millisecond,
+			callerTimeout: 500 * time.Millisecond,
 			flushHeaders:  true,
 			wantErr:       context.DeadlineExceeded,
 			wantCallerErr: context.DeadlineExceeded,
@@ -215,7 +215,7 @@ func TestDiscoveryRequestTimeout(t *testing.T) {
 				select {
 				case <-entered:
 				default:
-					t.Fatal("request did not reach the stalled endpoint")
+					require.FailNow(t, "request did not reach the stalled endpoint")
 				}
 
 				requestCtx := <-requests
@@ -223,9 +223,9 @@ func TestDiscoveryRequestTimeout(t *testing.T) {
 				require.True(t, ok)
 				callerDeadline, _ := ctx.Deadline()
 				if tt.requestTimeout > 0 && tt.requestTimeout < tt.callerTimeout {
-					assert.True(t, requestDeadline.Before(callerDeadline), "RequestTimeout must shorten the request deadline")
+					require.True(t, requestDeadline.Before(callerDeadline), "RequestTimeout must shorten the request deadline")
 				} else {
-					assert.Equal(t, callerDeadline, requestDeadline, "the existing caller deadline must be preserved")
+					require.Equal(t, callerDeadline, requestDeadline, "the existing caller deadline must be preserved")
 				}
 
 				if tt.closeClient {
@@ -238,13 +238,13 @@ func TestDiscoveryRequestTimeout(t *testing.T) {
 				defer recoveryCancel()
 
 				require.NoError(t, endpoint.request(recoveryCtx, tr), "a later discovery request must recover")
-				assert.NoError(t, recoveryCtx.Err())
+				require.NoError(t, recoveryCtx.Err())
 
 				requestCtx = <-requests
 				if tt.requestTimeout > 0 {
-					assert.ErrorIs(t, requestCtx.Err(), context.Canceled, "successful requests must release their timeout context")
+					require.ErrorIs(t, requestCtx.Err(), context.Canceled, "successful requests must release their timeout context")
 				} else {
-					assert.NoError(t, requestCtx.Err(), "a disabled timeout must leave the caller context untouched")
+					require.NoError(t, requestCtx.Err(), "a disabled timeout must leave the caller context untouched")
 				}
 			})
 		}
@@ -260,8 +260,8 @@ func TestShardPlacementPreservesCatalogDeadline(t *testing.T) {
 	deadline, _ := ctx.Deadline()
 	transport := mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 		requestDeadline, ok := req.Context().Deadline()
-		assert.True(t, ok)
-		assert.Equal(t, deadline, requestDeadline, "RequestTimeout must not extend the standalone catalog-refresh limit")
+		require.True(t, ok)
+		require.Equal(t, deadline, requestDeadline, "RequestTimeout must not extend the standalone catalog-refresh limit")
 
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(`[]`))}, nil
 	})
@@ -283,27 +283,31 @@ func TestShardPlacementPreservesCatalogDeadline(t *testing.T) {
 
 	_, err = tr.getShardPlacement(ctx)
 	require.NoError(t, err)
-	assert.NoError(t, ctx.Err())
+	require.NoError(t, ctx.Err())
 }
 
-func TestDiscoveryRequestTimeoutPreservesInventoryAfterPartialResolution(t *testing.T) {
+func TestDiscoveryRequestTimeoutLeavesAddressResolutionToCaller(t *testing.T) {
 	t.Parallel()
 
 	conns := []*Connection{
-		routableConn(t, "fast", time.Millisecond, RoleData),
-		routableConn(t, "slow", time.Millisecond, RoleData),
+		routableConn(t, "first", time.Millisecond, RoleData),
+		routableConn(t, "second", time.Millisecond, RoleData),
 	}
 	nodesJSON := testNodesResponse(t, map[string]nodeInfo{
-		"fast": {Name: "fast", Roles: []string{RoleData}, HTTP: nodeInfoHTTP{PublishAddress: conns[0].URL.Host}},
-		"slow": {Name: "slow", Roles: []string{RoleData}, HTTP: nodeInfoHTTP{PublishAddress: conns[1].URL.Host}},
+		"first":  {Name: "first", Roles: []string{RoleData}, HTTP: nodeInfoHTTP{PublishAddress: conns[0].URL.Host}},
+		"second": {Name: "second", Roles: []string{RoleData}, HTTP: nodeInfoHTTP{PublishAddress: conns[1].URL.Host}},
 	})
 
-	var resolved, blocked atomic.Bool
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	callerDeadline, _ := ctx.Deadline()
+
+	var resolved atomic.Int32
 
 	tr, err := New(Config{
 		URLs:                  []*url.URL{testSeedURL(t)},
 		Transport:             newResolverTestTransport(t, nodesJSON),
-		RequestTimeout:        50 * time.Millisecond,
+		RequestTimeout:        time.Second,
 		HealthCheckTimeout:    -1,
 		DiscoverNodesInterval: -1,
 		NodeStatsInterval:     -1,
@@ -312,15 +316,14 @@ func TestDiscoveryRequestTimeoutPreservesInventoryAfterPartialResolution(t *test
 		Context:               t.Context(),
 		lookupEnv:             envLookup(nil),
 		MaxAddressResolvers:   2,
-		AddressResolver: func(ctx context.Context, node NodeInfo) (*url.URL, error) {
-			if node.ID == "fast" {
-				resolved.Store(true)
-				return node.URL, nil
+		AddressResolver: func(resolverCtx context.Context, node NodeInfo) (*url.URL, error) {
+			deadline, ok := resolverCtx.Deadline()
+			if !ok || !deadline.Equal(callerDeadline) || resolverCtx.Err() != nil {
+				return nil, fmt.Errorf("resolver for %q got deadline %v (set %t); want the caller's %v: %w",
+					node.ID, deadline, ok, callerDeadline, resolverCtx.Err())
 			}
-
-			blocked.Store(true)
-			<-ctx.Done()
-			return nil, ctx.Err()
+			resolved.Add(1)
+			return node.URL, nil
 		},
 	})
 	require.NoError(t, err)
@@ -328,31 +331,10 @@ func TestDiscoveryRequestTimeoutPreservesInventoryAfterPartialResolution(t *test
 		require.NoError(t, tr.Close())
 	})
 
-	initialPool := testPool(conns)
 	tr.mu.Lock()
-	tr.mu.connectionPool = initialPool
+	tr.mu.connectionPool = testPool(conns)
 	tr.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
-	defer cancel()
-
-	err = tr.DiscoverNodes(ctx)
-
-	require.ErrorIs(t, err, context.DeadlineExceeded)
-	require.NoError(t, ctx.Err(), "only the discovery request deadline must expire")
-	require.True(t, resolved.Load(), "one node must resolve before the request deadline")
-	require.True(t, blocked.Load(), "the other resolver must observe the expired request context")
-
-	tr.mu.RLock()
-	currentPool := tr.mu.connectionPool
-	tr.mu.RUnlock()
-	require.Same(t, initialPool, currentPool, "a partial resolution must not replace the complete inventory")
-
-	ready, dead := initialPool.connectionsByState()
-	require.Empty(t, dead)
-	require.Len(t, ready, len(conns))
-	for i, conn := range conns {
-		require.Same(t, conn, ready[i])
-		require.True(t, conn.isReady())
-	}
+	require.NoError(t, tr.DiscoverNodes(ctx), "RequestTimeout must bound only the HTTP request, not address resolution")
+	require.EqualValues(t, len(conns), resolved.Load())
 }

@@ -77,7 +77,7 @@ To limit total wait time when the server is unresponsive, use a context with a d
 
 Use both together for defense in depth: `RequestTimeout` prevents any single attempt from hanging indefinitely, while a context deadline caps the total wall-clock time.
 
-`RequestTimeout` also bounds each internal node-discovery (`/_nodes/http`), shard-placement (`/_cat/shards`), and routing-metadata (`/_cluster/state/metadata/...`) request through reading and draining its response body. Earlier caller and catalog-refresh deadlines still take precedence. At zero, no additional `RequestTimeout` deadline is applied. These internal calls retain their existing error and retry handling.
+`RequestTimeout` also bounds each internal node-discovery (`/_nodes/http`), shard-placement (`/_cat/shards`), and routing-metadata (`/_cluster/state/metadata/...`) request through reading and draining its response body. Earlier caller and catalog-refresh deadlines still take precedence. These internal calls retain their existing error and retry handling.
 
 Timeouts are not retried unless `EnableRetryOnTimeout` is set. When a per-attempt timeout does fire, it also says something about the connection: canceling the attempt resets the HTTP/2 stream but leaves the connection in `http.Transport`'s pool, so a retry is multiplexed onto the same dead backend and `DialContext` never runs. That is the failure after an Amazon OpenSearch Service blue/green cutover, where the hostname already resolves to the replacement.
 
