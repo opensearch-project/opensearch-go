@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -133,4 +134,24 @@ func TestStartupSeedFailureDoesNotPanic(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestNewConnectionPoolCopiesItsInput(t *testing.T) {
+	t.Parallel()
+
+	conns := []*Connection{
+		{URL: &url.URL{Scheme: "http", Host: "127.0.0.1:19200"}},
+		{URL: &url.URL{Scheme: "http", Host: "127.0.0.1:19201"}},
+		{URL: &url.URL{Scheme: "http", Host: "127.0.0.1:19202"}},
+	}
+	want := slices.Clone(conns)
+
+	pool, ok := NewConnectionPool(conns, nil).(*multiServerPool)
+	require.True(t, ok)
+
+	conns[0], conns[2] = nil, nil
+
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+	require.Equal(t, want, pool.mu.ready, "the pool must not share the caller's slice")
 }

@@ -37,6 +37,8 @@ type multiServerPool struct {
 
 	mu struct {
 		sync.RWMutex
+		// ready is reordered and compacted in place, so the pool must own its
+		// backing array: never assign a slice the caller can still read.
 		ready       []*Connection            // Partitioned: ready[:activeCount] are active, ready[activeCount:] are standby
 		dead        []*Connection            // List of dead connections
 		activeCount int                      // Number of active connections; elements past this index are standby
@@ -368,7 +370,8 @@ func (cp *multiServerPool) getWarmupParamsWithLock() (int, int) {
 	return rounds, skipCount
 }
 
-// NewConnectionPool creates and returns a default connection pool.
+// NewConnectionPool creates and returns a default connection pool. It copies
+// conns, so the caller may keep using its slice.
 // The selector parameter is accepted for backward compatibility but is not
 // used by the internal pool selection logic; the pool uses its own round-robin
 // counter. Pass nil for default behavior.
@@ -388,8 +391,7 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 		serverMaxNewConnsPerSec:      float64(defaultServerCoreCount) * serverMaxNewConnsPerSecMultiplier,
 		clientsPerServer:             float64(defaultServerCoreCount),
 	}
-	// The pool edits ready in place, so it must not share the caller's array.
-	pool.mu.ready = slices.Clone(conns)
+	pool.mu.ready = slices.Clone(conns) // See multiServerPool.mu.ready.
 	pool.mu.activeCount = len(conns)
 	pool.mu.dead = []*Connection{}
 	pool.mu.members = make(map[*Connection]struct{}, max(len(conns), defaultMembersCapacity))
