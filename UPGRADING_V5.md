@@ -930,3 +930,22 @@ client, err := opensearch.NewClient(opensearch.Config{
 ```
 
 A positive `CompressMinBytes` sets a different limit, such as 1024 for a slow or metered link.
+
+## `Policy.DiscoveryUpdate` removes connections by identity
+
+The built-in policies (role, round robin, coordinator, index router and document router) remove a connection in `DiscoveryUpdate` only when the `*Connection` in `removed` is one they were given earlier. They used to remove any connection with the same URL. That broke node replacement: when a seed becomes a discovered node, or a node's ID, name or roles change, discovery sends the old connection in `removed` and its replacement in `added` in the same call, and matching by URL removed both.
+
+The transport always passes the policy's own connections, so only code that calls `DiscoveryUpdate` directly is affected. Keep the connections you passed in `added` and pass those in `removed`, rather than building new ones from the same URLs:
+
+```go
+// Before: a new *Connection with the same URL removed the node.
+policy.DiscoveryUpdate(nil, []*opensearchtransport.Connection{{URL: u}}, nil)
+
+// After: pass the connection the policy was given.
+conn := &opensearchtransport.Connection{URL: u}
+policy.DiscoveryUpdate([]*opensearchtransport.Connection{conn}, nil, nil)
+// ...
+policy.DiscoveryUpdate(nil, []*opensearchtransport.Connection{conn}, nil)
+```
+
+The policy ignores a `removed` entry it does not hold.
