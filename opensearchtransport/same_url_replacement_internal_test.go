@@ -179,17 +179,7 @@ func TestRoutingPoliciesPreserveSameURLReplacementOfDeadNode(t *testing.T) {
 			require.NoError(t, err)
 			require.Same(t, replacement, hop.Conn)
 
-			var pool *multiServerPool
-
-			switch policy := policy.(type) {
-			case *RoundRobinPolicy:
-				pool = policy.pool
-			case *CoordinatorPolicy:
-				pool = policy.pool
-			case *RolePolicy:
-				pool = policy.pool
-			}
-
+			pool := policyPool(policy)
 			require.NotNil(t, pool)
 
 			pool.RLock()
@@ -284,68 +274,51 @@ func TestDiscoverySameURLReplacementRoutesAfterHealthCheck(t *testing.T) {
 func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 	t.Parallel()
 
-	poolConns := func(pool *multiServerPool) func() []*Connection {
-		return func() []*Connection {
-			pool.RLock()
-			defer pool.RUnlock()
-			return slices.Concat(pool.mu.ready, pool.mu.dead)
-		}
-	}
-
-	// Each constructor returns the policy, its state bits, and a func listing
-	// the connections the policy holds.
+	// Each constructor returns the policy and its state bits.
 	policies := []struct {
 		name      string
 		roles     []string
-		newPolicy func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection)
+		newPolicy func(t *testing.T) (Policy, *atomic.Int32)
 	}{
-		{name: "round robin", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "round robin", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32) {
 			t.Helper()
 			p, ok := NewRoundRobinPolicy().(*RoundRobinPolicy)
 			require.True(t, ok)
-			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+			return p, &p.policyState
 		}},
-		{name: "data role", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "data role", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32) {
 			t.Helper()
 			policy, err := NewRolePolicy(RoleData)
 			require.NoError(t, err)
 			p, ok := policy.(*RolePolicy)
 			require.True(t, ok)
-			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+			return p, &p.policyState
 		}},
-		{name: "index router", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "index router", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32) {
 			t.Helper()
 			p, err := NewIndexRouter()
 			require.NoError(t, err)
-			return p, &p.policyState, func() []*Connection {
-				p.mu.RLock()
-				defer p.mu.RUnlock()
-				return slices.Clone(p.mu.activeConns)
-			}
+			return p, &p.policyState
 		}},
-		{name: "document router", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "document router", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32) {
 			t.Helper()
 			p, err := NewDocRouter()
 			require.NoError(t, err)
-			return p, &p.policyState, func() []*Connection {
-				p.mu.RLock()
-				defer p.mu.RUnlock()
-				return slices.Clone(p.mu.activeConns)
-			}
+			return p, &p.policyState
 		}},
-		{name: "coordinator", newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "coordinator", newPolicy: func(t *testing.T) (Policy, *atomic.Int32) {
 			t.Helper()
 			p, ok := NewCoordinatorPolicy().(*CoordinatorPolicy)
 			require.True(t, ok)
-			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+			return p, &p.policyState
 		}},
-		{name: "coordinating role", newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "coordinating role", newPolicy: func(t *testing.T) (Policy, *atomic.Int32) {
 			t.Helper()
 			policy, err := NewRolePolicy(RoleCoordinatingOnly)
 			require.NoError(t, err)
 			p, ok := policy.(*RolePolicy)
 			require.True(t, ok)
-			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+			return p, &p.policyState
 		}},
 	}
 
@@ -383,7 +356,7 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 				psSetEnvOverride(state, false)
 				require.NoError(t, policy.DiscoveryUpdate(nil, []*Connection{seeded}, nil))
 				require.False(t, policy.IsEnabled())
-				state.Store(state.Load() &^ psEnvMask)
+				psSetEnvOverride(state, true)
 			},
 		},
 	}
@@ -393,7 +366,7 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 			t.Run(policyCase.name+"/"+tt.name, func(t *testing.T) {
 				t.Parallel()
 
-				policy, state, conns := policyCase.newPolicy(t)
+				policy, state := policyCase.newPolicy(t)
 				config := createTestConfig()
 				config.ctx = t.Context()
 				require.NoError(t, policy.(policyConfigurable).configurePolicySettings(config))
@@ -407,7 +380,7 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 				tt.update(t, policy, state, seeded, other)
 				require.True(t, policy.IsEnabled())
 
-				held := conns()
+				held := policyConnections(policy)
 				require.Len(t, held, 1, "the policy must hold only the seeded connection")
 				require.Same(t, seeded, held[0])
 
@@ -531,31 +504,35 @@ func TestDiscoveryReplacesDuplicateSeedURLs(t *testing.T) {
 		require.True(t, ok)
 		held := policyConnections(root)
 		require.NotEmpty(t, held)
+		byURL := make(map[string]*Connection, len(held))
 		for _, conn := range held {
 			require.False(t, conn.seed, "discovery must replace every seed, including a repeated seed URL: %q", conn.URLString)
+			if first, seen := byURL[conn.URLString]; seen {
+				require.Same(t, first, conn, "policies must hold one connection per URL: %q", conn.URLString)
+			}
+			byURL[conn.URLString] = conn
 		}
 	})
 }
 
-// policyConnections returns every connection held by p and the policies under it.
-func policyConnections(p Policy) []*Connection {
-	pool := func(pool *multiServerPool) []*Connection {
-		if pool == nil {
-			return nil
-		}
-		pool.RLock()
-		defer pool.RUnlock()
-		return slices.Concat(pool.mu.ready, pool.mu.dead)
-	}
-
-	var conns []*Connection
+// policyPool returns the pool behind a pool-based policy, or nil for a policy
+// that keeps its connections another way.
+func policyPool(p Policy) *multiServerPool {
 	switch p := p.(type) {
 	case *RoundRobinPolicy:
-		conns = pool(p.pool)
+		return p.pool
 	case *RolePolicy:
-		conns = pool(p.pool)
+		return p.pool
 	case *CoordinatorPolicy:
-		conns = pool(p.pool)
+		return p.pool
+	}
+	return nil
+}
+
+// policyConnections returns every connection held by p and the policies under it.
+func policyConnections(p Policy) []*Connection {
+	var conns []*Connection
+	switch p := p.(type) {
 	case *IndexRouter:
 		p.mu.RLock()
 		conns = slices.Clone(p.mu.activeConns)
@@ -564,6 +541,12 @@ func policyConnections(p Policy) []*Connection {
 		p.mu.RLock()
 		conns = slices.Clone(p.mu.activeConns)
 		p.mu.RUnlock()
+	default:
+		if pool := policyPool(p); pool != nil {
+			pool.RLock()
+			conns = slices.Concat(pool.mu.ready, pool.mu.dead)
+			pool.RUnlock()
+		}
 	}
 
 	if walker, ok := p.(policyTreeWalker); ok {
