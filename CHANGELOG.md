@@ -8,6 +8,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Configure Dependabot to open weekly Go module and GitHub Actions updates against the `v5` maintenance branch, covering the same modules as `main` ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
 - Make the direct driver the default for `DocumentClient.MGet`, as shard-aware buffering already is for the `BulkIndexer`. An mget the client cannot split, because the transport keeps no shard map or none of its documents can be routed to a node, still goes to the cluster as one request. Set `MGetConfig.Driver` to `MGetDriverCoordinator`, `OPENSEARCH_GO_MGET=coordinator`, or use `WithMGetDriver` per call to keep sending every mget as one request. ([#1298](https://github.com/opensearch-project/opensearch-go/pull/1298))
 
 ### Deprecated
@@ -23,6 +24,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+
+- Update the `toolchain` line to go1.26.11 in the root and all nested modules, so builds in this repository use Go 1.26.11, which carries security fixes to cgo, the go command, the compiler, the linker and `net/http`. The go directive stays 1.26.0, so consumers are not affected ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Bump `github.com/aws/aws-sdk-go-v2` from v1.47.5 to v1.48.0 and `github.com/aws/aws-sdk-go-v2/config` from v1.33.13 to v1.33.18 ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Bump `github.com/getkin/kin-openapi` from 0.152.0 to 0.153.0 in `cmd/osgen`, and `golang.org/x/mod`, `golang.org/x/sync`, `golang.org/x/sys` and `golang.org/x/text` to their latest minor versions ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Bump the `opensearch-go/v5` requirement in `compress`, `log-slog`, `log-zerolog`, `osotel` and `osprom` from a pseudo-version to v5.2.0 ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
 
 ## [5.2.0]
 
