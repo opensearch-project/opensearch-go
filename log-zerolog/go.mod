@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.10
 
 require (
-	github.com/opensearch-project/opensearch-go/v5 v5.1.4-0.20261106001247-8737ed09df10
+	github.com/opensearch-project/opensearch-go/v5 v5.2.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 )
