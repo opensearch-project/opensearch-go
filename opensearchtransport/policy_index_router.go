@@ -72,9 +72,8 @@ func NewIndexRouter(opts ...RouterOption) (*IndexRouter, error) {
 	if err != nil {
 		return nil, err
 	}
-	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
+	cacheCfg := indexSlotCacheConfigFromRouter(cfg, costCfg)
 	r := newIndexRouter(cacheCfg)
-	r.cache.locality, r.cache.spread = costCfg.locality, costCfg.spread
 	r.shardCosts = &costCfg.reads
 	r.scoreFunc = costCfg.scoreFunc
 	return r, nil

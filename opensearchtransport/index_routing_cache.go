@@ -198,6 +198,8 @@ func newIndexSlotCache(cfg indexSlotCacheConfig) *indexSlotCache {
 		fanOutPerReq:        cfg.fanOutPerReq,
 		features:            cfg.features,
 		adaptiveConcurrency: cfg.adaptiveConcurrency,
+		locality:            cfg.locality,
+		spread:              cfg.spread,
 	}
 	c.entries.Store(new(sync.Map))
 
@@ -234,6 +236,10 @@ type indexSlotCacheConfig struct {
 
 	// Adaptive max_concurrent_shard_requests limits.
 	adaptiveConcurrency adaptiveConcurrencyConfig
+
+	// Shard-cost keys locality and spread; see [indexSlotCache].
+	locality float64
+	spread   float64
 }
 
 // getOrCreate returns the slot for indexName, creating one if needed.

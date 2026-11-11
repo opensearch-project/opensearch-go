@@ -962,7 +962,7 @@ func buildStandaloneRouterConfig(opts []RouterOption) (routerConfig, *shardCostC
 
 // indexSlotCacheConfigFromRouter projects a parsed [routerConfig] into the
 // matching [indexSlotCacheConfig] used by [newIndexSlotCache].
-func indexSlotCacheConfigFromRouter(cfg routerConfig) indexSlotCacheConfig {
+func indexSlotCacheConfigFromRouter(cfg routerConfig, costCfg *shardCostConfig) indexSlotCacheConfig {
 	return indexSlotCacheConfig{
 		minFanOut:           cfg.minFanOut,
 		maxFanOut:           cfg.maxFanOut,
@@ -972,6 +972,8 @@ func indexSlotCacheConfigFromRouter(cfg routerConfig) indexSlotCacheConfig {
 		fanOutPerReq:        cfg.fanOutPerReq,
 		features:            cfg.routingFeatures,
 		adaptiveConcurrency: cfg.adaptiveConcurrency,
+		locality:            costCfg.locality,
+		spread:              costCfg.spread,
 	}
 }
 
@@ -994,9 +996,8 @@ func NewDefaultPolicy(opts ...RouterOption) (Policy, error) {
 		return nil, err
 	}
 
-	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
+	cacheCfg := indexSlotCacheConfigFromRouter(cfg, costCfg)
 	cache := newIndexSlotCache(cacheCfg)
-	cache.locality, cache.spread = costCfg.locality, costCfg.spread
 
 	coordinatingPolicy := mustRolePolicy(RoleCoordinatingOnly)
 

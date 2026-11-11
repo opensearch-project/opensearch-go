@@ -72,9 +72,8 @@ func NewDocRouter(opts ...RouterOption) (*DocRouter, error) {
 	if err != nil {
 		return nil, err
 	}
-	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
+	cacheCfg := indexSlotCacheConfigFromRouter(cfg, costCfg)
 	r := newDocRouter(newIndexSlotCache(cacheCfg), cfg.decay)
-	r.cache.locality, r.cache.spread = costCfg.locality, costCfg.spread
 	r.scoreFunc = costCfg.scoreFunc
 	return r, nil
 }
