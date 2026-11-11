@@ -1157,17 +1157,27 @@ func (tr *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadC
 	return allConnsPool
 }
 
-func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
-	if tr.requestTimeout > 0 {
-		var cancel context.CancelFunc
-
-		ctx, cancel = context.WithTimeout(ctx, tr.requestTimeout)
-		defer cancel()
+// withRequestTimeout bounds ctx by RequestTimeout when one is set. The
+// returned cancel is never nil, so callers can always defer it.
+func (tr *Transport) withRequestTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if tr.requestTimeout <= 0 {
+		return ctx, func() {}
 	}
+	return context.WithTimeout(ctx, tr.requestTimeout)
+}
+
+func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
+	ctx, cancel := tr.withRequestTimeout(ctx)
+	defer cancel()
 
 	scheme := tr.urls[0].Scheme
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
+	nodesPath, err := ospath.NodesInfoPath{Metric: []string{"http"}}.Build()
+	if err != nil {
+		return nil, fmt.Errorf("building nodes info path: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodesPath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1966,14 +1976,15 @@ func (p *indexShardPlacement) nodeNameSet() map[string]struct{} {
 // credentials lack this privilege, the call returns an error and callers
 // should fall back gracefully.
 func (tr *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
-	if tr.requestTimeout > 0 {
-		var cancel context.CancelFunc
+	ctx, cancel := tr.withRequestTimeout(ctx)
+	defer cancel()
 
-		ctx, cancel = context.WithTimeout(ctx, tr.requestTimeout)
-		defer cancel()
+	shardsPath, err := ospath.CatShardsPath{}.Build()
+	if err != nil {
+		return nil, fmt.Errorf("building shard placement path: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_cat/shards", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, shardsPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating shard placement request: %w", err)
 	}
@@ -2323,14 +2334,21 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 		if err != nil {
 			return nil, fmt.Errorf("building routing metadata path: %w", err)
 		}
-		batchReq := req.Clone(ctx)
-		// prepareInternalRequest adds the node's base path to each logical path.
-		batchReq.URL.RawPath = batchPath
-		if batchReq.URL.Path, err = url.PathUnescape(batchPath); err != nil {
+		decodedPath, err := url.PathUnescape(batchPath)
+		if err != nil {
 			return nil, fmt.Errorf("decoding routing metadata path: %w", err)
 		}
 
+		// RequestTimeout bounds each batch, like a transport attempt, rather
+		// than the whole call; ctx still bounds the loop.
+		batchCtx, cancelBatch := tr.withRequestTimeout(ctx)
+		batchReq := req.Clone(batchCtx)
+		// prepareInternalRequest adds the node's base path to each logical path.
+		batchReq.URL.RawPath = batchPath
+		batchReq.URL.Path = decodedPath
+
 		metadata, err := tr.getRoutingMetaBatch(batchReq, conn)
+		cancelBatch()
 		if err != nil {
 			return nil, err
 		}

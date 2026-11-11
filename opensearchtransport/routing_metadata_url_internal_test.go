@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -339,6 +340,35 @@ func TestRoutingMetadataBatchesPopulateRequestedShardMaps(t *testing.T) {
 
 	require.Len(t, requested, len(indexes), "only the initial discovery cycle must fetch each index")
 	require.ElementsMatch(t, indexes, requested)
+}
+
+func TestRoutingMetadataRequestTimeoutBoundsEachBatch(t *testing.T) {
+	t.Parallel()
+
+	const requestTimeout = time.Hour
+
+	var batchCtxs []context.Context
+	tr, _, _ := newInternalReqTransport(t, nil, nil,
+		mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			deadline, ok := req.Context().Deadline()
+			require.True(t, ok, "each batch must carry the request timeout")
+			require.WithinDuration(t, time.Now().Add(requestTimeout), deadline, time.Minute)
+			for _, prev := range batchCtxs {
+				require.ErrorIs(t, prev.Err(), context.Canceled, "an earlier batch's timeout must end before the next batch starts")
+			}
+			batchCtxs = append(batchCtxs, req.Context())
+
+			batch := requireRoutingMetadataBatch(t, req, "")
+			return &http.Response{StatusCode: http.StatusOK, Body: routingMetadataBody(t, batch)}, nil
+		}))
+	tr.requestTimeout = requestTimeout
+
+	indexes := routingMetadataIndexesForLine(t, routingMetadataMaxLineLength+1)
+	metadata, err := tr.getRoutingMeta(t.Context(), indexes)
+	require.NoError(t, err)
+	require.Len(t, metadata, len(indexes))
+	require.Len(t, batchCtxs, 2)
+	require.NoError(t, t.Context().Err(), "a batch timeout must not cancel the caller's context")
 }
 
 func requireRoutingMetadataBatch(t *testing.T, req *http.Request, basePath string) []string {
