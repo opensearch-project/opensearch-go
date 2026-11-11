@@ -143,7 +143,7 @@ func needsShardSetCost(slot *indexSlot, routingValue, docID string) bool {
 // totalShards the number of distinct target shards. A node hosting all target
 // shards has multiplier 1; with locality 0.5 a node hosting one of five has
 // multiplier 1.4. The multiplier is bounded by 1+locality, so locality never
-// outweighs the RTT and load terms of the score by more than that factor.
+// outweighs the latency and load terms of the score by more than that factor.
 //
 // The error is nil exactly when candidates are returned. Otherwise the result is
 // empty and the error is [ErrNoRoutingKey] when there is no routing value,

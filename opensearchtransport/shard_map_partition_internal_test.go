@@ -308,45 +308,45 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 		routing              string
 		onB                  []keyOffset
 		unplaced             []keyOffset // target shards dropped from the shard map
-		wantExtraCost        map[string]float64
+		wantMissing          map[string]float64
 		wantErr              error
 	}{
 		{
 			name: "partitioned, one key's offsets on distinct shards", primaries: partitionedPrimaryShards, routingPartitionSize: partitionSize,
 			routing: "user-7", onB: []keyOffset{{"user-7", 3}},
-			wantExtraCost: map[string]float64{"nodeA": 1, "nodeB": 3},
+			wantMissing: map[string]float64{"nodeA": 1, "nodeB": 3},
 		},
 		{
 			// With 5 primaries every offset of the key lands on one shard.
 			name: "partitioned, one key's offsets collide on a shard", primaries: 5, routingPartitionSize: partitionSize,
-			routing:       "user-7",
-			wantExtraCost: map[string]float64{"nodeA": 0},
+			routing:     "user-7",
+			wantMissing: map[string]float64{"nodeA": 0},
 		},
 		{
 			// k1 and k2 share a shard, k3 has another: two target shards, one each.
 			name: "unpartitioned, keys share a shard", primaries: 5,
 			routing: "k1,k2,k3", onB: []keyOffset{{"k3", 0}},
-			wantExtraCost: map[string]float64{"nodeA": 1, "nodeB": 1},
+			wantMissing: map[string]float64{"nodeA": 1, "nodeB": 1},
 		},
 		{
 			// user-7 targets shards 285-288 and u682 shards 287-290; 289 and 290
 			// are nodeB's, so six shards are targeted and nodeA hosts four.
 			name: "partitioned, keys' partitions overlap", primaries: partitionedPrimaryShards, routingPartitionSize: partitionSize,
 			routing: "user-7,u682", onB: []keyOffset{{"u682", 2}, {"u682", 3}},
-			wantExtraCost: map[string]float64{"nodeA": 2, "nodeB": 4},
+			wantMissing: map[string]float64{"nodeA": 2, "nodeB": 4},
 		},
 		{
 			// k3's shard has no entry; it still counts as a target, so nodeB, which
 			// hosts only k1's shard, is one short.
 			name: "a target shard missing from the shard map is skipped", primaries: 5,
 			routing: "k1,k3", onB: []keyOffset{{"k1", 0}}, unplaced: []keyOffset{{"k3", 0}},
-			wantExtraCost: map[string]float64{"nodeB": 1},
+			wantMissing: map[string]float64{"nodeB": 1},
 		},
 		{
 			// The map holds a shard, but not one the routing value targets.
 			name: "no target shard has a host", primaries: 5,
 			routing: "k1", onB: []keyOffset{{"k3", 0}}, unplaced: []keyOffset{{"k1", 0}},
-			wantExtraCost: map[string]float64{}, wantErr: ErrShardNoNode,
+			wantMissing: map[string]float64{}, wantErr: ErrShardNoNode,
 		},
 	}
 	for _, tt := range tests {
@@ -379,15 +379,15 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 					total[shardOf(keyOffset{key, offset})] = struct{}{}
 				}
 			}
-			cBuf, ecBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, 1, conns)
+			cBuf, locBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, 1, conns)
 			defer cBuf.Release()
-			defer ecBuf.Release()
+			defer locBuf.Release()
 
 			got := map[string]float64{}
 			for i, c := range cBuf.Slice() {
-				got[c.Name] = math.Round((ecBuf.Slice()[i] - 1) * float64(len(total)))
+				got[c.Name] = math.Round((locBuf.Slice()[i] - 1) * float64(len(total)))
 			}
-			require.Equal(t, tt.wantExtraCost, got)
+			require.Equal(t, tt.wantMissing, got)
 			requireErrorIs(t, tt.wantErr, err)
 		})
 	}

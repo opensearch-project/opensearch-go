@@ -615,10 +615,10 @@ func TestCalcMultiKeyCost_PicksHighestHitNode(t *testing.T) {
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
-	candidates, locality := cBuf.Slice(), ecBuf.Slice()
+	cBuf, locBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+	candidates, locality := cBuf.Slice(), locBuf.Slice()
 	defer cBuf.Release()
-	defer ecBuf.Release()
+	defer locBuf.Release()
 
 	require.NotNil(t, candidates)
 	require.Equal(t, "nodeA", candidates[0].Name)
@@ -641,10 +641,10 @@ func TestCalcMultiKeyCost_AllKeysOnSameShard(t *testing.T) {
 	routes := routingValuesForShard(t, sm, 1, "s1pair-9", 2)
 
 	routingValue := routes[0] + routingValueSeparator + routes[1]
-	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
-	candidates, locality := cBuf.Slice(), ecBuf.Slice()
+	cBuf, locBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+	candidates, locality := cBuf.Slice(), locBuf.Slice()
 	defer cBuf.Release()
-	defer ecBuf.Release()
+	defer locBuf.Release()
 
 	require.NotNil(t, candidates)
 	// Both keys hit shard 1 -> nodeB gets hits=2, nodeC gets hits=2, multiplier 1 for both.
@@ -676,10 +676,10 @@ func TestCalcMultiKeyCost_LocalityReflectsRemoteHops(t *testing.T) {
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
-	candidates, locality := cBuf.Slice(), ecBuf.Slice()
+	cBuf, locBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+	candidates, locality := cBuf.Slice(), locBuf.Slice()
 	defer cBuf.Release()
-	defer ecBuf.Release()
+	defer locBuf.Release()
 
 	require.Len(t, candidates, 3)
 	// First candidate is nodeA (hits=2, multiplier 1).
@@ -871,10 +871,10 @@ func TestCalcMultiKeyCost_HighReplicaCount(t *testing.T) {
 			}
 
 			routingValue := strings.Join(parts, routingValueSeparator)
-			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
-			candidates, locality := cBuf.Slice(), ecBuf.Slice()
+			cBuf, locBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, 1, conns)
+			candidates, locality := cBuf.Slice(), locBuf.Slice()
 			defer cBuf.Release()
-			defer ecBuf.Release()
+			defer locBuf.Release()
 
 			require.Len(t, candidates, tt.wantCount,
 				"expected %d candidates, got %d", tt.wantCount, len(candidates))

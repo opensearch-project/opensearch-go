@@ -332,7 +332,7 @@ func verifyEquilibriumDistribution(t *testing.T, nodes []simNode, measure int, t
 // TestLatencyEquilibrium runs the production score on two nodes in one RTT
 // bucket whose base latency is 1.9x apart, with latency rising as a node
 // takes more concurrent requests. Latency scoring splits traffic between
-// them and favors the faster node; bucket scoring scored them equal.
+// them and favors the faster node, though both share one RTT bucket.
 func TestLatencyEquilibrium(t *testing.T) {
 	t.Parallel()
 

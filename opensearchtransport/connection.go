@@ -436,8 +436,9 @@ func (conn *Connection) RTTMedian() time.Duration {
 //
 // The bucket sorts nodes into latency tiers (AZ tiering, fan-out, sort order).
 // The routing score uses the pool's request latency instead
-// ([Connection.loadLatencyMicros]; see connLoadScore), which falls back to the
-// RTT median, not the bucket, until the pool has a sample.
+// ([Connection.loadLatencyMicros]; see connLoadScore), which falls back to
+// this bucket's lower bound in microseconds ([Connection.RTTMedian]) until the
+// pool has a sample.
 func (conn *Connection) RTTBucket() int64 {
 	if conn.rttRing == nil {
 		return -1
