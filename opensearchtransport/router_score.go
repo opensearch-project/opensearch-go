@@ -232,13 +232,14 @@ func (p *peakEWMA) nowNano() int64 {
 	return p.clock.Now().UnixNano()
 }
 
-// peakDecay returns v decayed over the time between last and now.
-func peakDecay(v float64, last, now int64) float64 {
+// peakWeight returns e^(-dt/tau), the share of a value that survives the time
+// between last and now; 1 when now is not after last.
+func peakWeight(last, now int64) float64 {
 	dt := float64(now-last) / float64(peakEWMADecay)
 	if dt <= 0 {
-		return v
+		return 1
 	}
-	return v * math.Exp(-dt)
+	return math.Exp(-dt)
 }
 
 // sample records one latency observation. Safe for concurrent use.
@@ -252,7 +253,7 @@ func (p *peakEWMA) sample(d time.Duration) {
 		next := us
 		if last != 0 {
 			v := math.Float64frombits(oldBits)
-			w := math.Exp(-max(float64(now-last), 0) / float64(peakEWMADecay))
+			w := peakWeight(last, now)
 			if us < v*w {
 				next = v*w + us*(1-w)
 			}
@@ -271,5 +272,5 @@ func (p *peakEWMA) load() (float64, bool) {
 	if last == 0 {
 		return 0, false
 	}
-	return peakDecay(math.Float64frombits(p.bits.Load()), last, p.nowNano()), true
+	return math.Float64frombits(p.bits.Load()) * peakWeight(last, p.nowNano()), true
 }
