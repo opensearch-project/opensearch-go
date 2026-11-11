@@ -1384,7 +1384,7 @@ A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive
 | `max_io_utilization_percent` >= 95 (OpenSearch 2.12+, Linux) | `demoteOverloaded(conn)`      |
 | All metrics clear                                            | `promoteFromOverloaded(conn)` |
 
-Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve. The same poll collects each node's `adaptive_selection` stats. They become usable after a 10s blackout and expire after 3min without a changed report. Search and get scoring uses them for the C3 queue term when every candidate has fresh stats (see [Connection Scoring](#4-connection-scoring)).
+Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve. The same poll collects `adaptive_selection` stats. Each polled node reports the queue size and service time it has seen from every node it sends shard requests to, and the client records each report on the matching connection. A node this client has stopped sending to therefore stays fresh while other coordinators still reach its shards. The server keeps these entries forever, so only a change from what the same node reported before counts: a node's first report only sets a baseline. The stats become usable 10s after the first changed report and expire after 3min without one from any node. Search and get scoring uses them for the C3 queue term when every candidate has fresh stats (see [Connection Scoring](#4-connection-scoring)).
 
 ### Background Goroutines
 

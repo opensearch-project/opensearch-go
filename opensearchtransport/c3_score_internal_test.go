@@ -29,7 +29,7 @@ func c3TestConn(t *testing.T, id string, inFlight int32, queue int64, recordedAg
 	c.pools.getForScoring(poolSearch).inFlight.Store(inFlight)
 	c.pools.getForScoring(poolSearch).cwnd.Store(100)
 	if queue != noStats {
-		c.ars.record(time.Now().Add(-recordedAgo), id, AdaptiveSelectionStats{AvgQueueSize: queue, AvgServiceTimeNs: serviceNs})
+		recordUsable(&c.ars, time.Now().Add(-recordedAgo), id, id, AdaptiveSelectionStats{AvgQueueSize: queue, AvgServiceTimeNs: serviceNs})
 	}
 	return c
 }

@@ -7,6 +7,7 @@
 package opensearchtransport
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -1849,17 +1850,27 @@ func TestFetchAndEvaluateNodeStatsAdaptiveSelection(t *testing.T) {
 	other := AdaptiveSelectionStats{OutgoingSearches: 9}
 	tests := []struct {
 		name     string
+		connID   string // ID the polled connection holds; empty for a seed
 		ars      map[string]AdaptiveSelectionStats
 		heap     int
 		want     AdaptiveSelectionStats
 		wantSeen bool
+		wantPeer AdaptiveSelectionStats // recorded on the peer connection
 		wantOver bool
 	}{
 		{
-			name: "self entry recorded", heap: 30, want: self, wantSeen: true,
+			name: "self and peer entries recorded", heap: 30, want: self, wantSeen: true, wantPeer: other,
+			ars: map[string]AdaptiveSelectionStats{"testnode": self, "peer": other, "unknown": other},
+		},
+		{
+			name: "connection ID matching the reporter takes the self entry", connID: "testnode", heap: 30, want: self, wantSeen: true,
+			ars: map[string]AdaptiveSelectionStats{"testnode": self},
+		},
+		{
+			name: "another node at the connection's URL is not its self entry", connID: "old", heap: 30, wantPeer: other,
 			ars: map[string]AdaptiveSelectionStats{"testnode": self, "peer": other},
 		},
-		{name: "other target only", ars: map[string]AdaptiveSelectionStats{"peer": other}, heap: 30},
+		{name: "peer entry only", ars: map[string]AdaptiveSelectionStats{"peer": other}, heap: 30, wantPeer: other},
 		{name: "field absent, overload unchanged", heap: 95, wantOver: true},
 	}
 	for _, tt := range tests {
@@ -1881,18 +1892,28 @@ func TestFetchAndEvaluateNodeStatsAdaptiveSelection(t *testing.T) {
 			defer server.Close()
 
 			serverURL, _ := url.Parse(server.URL)
-			conn := &Connection{URL: serverURL}
+			conn := &Connection{URL: serverURL, ID: tt.connID}
 			conn.setLifecycleBit(lcActive)
-			pool := newStandbyPool([]*Connection{conn}, []*Connection{newStandbyConn("backup")})
+			peer := newStandbyConn("peer")
+			peer.ID = "peer"
+			// Each reporter's first report is only a baseline, so seed one
+			// that the polled values differ from.
+			before := time.Now().Add(-time.Second)
+			conn.ars.record(before, "testnode", cmp.Or(tt.connID, "testnode"), AdaptiveSelectionStats{})
+			peer.ars.record(before, "testnode", "peer", AdaptiveSelectionStats{})
+			pool := newStandbyPool([]*Connection{conn}, []*Connection{peer})
 			client := newTestClientWithPool(server.Client().Transport, pool)
 			client.overloadedHeapThreshold = 85
 			client.fetchAndEvaluateNodeStats(conn, pool)
 
 			require.Equal(t, int32(1), reqs.Load())
 			require.Equal(t, nodeStatsPath, gotPath.Load())
-			got, ok := conn.ars.load(time.Now().Add(adaptiveSelectionBlackout))
+			at := time.Now().Add(adaptiveSelectionBlackout)
+			got, ok := conn.ars.load(at)
 			require.Equal(t, tt.wantSeen, ok)
 			require.Equal(t, tt.want, got)
+			gotPeer, _ := peer.ars.load(at)
+			require.Equal(t, tt.wantPeer, gotPeer)
 			require.Equal(t, tt.wantOver, conn.loadConnState().lifecycle().has(lcOverloaded))
 		})
 	}

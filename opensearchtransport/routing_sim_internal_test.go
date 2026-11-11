@@ -117,7 +117,7 @@ func TestHCLSelect(t *testing.T) {
 				c := scoreTestConn(t, "n"+strconv.Itoa(i), n.rtt, 0)
 				c.setLifecycleBit(lcActive)
 				c.pools.getForScoring(poolSearch).inFlight.Store(n.inFlight)
-				c.ars.record(time.Now(), c.ID, AdaptiveSelectionStats{AvgQueueSize: n.queue})
+				recordUsable(&c.ars, time.Now(), c.ID, c.ID, AdaptiveSelectionStats{AvgQueueSize: n.queue})
 				cands[i] = c
 			}
 
@@ -285,7 +285,7 @@ func runRoutingSim(t *testing.T, seed uint64, load float64, choose simChooser) s
 			c.setLifecycleBit(lcActive)
 			c.pools.getForScoring(poolSearch).latency.clock = clock
 			c.pools.getForScoring(poolSearch).cwnd.Store(100)
-			c.ars.record(time.Now().Add(-simBackdate), c.ID, AdaptiveSelectionStats{AvgServiceTimeNs: int64(simMeanService[ni] * 1e6)})
+			recordUsable(&c.ars, time.Now().Add(-simBackdate), c.ID, c.ID, AdaptiveSelectionStats{AvgServiceTimeNs: int64(simMeanService[ni] * 1e6)})
 			cl.conns = append(cl.conns, c)
 		}
 		clients[ci] = cl
@@ -371,7 +371,7 @@ func runRoutingSim(t *testing.T, seed uint64, load float64, choose simChooser) s
 			}
 		case simPoll:
 			for ni, c := range clients[e.client].conns {
-				c.ars.record(time.Now(), c.ID, AdaptiveSelectionStats{
+				c.ars.record(time.Now(), c.ID, c.ID, AdaptiveSelectionStats{
 					AvgQueueSize:     int64(math.Round(nodes[ni].avgQ)),
 					AvgServiceTimeNs: max(int64(nodes[ni].avgSvc*1e6), 1),
 				})

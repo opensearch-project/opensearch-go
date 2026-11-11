@@ -51,12 +51,16 @@ func TestAdaptiveSelection(t *testing.T) {
 	t.Parallel()
 
 	t0 := time.Unix(1_000_000, 0)
+	tb := t0.Add(-time.Second) // when each reporter's baseline is sent
+	s0 := AdaptiveSelectionStats{OutgoingSearches: 100}
 	s1 := AdaptiveSelectionStats{OutgoingSearches: 1}
 	s2 := AdaptiveSelectionStats{OutgoingSearches: 2}
+	s9 := AdaptiveSelectionStats{OutgoingSearches: 9}
 	type report struct {
 		at   time.Time
 		s    AdaptiveSelectionStats
 		node string // empty reads as "a"
+		from string // reporter; empty reads as node
 	}
 	type probe struct {
 		at     time.Time
@@ -74,8 +78,13 @@ func TestAdaptiveSelection(t *testing.T) {
 			probes: []probe{{at: t0, want: false}, {at: t0.Add(time.Hour), want: false}},
 		},
 		{
-			name:    "blackout then usable then expiry",
+			name:    "a reporter's first report is only a baseline",
 			reports: []report{{at: t0, s: s1}},
+			probes:  []probe{{at: t0.Add(adaptiveSelectionBlackout), want: false}, {at: t0.Add(time.Hour), want: false}},
+		},
+		{
+			name:    "blackout then usable then expiry",
+			reports: []report{{at: tb, s: s0}, {at: t0, s: s1}},
 			probes: []probe{
 				{at: t0, want: false},
 				{at: t0.Add(9900 * time.Millisecond), want: false},
@@ -85,17 +94,23 @@ func TestAdaptiveSelection(t *testing.T) {
 			},
 		},
 		{
-			name:    "report after expiry restarts blackout",
-			reports: []report{{at: t0, s: s1}, {at: t0.Add(4 * time.Minute), s: s2}},
+			// The silent reporter is pruned, so its next report is a new baseline.
+			name: "a report after expiry is a baseline and the next change restarts blackout",
+			reports: []report{
+				{at: tb, s: s0},
+				{at: t0, s: s1},
+				{at: t0.Add(4 * time.Minute), s: s2},
+				{at: t0.Add(4*time.Minute + 30*time.Second), s: s1},
+			},
 			probes: []probe{
 				{at: t0.Add(4 * time.Minute), want: false},
-				{at: t0.Add(4*time.Minute + 9*time.Second), want: false},
-				{at: t0.Add(4*time.Minute + 10*time.Second), want: true, wantSt: s2},
+				{at: t0.Add(4*time.Minute + 39*time.Second), want: false},
+				{at: t0.Add(4*time.Minute + 40*time.Second), want: true, wantSt: s1},
 			},
 		},
 		{
 			name:    "identical report does not refresh lastSeen",
-			reports: []report{{at: t0, s: s1}, {at: t0.Add(2 * time.Minute), s: s1}},
+			reports: []report{{at: tb, s: s0}, {at: t0, s: s1}, {at: t0.Add(2 * time.Minute), s: s1}},
 			probes: []probe{
 				{at: t0.Add(adaptiveSelectionExpiry), want: true, wantSt: s1},
 				{at: t0.Add(adaptiveSelectionExpiry + time.Nanosecond), want: false},
@@ -103,7 +118,7 @@ func TestAdaptiveSelection(t *testing.T) {
 		},
 		{
 			name:    "changed report keeps firstSeen and refreshes lastSeen",
-			reports: []report{{at: t0, s: s1}, {at: t0.Add(2 * time.Minute), s: s2}},
+			reports: []report{{at: tb, s: s0}, {at: t0, s: s1}, {at: t0.Add(2 * time.Minute), s: s2}},
 			probes: []probe{
 				{at: t0.Add(2 * time.Minute), want: true, wantSt: s2},
 				{at: t0.Add(5 * time.Minute), want: true, wantSt: s2},
@@ -111,12 +126,52 @@ func TestAdaptiveSelection(t *testing.T) {
 			},
 		},
 		{
-			name:    "another node at the same URL restarts blackout",
-			reports: []report{{at: t0, s: s1}, {at: t0.Add(time.Minute), s: s1, node: "b"}},
-			probes: []probe{
-				{at: t0.Add(time.Minute), want: false},
-				{at: t0.Add(time.Minute + adaptiveSelectionBlackout), want: true, wantSt: s1},
+			name: "another node at the same URL drops the old node's stats",
+			reports: []report{
+				{at: tb, s: s0},
+				{at: t0, s: s1},
+				{at: t0.Add(time.Minute), s: s1, node: "b"},
+				{at: t0.Add(2 * time.Minute), s: s2, node: "b"},
 			},
+			probes: []probe{
+				{at: t0.Add(time.Minute + adaptiveSelectionBlackout), want: false},
+				{at: t0.Add(2*time.Minute + adaptiveSelectionBlackout), want: true, wantSt: s2},
+			},
+		},
+		{
+			name: "a moving peer report keeps a frozen self-report's node fresh",
+			reports: []report{
+				{at: tb, s: s0},
+				{at: tb, s: s0, from: "p"},
+				{at: t0, s: s1},
+				{at: t0, s: s1, from: "p"},
+				{at: t0.Add(2 * time.Minute), s: s1},
+				{at: t0.Add(2 * time.Minute), s: s2, from: "p"},
+			},
+			probes: []probe{
+				{at: t0.Add(5 * time.Minute), want: true, wantSt: s2},
+				{at: t0.Add(5*time.Minute + time.Nanosecond), want: false},
+			},
+		},
+		{
+			name: "each reporter's frozen values are judged against its own",
+			reports: []report{
+				{at: tb, s: s0},
+				{at: tb, s: s0, from: "p"},
+				{at: t0, s: s1},
+				{at: t0, s: s2, from: "p"},
+				{at: t0.Add(2 * time.Minute), s: s1},
+				{at: t0.Add(2 * time.Minute), s: s2, from: "p"},
+			},
+			probes: []probe{
+				{at: t0.Add(adaptiveSelectionExpiry), want: true, wantSt: s2},
+				{at: t0.Add(adaptiveSelectionExpiry + time.Nanosecond), want: false},
+			},
+		},
+		{
+			name:    "a new reporter's frozen values do not replace moving stats",
+			reports: []report{{at: tb, s: s0}, {at: t0, s: s1}, {at: t0.Add(time.Minute), s: s9, from: "stale"}},
+			probes:  []probe{{at: t0.Add(time.Minute), want: true, wantSt: s1}},
 		},
 	}
 	for _, tt := range tests {
@@ -128,7 +183,11 @@ func TestAdaptiveSelection(t *testing.T) {
 				if node == "" {
 					node = "a"
 				}
-				a.record(r.at, node, r.s)
+				from := r.from
+				if from == "" {
+					from = node
+				}
+				a.record(r.at, from, node, r.s)
 			}
 			for _, p := range tt.probes {
 				got, ok := a.load(p.at)
@@ -147,7 +206,7 @@ func TestAdaptiveSelectionConcurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		for i := range 1000 {
-			a.record(t0.Add(time.Duration(i)*time.Second), "a", AdaptiveSelectionStats{OutgoingSearches: int64(i)})
+			a.record(t0.Add(time.Duration(i)*time.Second), "a", "a", AdaptiveSelectionStats{OutgoingSearches: int64(i)})
 		}
 	})
 	for range 4 {
@@ -163,6 +222,29 @@ func TestAdaptiveSelectionConcurrent(t *testing.T) {
 func TestAdaptiveSelectionLoadAllocs(t *testing.T) {
 	var a adaptiveSelection
 	t0 := time.Unix(1_000_000, 0)
-	a.record(t0, "a", AdaptiveSelectionStats{OutgoingSearches: 1})
+	recordUsable(&a, t0, "a", "a", AdaptiveSelectionStats{OutgoingSearches: 1})
 	require.InDelta(t, 0.0, testing.AllocsPerRun(100, func() { a.load(t0.Add(time.Minute)) }), 0)
+}
+
+func TestAdaptiveSelectionPrunesSilentReporters(t *testing.T) {
+	t.Parallel()
+
+	var a adaptiveSelection
+	t0 := time.Unix(1_000_000, 0)
+	a.record(t0, "gone", "a", AdaptiveSelectionStats{OutgoingSearches: 1})
+	a.record(t0.Add(adaptiveSelectionExpiry+time.Second), "a", "a", AdaptiveSelectionStats{OutgoingSearches: 1})
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	require.Len(t, a.mu.byReporter, 1)
+	require.Contains(t, a.mu.byReporter, "a")
+}
+
+// recordUsable records s from reporter as a fresh report at now, after a
+// baseline 1ns earlier, since a reporter's first report is never fresh.
+func recordUsable(a *adaptiveSelection, now time.Time, reporter, nodeID string, s AdaptiveSelectionStats) {
+	base := s
+	base.OutgoingSearches--
+	a.record(now.Add(-time.Nanosecond), reporter, nodeID, base)
+	a.record(now, reporter, nodeID, s)
 }

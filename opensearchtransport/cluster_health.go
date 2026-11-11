@@ -314,11 +314,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 		return sample, false
 	}
 
-	// Only the node's entry for itself is kept: its view of other targets
-	// includes reporter network time, which the node's own entry lacks.
-	if as, found := nodeStats.AdaptiveSelection[nodeID]; found {
-		conn.ars.record(time.Now(), nodeID, as)
-	}
+	recordAdaptiveSelection(conn, pool, nodeID, nodeStats.AdaptiveSelection)
 
 	// Update per-pool congestion windows (AIMD) from thread pool stats.
 	updatePoolCongestion(conn, nodeStats.ThreadPools)
