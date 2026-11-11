@@ -388,7 +388,8 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 		serverMaxNewConnsPerSec:      float64(defaultServerCoreCount) * serverMaxNewConnsPerSecMultiplier,
 		clientsPerServer:             float64(defaultServerCoreCount),
 	}
-	pool.mu.ready = conns
+	// The pool edits ready in place, so it must not share the caller's array.
+	pool.mu.ready = slices.Clone(conns)
 	pool.mu.activeCount = len(conns)
 	pool.mu.dead = []*Connection{}
 	pool.mu.members = make(map[*Connection]struct{}, max(len(conns), defaultMembersCapacity))
