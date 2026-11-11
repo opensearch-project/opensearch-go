@@ -24,11 +24,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
-const routingMetadataFilter = "filter_path=metadata.indices.*.routing_num_shards," +
-	"metadata.indices.*.settings.index.number_of_shards," +
-	"metadata.indices.*.settings.index.routing_partition_size," +
-	"metadata.indices.*.settings.index.replication.type"
-
 func TestRoutingMetadataRequestLineLimit(t *testing.T) {
 	t.Parallel()
 
@@ -341,8 +336,8 @@ func TestRoutingMetadataBatchesPopulateRequestedShardMaps(t *testing.T) {
 func requireRoutingMetadataBatch(t *testing.T, req *http.Request, basePath string) []string {
 	t.Helper()
 
-	prefix := strings.TrimRight(basePath, "/") + "/_cluster/state/metadata/"
-	require.True(t, strings.HasPrefix(req.URL.Path, prefix), "metadata requests must remain explicitly scoped: %s", req.URL.Path)
+	prefix := strings.TrimRight(basePath, "/") + routingMetadataPath + "/"
+	require.True(t, strings.HasPrefix(req.URL.Path, prefix), "metadata requests must remain explicitly scoped: %q", req.URL.Path)
 	indexes := strings.TrimPrefix(req.URL.Path, prefix)
 	require.NotEmpty(t, indexes, "an all-index metadata fallback must never be sent")
 	require.Equal(t, http.MethodGet, req.Method)
@@ -378,7 +373,7 @@ func routingMetadataIndexesForLine(t *testing.T, length int) []string {
 		indexes[i] = fmt.Sprintf("index-%02d-%s", i, strings.Repeat("x", 171))
 	}
 	indexes[20] = "i"
-	u := &url.URL{Path: "/_cluster/state/metadata/" + strings.Join(indexes, ","), RawQuery: routingMetadataFilter}
+	u := &url.URL{Path: routingMetadataPath + "/" + strings.Join(indexes, ","), RawQuery: routingMetadataFilter}
 	padding := length - calcHTTPLineLen(&http.Request{Method: http.MethodGet, URL: u})
 	require.GreaterOrEqual(t, padding, 0)
 	require.Less(t, padding, 255, "each generated index name must remain valid")

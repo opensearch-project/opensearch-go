@@ -2220,8 +2220,19 @@ func parseReplicationType(s string) ReplicationType {
 	return ReplicationDocument
 }
 
-// routingMetadataMaxLineLength matches OpenSearch's default http.max_initial_line_length.
-const routingMetadataMaxLineLength = 4096
+const (
+	// routingMetadataPath is the cluster-state endpoint routing metadata is read from.
+	routingMetadataPath = "/_cluster/state/metadata"
+
+	// routingMetadataFilter limits the cluster-state response to the routing fields.
+	routingMetadataFilter = "filter_path=metadata.indices.*.routing_num_shards," +
+		"metadata.indices.*.settings.index.number_of_shards," +
+		"metadata.indices.*.settings.index.routing_partition_size," +
+		"metadata.indices.*.settings.index.replication.type"
+
+	// routingMetadataMaxLineLength matches OpenSearch's default http.max_initial_line_length.
+	routingMetadataMaxLineLength = 4096
+)
 
 // calcHTTPLineLen returns the length of req's HTTP/1.1 request line, the value
 // OpenSearch checks against http.max_initial_line_length.
@@ -2238,21 +2249,16 @@ func calcHTTPLineLen(req *http.Request) int {
 // uses the configured number_of_shards (via routingFactor), so the client
 // must use the same value for correct murmur3 shard computation.
 func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
-	const metadataPath = "/_cluster/state/metadata"
-
 	result := make(map[string]indexRoutingMeta, len(indexes))
 	if len(indexes) == 0 {
 		return result, nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataPath+"/", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, routingMetadataPath+"/", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating routing metadata request: %w", err)
 	}
-	req.URL.RawQuery = "filter_path=metadata.indices.*.routing_num_shards," +
-		"metadata.indices.*.settings.index.number_of_shards," +
-		"metadata.indices.*.settings.index.routing_partition_size," +
-		"metadata.indices.*.settings.index.replication.type"
+	req.URL.RawQuery = routingMetadataFilter
 
 	conn, err := getConnectionFromPool(tr, req)
 	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
@@ -2294,7 +2300,7 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 
 		batchReq := req.Clone(ctx)
 		// prepareInternalRequest adds the node's base path to each logical path.
-		batchReq.URL.Path = metadataPath + "/" + strings.Join(indexes[:batchSize], ",")
+		batchReq.URL.Path = routingMetadataPath + "/" + strings.Join(indexes[:batchSize], ",")
 		batchReq.URL.RawPath = ""
 
 		metadata, err := tr.getRoutingMetaBatch(batchReq, conn)
