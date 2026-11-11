@@ -45,12 +45,21 @@ func TestRoutingMetadataRequestLineLimit(t *testing.T) {
 		wantLineLength int
 	}{
 		{name: "short request remains scoped", indexes: []string{"first", "second"}, wantBatches: 1},
-		{name: "below the limit", indexes: routingMetadataIndexesForLine(t, 4095), wantBatches: 1, wantLineLength: 4095},
-		{name: "at the limit", indexes: routingMetadataIndexesForLine(t, 4096), wantBatches: 1, wantLineLength: 4096},
-		{name: "above the limit including query", indexes: routingMetadataIndexesForLine(t, 4097), wantBatches: 2},
+		{
+			name: "below the limit", indexes: routingMetadataIndexesForLine(t, routingMetadataMaxLineLength-1),
+			wantBatches: 1, wantLineLength: routingMetadataMaxLineLength - 1,
+		},
+		{
+			name: "at the limit", indexes: routingMetadataIndexesForLine(t, routingMetadataMaxLineLength),
+			wantBatches: 1, wantLineLength: routingMetadataMaxLineLength,
+		},
+		{
+			name: "above the limit including query", indexes: routingMetadataIndexesForLine(t, routingMetadataMaxLineLength+1),
+			wantBatches: 2,
+		},
 		{
 			name: "node base path crosses the limit", basePath: "/proxy/",
-			indexes: routingMetadataIndexesForLine(t, 4096), wantBatches: 2,
+			indexes: routingMetadataIndexesForLine(t, routingMetadataMaxLineLength), wantBatches: 2,
 		},
 		{name: "escaped index names", indexes: escapedIndexes, wantBatches: 2},
 		{
@@ -68,12 +77,14 @@ func TestRoutingMetadataRequestLineLimit(t *testing.T) {
 			var (
 				signedURIs, sentURIs, requested []string
 				bodies                          []*closeCountBody
+				sentLineLengths                 []int
 			)
 
 			tr, u, _ := newInternalReqTransport(t, nil, http.Header{"X-Test-Header": {"from-config"}},
 				mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					batch := requireRoutingMetadataBatch(t, req, tt.basePath)
 					sentURIs = append(sentURIs, req.URL.RequestURI())
+					sentLineLengths = append(sentLineLengths, calcHTTPLineLen(req))
 					requested = append(requested, batch...)
 					require.Len(t, signedURIs, len(sentURIs), "each final batch must be signed before sending")
 					require.Equal(t, signedURIs[len(signedURIs)-1], req.URL.RequestURI())
@@ -109,7 +120,7 @@ func TestRoutingMetadataRequestLineLimit(t *testing.T) {
 			require.Equal(t, tt.indexes, requested, "each requested index must appear exactly once, in input order")
 			require.Equal(t, before, tt.indexes, "batching must not mutate the input")
 			if tt.wantLineLength > 0 {
-				require.Len(t, "GET "+sentURIs[0]+" HTTP/1.1", tt.wantLineLength)
+				require.Equal(t, tt.wantLineLength, sentLineLengths[0])
 			}
 
 			require.Len(t, metadata, len(tt.indexes), "metadata from all batches must be merged")
@@ -137,8 +148,11 @@ func TestRoutingMetadataRejectsUnsendableRequests(t *testing.T) {
 	}{
 		{name: "nil indexes"},
 		{name: "empty indexes", indexes: []string{}},
-		{name: "single index cannot fit", indexes: []string{strings.Repeat("x", 4096)}, wantErr: true},
-		{name: "base path cannot fit", indexes: []string{"index"}, basePath: "/" + strings.Repeat("p", 4096), wantErr: true},
+		{name: "single index cannot fit", indexes: []string{strings.Repeat("x", routingMetadataMaxLineLength)}, wantErr: true},
+		{
+			name: "base path cannot fit", indexes: []string{"index"},
+			basePath: "/" + strings.Repeat("p", routingMetadataMaxLineLength), wantErr: true,
+		},
 		{name: "signer expands final query", indexes: []string{"index"}, signerGrowth: true, wantErr: true},
 	}
 
@@ -157,7 +171,7 @@ func TestRoutingMetadataRejectsUnsendableRequests(t *testing.T) {
 				tr.signer = &mockSigner{
 					SampleKey: "X-Test-Signature", SampleValue: "signed",
 					testHook: func(req *http.Request) {
-						req.URL.RawQuery += "&signer=" + strings.Repeat("x", 4096)
+						req.URL.RawQuery += "&signer=" + strings.Repeat("x", routingMetadataMaxLineLength)
 					},
 				}
 			}
@@ -272,7 +286,7 @@ func TestRoutingMetadataStopsAfterBatchFailure(t *testing.T) {
 func TestRoutingMetadataBatchesPopulateRequestedShardMaps(t *testing.T) {
 	t.Parallel()
 
-	indexes := routingMetadataIndexesForLine(t, 4097)
+	indexes := routingMetadataIndexesForLine(t, routingMetadataMaxLineLength+1)
 	shards := make([]map[string]string, 0, len(indexes))
 	for _, index := range indexes {
 		shards = append(shards, map[string]string{
@@ -333,7 +347,7 @@ func requireRoutingMetadataBatch(t *testing.T, req *http.Request, basePath strin
 	require.NotEmpty(t, indexes, "an all-index metadata fallback must never be sent")
 	require.Equal(t, http.MethodGet, req.Method)
 	require.Equal(t, routingMetadataFilter, req.URL.RawQuery)
-	require.LessOrEqual(t, len(req.Method+" "+req.URL.RequestURI()+" HTTP/1.1"), 4096)
+	require.LessOrEqual(t, calcHTTPLineLen(req), routingMetadataMaxLineLength)
 
 	return strings.Split(indexes, ",")
 }
@@ -365,7 +379,7 @@ func routingMetadataIndexesForLine(t *testing.T, length int) []string {
 	}
 	indexes[20] = "i"
 	u := &url.URL{Path: "/_cluster/state/metadata/" + strings.Join(indexes, ","), RawQuery: routingMetadataFilter}
-	padding := length - len("GET "+u.RequestURI()+" HTTP/1.1")
+	padding := length - calcHTTPLineLen(&http.Request{Method: http.MethodGet, URL: u})
 	require.GreaterOrEqual(t, padding, 0)
 	require.Less(t, padding, 255, "each generated index name must remain valid")
 	indexes[20] += strings.Repeat("x", padding)

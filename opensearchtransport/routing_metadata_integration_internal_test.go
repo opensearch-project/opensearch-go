@@ -122,15 +122,15 @@ func TestRoutingMetadataURLBatches_Integration(t *testing.T) {
 		"metadata.indices.*.settings.index.replication.type"
 	wantPrefix := strings.TrimRight(u.Path, "/") + metadataPath + "/"
 	unsplit := &url.URL{Path: wantPrefix + strings.Join(indexes, ","), RawQuery: wantFilter}
-	require.Greater(t, len("GET "+unsplit.RequestURI()+" HTTP/1.1"), 4096, "the fixture must exceed one request")
+	require.Greater(t, calcHTTPLineLen(&http.Request{Method: http.MethodGet, URL: unsplit}), routingMetadataMaxLineLength,
+		"the fixture must exceed one request")
 
 	requested := make([]string, 0, len(indexes))
 
 	for _, uri := range uris {
-		require.LessOrEqual(t, len("GET "+uri+" HTTP/1.1"), 4096)
-
 		u, parseErr := url.ParseRequestURI(uri)
 		require.NoError(t, parseErr)
+		require.LessOrEqual(t, calcHTTPLineLen(&http.Request{Method: http.MethodGet, URL: u}), routingMetadataMaxLineLength)
 		require.Equal(t, wantFilter, u.RawQuery)
 		require.True(t, strings.HasPrefix(u.Path, wantPrefix), "metadata request must remain scoped: %s", uri)
 

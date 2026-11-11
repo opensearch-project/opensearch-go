@@ -2223,6 +2223,8 @@ func parseReplicationType(s string) ReplicationType {
 // routingMetadataMaxLineLength matches OpenSearch's default http.max_initial_line_length.
 const routingMetadataMaxLineLength = 4096
 
+// calcHTTPLineLen returns the length of req's HTTP/1.1 request line, the value
+// OpenSearch checks against http.max_initial_line_length.
 func calcHTTPLineLen(req *http.Request) int {
 	return len(req.Method + " " + req.URL.RequestURI() + " HTTP/1.1")
 }
