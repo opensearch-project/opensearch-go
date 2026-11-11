@@ -655,7 +655,11 @@ func (tr *Transport) updateConnectionPool(
 	}
 
 	if pool, ok := currentPool.(*multiServerPool); ok {
-		for _, conn := range pool.connections() {
+		poolConns := pool.connections()
+		// At most one kept connection per URL, so the rest are duplicates. The
+		// pool can change between the two reads, so never size below zero.
+		duplicates = make([]*Connection, 0, max(0, len(poolConns)-len(currentConnectionsByURL)))
+		for _, conn := range poolConns {
 			if currentConnectionsByURL[conn.URL.String()] != conn {
 				duplicates = append(duplicates, conn)
 			}
