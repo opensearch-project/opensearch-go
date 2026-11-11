@@ -630,6 +630,10 @@ func (tr *Transport) updateConnectionPool(
 	tr.mu.RUnlock()
 
 	var currentConnectionsByURL map[string]*Connection
+	// duplicates holds pool connections that share a URL with the one kept in
+	// currentConnectionsByURL, as when Config.URLs lists a URL twice. The final
+	// pool holds one connection per URL, so they are always removed.
+	var duplicates []*Connection
 
 	if currentPool != nil {
 		currentURLs := currentPool.URLs()
@@ -648,6 +652,18 @@ func (tr *Transport) updateConnectionPool(
 		}
 	} else {
 		currentConnectionsByURL = make(map[string]*Connection)
+	}
+
+	if pool, ok := currentPool.(*multiServerPool); ok {
+		poolConns := pool.connections()
+		// At most one kept connection per URL, so the rest are duplicates. The
+		// pool can change between the two reads, so never size below zero.
+		duplicates = make([]*Connection, 0, max(0, len(poolConns)-len(currentConnectionsByURL)))
+		for _, conn := range poolConns {
+			if currentConnectionsByURL[conn.URL.String()] != conn {
+				duplicates = append(duplicates, conn)
+			}
+		}
 	}
 
 	// Build map of new connections by URL
@@ -707,6 +723,7 @@ func (tr *Transport) updateConnectionPool(
 			Debug().Str("conn", url).Strs("roles", oldConn.Roles.toSlice()).Msg("Discovery: Connection removed from cluster")
 		}
 	}
+	removed = append(removed, duplicates...)
 
 	// Build final ready/dead lists from the connection objects chosen for use
 	// (mix of reused old objects and new objects).
