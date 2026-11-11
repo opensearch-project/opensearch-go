@@ -2092,3 +2092,48 @@ func TestFetchAndEvaluateNodeStatsResourceUsage(t *testing.T) {
 	client.fetchAndEvaluateNodeStats(conn, pool)
 	require.False(t, conn.loadConnState().lifecycle().has(lcOverloaded))
 }
+
+// A stats reply that cannot be evaluated clears an overload flag, since only
+// this poll clears it; a 429 keeps it, since the node itself reports overload.
+func TestFetchAndEvaluateNodeStatsUnusableReplyClearsOverload(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		status         int
+		body           string
+		wantOverloaded bool
+	}{
+		{name: "500", status: http.StatusInternalServerError, body: `{}`},
+		{name: "403", status: http.StatusForbidden, body: `{}`},
+		{name: "unparseable body", status: http.StatusOK, body: `not json`},
+		{name: "no node in response", status: http.StatusOK, body: `{"nodes":{}}`},
+		{name: "429 keeps the flag", status: http.StatusTooManyRequests, body: `{}`, wantOverloaded: true},
+		{
+			name: "overloaded reply keeps the flag", status: http.StatusOK,
+			body: `{"nodes":{"n":{"jvm":{"mem":{"heap_used_percent":99}}}}}`, wantOverloaded: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+				fmt.Fprint(w, tt.body)
+			}))
+			defer server.Close()
+
+			serverURL, _ := url.Parse(server.URL)
+			conn := &Connection{URL: serverURL}
+			conn.setLifecycleBit(lcActive)
+			pool := newStandbyPool([]*Connection{conn}, []*Connection{newStandbyConn("backup")})
+			pool.demoteOverloaded(conn)
+			require.True(t, conn.loadConnState().lifecycle().has(lcOverloaded))
+			client := newTestClientWithPool(server.Client().Transport, pool)
+			client.overloadedHeapThreshold = defaultOverloadedHeapThreshold
+
+			client.fetchAndEvaluateNodeStats(conn, pool)
+			require.Equal(t, tt.wantOverloaded, conn.loadConnState().lifecycle().has(lcOverloaded))
+		})
+	}
+}

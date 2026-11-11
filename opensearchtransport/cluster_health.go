@@ -288,17 +288,24 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 		}()
 	}
 
+	if res.StatusCode == http.StatusTooManyRequests {
+		// The node is rejecting work itself, so an overload flag still holds.
+		return sample, false
+	}
 	if res.StatusCode != http.StatusOK || res.Body == nil {
+		clearUnverifiedOverload(conn, pool, "status "+strconv.Itoa(res.StatusCode))
 		return sample, false
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		clearUnverifiedOverload(conn, pool, "body read failed")
 		return sample, false
 	}
 
 	var stats NodeStatsResponse
 	if err := json.Unmarshal(body, &stats); err != nil {
+		clearUnverifiedOverload(conn, pool, "body not parseable")
 		return sample, false
 	}
 
@@ -311,6 +318,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 		break
 	}
 	if nodeStats == nil {
+		clearUnverifiedOverload(conn, pool, "no node in response")
 		return sample, false
 	}
 
@@ -354,6 +362,20 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 	}
 
 	return sample, ok
+}
+
+// clearUnverifiedOverload clears conn's overload flag when its node answered the
+// stats poll but the answer cannot be evaluated. Only this poll clears the flag,
+// so leaving it set would hold a node that keeps answering this way out of
+// rotation for good. The node returns to standby rotation, where request
+// failures and health checks judge it as usual. pool is nil for a single-node
+// pool, which never demotes.
+func clearUnverifiedOverload(conn *Connection, pool *multiServerPool, reason string) {
+	if pool == nil || !conn.loadConnState().lifecycle().has(lcOverloaded) {
+		return
+	}
+	Debug().Str("conn", conn.URLString).Str("reason", reason).Msg("Stats poll unusable, clearing overloaded flag")
+	pool.promoteFromOverloaded(conn)
 }
 
 // percentAtLeast reports whether s parses as a number >= threshold.
