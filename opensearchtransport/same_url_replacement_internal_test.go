@@ -478,6 +478,13 @@ func TestDiscoveryReplacesDuplicateSeedURLs(t *testing.T) {
 
 		synctest.Wait()
 
+		// A repeated seed URL still counts as its own seed until discovery runs.
+		tr.mu.RLock()
+		pool, isMulti := tr.mu.connectionPool.(*multiServerPool)
+		tr.mu.RUnlock()
+		require.True(t, isMulti, "a repeated seed URL must still build a multi-server pool")
+		require.Len(t, pool.connections(), 3)
+
 		require.NoError(t, tr.nodeDiscovery(t.Context(), []nodeInfo{
 			{ID: "data", Name: "data", Roles: []string{RoleData}, url: data},
 			{ID: "manager", Name: "manager", Roles: []string{RoleClusterManager}, url: manager},
