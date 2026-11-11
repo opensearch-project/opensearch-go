@@ -211,6 +211,16 @@ type Config struct {
 	// [opensearchtransport.Config.NodeStatsInterval] for what the poll reads.
 	NodeStatsInterval time.Duration
 
+	// OverloadedHeapThreshold, OverloadedBreakerRatio, OverloadedCPUPercent and
+	// OverloadedIOPercent set the node stats limits at or above which a node is
+	// demoted as overloaded. 0 keeps each default (85, 0.90, 95, 95), and the
+	// OPENSEARCH_GO_OVERLOADED_* environment variables override them; see
+	// [opensearchtransport.Config.OverloadedHeapThreshold] and the fields after it.
+	OverloadedHeapThreshold int
+	OverloadedBreakerRatio  float64
+	OverloadedCPUPercent    int
+	OverloadedIOPercent     int
+
 	// VerifyDeadAfter is the duration a dead connection can be blindly
 	// resurrected for use as a zombie connection when no other healthy
 	// connections are available. A connection proven reachable is a zombie
@@ -559,6 +569,11 @@ func newClient(cfg Config, getenv func(string) (string, bool)) (*Client, error) 
 
 		NodeStatsInterval: cfg.NodeStatsInterval,
 
+		OverloadedHeapThreshold: cfg.OverloadedHeapThreshold,
+		OverloadedBreakerRatio:  cfg.OverloadedBreakerRatio,
+		OverloadedCPUPercent:    cfg.OverloadedCPUPercent,
+		OverloadedIOPercent:     cfg.OverloadedIOPercent,
+
 		VerifyDeadAfter: cfg.VerifyDeadAfter,
 
 		HealthCheckTimeout:    cfg.HealthCheckTimeout,
@@ -729,6 +744,9 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	}
 	b.Int(int64(cfg.DiscoverNodesInterval)).
 		Int(int64(cfg.NodeStatsInterval)).
+		Int(int64(cfg.OverloadedHeapThreshold)).
+		Int(int64(cfg.OverloadedCPUPercent)).
+		Int(int64(cfg.OverloadedIOPercent)).
 		Int(int64(cfg.VerifyDeadAfter)).
 		Int(int64(cfg.HealthCheckTimeout)).
 		Int(int64(cfg.HealthCheckMaxRetries)).
@@ -745,8 +763,9 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		Bool(cfg.EnableDebugLogger).
 		String(cfg.ShardCostConfig).
 		// float64 fields via math.Float64bits.
-		Int(int64(math.Float64bits(cfg.HealthCheckJitter))). //nolint:gosec // G115: bit reinterpretation for hashing
-		Int(int64(math.Float64bits(cfg.JitterScale)))        //nolint:gosec // G115: bit reinterpretation for hashing
+		Int(int64(math.Float64bits(cfg.HealthCheckJitter))).     //nolint:gosec // G115: bit reinterpretation for hashing
+		Int(int64(math.Float64bits(cfg.JitterScale))).           //nolint:gosec // G115: bit reinterpretation for hashing
+		Int(int64(math.Float64bits(cfg.OverloadedBreakerRatio))) //nolint:gosec // G115: bit reinterpretation for hashing
 
 	return b.Key(), true
 }

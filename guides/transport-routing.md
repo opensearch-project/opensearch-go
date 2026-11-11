@@ -1899,6 +1899,8 @@ client, err := opensearch.NewClient(opensearch.Config{
     // NodeStatsInterval:       0,    // 0 = auto-derive from cluster size (5s-30s)
     // OverloadedHeapThreshold: 85,   // JVM heap % (default: 85)
     // OverloadedBreakerRatio:  0.90, // Breaker estimated/limit (default: 0.90)
+    // OverloadedCPUPercent:    95,   // CPU % from resource_usage_stats, OpenSearch 2.12.0+ (default: 95)
+    // OverloadedIOPercent:     95,   // IO % from resource_usage_stats, OpenSearch 2.12.0+ on Linux (default: 95)
 })
 
 // To disable load shedding:

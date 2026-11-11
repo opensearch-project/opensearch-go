@@ -892,6 +892,10 @@ func TestConfigKey(t *testing.T) {
 				Config{},
 				false,
 			},
+			{"diff overloaded heap threshold", Config{OverloadedHeapThreshold: 70}, Config{}, false},
+			{"diff overloaded breaker ratio", Config{OverloadedBreakerRatio: 0.8}, Config{}, false},
+			{"diff overloaded cpu percent", Config{OverloadedCPUPercent: 80}, Config{}, false},
+			{"diff overloaded io percent", Config{OverloadedIOPercent: 80}, Config{}, false},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -949,7 +953,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 55
+	const knownFieldCount = 59
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")
