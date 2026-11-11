@@ -2133,9 +2133,11 @@ func (tr *Transport) stream(req *http.Request, mode bodyMode) (*http.Response, s
 		}
 		// Scoring input. Only a buffered attempt's dur spans the whole response
 		// (a streamed attempt's is time to first byte), and an error, 5xx or 429
-		// is a failure's latency, not the node's service time.
+		// is a failure's latency, not the node's service time. latencySampled
+		// runs last because it classifies the path.
 		if mode == bodyBuffered && err == nil && res != nil &&
-			res.StatusCode < http.StatusInternalServerError && res.StatusCode != http.StatusTooManyRequests {
+			res.StatusCode < http.StatusInternalServerError && res.StatusCode != http.StatusTooManyRequests &&
+			latencySampled(req.Method, origPath) {
 			conn.recordLatency(poolName, dur)
 		}
 
@@ -2488,6 +2490,17 @@ func bufferedLen(res *http.Response) int64 {
 func repeatable(method, path string) bool {
 	op := defaultOperationClassifier().Classify(method, path)
 	return op.IsRead() && op.Category() != CatScroll
+}
+
+// latencySampled reports whether a successful buffered attempt's latency may
+// feed the node's Peak-EWMA. Scroll and point-in-time calls are left out:
+// their cost follows the scroll page size or the search contexts they open
+// and close, not the node's load, and one slow scroll page would stand as the
+// node's search latency until it decays. path is the caller's, without any
+// node base path.
+func latencySampled(method, path string) bool {
+	cat := defaultOperationClassifier().Classify(method, path).Category()
+	return cat != CatScroll && cat != CatScrollWrite && cat != CatPIT && cat != CatPITWrite
 }
 
 // operationClassifier returns the transport's route-name classifier: the

@@ -9,6 +9,7 @@
 package opensearchtransport
 
 import (
+	"cmp"
 	"errors"
 	"io"
 	"net/http"
@@ -25,6 +26,8 @@ func TestRequestRecordsLatency(t *testing.T) {
 
 	tests := []struct {
 		name       string
+		method     string // empty reads as GET
+		path       string // empty reads as /index/_doc/1
 		streamed   bool
 		status     int
 		roundTrip  error
@@ -37,12 +40,18 @@ func TestRequestRecordsLatency(t *testing.T) {
 		{name: "500", status: http.StatusInternalServerError},
 		{name: "503", status: http.StatusServiceUnavailable},
 		{name: "429", status: http.StatusTooManyRequests},
+		{name: "search 200", method: http.MethodPost, path: "/index/_search", status: http.StatusOK, wantSample: true},
+		{name: "scroll page", method: http.MethodPost, path: "/_search/scroll", status: http.StatusOK},
+		{name: "scroll delete", method: http.MethodDelete, path: "/_search/scroll", status: http.StatusOK},
+		{name: "point-in-time create", method: http.MethodPost, path: "/index/_search/point_in_time", status: http.StatusOK},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			tr, _, conns := newRouterPathTransport(t, &callerHealthObserver{recordingObserver: newRecordingObserver()})
+			// The test router sends every request to the get pool.
+			method, path := cmp.Or(tt.method, http.MethodGet), cmp.Or(tt.path, "/index/_doc/1")
 			tr.disableRetry = true
 			tr.transport = mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
 				if tt.roundTrip != nil {
@@ -51,7 +60,7 @@ func TestRequestRecordsLatency(t *testing.T) {
 				return &http.Response{StatusCode: tt.status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader("{}"))}, nil
 			})
 
-			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/index/_doc/1", nil)
+			req, err := http.NewRequestWithContext(t.Context(), method, path, nil)
 			require.NoError(t, err)
 
 			if tt.streamed {
