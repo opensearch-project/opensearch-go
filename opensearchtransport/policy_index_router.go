@@ -475,7 +475,7 @@ func connScoreSelect(
 	locality []float64,
 	att *routeAttempt,
 	spread float64,
-	randFloat func() float64,
+	randFloat uniformFloatFunc,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -591,7 +591,7 @@ func connScoreSelect(
 // concurrent clients that all see the same near-tie do not converge on one node.
 // Returns bestIdx when the band holds only that candidate or the best score is
 // not positive. A nil randFloat uses [rand.Float64].
-func pickWithinBand(scores []float64, bestIdx int, spread float64, randFloat func() float64) int {
+func pickWithinBand(scores []float64, bestIdx int, spread float64, randFloat uniformFloatFunc) int {
 	best := scores[bestIdx]
 	if best <= 0 {
 		return bestIdx

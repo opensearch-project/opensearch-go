@@ -211,8 +211,10 @@ const peakEWMADecay = 10 * time.Second
 // A sample at or above the current value, decayed to now, replaces it
 // outright, so a slowdown is seen at once. A lower sample blends in with
 // weight 1 - e^(-dt/tau), where dt is the time since the last sample and the
-// stored value is decayed by e^(-dt/tau) once, so recovery is gradual. load decays the value to the present without storing
-// it, so an idle node drifts back toward zero and is probed again.
+// stored value is decayed by e^(-dt/tau) once, so recovery is gradual.
+//
+// load decays the value to the present without storing it, so an idle node
+// drifts back toward zero and is probed again.
 //
 // The value and timestamp are separate atomics. The small race window between
 // them is benign: one read may apply slightly too much or too little decay,

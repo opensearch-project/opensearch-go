@@ -47,8 +47,17 @@ func TestPeakEWMA(t *testing.T) {
 				{sample: 100 * time.Millisecond},
 				{advance: peakEWMADecay, sample: 10 * time.Millisecond},
 			},
-			// blended against the raw stored value: v*w + d*(1-w) with w = 1/e.
+			// The stored value is decayed once: v*w + d*(1-w) with w = 1/e.
 			wantOK: true, want: 100000/math.E + 10000*(1-1/math.E),
+		},
+		{
+			name: "short gap decays the stored value once",
+			steps: []step{
+				{sample: 1000 * time.Microsecond},
+				{advance: time.Second, sample: 500 * time.Microsecond},
+			},
+			// w = e^(-1s/10s); decaying twice would give 1000*w*w + 500*(1-w).
+			wantOK: true, want: 1000*math.Exp(-0.1) + 500*(1-math.Exp(-0.1)),
 		},
 		{
 			name:   "decays with no samples",
@@ -80,19 +89,6 @@ func TestPeakEWMA(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestPeakEWMABlendsAgainstRawValue(t *testing.T) {
-	t.Parallel()
-	clk := newTestClock()
-	p := peakEWMA{clock: clk}
-	p.sample(1000 * time.Microsecond)
-	clk.Advance(time.Second)
-	p.sample(500 * time.Microsecond)
-	w := math.Exp(-0.1)
-	got, ok := p.load()
-	require.True(t, ok)
-	require.InDelta(t, 1000*w+500*(1-w), got, 0.01)
 }
 
 func TestPeakEWMAConcurrent(t *testing.T) {

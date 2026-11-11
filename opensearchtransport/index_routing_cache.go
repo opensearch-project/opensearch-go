@@ -78,10 +78,13 @@ type indexSlotCache struct {
 	locality float64 // multi-shard locality penalty factor; 0 = off
 	spread   float64 // relative score band for the randomized first pick; 0 = argmin
 
-	// randFloat returns a uniform float in [0, 1) for the randomized pick;
-	// nil uses [rand.Float64]. Tests inject a seeded source.
-	randFloat func() float64
+	// randFloat is the randomized pick's source; nil uses [rand.Float64].
+	// Tests inject a seeded source.
+	randFloat uniformFloatFunc
 }
+
+// uniformFloatFunc returns a uniform float in [0, 1).
+type uniformFloatFunc func() float64
 
 // indexSlot is the per-index routing state.
 type indexSlot struct {
