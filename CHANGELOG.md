@@ -8,6 +8,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Configure Dependabot to open weekly Go module and GitHub Actions updates against the `v5` maintenance branch, covering the same modules as `main` ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
 - Make the direct driver the default for `DocumentClient.MGet`, as shard-aware buffering already is for the `BulkIndexer`. An mget the client cannot split, because the transport keeps no shard map or none of its documents can be routed to a node, still goes to the cluster as one request. Set `MGetConfig.Driver` to `MGetDriverCoordinator`, `OPENSEARCH_GO_MGET=coordinator`, or use `WithMGetDriver` per call to keep sending every mget as one request. ([#1298](https://github.com/opensearch-project/opensearch-go/pull/1298))
 
 ### Deprecated
@@ -18,11 +19,19 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Decode an analyzer or normalizer that has no `type` as the custom branch instead of failing with `payload has no type discriminator`. OpenSearch treats such an analyzer as `custom` and returns index settings as stored, so `Indices.Get` and other responses that carry index analysis settings failed to decode for an index created with, for example, `{"tokenizer":"keyword","filter":["lowercase"]}`. The decoded value carries `Type: "custom"`, so it marshals back to a definition OpenSearch accepts. The vendored spec now sets `x-default: custom` on the `Analyzer` and `Normalizer` discriminators ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
 - Add a copy of `LICENSE.txt` to each nested module (`compress`, `osprom`, `osotel`, `log-slog`, `log-zerolog`, `cmd/osgen`, `cmd/osapilint`). A module zip holds only the files under its `go.mod`, so pkg.go.dev detected no license for these modules and did not display their documentation. `.github/check-license-headers.sh` now fails when a nested module's copy is missing or differs from the root file ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
+- Fix `Transport.Request` reporting a node healthy when its response body fails to read: read the body inside each attempt, so a truncated or stalled body fails the node and a read-only request is retried on another node within `MaxRetries`. Writes and scroll requests are not replayed because of a body-read failure, though a status in `RetryOnStatus`, or 429, is still retried as before. When the request is not retried, return the buffered partial response with an error matching `ErrResponseBodyRead` ([#1299](https://github.com/opensearch-project/opensearch-go/pull/1299))
+- Split routing-metadata discovery into requests that fit OpenSearch's default 4096-byte `http.max_initial_line_length`. On clusters with many or long index names, a single request naming every index went over the limit, the node rejected it, and the client could not route requests to the exact shard. The size check counts escaped index names, the query string and the node base path ([#1307](https://github.com/opensearch-project/opensearch-go/pull/1307))
+- Fix a nil-pointer panic in `New` when a seed node fails during startup. The startup health-check goroutine read the same seed slice that the connection pool edits in place when it removes a node, so it could pick up a nil connection. `New` and `NewConnectionPool` copy the seed slice before building a pool, including the one passed to a custom `ConnectionPoolFunc` ([#1304](https://github.com/opensearch-project/opensearch-go/pull/1304))
 - Fix routing policies losing a node when discovery replaces its connection with a new one at the same URL, for example when a seed becomes a discovered node or a node's ID, name or roles change. The role, round-robin, coordinator, index and document routing policies removed connections by URL, so removing the old connection also removed its replacement, and requests could fall back to the seed instead of the discovered node. `DiscoveryUpdate` removes connections by identity, so `removed` must hold the connection objects the policy was given. `New` keeps one seed per URL, so a URL listed twice in `Config.URLs` no longer leaves a stale seed behind after discovery ([#1305](https://github.com/opensearch-project/opensearch-go/pull/1305))
 
 ### Security
 
 ### Dependencies
+
+- Update the `toolchain` line to go1.26.11 in the root and all nested modules, so builds in this repository use Go 1.26.11, which carries security fixes to cgo, the go command, the compiler, the linker and `net/http`. The go directive stays 1.26.0, so consumers are not affected ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Bump `github.com/aws/aws-sdk-go-v2` from v1.47.5 to v1.48.0 and `github.com/aws/aws-sdk-go-v2/config` from v1.33.13 to v1.33.18 ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Bump `github.com/getkin/kin-openapi` from 0.152.0 to 0.153.0 in `cmd/osgen`, and `golang.org/x/mod`, `golang.org/x/sync`, `golang.org/x/sys` and `golang.org/x/text` to their latest minor versions ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Bump the `opensearch-go/v5` requirement in `compress`, `log-slog`, `log-zerolog`, `osotel` and `osprom` from a pseudo-version to v5.2.0 ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
 
 ## [5.2.0]
 
