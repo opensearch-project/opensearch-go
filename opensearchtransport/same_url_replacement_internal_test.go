@@ -12,7 +12,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -134,6 +136,9 @@ func TestRoutingPoliciesPreserveSameURLReplacementOfDeadNode(t *testing.T) {
 		roles []string
 		new   func() (Policy, error)
 	}{
+		{name: "round robin", roles: []string{RoleData}, new: func() (Policy, error) {
+			return NewRoundRobinPolicy(), nil
+		}},
 		{name: "coordinator", new: func() (Policy, error) {
 			return NewCoordinatorPolicy(), nil
 		}},
@@ -177,6 +182,8 @@ func TestRoutingPoliciesPreserveSameURLReplacementOfDeadNode(t *testing.T) {
 			var pool *multiServerPool
 
 			switch policy := policy.(type) {
+			case *RoundRobinPolicy:
+				pool = policy.pool
 			case *CoordinatorPolicy:
 				pool = policy.pool
 			case *RolePolicy:
@@ -272,4 +279,168 @@ func TestDiscoverySameURLReplacementRoutesAfterHealthCheck(t *testing.T) {
 			previous = replacement
 		}
 	})
+}
+
+func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
+	t.Parallel()
+
+	poolConns := func(pool *multiServerPool) func() []*Connection {
+		return func() []*Connection {
+			pool.RLock()
+			defer pool.RUnlock()
+			return slices.Concat(pool.mu.ready, pool.mu.dead)
+		}
+	}
+
+	// Each constructor returns the policy, its state bits, and a func listing
+	// the connections the policy holds.
+	policies := []struct {
+		name  string
+		roles []string
+		new   func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection)
+	}{
+		{name: "round robin", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+			t.Helper()
+			p, ok := NewRoundRobinPolicy().(*RoundRobinPolicy)
+			require.True(t, ok)
+			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+		}},
+		{name: "data role", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+			t.Helper()
+			policy, err := NewRolePolicy(RoleData)
+			require.NoError(t, err)
+			p, ok := policy.(*RolePolicy)
+			require.True(t, ok)
+			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+		}},
+		{name: "index router", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+			t.Helper()
+			p, err := NewIndexRouter()
+			require.NoError(t, err)
+			return p, &p.policyState, func() []*Connection {
+				p.mu.RLock()
+				defer p.mu.RUnlock()
+				return slices.Clone(p.mu.activeConns)
+			}
+		}},
+		{name: "document router", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+			t.Helper()
+			p, err := NewDocRouter()
+			require.NoError(t, err)
+			return p, &p.policyState, func() []*Connection {
+				p.mu.RLock()
+				defer p.mu.RUnlock()
+				return slices.Clone(p.mu.activeConns)
+			}
+		}},
+		{name: "coordinator", new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+			t.Helper()
+			p, ok := NewCoordinatorPolicy().(*CoordinatorPolicy)
+			require.True(t, ok)
+			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+		}},
+		{name: "coordinating role", new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+			t.Helper()
+			policy, err := NewRolePolicy(RoleCoordinatingOnly)
+			require.NoError(t, err)
+			p, ok := policy.(*RolePolicy)
+			require.True(t, ok)
+			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
+		}},
+	}
+
+	// Each case starts from a policy holding only seeded; after the update the
+	// policy must still hold exactly seeded and route to it.
+	tests := []struct {
+		name   string
+		update func(t *testing.T, policy Policy, state *atomic.Int32, seeded, other *Connection)
+	}{
+		{
+			name: "no added or removed connections",
+			update: func(t *testing.T, policy Policy, _ *atomic.Int32, seeded, _ *Connection) {
+				t.Helper()
+				require.NoError(t, policy.DiscoveryUpdate(nil, nil, []*Connection{seeded}))
+			},
+		},
+		{
+			name: "connection added and removed in one update",
+			update: func(t *testing.T, policy Policy, _ *atomic.Int32, _, other *Connection) {
+				t.Helper()
+				require.NoError(t, policy.DiscoveryUpdate([]*Connection{other}, []*Connection{other}, nil))
+			},
+		},
+		{
+			name: "connection added twice",
+			update: func(t *testing.T, policy Policy, _ *atomic.Int32, seeded, _ *Connection) {
+				t.Helper()
+				require.NoError(t, policy.DiscoveryUpdate([]*Connection{seeded}, nil, nil))
+			},
+		},
+		{
+			name: "update while disabled by environment",
+			update: func(t *testing.T, policy Policy, state *atomic.Int32, seeded, _ *Connection) {
+				t.Helper()
+				psSetEnvOverride(state, false)
+				require.NoError(t, policy.DiscoveryUpdate(nil, []*Connection{seeded}, nil))
+				require.False(t, policy.IsEnabled())
+				state.Store(state.Load() &^ psEnvMask)
+			},
+		},
+	}
+
+	for _, policyCase := range policies {
+		for _, tt := range tests {
+			t.Run(policyCase.name+"/"+tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				policy, state, conns := policyCase.new(t)
+				config := createTestConfig()
+				config.ctx = t.Context()
+				require.NoError(t, policy.(policyConfigurable).configurePolicySettings(config))
+
+				seeded := createTestConnection("http://127.0.0.1:9200", policyCase.roles...)
+				seeded.URLString = seeded.URL.String()
+				other := createTestConnection("http://127.0.0.1:9201", policyCase.roles...)
+				other.URLString = other.URL.String()
+				require.NoError(t, policy.DiscoveryUpdate([]*Connection{seeded}, nil, nil))
+
+				tt.update(t, policy, state, seeded, other)
+				require.True(t, policy.IsEnabled())
+
+				held := conns()
+				require.Len(t, held, 1, "the policy must hold only the seeded connection")
+				require.Same(t, seeded, held[0])
+
+				req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/index/_doc/document", nil)
+				require.NoError(t, err)
+
+				hop, err := policy.Eval(t.Context(), req)
+				require.NoError(t, err)
+				require.Same(t, seeded, hop.Conn)
+			})
+		}
+	}
+}
+
+func TestPoolPolicyDiscoveryUpdateBeforeConfigure(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		policy Policy
+		roles  []string
+	}{
+		{name: "round robin", policy: NewRoundRobinPolicy(), roles: []string{RoleData}},
+		{name: "coordinator", policy: NewCoordinatorPolicy()},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conn := createTestConnection("http://127.0.0.1:9200", tt.roles...)
+			require.NoError(t, tt.policy.DiscoveryUpdate([]*Connection{conn}, nil, nil))
+			require.False(t, tt.policy.IsEnabled(), "a policy without a pool must ignore discovery")
+		})
+	}
 }
