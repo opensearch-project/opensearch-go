@@ -150,9 +150,13 @@ const (
 	simRelativeSlack = 1.10
 )
 
-// simC3P99Bound is the p99 ms limit on c3+spread at each load, twice the value
-// recorded for seed 42.
+// simC3P99Bound is the p99 ms limit on c3+spread at each load, about twice the
+// highest value recorded across simSeeds (55.75 at 0.9, from seed 42).
 var simC3P99Bound = map[float64]float64{0.7: 31, 0.9: 112}
+
+// simSeeds are the seeds every guard in TestRoutingSim runs on; the first one's
+// results are logged.
+var simSeeds = []uint64{42, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 // simMeanService is the mean service time of each node in ms; the last node is the
 // antagonist, whose nominal mean is its fast value.
@@ -430,31 +434,39 @@ func TestRoutingSim(t *testing.T) {
 		}
 	})
 
+	// Two guards on c3+spread, for every seed: it stays within simRelativeSlack
+	// of hot-cold at each load, and under simC3P99Bound ms in absolute terms, so
+	// a regression cannot hide behind a hot-cold that regressed with it. The C3
+	// term must also be live on every pick. The first seed's results are logged.
 	loads := []float64{0.7, 0.9}
-	results := map[string]map[float64]simResult{}
-	for _, p := range policies {
-		results[p.name] = map[float64]simResult{}
-		for _, load := range loads {
-			results[p.name][load] = runRoutingSim(t, 42, load, p.choose)
-		}
-	}
+	for i, seed := range simSeeds {
+		t.Run("seed "+strconv.FormatUint(seed, 10), func(t *testing.T) {
+			t.Parallel()
 
-	t.Logf("%-10s %5s %9s %9s %9s", "policy", "load", "p50 ms", "p99 ms", "max share")
-	for _, p := range policies {
-		for _, load := range loads {
-			r := results[p.name][load]
-			t.Logf("%-10s %5.2f %9.2f %9.2f %9.3f", p.name, load, r.p50, r.p99, r.maxShare)
-		}
-	}
+			results := map[string]map[float64]simResult{}
+			for _, p := range policies {
+				results[p.name] = map[float64]simResult{}
+				for _, load := range loads {
+					results[p.name][load] = runRoutingSim(t, seed, load, p.choose)
+				}
+			}
 
-	// Two guards on c3+spread: it stays within simRelativeSlack of
-	// hot-cold at each load, and under simC3P99Bound ms in absolute terms, so a
-	// regression cannot hide behind a hot-cold that regressed with it. The C3 term
-	// must also be live on every pick.
-	for _, load := range loads {
-		c3, hcl := results["c3+spread"][load], results["hcl"][load]
-		require.LessOrEqual(t, c3.p99, hcl.p99*simRelativeSlack, "load %.2f: c3+spread p99 regressed against hot-cold", load)
-		require.LessOrEqual(t, c3.p99, simC3P99Bound[load], "load %.2f: c3+spread p99 exceeds its recorded bound", load)
-		require.Zero(t, c3.c3Dead, "load %.2f: picks made without a live C3 term", load)
+			if i == 0 {
+				t.Logf("%-10s %5s %9s %9s %9s", "policy", "load", "p50 ms", "p99 ms", "max share")
+				for _, p := range policies {
+					for _, load := range loads {
+						r := results[p.name][load]
+						t.Logf("%-10s %5.2f %9.2f %9.2f %9.3f", p.name, load, r.p50, r.p99, r.maxShare)
+					}
+				}
+			}
+
+			for _, load := range loads {
+				c3, hcl := results["c3+spread"][load], results["hcl"][load]
+				require.LessOrEqual(t, c3.p99, hcl.p99*simRelativeSlack, "load %.2f: c3+spread p99 regressed against hot-cold", load)
+				require.LessOrEqual(t, c3.p99, simC3P99Bound[load], "load %.2f: c3+spread p99 exceeds its recorded bound", load)
+				require.Zero(t, c3.c3Dead, "load %.2f: picks made without a live C3 term", load)
+			}
+		})
 	}
 }

@@ -150,4 +150,33 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 			scores.Release()
 		}
 	})
+
+	// The same candidates on the search pool, each with fresh adaptive_selection
+	// stats, so the C3 term applies; the skipC3 case is the same work on the
+	// linear term.
+	for i, c := range conns {
+		c.pools.getOrCreate(poolSearch).cwnd.Store(16)
+		recordUsable(&c.ars, time.Now().Add(-time.Minute), c.ID, c.ID, len(conns),
+			AdaptiveSelectionStats{AvgQueueSize: int64(i % 3), AvgServiceTimeNs: int64(time.Millisecond)})
+	}
+	if !newC3Inputs(conns, poolSearch).active {
+		b.Fatal("C3 inactive")
+	}
+	for _, bc := range []struct {
+		name string
+		sel  coordinatorSelection
+	}{
+		{"8_candidates_search_c3_and_spread", coordinatorSelection{spread: defaultSpread}},
+		{"8_candidates_search_linear_and_spread", coordinatorSelection{spread: defaultSpread, skipC3: true}},
+	} {
+		b.Run(bc.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				scores := acquireFloats(len(conns))
+				_ = connScoreSelect(conns, slot, nil, &shardCostForReads, poolSearch, true,
+					scores.Slice(), nil, locality, nil, bc.sel)
+				scores.Release()
+			}
+		})
+	}
 }
