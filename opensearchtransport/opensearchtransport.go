@@ -153,6 +153,7 @@ type lookupEnvFunc = func(name string) (string, bool)
 
 // Config represents the configuration of HTTP client.
 type Config struct {
+	// URLs are the seed node addresses. A URL listed more than once is used once.
 	URLs     []*url.URL
 	Username string
 	// Password for HTTP Basic Authentication.
@@ -1117,8 +1118,21 @@ func New(cfg Config) (*Transport, error) {
 		standbyPromotionChecks = defaultStandbyPromotionChecks
 	}
 
-	conns := make([]*Connection, len(cfg.URLs))
-	for idx, u := range cfg.URLs {
+	// Discovery and the routing policies hold one connection per URL, so a URL
+	// listed twice would become two seeds that one discovered node replaces
+	// only once. Keep the first of each.
+	seedURLs := make([]*url.URL, 0, len(cfg.URLs))
+	seenSeedURLs := make(map[string]struct{}, len(cfg.URLs))
+	for _, u := range cfg.URLs {
+		if _, seen := seenSeedURLs[u.String()]; seen {
+			continue
+		}
+		seenSeedURLs[u.String()] = struct{}{}
+		seedURLs = append(seedURLs, u)
+	}
+
+	conns := make([]*Connection, len(seedURLs))
+	for idx, u := range seedURLs {
 		conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u), seed: true}
 		conn.estLoad.clock = realClock{}
 		conn.weight.Store(1)
@@ -1201,7 +1215,7 @@ func New(cfg Config) (*Transport, error) {
 	}
 
 	client := Transport{
-		urls:     cfg.URLs,
+		urls:     seedURLs,
 		username: cfg.Username,
 		password: cfg.Password,
 		apiKey:   cfg.APIKey,
@@ -1293,9 +1307,9 @@ func New(cfg Config) (*Transport, error) {
 	// of the original seed URLs and is never modified by DiscoveryUpdate.
 	// It serves as the absolute last resort when all router policies and
 	// connection pools are exhausted.
-	if !client.seedFallbackDisabled && len(cfg.URLs) > 0 {
-		seedConns := make([]*Connection, len(cfg.URLs))
-		for i, u := range cfg.URLs {
+	if !client.seedFallbackDisabled && len(seedURLs) > 0 {
+		seedConns := make([]*Connection, len(seedURLs))
+		for i, u := range seedURLs {
 			conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u), seed: true}
 			conn.estLoad.clock = realClock{}
 			conn.weight.Store(1)
