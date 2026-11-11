@@ -445,6 +445,43 @@ func TestPoolPolicyDiscoveryUpdateBeforeConfigure(t *testing.T) {
 	}
 }
 
+func TestCoordinatorPolicyAdmitsOnlyCoordinatingNodes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		roles     []string
+		wantAdmit bool
+	}{
+		{name: "no roles", wantAdmit: true},
+		{name: "coordinating only", roles: []string{RoleCoordinatingOnly}, wantAdmit: true},
+		{name: "data", roles: []string{RoleData}},
+		{name: "cluster manager", roles: []string{RoleClusterManager}},
+		{name: "data and ingest", roles: []string{RoleData, RoleIngest}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			policy, ok := NewCoordinatorPolicy().(*CoordinatorPolicy)
+			require.True(t, ok)
+			config := createTestConfig()
+			config.ctx = t.Context()
+			require.NoError(t, policy.configurePolicySettings(config))
+
+			conn := createTestConnection("http://127.0.0.1:9200", tt.roles...)
+			require.NoError(t, policy.DiscoveryUpdate([]*Connection{conn}, nil, nil))
+
+			policy.pool.RLock()
+			_, admitted := policy.pool.mu.members[conn]
+			policy.pool.RUnlock()
+			require.Equal(t, tt.wantAdmit, admitted)
+			require.Equal(t, tt.wantAdmit, policy.IsEnabled())
+		})
+	}
+}
+
 func TestDiscoveryReplacesDuplicateSeedURLs(t *testing.T) {
 	t.Parallel()
 
