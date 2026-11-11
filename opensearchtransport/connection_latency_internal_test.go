@@ -52,11 +52,13 @@ func TestConnectionLoadLatencyMicros(t *testing.T) {
 			}
 			conn.pools.getOrCreate(poolSearch)
 			conn.pools.getOrCreate(poolWrite)
+			clk := newTestClock() // never advanced, so samples do not decay
+			conn.pools.getForScoring(poolSearch).latency.clock = clk
+			conn.pools.getForScoring(poolWrite).latency.clock = clk
 			for pool, d := range tt.samples {
 				conn.recordLatency(pool, d)
 			}
-			// Samples decay on the real clock, so allow a sliver of drift.
-			require.InEpsilon(t, tt.want, conn.loadLatencyMicros(tt.pool), 1e-3)
+			require.InEpsilon(t, tt.want, conn.loadLatencyMicros(tt.pool), 1e-9)
 		})
 	}
 }
@@ -76,10 +78,12 @@ func TestConnectionLoadLatencyMicrosFlooredAtRTT(t *testing.T) {
 func TestConnLoadScoreUsesLatency(t *testing.T) {
 	t.Parallel()
 
+	clk := newTestClock() // never advanced, so samples do not decay
 	newConn := func(sample time.Duration) *Connection {
 		conn := &Connection{rttRing: newRTTRing(4)}
 		conn.rttRing.add(300 * time.Microsecond) // one bucket for both nodes
 		conn.pools.getOrCreate(poolSearch)
+		conn.pools.getForScoring(poolSearch).latency.clock = clk
 		if sample > 0 {
 			conn.recordLatency(poolSearch, sample)
 		}
@@ -91,9 +95,9 @@ func TestConnLoadScoreUsesLatency(t *testing.T) {
 
 	fastScore := calcConnDefaultScore(fast, 1, poolSearch, true, c3Inputs{})
 	slowScore := calcConnDefaultScore(slow, 1, poolSearch, true, c3Inputs{})
-	require.InEpsilon(t, 1.9, slowScore/fastScore, 1e-3)
+	require.InEpsilon(t, 1.9, slowScore/fastScore, 1e-9)
 
-	// A node with no request sample scores from its health-check RTT.
+	// A node with no request sample scores from its RTT bucket's lower bound.
 	unsampled := newConn(0)
-	require.InEpsilon(t, 256.0/10000.0, calcConnDefaultScore(unsampled, 1, poolSearch, true, c3Inputs{})/fastScore, 1e-3)
+	require.InEpsilon(t, 256.0/10000.0, calcConnDefaultScore(unsampled, 1, poolSearch, true, c3Inputs{})/fastScore, 1e-9)
 }

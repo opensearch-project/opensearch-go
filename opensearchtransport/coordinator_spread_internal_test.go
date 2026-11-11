@@ -195,6 +195,8 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 		hosts  hosting
 		spec   string
 		loaded string // node with one request in flight on every client
+		c3     bool   // every node has fresh adaptive_selection stats, so search scoring uses C3
+		queued string // with c3, node whose stats report a deep queue
 		check  func(t *testing.T, share map[string]float64)
 	}{
 		{
@@ -217,6 +219,30 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 				require.Less(t, share["nodeB"], 0.65)
 				require.Greater(t, share["nodeA"], 0.25)
 				require.Greater(t, share["nodeB"], 0.25)
+			},
+		},
+		{
+			name:  "default spread splits the tied nodes under C3",
+			hosts: hosting{"nodeA": {0, 1, 2}, "nodeB": {0, 1, 2}, "nodeC": {3}},
+			c3:    true,
+			check: func(t *testing.T, share map[string]float64) {
+				t.Helper()
+				require.Less(t, share["nodeA"], 0.65)
+				require.Less(t, share["nodeB"], 0.65)
+				require.Greater(t, share["nodeA"], 0.25)
+				require.Greater(t, share["nodeB"], 0.25)
+			},
+		},
+		{
+			// Only the C3 term sees the server-side queue, so this fails if
+			// selection fell back to the linear term.
+			name:   "a deep server queue moves a tied node's picks under C3",
+			hosts:  hosting{"nodeA": {0, 1, 2}, "nodeB": {0, 1, 2}, "nodeC": {3}},
+			c3:     true,
+			queued: "nodeA",
+			check: func(t *testing.T, share map[string]float64) {
+				t.Helper()
+				require.InDelta(t, 0.0, share["nodeA"], 0)
 			},
 		},
 		{
@@ -268,12 +294,34 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 				r := newIndexRouter(indexSlotCacheConfig{})
 				r.cache.locality, r.cache.spread = costCfg.locality, costCfg.spread
 				r.cache.randFloat = rand.New(rand.NewPCG(uint64(client)+1, 7)).Float64
+				if tt.c3 {
+					// A mux route names the pool; the standalone router has none,
+					// and C3 applies only to the search and get pools.
+					r.poolName = poolSearch
+				}
 
 				conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB"), newTestConn(t, "nodeC")}
+				if tt.c3 {
+					// A measured RTT, so latency is not the unknown sentinel that
+					// would dwarf the queue term.
+					for i, name := range []string{"nodeA", "nodeB", "nodeC"} {
+						conns[i] = newTestConnRTT(t, name, 500*time.Microsecond)
+					}
+				}
 				for _, c := range conns {
 					if c.Name == tt.loaded {
 						c.addInFlight("")
 					}
+					if tt.c3 {
+						st := AdaptiveSelectionStats{AvgServiceTimeNs: int64(time.Millisecond)}
+						if c.Name == tt.queued {
+							st.AvgQueueSize = 50
+						}
+						recordUsable(&c.ars, time.Now().Add(-time.Minute), c.ID, c.ID, st)
+					}
+				}
+				if tt.c3 {
+					require.Positive(t, newC3Inputs(conns, poolSearch).n, "C3 inactive")
 				}
 				require.NoError(t, r.DiscoveryUpdate(conns, nil, nil))
 				r.cache.getOrCreate(index).shardMap.Store(&indexShardMap{
