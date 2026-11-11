@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
@@ -30,6 +31,12 @@ func TestRoutingMetadataRequestLineLimit(t *testing.T) {
 	escapedIndexes := make([]string, 50)
 	for i := range escapedIndexes {
 		escapedIndexes[i] = fmt.Sprintf("index-%02d-%s", len(escapedIndexes)-i-1, strings.Repeat("é", 15))
+	}
+	// url.PathEscape encodes ';' but URL.EscapedPath does not, so these names
+	// only fit the batches if the size estimate escapes like the path builder.
+	semicolonIndexes := make([]string, 50)
+	for i := range semicolonIndexes {
+		semicolonIndexes[i] = fmt.Sprintf("index-%02d-%s", i, strings.Repeat(";", 25))
 	}
 
 	tests := []struct {
@@ -57,6 +64,7 @@ func TestRoutingMetadataRequestLineLimit(t *testing.T) {
 			indexes: routingMetadataIndexesForLine(t, routingMetadataMaxLineLength), wantBatches: 2,
 		},
 		{name: "escaped index names", indexes: escapedIndexes, wantBatches: 2},
+		{name: "index names the path builder escapes", indexes: semicolonIndexes, wantBatches: 2},
 		{
 			name: "escaped node base path crosses the limit", basePath: "/" + strings.Repeat("é", 40),
 			indexes: routingMetadataIndexesForLine(t, 4000), wantBatches: 2,
@@ -373,7 +381,9 @@ func routingMetadataIndexesForLine(t *testing.T, length int) []string {
 		indexes[i] = fmt.Sprintf("index-%02d-%s", i, strings.Repeat("x", 171))
 	}
 	indexes[20] = "i"
-	u := &url.URL{Path: routingMetadataPath + "/" + strings.Join(indexes, ","), RawQuery: routingMetadataFilter}
+	path, err := ospath.ClusterStatePath{Metric: []string{"metadata"}, Indices: indexes}.Build()
+	require.NoError(t, err)
+	u := &url.URL{Path: path, RawQuery: routingMetadataFilter}
 	padding := length - calcHTTPLineLen(&http.Request{Method: http.MethodGet, URL: u})
 	require.GreaterOrEqual(t, padding, 0)
 	require.Less(t, padding, 255, "each generated index name must remain valid")

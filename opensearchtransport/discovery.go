@@ -47,6 +47,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 // errDiscoveryEmpty is returned by getNodesInfo when the /_nodes response
@@ -2278,8 +2279,8 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 
 		requestLength, batchSize := requestOverhead, 0
 		for batchSize < len(indexes) {
-			indexURL := url.URL{Path: indexes[batchSize]}
-			indexLength := len(indexURL.EscapedPath())
+			// ospath.ClusterStatePath escapes each index name with url.PathEscape.
+			indexLength := len(url.PathEscape(indexes[batchSize]))
 			if batchSize > 0 {
 				indexLength++ // Comma between index names.
 			}
@@ -2298,10 +2299,16 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 			)
 		}
 
+		batchPath, err := ospath.ClusterStatePath{Metric: []string{"metadata"}, Indices: indexes[:batchSize]}.Build()
+		if err != nil {
+			return nil, fmt.Errorf("building routing metadata path: %w", err)
+		}
 		batchReq := req.Clone(ctx)
 		// prepareInternalRequest adds the node's base path to each logical path.
-		batchReq.URL.Path = routingMetadataPath + "/" + strings.Join(indexes[:batchSize], ",")
-		batchReq.URL.RawPath = ""
+		batchReq.URL.RawPath = batchPath
+		if batchReq.URL.Path, err = url.PathUnescape(batchPath); err != nil {
+			return nil, fmt.Errorf("decoding routing metadata path: %w", err)
+		}
 
 		metadata, err := tr.getRoutingMetaBatch(batchReq, conn)
 		if err != nil {
