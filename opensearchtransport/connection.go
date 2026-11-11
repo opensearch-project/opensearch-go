@@ -88,8 +88,8 @@ const (
 
 	// CPU and IO utilization (percent, 0-100) from resource_usage_stats.
 	// 95 is the server's own admission-control default limit.
-	overloadedCPUPercent = 95.0
-	overloadedIOPercent  = 95.0
+	defaultOverloadedCPUPercent = 95
+	defaultOverloadedIOPercent  = 95
 
 	// Cluster health refresh defaults for ready connections.
 	//

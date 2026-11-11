@@ -1374,15 +1374,16 @@ Transient errors (5xx, network timeout) keep the state at Pending and retry on t
 
 A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection` on each live node, with `,resource_usage_stats` appended for nodes on OpenSearch 2.12 or later:
 
-| Condition                                                    | Action                        |
-| ------------------------------------------------------------ | ----------------------------- |
-| JVM `heap_used_percent` >= 85%                               | `demoteOverloaded(conn)`      |
-| Any circuit breaker `estimated/limit` >= 0.90                | `demoteOverloaded(conn)`      |
-| Any circuit breaker `tripped` count increased                | `demoteOverloaded(conn)`      |
-| Cluster health status `"red"`                                | `demoteOverloaded(conn)`      |
-| `cpu_utilization_percent` >= 95 (OpenSearch 2.12+)           | `demoteOverloaded(conn)`      |
-| `max_io_utilization_percent` >= 95 (OpenSearch 2.12+, Linux) | `demoteOverloaded(conn)`      |
-| All metrics clear                                            | `promoteFromOverloaded(conn)` |
+| Condition                                                                           | Action                        |
+| ----------------------------------------------------------------------------------- | ----------------------------- |
+| JVM `heap_used_percent` >= 85%                                                      | `demoteOverloaded(conn)`      |
+| Any circuit breaker `estimated/limit` >= 0.90                                       | `demoteOverloaded(conn)`      |
+| Any circuit breaker `tripped` count increased                                       | `demoteOverloaded(conn)`      |
+| Cluster health status `"red"`                                                       | `demoteOverloaded(conn)`      |
+| `cpu_utilization_percent` >= 95 (OpenSearch 2.12+)                                  | `demoteOverloaded(conn)`      |
+| `max_io_utilization_percent` >= 95 (OpenSearch 2.12+, Linux)                        | `demoteOverloaded(conn)`      |
+| All metrics clear                                                                   | `promoteFromOverloaded(conn)` |
+| Poll answered but unusable (non-200 other than 429, unreadable body, no node entry) | `promoteFromOverloaded(conn)` |
 
 Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve. The same poll collects `adaptive_selection` stats. Each polled node reports the queue size and service time it has seen from every node it sends shard requests to, and the client records each report on the matching connection. A node this client has stopped sending to therefore stays fresh while other coordinators still reach its shards. The server keeps these entries forever, so only a change from what the same node reported before counts: a node's first report only sets a baseline. The stats become usable 10s after the first changed report and expire after 3min without one from any node. Search and get scoring uses them for the C3 queue term when every candidate has fresh stats (see [Connection Scoring](#4-connection-scoring)).
 
@@ -1910,6 +1911,7 @@ client, err := opensearch.NewClient(opensearch.Config{
 A node is marked overloaded if **any** of these are true:
 
 - JVM `heap_used_percent` >= `OverloadedHeapThreshold`
+- `resource_usage_stats` `cpu_utilization_percent` >= `OverloadedCPUPercent`, or `max_io_utilization_percent` >= `OverloadedIOPercent` (OpenSearch 2.12.0 and later; IO on Linux only). `memory_utilization_percent` is not checked: the server computes it from JVM heap, which `heap_used_percent` already covers.
 - Any circuit breaker's `estimated_size / limit_size` >= `OverloadedBreakerRatio`
 - Any circuit breaker's `tripped` count increased since the last poll
 - Cluster health status is `"red"` (reuses data from cluster health checks; no extra HTTP call)
@@ -2024,6 +2026,8 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 | `NodeStatsInterval`            | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                                                                                         |
 | `OverloadedHeapThreshold`      | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                                                                                             |
 | `OverloadedBreakerRatio`       | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                                                                                        |
+| `OverloadedCPUPercent`         | 95%          | `OPENSEARCH_GO_OVERLOADED_CPU_PERCENT`    | CPU threshold (OpenSearch 2.12.0+)                                                                                             |
+| `OverloadedIOPercent`          | 95%          | `OPENSEARCH_GO_OVERLOADED_IO_PERCENT`     | IO threshold (OpenSearch 2.12.0+, Linux)                                                                                       |
 | `ShardCostConfig`              | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)                                                                                    |
 
 ### Router Options
@@ -2209,6 +2213,8 @@ client, _ := opensearch.NewClient(opensearch.Config{
 | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto. Negative = disabled |
 | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100)     | `85`          | JVM heap threshold. `100` = disable heap detection               |
 | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Float (0.0-1.0)     | `0.90`        | Breaker ratio threshold. `1.0` = disable breaker detection       |
+| `OPENSEARCH_GO_OVERLOADED_CPU_PERCENT`    | Integer             | `95`          | CPU threshold. Above `100` = disable CPU detection               |
+| `OPENSEARCH_GO_OVERLOADED_IO_PERCENT`     | Integer             | `95`          | IO threshold. Above `100` = disable IO detection                 |
 
 #### Connection Pool Tuning
 

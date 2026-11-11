@@ -6,7 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Demote a node to standby when its `resource_usage_stats` report CPU or IO utilization at or above 95%, the server's own admission-control limit, and clear the demotion once every overload condition clears. The node stats poll requests `resource_usage_stats` only from OpenSearch 2.12.0, as earlier servers reject the metric.
+- Demote a node to standby when its `resource_usage_stats` report CPU or IO utilization at or above 95%, the server's own admission-control limit, and clear the demotion once every overload condition clears. Set the limits with `opensearchtransport.Config.OverloadedCPUPercent` and `OverloadedIOPercent`, or `OPENSEARCH_GO_OVERLOADED_CPU_PERCENT` and `OPENSEARCH_GO_OVERLOADED_IO_PERCENT`; a value above 100 turns a check off. The node stats poll requests `resource_usage_stats` only from OpenSearch 2.12.0, as earlier servers reject the metric.
 - Add `opensearch_client_route_selected_total{node}` to `osprom` and `opensearch.client.route.selected` to `osotel`, counting routing decisions by selected node so uneven coordinator load is visible.
 - Add a "Finding a Hot Routing Key" section to the transport routing guide and `ExampleConnectionObserver_hotRoutingKey`, which counts `?routing=` values per index with a bounded top-K to find a value that concentrates load on a few shards.
 - Add `NodeStats.AdaptiveSelection` and `NodeStats.ResourceUsageStats` to `opensearchtransport`, with the `AdaptiveSelectionStats`, `ResourceUsageStats` and `IOUsageStats` types, so the parsed node stats poll response carries the `adaptive_selection` and `resource_usage_stats` sections.

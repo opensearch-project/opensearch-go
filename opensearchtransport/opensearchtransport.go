@@ -457,6 +457,24 @@ type Config struct {
 	// Default: 0.90
 	OverloadedBreakerRatio float64
 
+	// OverloadedCPUPercent sets the resource_usage_stats cpu_utilization_percent
+	// at or above which a node is marked overloaded. The node stats poll reads it
+	// from OpenSearch 2.12.0 on; older servers skip the check.
+	// 0 = use default (95), >0 = explicit threshold (percent); above 100 never trips.
+	//
+	// Can be overridden by the OPENSEARCH_GO_OVERLOADED_CPU_PERCENT environment variable.
+	// Default: 95, the server's own admission-control limit
+	OverloadedCPUPercent int
+
+	// OverloadedIOPercent sets the resource_usage_stats max_io_utilization_percent
+	// at or above which a node is marked overloaded. The server reports it on
+	// Linux from OpenSearch 2.12.0 on; elsewhere the check is skipped.
+	// 0 = use default (95), >0 = explicit threshold (percent); above 100 never trips.
+	//
+	// Can be overridden by the OPENSEARCH_GO_OVERLOADED_IO_PERCENT environment variable.
+	// Default: 95, the server's own admission-control limit
+	OverloadedIOPercent int
+
 	// Health check function for connection pool health validation.
 	// When nil (default), uses the built-in health check that validates OpenSearch
 	// nodes with GET / requests. Use NoOpHealthCheck to disable health checking.
@@ -615,6 +633,8 @@ type Transport struct {
 	nodeStatsIntervalAuto   bool // true when auto-derived from cluster size (recalculated on each tick)
 	overloadedHeapThreshold int
 	overloadedBreakerRatio  float64
+	overloadedCPUPercent    int
+	overloadedIOPercent     int
 
 	// Pool congestion quorum: true once at least one connection has reported
 	// thread pool configurations. Before quorum, loadCwnd returns a synthetic
@@ -1038,15 +1058,8 @@ func New(cfg Config) (*Transport, error) {
 
 	// OverloadedHeapThreshold: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD: integer 0-100.
-	overloadedHeapThreshold := cfg.OverloadedHeapThreshold
-	if envVal, ok := getenv(envvars.OverloadedHeapThreshold); ok && envVal != "" {
-		if v, err := strconv.Atoi(envVal); err == nil {
-			overloadedHeapThreshold = v
-		}
-	}
-	if overloadedHeapThreshold == 0 {
-		overloadedHeapThreshold = defaultOverloadedHeapThreshold
-	}
+	overloadedHeapThreshold := resolveOverloadPercent(getenv,
+		cfg.OverloadedHeapThreshold, envvars.OverloadedHeapThreshold, defaultOverloadedHeapThreshold)
 
 	// OverloadedBreakerRatio: 0.0 = use default, >0.0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO: float 0.0-1.0.
@@ -1059,6 +1072,11 @@ func New(cfg Config) (*Transport, error) {
 	if overloadedBreakerRatio == 0.0 {
 		overloadedBreakerRatio = defaultOverloadedBreakerRatio
 	}
+
+	// OverloadedCPUPercent, OverloadedIOPercent: 0 = use default, >0 = explicit.
+	// OPENSEARCH_GO_OVERLOADED_CPU_PERCENT, OPENSEARCH_GO_OVERLOADED_IO_PERCENT: integer percent.
+	overloadedCPUPercent := resolveOverloadPercent(getenv, cfg.OverloadedCPUPercent, envvars.OverloadedCPUPercent, defaultOverloadedCPUPercent)
+	overloadedIOPercent := resolveOverloadPercent(getenv, cfg.OverloadedIOPercent, envvars.OverloadedIOPercent, defaultOverloadedIOPercent)
 
 	// Standby pool configuration
 	//
@@ -1265,6 +1283,8 @@ func New(cfg Config) (*Transport, error) {
 		nodeStatsIntervalAuto:   nodeStatsIntervalAuto,
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
+		overloadedCPUPercent:    overloadedCPUPercent,
+		overloadedIOPercent:     overloadedIOPercent,
 
 		compressor:       compressor,
 		table:            table,
@@ -2502,6 +2522,21 @@ func repeatable(method, path string) bool {
 func latencySampled(method, path string) bool {
 	cat := defaultOperationClassifier().Classify(method, path).Category()
 	return cat != CatScroll && cat != CatScrollWrite && cat != CatPIT && cat != CatPITWrite
+}
+
+// resolveOverloadPercent returns an integer overload threshold: the
+// environment variable env when it parses, else cfgVal, with 0 replaced by def.
+func resolveOverloadPercent(getenv func(string) (string, bool), cfgVal int, env string, def int) int {
+	v := cfgVal
+	if s, ok := getenv(env); ok && s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			v = n
+		}
+	}
+	if v == 0 {
+		return def
+	}
+	return v
 }
 
 // operationClassifier returns the transport's route-name classifier: the

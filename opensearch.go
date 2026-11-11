@@ -204,11 +204,11 @@ type Config struct {
 	// otherwise; <0 = disabled; >0 = explicit interval.
 	DiscoverNodesInterval time.Duration
 
-	// NodeStatsInterval sets how often each node's JVM heap, circuit breaker and
-	// thread pool statistics are polled. 0 = auto-derive from cluster size;
+	// NodeStatsInterval sets how often each node's stats are polled for overload
+	// detection and routing scores. 0 = auto-derive from cluster size;
 	// >0 = explicit interval; <0 = disabled. The
 	// OPENSEARCH_GO_NODE_STATS_INTERVAL environment variable overrides it; see
-	// [opensearchtransport.Config.NodeStatsInterval].
+	// [opensearchtransport.Config.NodeStatsInterval] for what the poll reads.
 	NodeStatsInterval time.Duration
 
 	// VerifyDeadAfter is the duration a dead connection can be blindly

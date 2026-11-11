@@ -28,6 +28,8 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_NODE_STATS_INTERVAL`](#load-shedding-and-stats-polling)       | auto                         | Stats polling interval                  |
 | [`OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD`](#load-shedding-and-stats-polling) | `85`                         | JVM heap overload threshold             |
 | [`OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`](#load-shedding-and-stats-polling)  | `0.90`                       | Breaker ratio overload threshold        |
+| [`OPENSEARCH_GO_OVERLOADED_CPU_PERCENT`](#load-shedding-and-stats-polling)    | `95`                         | CPU overload threshold                  |
+| [`OPENSEARCH_GO_OVERLOADED_IO_PERCENT`](#load-shedding-and-stats-polling)     | `95`                         | IO overload threshold                   |
 | [`OPENSEARCH_GO_ACTIVE_LIST_CAP`](#connection-pool-tuning)                    | auto                         | Max active connections per pool         |
 | [`OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL`](#connection-pool-tuning)          | `0` (use discovery interval) | Standby rotation interval               |
 | [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle             |
@@ -119,6 +121,8 @@ A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driv
 | `OPENSEARCH_GO_NODE_STATS_INTERVAL` | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto; negative = disabled. | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
 | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100) | `85` | JVM heap percentage at or above which a node is marked overloaded (comparison is `>=`). | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
 | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO` | Float (0.0-1.0] | `0.90` | Circuit-breaker `estimated_size / limit_size` ratio at or above which a node is marked overloaded (comparison is `>=`). Values outside `(0.0, 1.0]` are ignored. | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
+| `OPENSEARCH_GO_OVERLOADED_CPU_PERCENT` | Integer | `95` | `resource_usage_stats` CPU percentage at or above which a node is marked overloaded (comparison is `>=`). OpenSearch 2.12.0 and later; a value above `100` turns the check off. | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
+| `OPENSEARCH_GO_OVERLOADED_IO_PERCENT` | Integer | `95` | `resource_usage_stats` IO percentage at or above which a node is marked overloaded (comparison is `>=`). OpenSearch 2.12.0 and later on Linux; a value above `100` turns the check off. | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
 
 ## Connection pool tuning
 

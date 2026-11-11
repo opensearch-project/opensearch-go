@@ -84,6 +84,14 @@ const OverloadedHeapThreshold = "OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD"
 // marking a node overloaded.
 const OverloadedBreakerRatio = "OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO"
 
+// OverloadedCPUPercent overrides the resource_usage_stats CPU percentage
+// threshold for marking a node overloaded.
+const OverloadedCPUPercent = "OPENSEARCH_GO_OVERLOADED_CPU_PERCENT"
+
+// OverloadedIOPercent overrides the resource_usage_stats IO percentage
+// threshold for marking a node overloaded.
+const OverloadedIOPercent = "OPENSEARCH_GO_OVERLOADED_IO_PERCENT"
+
 // ActiveListCap overrides the per-pool active-connection cap.
 const ActiveListCap = "OPENSEARCH_GO_ACTIVE_LIST_CAP"
 

@@ -713,6 +713,8 @@ func newTestClientWithPool(transport http.RoundTripper, pool ConnectionPool) *Tr
 		maxRetryClusterHealth: 50 * time.Millisecond,
 		healthCheckRate:       float64(defaultServerCoreCount) * healthCheckRateMultiplier,
 		clientsPerServer:      float64(defaultServerCoreCount),
+		overloadedCPUPercent:  defaultOverloadedCPUPercent,
+		overloadedIOPercent:   defaultOverloadedIOPercent,
 		ctx:                   ctx,
 		cancelFunc:            cancel,
 	}
@@ -2035,9 +2037,10 @@ func TestEvaluateOverloadResourceUsage(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		rus  map[string]ResourceUsageStats
-		want bool
+		name  string
+		rus   map[string]ResourceUsageStats
+		limit int // CPU and IO threshold; 0 reads as the default
+		want  bool
 	}{
 		{name: "cpu over", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "96"}}, want: true},
 		{name: "cpu high but under", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "94.9"}}},
@@ -2046,6 +2049,12 @@ func TestEvaluateOverloadResourceUsage(t *testing.T) {
 			rus:  map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "10", IOUsageStats: &IOUsageStats{MaxIOUtilizationPercent: "97"}}},
 			want: true,
 		},
+		{name: "a lower configured limit trips", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "81"}}, limit: 80, want: true},
+		{
+			name:  "a limit above 100 never trips",
+			rus:   map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "100", IOUsageStats: &IOUsageStats{MaxIOUtilizationPercent: "100"}}},
+			limit: 101,
+		},
 		{name: "other node only", rus: map[string]ResourceUsageStats{"n2": {CPUUtilizationPercent: "99"}}},
 		{name: "unparseable", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "abc"}}},
 		{name: "field absent"},
@@ -2053,9 +2062,12 @@ func TestEvaluateOverloadResourceUsage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			limit := cmp.Or(tt.limit, defaultOverloadedCPUPercent)
 			c := &Transport{
 				overloadedHeapThreshold: defaultOverloadedHeapThreshold,
 				overloadedBreakerRatio:  defaultOverloadedBreakerRatio,
+				overloadedCPUPercent:    limit,
+				overloadedIOPercent:     limit,
 			}
 			conn := &Connection{URL: &url.URL{Host: "node1:9200"}}
 			stats := &NodeStats{ResourceUsageStats: tt.rus}

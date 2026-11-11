@@ -393,8 +393,8 @@ func percentAtLeast(s string, threshold float64) bool {
 //   - JVM heap_used_percent >= overloadedHeapThreshold (default 85%)
 //   - Any circuit breaker's estimated_size / limit_size >= overloadedBreakerRatio (default 0.90)
 //   - Any circuit breaker's tripped count increased since the last poll (delta detection)
-//   - The polled node's resource_usage_stats cpu_utilization_percent >= overloadedCPUPercent (95) (OpenSearch 2.12.0+)
-//   - The polled node's resource_usage_stats max_io_utilization_percent >= overloadedIOPercent (95) (OpenSearch 2.12.0+, Linux)
+//   - The polled node's resource_usage_stats cpu_utilization_percent >= overloadedCPUPercent (default 95) (OpenSearch 2.12.0+)
+//   - The polled node's resource_usage_stats max_io_utilization_percent >= overloadedIOPercent (default 95) (OpenSearch 2.12.0+, Linux)
 //
 // nodeID is the polled node's ID, the key of its own resource_usage_stats entry.
 //
@@ -432,21 +432,23 @@ func (tr *Transport) evaluateOverload(conn *Connection, stats *NodeStats, nodeID
 		overloaded = true
 	}
 
-	// CPU and IO utilization of the polled node (OpenSearch 2.12.0+)
+	// CPU and IO utilization of the polled node (OpenSearch 2.12.0+).
+	// memory_utilization_percent is not checked: the server averages JVM heap
+	// use for it, which the heap check above already covers.
 	if rus, found := stats.ResourceUsageStats[nodeID]; found {
-		if percentAtLeast(rus.CPUUtilizationPercent, overloadedCPUPercent) {
+		if percentAtLeast(rus.CPUUtilizationPercent, float64(tr.overloadedCPUPercent)) {
 			Debug().
 				Str("conn", conn.URLString).
 				Str("cpu_utilization_percent", rus.CPUUtilizationPercent).
-				Float64("threshold", overloadedCPUPercent).
+				Int("threshold", tr.overloadedCPUPercent).
 				Msg("Node overloaded: CPU over threshold")
 			overloaded = true
 		}
-		if rus.IOUsageStats != nil && percentAtLeast(rus.IOUsageStats.MaxIOUtilizationPercent, overloadedIOPercent) {
+		if rus.IOUsageStats != nil && percentAtLeast(rus.IOUsageStats.MaxIOUtilizationPercent, float64(tr.overloadedIOPercent)) {
 			Debug().
 				Str("conn", conn.URLString).
 				Str("max_io_utilization_percent", rus.IOUsageStats.MaxIOUtilizationPercent).
-				Float64("threshold", overloadedIOPercent).
+				Int("threshold", tr.overloadedIOPercent).
 				Msg("Node overloaded: IO over threshold")
 			overloaded = true
 		}
