@@ -444,3 +444,89 @@ func TestPoolPolicyDiscoveryUpdateBeforeConfigure(t *testing.T) {
 		})
 	}
 }
+
+func TestDiscoveryReplacesDuplicateSeedURLs(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		router, err := NewDefaultRouter()
+		require.NoError(t, err)
+
+		transport := mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(validOpenSearchRootResponse())),
+				Header:     make(http.Header),
+				Request:    req,
+			}, nil
+		})
+		data := &url.URL{Scheme: "http", Host: "127.0.0.1:9200"}
+		manager := &url.URL{Scheme: "http", Host: "127.0.0.1:9201"}
+		tr, err := New(Config{
+			URLs:                  []*url.URL{data, data, manager},
+			Context:               t.Context(),
+			Transport:             transport,
+			Router:                router,
+			DiscoverNodesInterval: -1,
+			NodeStatsInterval:     -1,
+			SkipConnectionShuffle: true,
+		})
+		require.NoError(t, err)
+		defer func() {
+			require.NoError(t, tr.Close())
+		}()
+
+		synctest.Wait()
+
+		require.NoError(t, tr.nodeDiscovery(t.Context(), []nodeInfo{
+			{ID: "data", Name: "data", Roles: []string{RoleData}, url: data},
+			{ID: "manager", Name: "manager", Roles: []string{RoleClusterManager}, url: manager},
+		}))
+
+		root, ok := tr.router.(Policy)
+		require.True(t, ok)
+		held := policyConnections(root)
+		require.NotEmpty(t, held)
+		for _, conn := range held {
+			require.False(t, conn.seed, "discovery must replace every seed, including a repeated seed URL: %q", conn.URLString)
+		}
+	})
+}
+
+// policyConnections returns every connection held by p and the policies under it.
+func policyConnections(p Policy) []*Connection {
+	pool := func(pool *multiServerPool) []*Connection {
+		if pool == nil {
+			return nil
+		}
+		pool.RLock()
+		defer pool.RUnlock()
+		return slices.Concat(pool.mu.ready, pool.mu.dead)
+	}
+
+	var conns []*Connection
+	switch p := p.(type) {
+	case *RoundRobinPolicy:
+		conns = pool(p.pool)
+	case *RolePolicy:
+		conns = pool(p.pool)
+	case *CoordinatorPolicy:
+		conns = pool(p.pool)
+	case *IndexRouter:
+		p.mu.RLock()
+		conns = slices.Clone(p.mu.activeConns)
+		p.mu.RUnlock()
+	case *DocRouter:
+		p.mu.RLock()
+		conns = slices.Clone(p.mu.activeConns)
+		p.mu.RUnlock()
+	}
+
+	if walker, ok := p.(policyTreeWalker); ok {
+		for _, child := range walker.childPolicies() {
+			conns = append(conns, policyConnections(child)...)
+		}
+	}
+
+	return conns
+}
