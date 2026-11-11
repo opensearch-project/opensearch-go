@@ -437,7 +437,9 @@ func (tr *Transport) evaluateOverload(conn *Connection, stats *NodeStats, nodeID
 		overloaded = true
 	}
 
-	// CPU and IO utilization of the polled node (OpenSearch 2.12.0+).
+	// CPU and IO utilization of the polled node (OpenSearch 2.12.0+). The
+	// server fills resource_usage_stats only while admission control is on, so
+	// the section is often empty and the check skipped.
 	// memory_utilization_percent is not checked: the server averages JVM heap
 	// use for it, which the heap check above already covers.
 	if rus, found := stats.ResourceUsageStats[nodeID]; found {

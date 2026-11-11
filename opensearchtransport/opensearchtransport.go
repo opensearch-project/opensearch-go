@@ -459,7 +459,9 @@ type Config struct {
 
 	// OverloadedCPUPercent sets the resource_usage_stats cpu_utilization_percent
 	// at or above which a node is marked overloaded. The node stats poll reads it
-	// from OpenSearch 2.12.0 on; older servers skip the check.
+	// from OpenSearch 2.12.0 on, and the server reports it only while
+	// admission_control.transport.mode is monitor_only or enforced; otherwise the
+	// check is skipped.
 	// 0 = use default (95), >0 = explicit threshold (percent); above 100 never trips.
 	//
 	// Can be overridden by the OPENSEARCH_GO_OVERLOADED_CPU_PERCENT environment variable.
@@ -468,7 +470,8 @@ type Config struct {
 
 	// OverloadedIOPercent sets the resource_usage_stats max_io_utilization_percent
 	// at or above which a node is marked overloaded. The server reports it on
-	// Linux from OpenSearch 2.12.0 on; elsewhere the check is skipped.
+	// Linux from OpenSearch 2.12.0 on, while admission control is on as for
+	// [Config.OverloadedCPUPercent]; otherwise the check is skipped.
 	// 0 = use default (95), >0 = explicit threshold (percent); above 100 never trips.
 	//
 	// Can be overridden by the OPENSEARCH_GO_OVERLOADED_IO_PERCENT environment variable.
