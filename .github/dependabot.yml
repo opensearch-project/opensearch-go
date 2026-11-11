@@ -39,6 +39,40 @@ updates:
       - "dependencies"
       - "v5"
 
+  # --- v5 maintenance branch ---
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+      - "/cmd/osapilint"
+      - "/cmd/osgen"
+      - "/compress"
+      - "/log-slog"
+      - "/log-zerolog"
+      - "/osotel"
+      - "/osprom"
+    target-branch: "v5"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "v5"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "v5"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "v5"
+
   # --- v4 maintenance branch: only the root module and cmd/osgen exist there ---
   - package-ecosystem: "gomod"
     directories:
