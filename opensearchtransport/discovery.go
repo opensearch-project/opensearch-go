@@ -1174,62 +1174,20 @@ func (tr *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadC
 	return allConnsPool
 }
 
+// withRequestTimeout bounds ctx by RequestTimeout when one is set. The
+// returned cancel is never nil, so callers can always defer it.
+func (tr *Transport) withRequestTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if tr.requestTimeout <= 0 {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, tr.requestTimeout)
+}
+
 func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	scheme := tr.urls[0].Scheme
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
+	env, conn, err := tr.fetchNodesInfo(ctx)
 	if err != nil {
-		return nil, err
-	}
-
-	conn, err := getConnectionFromPool(tr, req)
-	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
-		conn, err = tr.seedFallbackPool.Next()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
-		return nil, err
-	}
-
-	res, err := tr.transport.RoundTrip(req)
-	if err != nil {
-		// Report connection failure to the pool.
-		tr.mu.RLock()
-		pool := tr.mu.connectionPool
-		tr.mu.RUnlock()
-		if pool != nil {
-			if poolErr := pool.OnFailure(conn); poolErr != nil {
-				Debug().Err(poolErr).Msg("Failed to mark connection as failed")
-			}
-		}
-		return nil, err
-	}
-
-	if res.Body == nil {
-		return nil, fmt.Errorf("unexpected empty body")
-	}
-	// Drain on close: raw RoundTrip path, and the success path uses json.Decode
-	// below, which stops at the end of the JSON value without consuming trailing
-	// bytes; a plain Close would then defeat keep-alive.
-	defer func() {
-		//nolint:errcheck // best-effort drain before close on a cleanup path
-		io.Copy(io.Discard, res.Body)
-		res.Body.Close()
-	}()
-
-	if res.StatusCode > http.StatusOK {
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return nil, fmt.Errorf("server error: %s: %w", res.Status, err)
-		}
-		return nil, fmt.Errorf("server error: %s: %s", res.Status, body)
-	}
-
-	var env map[string]json.RawMessage
-	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
 		return nil, err
 	}
 
@@ -1328,6 +1286,78 @@ func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	}
 
 	return out, nil
+}
+
+// fetchNodesInfo sends the /_nodes/http request and decodes its envelope.
+// RequestTimeout bounds the request through reading and draining the body;
+// address resolution in getNodesInfo runs under the caller's context.
+func (tr *Transport) fetchNodesInfo(ctx context.Context) (map[string]json.RawMessage, *Connection, error) {
+	ctx, cancel := tr.withRequestTimeout(ctx)
+	defer cancel()
+
+	nodesPath, err := ospath.NodesInfoPath{Metric: []string{"http"}}.Build()
+	if err != nil {
+		return nil, nil, fmt.Errorf("building nodes info path: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodesPath, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	conn, err := getConnectionFromPool(tr, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
+		conn, err = tr.seedFallbackPool.Next()
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, nil, err
+	}
+
+	res, err := tr.transport.RoundTrip(req)
+	if err != nil {
+		// Report connection failure to the pool.
+		tr.mu.RLock()
+		pool := tr.mu.connectionPool
+		tr.mu.RUnlock()
+		if pool != nil {
+			if poolErr := pool.OnFailure(conn); poolErr != nil {
+				Debug().Err(poolErr).Msg("Failed to mark connection as failed")
+			}
+		}
+		return nil, nil, err
+	}
+
+	if res.Body == nil {
+		return nil, nil, fmt.Errorf("unexpected empty body")
+	}
+	// Drain on close: raw RoundTrip path, and the success path uses json.Decode
+	// below, which stops at the end of the JSON value without consuming trailing
+	// bytes; a plain Close would then defeat keep-alive. Deferred after cancel,
+	// so the drain runs while the request context is still live.
+	defer func() {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+	}()
+
+	if res.StatusCode > http.StatusOK {
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, nil, fmt.Errorf("server error: %s: %w", res.Status, err)
+		}
+		return nil, nil, fmt.Errorf("server error: %s: %s", res.Status, body)
+	}
+
+	var env map[string]json.RawMessage
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+		return nil, nil, err
+	}
+
+	return env, conn, nil
 }
 
 // discoveryPendingNode pairs a discovered nodeInfo with its default URL
@@ -1970,7 +2000,15 @@ func (p *indexShardPlacement) nodeNameSet() map[string]struct{} {
 // credentials lack this privilege, the call returns an error and callers
 // should fall back gracefully.
 func (tr *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_cat/shards", nil)
+	ctx, cancel := tr.withRequestTimeout(ctx)
+	defer cancel()
+
+	shardsPath, err := ospath.CatShardsPath{}.Build()
+	if err != nil {
+		return nil, fmt.Errorf("building shard placement path: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, shardsPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating shard placement request: %w", err)
 	}
@@ -2320,14 +2358,21 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 		if err != nil {
 			return nil, fmt.Errorf("building routing metadata path: %w", err)
 		}
-		batchReq := req.Clone(ctx)
-		// prepareInternalRequest adds the node's base path to each logical path.
-		batchReq.URL.RawPath = batchPath
-		if batchReq.URL.Path, err = url.PathUnescape(batchPath); err != nil {
+		decodedPath, err := url.PathUnescape(batchPath)
+		if err != nil {
 			return nil, fmt.Errorf("decoding routing metadata path: %w", err)
 		}
 
+		// RequestTimeout bounds each batch, like a transport attempt, rather
+		// than the whole call; ctx still bounds the loop.
+		batchCtx, cancelBatch := tr.withRequestTimeout(ctx)
+		batchReq := req.Clone(batchCtx)
+		// prepareInternalRequest adds the node's base path to each logical path.
+		batchReq.URL.RawPath = batchPath
+		batchReq.URL.Path = decodedPath
+
 		metadata, err := tr.getRoutingMetaBatch(batchReq, conn)
+		cancelBatch()
 		if err != nil {
 			return nil, err
 		}
