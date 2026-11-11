@@ -314,13 +314,21 @@ func routerDiscoveryUpdate(
 		return nil
 	}
 
-	// Rebuild the full active connection list.
-	// Collect all connections from the three lists, dedup by URL.
+	removedSet := make(map[*Connection]struct{}, len(removed))
+	for _, c := range removed {
+		removedSet[c] = struct{}{}
+	}
+
+	// Remove old objects before deduplicating URLs so their replacements are not skipped.
 	seen := make(map[string]struct{})
 	var all []*Connection
 
 	mu.RLock()
 	for _, c := range *activeConns {
+		if _, removed := removedSet[c]; removed {
+			continue
+		}
+
 		key := c.URLString
 		if _, ok := seen[key]; !ok {
 			seen[key] = struct{}{}
@@ -331,26 +339,15 @@ func routerDiscoveryUpdate(
 
 	// Add new connections.
 	for _, c := range added {
+		if _, removed := removedSet[c]; removed {
+			continue
+		}
+
 		key := c.URLString
 		if _, ok := seen[key]; !ok {
 			seen[key] = struct{}{}
 			all = append(all, c)
 		}
-	}
-
-	// Remove old connections.
-	if removed != nil {
-		removedSet := make(map[string]struct{}, len(removed))
-		for _, c := range removed {
-			removedSet[c.URLString] = struct{}{}
-		}
-		filtered := all[:0]
-		for _, c := range all {
-			if _, found := removedSet[c.URLString]; !found {
-				filtered = append(filtered, c)
-			}
-		}
-		all = filtered
 	}
 
 	// Sort by RTT bucket ascending (nearest first). This is the invariant
