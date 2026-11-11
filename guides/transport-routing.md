@@ -595,6 +595,14 @@ The first candidate tried is then drawn at random from the near-best rather than
 
 The `opensearch_client_route_selected_total{node}` counter in `osprom` (`opensearch.client.route.selected` in `osotel`) counts routing decisions per selected node, which shows whether requests concentrate on one coordinator.
 
+### Finding a Hot Routing Key
+
+A hot `?routing=` value sends its load to the same `index.routing_partition_size` shards every time. Locality and spread only change which node coordinates the request (and which copy serves it), not which shards do the work, so a hot value shows up as a few busy data nodes that no client-side setting moves.
+
+`RouteEvent` carries `IndexName` and `RoutingValue` on every routed request that targets an index, so an `OnRoute` observer can count values with a bounded top-K and report a value that takes a large share of an index's traffic. The bundled `osprom` and `osotel` metrics do not label by routing value because of its cardinality. `ExampleConnectionObserver_hotRoutingKey` in `opensearchtransport/example_hot_routing_key_test.go` shows a space-saving counter that holds at most K values per index.
+
+To spread a hot value, raise `index.routing_partition_size` or choose a routing key with higher cardinality. `routing_partition_size` is a create-time setting, so raising it needs a reindex; it must stay below `number_of_shards`, and the mapping must set `_routing` to required. The count only sees this client's traffic, so a value that is hot across many clients may look milder from one.
+
 ### AZ-Aware Crossover
 
 The multiplicative score formula creates natural tier-based overflow. Crossover between a local node (latency=8ms) and a remote node (latency=Lms) is immediate when the local node has higher utilization:

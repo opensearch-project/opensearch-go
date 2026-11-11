@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Add `opensearch_client_route_selected_total{node}` to `osprom` and `opensearch.client.route.selected` to `osotel`, counting routing decisions by selected node so uneven coordinator load is visible.
+- Add a "Finding a Hot Routing Key" section to the transport routing guide and `ExampleConnectionObserver_hotRoutingKey`, which counts `?routing=` values per index with a bounded top-K to find a value that concentrates load on a few shards.
 
 ### Changed
 
