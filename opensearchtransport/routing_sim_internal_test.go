@@ -28,7 +28,7 @@ const hclQuantile = 0.75
 // hclQueue returns the polled queue size of c, zero before the first poll.
 func hclQueue(c *Connection) float64 {
 	if snap := c.ars.p.Load(); snap != nil {
-		return float64(snap.stats.AvgQueueSize)
+		return float64(snap.reading.AvgQueueSize)
 	}
 	return 0
 }
@@ -117,7 +117,7 @@ func TestHCLSelect(t *testing.T) {
 				c := scoreTestConn(t, "n"+strconv.Itoa(i), n.rtt, 0)
 				c.setLifecycleBit(lcActive)
 				c.pools.getForScoring(poolSearch).inFlight.Store(n.inFlight)
-				recordUsable(&c.ars, time.Now(), c.ID, c.ID, AdaptiveSelectionStats{AvgQueueSize: n.queue})
+				recordUsable(&c.ars, time.Now(), c.ID, c.ID, len(tt.nodes), AdaptiveSelectionStats{AvgQueueSize: n.queue})
 				cands[i] = c
 			}
 
@@ -248,7 +248,7 @@ type simResult struct {
 type simChooser func(c *simClient) *Connection
 
 func simC3Spread(c *simClient) *Connection {
-	if newC3Inputs(c.conns, poolSearch).n != simNodes {
+	if !newC3Inputs(c.conns, poolSearch).active {
 		c.c3Dead++
 	}
 	return connScoreSelect(c.conns, nil, nil, &shardCostForReads, poolSearch, true, c.scores, nil, nil, nil, simSpreadBand, c.rng.Float64)
@@ -285,7 +285,8 @@ func runRoutingSim(t *testing.T, seed uint64, load float64, choose simChooser) s
 			c.setLifecycleBit(lcActive)
 			c.pools.getForScoring(poolSearch).latency.clock = clock
 			c.pools.getForScoring(poolSearch).cwnd.Store(100)
-			recordUsable(&c.ars, time.Now().Add(-simBackdate), c.ID, c.ID, AdaptiveSelectionStats{AvgServiceTimeNs: int64(simMeanService[ni] * 1e6)})
+			recordUsable(&c.ars, time.Now().Add(-simBackdate), c.ID, c.ID, simNodes,
+				AdaptiveSelectionStats{AvgServiceTimeNs: int64(simMeanService[ni] * 1e6)})
 			cl.conns = append(cl.conns, c)
 		}
 		clients[ci] = cl
@@ -371,7 +372,7 @@ func runRoutingSim(t *testing.T, seed uint64, load float64, choose simChooser) s
 			}
 		case simPoll:
 			for ni, c := range clients[e.client].conns {
-				c.ars.record(time.Now(), c.ID, c.ID, AdaptiveSelectionStats{
+				c.ars.record(time.Now(), c.ID, c.ID, simNodes, AdaptiveSelectionStats{
 					AvgQueueSize:     int64(math.Round(nodes[ni].avgQ)),
 					AvgServiceTimeNs: max(int64(nodes[ni].avgSvc*1e6), 1),
 				})

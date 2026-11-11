@@ -187,15 +187,28 @@ func TestAdaptiveSelection(t *testing.T) {
 				if from == "" {
 					from = node
 				}
-				a.record(r.at, from, node, r.s)
+				a.record(r.at, from, node, 1, r.s)
 			}
 			for _, p := range tt.probes {
 				got, ok := a.load(p.at)
 				require.Equal(t, p.want, ok, "at %v", p.at.Sub(t0))
-				require.Equal(t, p.wantSt, got, "at %v", p.at.Sub(t0))
+				require.Equal(t, p.wantSt, got.AdaptiveSelectionStats, "at %v", p.at.Sub(t0))
 			}
 		})
 	}
+}
+
+// The stored stats carry the size of the report they came from, which C3 uses
+// as the server's clientNum.
+func TestAdaptiveSelectionCarriesReportSize(t *testing.T) {
+	t.Parallel()
+
+	var a adaptiveSelection
+	t0 := time.Unix(1_000_000, 0)
+	recordUsable(&a, t0, "p", "a", 7, AdaptiveSelectionStats{OutgoingSearches: 1})
+	got, ok := a.load(t0.Add(adaptiveSelectionBlackout))
+	require.True(t, ok)
+	require.Equal(t, 7, got.clients)
 }
 
 func TestAdaptiveSelectionConcurrent(t *testing.T) {
@@ -206,7 +219,7 @@ func TestAdaptiveSelectionConcurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		for i := range 1000 {
-			a.record(t0.Add(time.Duration(i)*time.Second), "a", "a", AdaptiveSelectionStats{OutgoingSearches: int64(i)})
+			a.record(t0.Add(time.Duration(i)*time.Second), "a", "a", 1, AdaptiveSelectionStats{OutgoingSearches: int64(i)})
 		}
 	})
 	for range 4 {
@@ -222,7 +235,7 @@ func TestAdaptiveSelectionConcurrent(t *testing.T) {
 func TestAdaptiveSelectionLoadAllocs(t *testing.T) {
 	var a adaptiveSelection
 	t0 := time.Unix(1_000_000, 0)
-	recordUsable(&a, t0, "a", "a", AdaptiveSelectionStats{OutgoingSearches: 1})
+	recordUsable(&a, t0, "a", "a", 1, AdaptiveSelectionStats{OutgoingSearches: 1})
 	require.InDelta(t, 0.0, testing.AllocsPerRun(100, func() { a.load(t0.Add(time.Minute)) }), 0)
 }
 
@@ -231,8 +244,8 @@ func TestAdaptiveSelectionPrunesSilentReporters(t *testing.T) {
 
 	var a adaptiveSelection
 	t0 := time.Unix(1_000_000, 0)
-	a.record(t0, "gone", "a", AdaptiveSelectionStats{OutgoingSearches: 1})
-	a.record(t0.Add(adaptiveSelectionExpiry+time.Second), "a", "a", AdaptiveSelectionStats{OutgoingSearches: 1})
+	a.record(t0, "gone", "a", 1, AdaptiveSelectionStats{OutgoingSearches: 1})
+	a.record(t0.Add(adaptiveSelectionExpiry+time.Second), "a", "a", 1, AdaptiveSelectionStats{OutgoingSearches: 1})
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -240,11 +253,12 @@ func TestAdaptiveSelectionPrunesSilentReporters(t *testing.T) {
 	require.Contains(t, a.mu.byReporter, "a")
 }
 
-// recordUsable records s from reporter as a fresh report at now, after a
-// baseline 1ns earlier, since a reporter's first report is never fresh.
-func recordUsable(a *adaptiveSelection, now time.Time, reporter, nodeID string, s AdaptiveSelectionStats) {
+// recordUsable records s from reporter, in a report of clients entries, as a
+// fresh report at now, after a baseline 1ns earlier, since a reporter's first
+// report is never fresh.
+func recordUsable(a *adaptiveSelection, now time.Time, reporter, nodeID string, clients int, s AdaptiveSelectionStats) {
 	base := s
 	base.OutgoingSearches--
-	a.record(now.Add(-time.Nanosecond), reporter, nodeID, base)
-	a.record(now, reporter, nodeID, s)
+	a.record(now.Add(-time.Nanosecond), reporter, nodeID, clients, base)
+	a.record(now, reporter, nodeID, clients, s)
 }

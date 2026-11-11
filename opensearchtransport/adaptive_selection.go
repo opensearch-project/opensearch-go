@@ -22,9 +22,18 @@ const (
 	adaptiveSelectionExpiry = 3 * time.Minute
 )
 
+// adaptiveSelectionReading is the stored stats with the size of the report
+// they came from.
+type adaptiveSelectionReading struct {
+	AdaptiveSelectionStats
+	// clients is how many nodes the reporter held stats for, the server's own
+	// clientNum: the C3 weight for the other clients that send to the node.
+	clients int
+}
+
 // adaptiveSelectionSnapshot is an immutable view of the stored stats.
 type adaptiveSelectionSnapshot struct {
-	stats     AdaptiveSelectionStats
+	reading   adaptiveSelectionReading
 	firstSeen time.Time
 	lastSeen  time.Time
 }
@@ -68,8 +77,9 @@ type adaptiveSelection struct {
 // refreshes lastSeen. A reporter's first report, which may have been frozen
 // for hours, only sets the baseline, so stats that every reporter has frozen
 // never become usable or expire. A different nodeID (another node now
-// answering at this URL) drops everything recorded about the old one.
-func (a *adaptiveSelection) record(now time.Time, reporter, nodeID string, s AdaptiveSelectionStats) {
+// answering at this URL) drops everything recorded about the old one. clients
+// is the number of entries in the reporter's report.
+func (a *adaptiveSelection) record(now time.Time, reporter, nodeID string, clients int, s AdaptiveSelectionStats) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -98,7 +108,11 @@ func (a *adaptiveSelection) record(now time.Time, reporter, nodeID string, s Ada
 		return
 	}
 
-	snap := &adaptiveSelectionSnapshot{stats: s, firstSeen: now, lastSeen: now}
+	snap := &adaptiveSelectionSnapshot{
+		reading:   adaptiveSelectionReading{AdaptiveSelectionStats: s, clients: clients},
+		firstSeen: now,
+		lastSeen:  now,
+	}
 	if cur := a.p.Load(); cur != nil && now.Sub(cur.lastSeen) <= adaptiveSelectionExpiry {
 		snap.firstSeen = cur.firstSeen
 	}
@@ -126,7 +140,7 @@ func recordAdaptiveSelection(conn *Connection, pool *multiServerPool, reporter s
 			target = pool.connectionByID(targetID)
 		}
 		if target != nil {
-			target.ars.record(now, reporter, targetID, s)
+			target.ars.record(now, reporter, targetID, len(report), s)
 		}
 	}
 }
@@ -135,10 +149,10 @@ func recordAdaptiveSelection(conn *Connection, pool *multiServerPool, reporter s
 func (a *adaptiveSelection) reported() bool { return a.p.Load() != nil }
 
 // load returns the stats once past the blackout and before expiry.
-func (a *adaptiveSelection) load(now time.Time) (AdaptiveSelectionStats, bool) {
+func (a *adaptiveSelection) load(now time.Time) (adaptiveSelectionReading, bool) {
 	cur := a.p.Load()
 	if cur == nil || now.Sub(cur.firstSeen) < adaptiveSelectionBlackout || now.Sub(cur.lastSeen) > adaptiveSelectionExpiry {
-		return AdaptiveSelectionStats{}, false
+		return adaptiveSelectionReading{}, false
 	}
-	return cur.stats, true
+	return cur.reading, true
 }

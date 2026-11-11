@@ -21,7 +21,7 @@ const noStats = int64(-1)
 
 // c3TestConn returns a connection with a 500us RTT, the given search in-flight
 // count and, when queue is not [noStats], adaptive_selection stats recorded long enough ago
-// to be past the blackout.
+// to be past the blackout, from a report on c3TestClients nodes.
 func c3TestConn(t *testing.T, id string, inFlight int32, queue int64, recordedAgo time.Duration, serviceNs int64) *Connection {
 	t.Helper()
 	c := scoreTestConn(t, id, 500*time.Microsecond, 0)
@@ -29,10 +29,14 @@ func c3TestConn(t *testing.T, id string, inFlight int32, queue int64, recordedAg
 	c.pools.getForScoring(poolSearch).inFlight.Store(inFlight)
 	c.pools.getForScoring(poolSearch).cwnd.Store(100)
 	if queue != noStats {
-		recordUsable(&c.ars, time.Now().Add(-recordedAgo), id, id, AdaptiveSelectionStats{AvgQueueSize: queue, AvgServiceTimeNs: serviceNs})
+		recordUsable(&c.ars, time.Now().Add(-recordedAgo), id, id, c3TestClients,
+			AdaptiveSelectionStats{AvgQueueSize: queue, AvgServiceTimeNs: serviceNs})
 	}
 	return c
 }
+
+// c3TestClients is the report size, the server's clientNum, behind c3TestConn's stats.
+const c3TestClients = 3
 
 func TestC3ScoreAvoidsQueuedNode(t *testing.T) {
 	t.Parallel()
@@ -136,19 +140,23 @@ func TestC3LoadScoreFormula(t *testing.T) {
 		name     string
 		inFlight int32
 		queue    int64
-		n        int
+		n        int // size of the report the stats came from
 	}{
 		{name: "idle", inFlight: 0, queue: 0, n: 3},
 		{name: "in flight, no queue", inFlight: 2, queue: 0, n: 3},
 		{name: "in flight and queue", inFlight: 2, queue: 4, n: 3},
+		{name: "n is the report size, not the one candidate", inFlight: 2, queue: 4, n: 12},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			conn := c3TestConn(t, "a", tt.inFlight, tt.queue, 11*time.Second, c3TestServiceNs)
-			c3 := c3Inputs{n: tt.n, now: time.Now()}
+			conn := c3TestConn(t, "a", tt.inFlight, noStats, 0, 0)
+			recordUsable(&conn.ars, time.Now().Add(-11*time.Second), "a", "a", tt.n,
+				AdaptiveSelectionStats{AvgQueueSize: tt.queue, AvgServiceTimeNs: c3TestServiceNs})
+			c3 := newC3Inputs([]*Connection{conn}, poolSearch)
+			require.True(t, c3.active)
 
 			r := conn.loadLatencyMicros(poolSearch)
 			s := float64(c3TestServiceNs) / 1000

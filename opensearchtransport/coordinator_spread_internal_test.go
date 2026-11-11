@@ -317,11 +317,11 @@ func TestCoordinatorSpreadAcrossClients(t *testing.T) {
 						if c.Name == tt.queued {
 							st.AvgQueueSize = 50
 						}
-						recordUsable(&c.ars, time.Now().Add(-time.Minute), c.ID, c.ID, st)
+						recordUsable(&c.ars, time.Now().Add(-time.Minute), c.ID, c.ID, len(conns), st)
 					}
 				}
 				if tt.c3 {
-					require.Positive(t, newC3Inputs(conns, poolSearch).n, "C3 inactive")
+					require.True(t, newC3Inputs(conns, poolSearch).active, "C3 inactive")
 				}
 				require.NoError(t, r.DiscoveryUpdate(conns, nil, nil))
 				r.cache.getOrCreate(index).shardMap.Store(&indexShardMap{

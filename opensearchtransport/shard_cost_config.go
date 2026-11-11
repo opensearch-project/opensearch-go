@@ -355,8 +355,8 @@ func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
 // c3Inputs selects the load term of a selection. The zero value selects the
 // linear term; see [newC3Inputs].
 type c3Inputs struct {
-	n   int       // candidate count, the C3 concurrency-compensation weight
-	now time.Time // instant at which every candidate's stats were checked fresh
+	active bool      // every candidate has fresh stats, so the C3 term applies
+	now    time.Time // instant at which every candidate's stats were checked fresh
 }
 
 // newC3Inputs returns inputs that select the C3 queue term when poolName is the
@@ -382,7 +382,7 @@ func newC3Inputs(candidates []*Connection, poolName string) c3Inputs {
 			return c3Inputs{}
 		}
 	}
-	return c3Inputs{n: len(candidates), now: now}
+	return c3Inputs{active: true, now: now}
 }
 
 // connLoadScore returns the load term of a connection's score, in microseconds.
@@ -394,17 +394,19 @@ func newC3Inputs(candidates []*Connection, poolName string) c3Inputs {
 // Otherwise it is the C3 term, R - S + qHat^3 * S, where R is that latency, S is
 // the node's reported average service time, and
 // qHat = 1 + inFlight*n + queue is the queue length the node is expected to
-// have, with queue its reported average queue size and n the candidate count
-// (the weight for the other clients that send to it). The cwnd does not enter
-// the C3 term; the reported queue carries that signal.
+// have, with queue its reported average queue size and n the number of nodes
+// the reporting coordinator held stats for. n is the server's own clientNum in
+// adaptive replica selection, the weight for the other clients that send to the
+// node. The cwnd does not enter the C3 term; the reported queue carries that
+// signal.
 func connLoadScore(conn *Connection, poolName string, poolInfoReady bool, c3 c3Inputs) float64 {
 	rtt := conn.loadLatencyMicros(poolName)
 	inFlight := float64(conn.loadInFlight(poolName))
-	if c3.n > 0 {
+	if c3.active {
 		// A concurrent poll can replace the snapshot after newC3Inputs checked it.
 		if st, ok := conn.ars.load(c3.now); ok && st.AvgServiceTimeNs > 0 {
 			s := float64(st.AvgServiceTimeNs) / 1000
-			q := 1 + inFlight*float64(c3.n) + float64(st.AvgQueueSize)
+			q := 1 + inFlight*float64(max(st.clients, 1)) + float64(st.AvgQueueSize)
 
 			return rtt - s + q*q*q*s
 		}

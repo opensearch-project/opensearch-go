@@ -1901,8 +1901,8 @@ func TestFetchAndEvaluateNodeStatsAdaptiveSelection(t *testing.T) {
 			// Each reporter's first report is only a baseline, so seed one
 			// that the polled values differ from.
 			before := time.Now().Add(-time.Second)
-			conn.ars.record(before, "testnode", cmp.Or(tt.connID, "testnode"), AdaptiveSelectionStats{})
-			peer.ars.record(before, "testnode", "peer", AdaptiveSelectionStats{})
+			conn.ars.record(before, "testnode", cmp.Or(tt.connID, "testnode"), 1, AdaptiveSelectionStats{})
+			peer.ars.record(before, "testnode", "peer", 1, AdaptiveSelectionStats{})
 			pool := newStandbyPool([]*Connection{conn}, []*Connection{peer})
 			client := newTestClientWithPool(server.Client().Transport, pool)
 			client.overloadedHeapThreshold = 85
@@ -1913,9 +1913,12 @@ func TestFetchAndEvaluateNodeStatsAdaptiveSelection(t *testing.T) {
 			at := time.Now().Add(adaptiveSelectionBlackout)
 			got, ok := conn.ars.load(at)
 			require.Equal(t, tt.wantSeen, ok)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, got.AdaptiveSelectionStats)
+			if ok {
+				require.Equal(t, len(tt.ars), got.clients, "clients is the report's entry count")
+			}
 			gotPeer, _ := peer.ars.load(at)
-			require.Equal(t, tt.wantPeer, gotPeer)
+			require.Equal(t, tt.wantPeer, gotPeer.AdaptiveSelectionStats)
 			require.Equal(t, tt.wantOver, conn.loadConnState().lifecycle().has(lcOverloaded))
 		})
 	}
