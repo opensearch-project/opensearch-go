@@ -1108,7 +1108,7 @@ func TestEvaluateOverload(t *testing.T) {
 			},
 		}
 
-		require.False(t, c.evaluateOverload(conn, stats))
+		require.False(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("heap overload", func(t *testing.T) {
@@ -1119,7 +1119,7 @@ func TestEvaluateOverload(t *testing.T) {
 			Breakers: map[string]BreakerStats{},
 		}
 
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("breaker ratio overload", func(t *testing.T) {
@@ -1132,7 +1132,7 @@ func TestEvaluateOverload(t *testing.T) {
 			},
 		}
 
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("breaker trip delta", func(t *testing.T) {
@@ -1146,16 +1146,16 @@ func TestEvaluateOverload(t *testing.T) {
 		}
 
 		// First poll: establishes baseline (no delta yet)
-		result := c.evaluateOverload(conn, stats)
+		result := c.evaluateOverload(conn, stats, "")
 		require.False(t, result, "first poll should not detect trip delta")
 
 		// Second poll: same trip count, no delta
-		result = c.evaluateOverload(conn, stats)
+		result = c.evaluateOverload(conn, stats, "")
 		require.False(t, result, "no new trips should not trigger overload")
 
 		// Third poll: trip count increased
 		stats.Breakers["fielddata"] = BreakerStats{LimitSizeInBytes: 1000, EstimatedSizeInBytes: 100, Tripped: 7}
-		result = c.evaluateOverload(conn, stats)
+		result = c.evaluateOverload(conn, stats, "")
 		require.True(t, result, "trip count increase should trigger overload")
 	})
 
@@ -1171,7 +1171,7 @@ func TestEvaluateOverload(t *testing.T) {
 			Breakers: map[string]BreakerStats{},
 		}
 
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("cluster green status not overloaded", func(t *testing.T) {
@@ -1186,7 +1186,7 @@ func TestEvaluateOverload(t *testing.T) {
 			Breakers: map[string]BreakerStats{},
 		}
 
-		require.False(t, c.evaluateOverload(conn, stats))
+		require.False(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("nil cluster health not overloaded", func(t *testing.T) {
@@ -1198,7 +1198,7 @@ func TestEvaluateOverload(t *testing.T) {
 			Breakers: map[string]BreakerStats{},
 		}
 
-		require.False(t, c.evaluateOverload(conn, stats))
+		require.False(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("multiple conditions", func(t *testing.T) {
@@ -1215,7 +1215,7 @@ func TestEvaluateOverload(t *testing.T) {
 			},
 		}
 
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("first poll initializes lastBreakerTripped", func(t *testing.T) {
@@ -1234,7 +1234,7 @@ func TestEvaluateOverload(t *testing.T) {
 		require.Nil(t, conn.mu.lastBreakerTripped)
 		conn.mu.RUnlock()
 
-		c.evaluateOverload(conn, stats)
+		c.evaluateOverload(conn, stats, "")
 
 		conn.mu.RLock()
 		require.NotNil(t, conn.mu.lastBreakerTripped)
@@ -1696,7 +1696,7 @@ func TestEvaluateOverload_DebugLogging(t *testing.T) {
 			JVM:      JVMStats{Mem: JVMMemStats{HeapUsedPercent: 50}},
 			Breakers: map[string]BreakerStats{},
 		}
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("heap threshold debug log", func(t *testing.T) {
@@ -1706,7 +1706,7 @@ func TestEvaluateOverload_DebugLogging(t *testing.T) {
 			JVM:      JVMStats{Mem: JVMMemStats{HeapUsedPercent: 90}},
 			Breakers: map[string]BreakerStats{},
 		}
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("breaker ratio debug log", func(t *testing.T) {
@@ -1718,7 +1718,7 @@ func TestEvaluateOverload_DebugLogging(t *testing.T) {
 				"parent": {LimitSizeInBytes: 1000, EstimatedSizeInBytes: 950, Tripped: 0},
 			},
 		}
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 
 	t.Run("breaker trip delta debug log", func(t *testing.T) {
@@ -1731,10 +1731,10 @@ func TestEvaluateOverload_DebugLogging(t *testing.T) {
 			},
 		}
 		// First poll: baseline
-		c.evaluateOverload(conn, stats)
+		c.evaluateOverload(conn, stats, "")
 		// Second poll: trip count increased
 		stats.Breakers["fielddata"] = BreakerStats{LimitSizeInBytes: 1000, EstimatedSizeInBytes: 100, Tripped: 8}
-		require.True(t, c.evaluateOverload(conn, stats))
+		require.True(t, c.evaluateOverload(conn, stats, ""))
 	})
 }
 
@@ -1948,4 +1948,126 @@ func TestPollClusterHealth_EmptyConnections(*testing.T) {
 
 	// Should not panic; exercises the len(conns) == 0 early return
 	client.pollClusterHealth()
+}
+
+// --- resource_usage_stats ---
+
+func TestResourceUsageStatsParse(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		body string
+		want map[string]ResourceUsageStats
+	}{
+		{
+			name: "cpu and io",
+			body: `{"nodes":{"n1":{"resource_usage_stats":{"n1":{"timestamp":1,"cpu_utilization_percent":"12.5",` +
+				`"memory_utilization_percent":"40.0","io_usage_stats":{"max_io_utilization_percent":"3.0"}}}}}}`,
+			want: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "12.5", IOUsageStats: &IOUsageStats{MaxIOUtilizationPercent: "3.0"}}},
+		},
+		{
+			name: "cpu only",
+			body: `{"nodes":{"n1":{"resource_usage_stats":{"n1":{"cpu_utilization_percent":"7.0"}}}}}`,
+			want: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "7.0"}},
+		},
+		{
+			name: "field absent",
+			body: `{"nodes":{"n1":{}}}`,
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var resp NodeStatsResponse
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &resp))
+			require.Equal(t, tt.want, resp.Nodes["n1"].ResourceUsageStats)
+		})
+	}
+}
+
+func TestNodeStatsPathFor(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    string
+	}{
+		{version: "", want: nodeStatsPath},
+		{version: "garbage", want: nodeStatsPath},
+		{version: "2.11.1", want: nodeStatsPath},
+		{version: "2.12.0", want: nodeStatsPathResourceUsage},
+		{version: "3.1.0", want: nodeStatsPathResourceUsage},
+		{version: "v2.12.0", want: nodeStatsPathResourceUsage},
+		{version: "2.12.0-SNAPSHOT", want: nodeStatsPath},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, nodeStatsPathFor(tt.version))
+		})
+	}
+}
+
+func TestEvaluateOverloadResourceUsage(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		rus  map[string]ResourceUsageStats
+		want bool
+	}{
+		{name: "cpu over", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "96"}}, want: true},
+		{name: "cpu high but under", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "94.9"}}},
+		{
+			name: "io over",
+			rus:  map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "10", IOUsageStats: &IOUsageStats{MaxIOUtilizationPercent: "97"}}},
+			want: true,
+		},
+		{name: "other node only", rus: map[string]ResourceUsageStats{"n2": {CPUUtilizationPercent: "99"}}},
+		{name: "unparseable", rus: map[string]ResourceUsageStats{"n1": {CPUUtilizationPercent: "abc"}}},
+		{name: "field absent"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			c := &Transport{
+				overloadedHeapThreshold: defaultOverloadedHeapThreshold,
+				overloadedBreakerRatio:  defaultOverloadedBreakerRatio,
+			}
+			conn := &Connection{URL: &url.URL{Host: "node1:9200"}}
+			stats := &NodeStats{ResourceUsageStats: tt.rus}
+			require.Equal(t, tt.want, c.evaluateOverload(conn, stats, "n1"))
+		})
+	}
+}
+
+func TestFetchAndEvaluateNodeStatsResourceUsage(t *testing.T) {
+	t.Parallel()
+
+	var cpu atomic.Value
+	cpu.Store("99.0")
+	var gotPath atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath.Store(r.URL.Path)
+		fmt.Fprintf(w, `{"nodes":{"testnode":{"resource_usage_stats":{"testnode":{"cpu_utilization_percent":%q}}}}}`, cpu.Load())
+	}))
+	defer server.Close()
+
+	serverURL, _ := url.Parse(server.URL)
+	conn := &Connection{URL: serverURL}
+	conn.setLifecycleBit(lcActive)
+	conn.storeVersion("2.12.0")
+	pool := newStandbyPool([]*Connection{conn}, []*Connection{newStandbyConn("backup")})
+	client := newTestClientWithPool(server.Client().Transport, pool)
+	client.overloadedHeapThreshold = defaultOverloadedHeapThreshold
+
+	client.fetchAndEvaluateNodeStats(conn, pool)
+	require.Equal(t, nodeStatsPathResourceUsage, gotPath.Load())
+	require.True(t, conn.loadConnState().lifecycle().has(lcOverloaded))
+
+	cpu.Store("10.0")
+	client.fetchAndEvaluateNodeStats(conn, pool)
+	require.False(t, conn.loadConnState().lifecycle().has(lcOverloaded))
 }

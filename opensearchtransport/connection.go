@@ -86,6 +86,11 @@ const (
 	defaultOverloadedHeapThreshold = 85               // JVM heap_used_percent (0-100)
 	defaultOverloadedBreakerRatio  = 0.90             // circuit breaker estimated_size / limit_size (0.0-1.0)
 
+	// CPU and IO utilization (percent, 0-100) from resource_usage_stats.
+	// 95 is the server's own admission-control default limit.
+	overloadedCPUPercent = 95.0
+	overloadedIOPercent  = 95.0
+
 	// Cluster health refresh defaults for ready connections.
 	//
 	// Ready connections with cluster health info are periodically refreshed to keep

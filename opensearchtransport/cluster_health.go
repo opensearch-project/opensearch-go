@@ -29,19 +29,41 @@ package opensearchtransport
 import (
 	"io"
 	"net/http"
+	"strconv"
 	"time"
+
+	"golang.org/x/mod/semver"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
 const clusterStatusRed = "red"
 
-// nodeStatsPath is the node stats poll's request path.
-const nodeStatsPath = "/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection"
+const (
+	// nodeStatsPath is the node stats poll's request path.
+	nodeStatsPath = "/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection"
 
-// NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection.
+	// nodeStatsPathResourceUsage adds resource_usage_stats, which the server
+	// rejects as an unrecognized metric before OpenSearch 2.12.0.
+	nodeStatsPathResourceUsage = nodeStatsPath + ",resource_usage_stats"
+
+	// resourceUsageStatsMinVersion is the first version that serves resource_usage_stats.
+	resourceUsageStatsMinVersion = "v2.12.0"
+)
+
+// nodeStatsPathFor returns the node stats request path for a server version.
+// An empty or non-semver version gets the path every version accepts.
+func nodeStatsPathFor(version string) string {
+	v := withV(version)
+	if semver.IsValid(v) && semver.Compare(v, resourceUsageStatsMinVersion) >= 0 {
+		return nodeStatsPathResourceUsage
+	}
+	return nodeStatsPath
+}
+
+// NodeStatsResponse represents the response from the node stats poll (GET /_nodes/_local/stats).
 // Only the "nodes" map is used; the top-level "_nodes" and "cluster_name" fields are ignored.
-// All fields are present in OpenSearch 1.3.0+.
+// All fields are present in OpenSearch 1.3.0+ except [NodeStats.ResourceUsageStats].
 type NodeStatsResponse struct {
 	Nodes map[string]NodeStats `json:"nodes"`
 }
@@ -55,6 +77,21 @@ type NodeStats struct {
 	// AdaptiveSelection is the polled node's view of each target node as a
 	// coordinator, keyed by target node ID.
 	AdaptiveSelection map[string]AdaptiveSelectionStats `json:"adaptive_selection,omitempty"`
+	// ResourceUsageStats is keyed by node ID. Present on OpenSearch 2.12.0+.
+	ResourceUsageStats map[string]ResourceUsageStats `json:"resource_usage_stats,omitempty"`
+}
+
+// ResourceUsageStats is one node's CPU and IO utilization. The server sends
+// the percentages as JSON strings; they are parsed when evaluated.
+type ResourceUsageStats struct {
+	CPUUtilizationPercent string `json:"cpu_utilization_percent"`
+	// IOUsageStats is present on Linux servers only.
+	IOUsageStats *IOUsageStats `json:"io_usage_stats,omitempty"`
+}
+
+// IOUsageStats is a node's IO utilization.
+type IOUsageStats struct {
+	MaxIOUtilizationPercent string `json:"max_io_utilization_percent"`
 }
 
 // AdaptiveSelectionStats is one target's adaptive replica selection stats.
@@ -192,7 +229,7 @@ func (tr *Transport) pollNodeStats() {
 // congestion windows (AIMD), and evaluates node-level overload state.
 //
 // Two data sources are combined for the overload decision:
-//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection (fetched here)
+//  1. Node-level stats from GET /_nodes/_local/stats (metric list from [nodeStatsPathFor]; fetched here)
 //  2. Cluster health from conn.mu.clusterHealth (already populated by clusterHealthCheck)
 //
 // Thread pool stats drive per-pool AIMD congestion control via [updatePoolCongestion].
@@ -208,7 +245,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 	ctx, cancel := tr.healthCheckContext(tr.ctx)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodeStatsPath, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodeStatsPathFor(conn.loadVersion()), nil)
 	if err != nil {
 		return sample, false
 	}
@@ -303,7 +340,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 		ok = true
 	}
 
-	overloaded := tr.evaluateOverload(conn, nodeStats)
+	overloaded := tr.evaluateOverload(conn, nodeStats, nodeID)
 
 	// Overload demotion/promotion requires a multiServerPool (single-node pools
 	// pass nil since there is nowhere to demote to).
@@ -323,14 +360,25 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 	return sample, ok
 }
 
+// percentAtLeast reports whether s parses as a number >= threshold.
+// An empty or unparseable s is false.
+func percentAtLeast(s string, threshold float64) bool {
+	v, err := strconv.ParseFloat(s, 64)
+	return err == nil && v >= threshold
+}
+
 // evaluateOverload checks both node-level stats and cluster health against overload thresholds.
 // Returns true if any overload condition is met.
 //
-// # Node-level checks (jvm and breaker sections of the node stats poll)
+// # Node-level checks (jvm, breaker and resource_usage_stats sections of the node stats poll)
 //
 //   - JVM heap_used_percent >= overloadedHeapThreshold (default 85%)
 //   - Any circuit breaker's estimated_size / limit_size >= overloadedBreakerRatio (default 0.90)
 //   - Any circuit breaker's tripped count increased since the last poll (delta detection)
+//   - The polled node's resource_usage_stats cpu_utilization_percent >= overloadedCPUPercent (95) (OpenSearch 2.12.0+)
+//   - The polled node's resource_usage_stats max_io_utilization_percent >= overloadedIOPercent (95) (OpenSearch 2.12.0+, Linux)
+//
+// nodeID is the polled node's ID, the key of its own resource_usage_stats entry.
 //
 // # Cluster health checks (from conn.mu.clusterHealth, populated by clusterHealthCheck)
 //
@@ -340,7 +388,7 @@ func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServ
 // checks via /_cluster/health?local=true without any additional HTTP calls.
 //
 // Updates conn.mu.lastBreakerTripped for delta detection on next poll.
-func (tr *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
+func (tr *Transport) evaluateOverload(conn *Connection, stats *NodeStats, nodeID string) bool {
 	overloaded := false
 
 	// --- Cluster health checks (reuse data from clusterHealthCheck) ---
@@ -364,6 +412,26 @@ func (tr *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 			Int("threshold", tr.overloadedHeapThreshold).
 			Msg("Node overloaded: heap over threshold")
 		overloaded = true
+	}
+
+	// CPU and IO utilization of the polled node (OpenSearch 2.12.0+)
+	if rus, found := stats.ResourceUsageStats[nodeID]; found {
+		if percentAtLeast(rus.CPUUtilizationPercent, overloadedCPUPercent) {
+			Debug().
+				Str("conn", conn.URLString).
+				Str("cpu_utilization_percent", rus.CPUUtilizationPercent).
+				Float64("threshold", overloadedCPUPercent).
+				Msg("Node overloaded: CPU over threshold")
+			overloaded = true
+		}
+		if rus.IOUsageStats != nil && percentAtLeast(rus.IOUsageStats.MaxIOUtilizationPercent, overloadedIOPercent) {
+			Debug().
+				Str("conn", conn.URLString).
+				Str("max_io_utilization_percent", rus.IOUsageStats.MaxIOUtilizationPercent).
+				Float64("threshold", overloadedIOPercent).
+				Msg("Node overloaded: IO over threshold")
+			overloaded = true
+		}
 	}
 
 	// Circuit breakers

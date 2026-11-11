@@ -143,8 +143,7 @@ const (
 	// Health checks fall back to baseline GET / only.
 	discoverySkipClusterHealth
 
-	// discoverySkipNodeStats disables
-	// GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection polling.
+	// discoverySkipNodeStats disables node stats polling (see [nodeStatsPathFor]).
 	// No per-pool congestion tracking, no overload detection.
 	discoverySkipNodeStats
 )

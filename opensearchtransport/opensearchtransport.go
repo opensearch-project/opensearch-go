@@ -424,7 +424,7 @@ type Config struct {
 	// other value is a time.ParseDuration string (e.g. "10m").
 	VerifyDeadAfter time.Duration
 
-	// NodeStatsInterval sets the polling interval for /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection.
+	// NodeStatsInterval sets the polling interval for the node stats poll (GET /_nodes/_local/stats).
 	// A background goroutine polls each ready node's JVM heap usage and circuit breaker
 	// metrics to detect overloaded nodes and shed load away from them.
 	// 0 = auto-derive from cluster size: clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 30s),
