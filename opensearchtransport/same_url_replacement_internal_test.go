@@ -28,26 +28,26 @@ func TestRoutingPoliciesPreserveSameURLReplacement(t *testing.T) {
 	t.Parallel()
 
 	policies := []struct {
-		name  string
-		roles []string
-		new   func() (Policy, error)
+		name      string
+		roles     []string
+		newPolicy func() (Policy, error)
 	}{
-		{name: "round robin", roles: []string{RoleData}, new: func() (Policy, error) {
+		{name: "round robin", roles: []string{RoleData}, newPolicy: func() (Policy, error) {
 			return NewRoundRobinPolicy(), nil
 		}},
-		{name: "data role", roles: []string{RoleData}, new: func() (Policy, error) {
+		{name: "data role", roles: []string{RoleData}, newPolicy: func() (Policy, error) {
 			return NewRolePolicy(RoleData)
 		}},
-		{name: "index router", roles: []string{RoleData}, new: func() (Policy, error) {
+		{name: "index router", roles: []string{RoleData}, newPolicy: func() (Policy, error) {
 			return NewIndexRouter()
 		}},
-		{name: "document router", roles: []string{RoleData}, new: func() (Policy, error) {
+		{name: "document router", roles: []string{RoleData}, newPolicy: func() (Policy, error) {
 			return NewDocRouter()
 		}},
-		{name: "coordinator", new: func() (Policy, error) {
+		{name: "coordinator", newPolicy: func() (Policy, error) {
 			return NewCoordinatorPolicy(), nil
 		}},
-		{name: "coordinating role", new: func() (Policy, error) {
+		{name: "coordinating role", newPolicy: func() (Policy, error) {
 			return NewRolePolicy(RoleCoordinatingOnly)
 		}},
 	}
@@ -77,7 +77,7 @@ func TestRoutingPoliciesPreserveSameURLReplacement(t *testing.T) {
 			t.Run(policyCase.name+"/"+tt.name, func(t *testing.T) {
 				t.Parallel()
 
-				policy, err := policyCase.new()
+				policy, err := policyCase.newPolicy()
 				require.NoError(t, err)
 
 				config := createTestConfig()
@@ -132,17 +132,17 @@ func TestRoutingPoliciesPreserveSameURLReplacementOfDeadNode(t *testing.T) {
 	t.Parallel()
 
 	policies := []struct {
-		name  string
-		roles []string
-		new   func() (Policy, error)
+		name      string
+		roles     []string
+		newPolicy func() (Policy, error)
 	}{
-		{name: "round robin", roles: []string{RoleData}, new: func() (Policy, error) {
+		{name: "round robin", roles: []string{RoleData}, newPolicy: func() (Policy, error) {
 			return NewRoundRobinPolicy(), nil
 		}},
-		{name: "coordinator", new: func() (Policy, error) {
+		{name: "coordinator", newPolicy: func() (Policy, error) {
 			return NewCoordinatorPolicy(), nil
 		}},
-		{name: "data role", roles: []string{RoleData}, new: func() (Policy, error) {
+		{name: "data role", roles: []string{RoleData}, newPolicy: func() (Policy, error) {
 			return NewRolePolicy(RoleData)
 		}},
 	}
@@ -151,7 +151,7 @@ func TestRoutingPoliciesPreserveSameURLReplacementOfDeadNode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			policy, err := tt.new()
+			policy, err := tt.newPolicy()
 			require.NoError(t, err)
 
 			config := createTestConfig()
@@ -295,17 +295,17 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 	// Each constructor returns the policy, its state bits, and a func listing
 	// the connections the policy holds.
 	policies := []struct {
-		name  string
-		roles []string
-		new   func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection)
+		name      string
+		roles     []string
+		newPolicy func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection)
 	}{
-		{name: "round robin", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "round robin", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
 			t.Helper()
 			p, ok := NewRoundRobinPolicy().(*RoundRobinPolicy)
 			require.True(t, ok)
 			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
 		}},
-		{name: "data role", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "data role", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
 			t.Helper()
 			policy, err := NewRolePolicy(RoleData)
 			require.NoError(t, err)
@@ -313,7 +313,7 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 			require.True(t, ok)
 			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
 		}},
-		{name: "index router", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "index router", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
 			t.Helper()
 			p, err := NewIndexRouter()
 			require.NoError(t, err)
@@ -323,7 +323,7 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 				return slices.Clone(p.mu.activeConns)
 			}
 		}},
-		{name: "document router", roles: []string{RoleData}, new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "document router", roles: []string{RoleData}, newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
 			t.Helper()
 			p, err := NewDocRouter()
 			require.NoError(t, err)
@@ -333,13 +333,13 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 				return slices.Clone(p.mu.activeConns)
 			}
 		}},
-		{name: "coordinator", new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "coordinator", newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
 			t.Helper()
 			p, ok := NewCoordinatorPolicy().(*CoordinatorPolicy)
 			require.True(t, ok)
 			return p, &p.policyState, func() []*Connection { return poolConns(p.pool)() }
 		}},
-		{name: "coordinating role", new: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
+		{name: "coordinating role", newPolicy: func(t *testing.T) (Policy, *atomic.Int32, func() []*Connection) {
 			t.Helper()
 			policy, err := NewRolePolicy(RoleCoordinatingOnly)
 			require.NoError(t, err)
@@ -393,7 +393,7 @@ func TestRoutingPolicyDiscoveryUpdateSkips(t *testing.T) {
 			t.Run(policyCase.name+"/"+tt.name, func(t *testing.T) {
 				t.Parallel()
 
-				policy, state, conns := policyCase.new(t)
+				policy, state, conns := policyCase.newPolicy(t)
 				config := createTestConfig()
 				config.ctx = t.Context()
 				require.NoError(t, policy.(policyConfigurable).configurePolicySettings(config))
