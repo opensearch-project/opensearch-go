@@ -514,6 +514,9 @@ type Config struct {
 	//nolint:containedctx // Config struct is short-lived, context extracted during New()
 	Context context.Context
 
+	// ConnectionPoolFunc, if set, builds the connection pool from the seed
+	// connections. It receives its own copy of the slice and may keep or
+	// modify it.
 	ConnectionPoolFunc func([]*Connection, Selector) ConnectionPool
 
 	// AddressResolver is called during node discovery for each node discovered
@@ -1354,7 +1357,7 @@ func New(cfg Config) (*Transport, error) {
 	}
 
 	if client.poolFunc != nil {
-		client.mu.connectionPool = client.poolFunc(conns, cfg.Selector)
+		client.mu.connectionPool = client.poolFunc(slices.Clone(conns), cfg.Selector)
 	} else {
 		// Use client-configured timeout settings for the main connection pool
 		if len(conns) == 1 {
@@ -1382,7 +1385,7 @@ func New(cfg Config) (*Transport, error) {
 				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 				conn.mu.Unlock()
 			}
-			pool.mu.ready = conns
+			pool.mu.ready = slices.Clone(conns) // See multiServerPool.mu.ready; New keeps reading conns.
 			pool.mu.activeCount = len(conns)
 			pool.mu.dead = []*Connection{}
 			pool.mu.members = make(map[*Connection]struct{}, max(len(conns), defaultMembersCapacity))
@@ -1566,6 +1569,7 @@ type streamResult struct {
 	routeName   string        // classified operation name (captured pre-rewrite)
 	index       string        // target index extracted from the path (captured pre-rewrite)
 	escapedPath string        // URL-escaped request path as supplied (captured pre-rewrite)
+	bodyBytes   int64         // bytes of response body a buffered attempt read, partial on a failed read
 
 	// ctx is the request context after OnRequestStart runs, handed back to the
 	// caller's response-hook fire site so a tracer's span-carrying context
@@ -1599,7 +1603,7 @@ type streamResult struct {
 // For typed, decoded results where the SDK owns the body, use
 // [github.com/opensearch-project/opensearch-go/v5.Execute] instead.
 func (tr *Transport) Stream(req *http.Request) (*http.Response, error) {
-	res, sr, err := tr.stream(req)
+	res, sr, err := tr.stream(req, bodyStreamed)
 
 	// Fire the streaming response event (time-to-first-byte, Content-Length
 	// header) only when an observer is registered, so a request without one
@@ -1639,20 +1643,30 @@ func (tr *Transport) Stream(req *http.Request) (*http.Response, error) {
 // failure returns the buffered response together with an error, such as
 // [ErrResponseBodyRead] when the body read fails. Callers distinguish the two
 // by testing resp == nil, not err != nil.
+//
+// Reading the body is part of each attempt, so the per-attempt RequestTimeout
+// covers it and a failed read counts against the node that served it: the node
+// is reported failed, not successful. A read that fails the way a round trip
+// is retried for (a dropped connection or EOF, a network error, an HTTP/2
+// stream reset, or a timeout with EnableRetryOnTimeout) is retried within
+// MaxRetries, unless DisableRetry is set, when the operation is a read such as
+// a search; another read error, such as a corrupt compressed body, is not
+// retried. The read failure by itself never causes a write or a scroll to be
+// replayed, since the node may already have applied the write or advanced the
+// cursor; a status in RetryOnStatus, or 429, is still retried as for any
+// request. A caller cancellation or deadline during the read is neither
+// retried nor held against the node. When the read is not retried, or the
+// attempts are exhausted, the buffered partial response is returned with an
+// error matching [ErrResponseBodyRead] and the read's cause.
 func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
-	res, sr, err := tr.stream(req)
+	res, sr, err := tr.stream(req, bodyBuffered)
 
-	// Buffer the body so the connection returns to the pool. This is core
-	// Request behavior and runs regardless of whether an observer is registered.
+	// stream buffered the body, so the connection is already back in the pool.
+	// sr.bodyBytes is the final round trip's count. It is stale only when the
+	// loop ended before a round trip, which also leaves res nil.
 	var n int64
-	if res != nil && res.Body != nil {
-		body, rerr := tr.readResponseBody(res)
-		res.Body.Close()
-		res.Body = bufbody.New(body)
-		n = int64(len(body))
-		if rerr != nil && err == nil {
-			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
-		}
+	if res != nil {
+		n = sr.bodyBytes
 	}
 
 	// Fire the buffered response event (full-read duration, exact byte count)
@@ -1751,9 +1765,13 @@ const headerContentEncoding = "Content-Encoding"
 // stream is the shared transport core behind Stream and Request. It performs
 // routing, signing, header injection, request-body compression, retry, metrics,
 // and seed URL fallback, and returns the raw response alongside the timing of
-// the final attempt. It does not read the body or fire observer events; the
-// callers own those concerns.
-func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, error) {
+// the final attempt. It does not fire observer events; the callers own that.
+//
+// mode says who reads the response body; see [bodyMode]. With bodyBuffered a
+// failed read goes through the same failure and retry handling as a failed
+// RoundTrip, and the returned body is already buffered (a body-logging logger
+// may replace it).
+func (tr *Transport) stream(req *http.Request, mode bodyMode) (*http.Response, streamResult, error) {
 	var (
 		res *http.Response
 		err error
@@ -2067,7 +2085,9 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			attemptReq.Close = true
 		}
 
-		res, callerCanceled, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
+		res, callerCanceled, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn, mode)
+		// Counted before logRoundTrip, which may replace a response body.
+		sr.bodyBytes = bufferedLen(res)
 
 		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			statusCode := 0
@@ -2078,14 +2098,14 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 
 		if attemptCancel != nil {
-			// If the response body is non-nil, the caller is responsible for
-			// reading and closing it. Cancel the attempt context only after
-			// the body is fully consumed or on error. For now, cancel
-			// immediately -- http.Transport will not abort an in-progress
-			// body read on a completed RoundTrip when the context expires.
-			// The timeout bounds the headers-received phase; body reads
-			// proceed independently.
-			if err != nil || res == nil {
+			// A body the attempt has already read whole needs nothing more from
+			// the attempt's context, which is cancelled at once. Otherwise the
+			// caller reads and closes the body: the timeout bounds only the
+			// headers-received phase, because http.Transport will not abort an
+			// in-progress body read on a completed RoundTrip when the context
+			// expires, and the context is cancelled when the caller closes the
+			// body.
+			if err != nil || res == nil || bodyDone(res) {
 				attemptCancel()
 			} else {
 				// Wrap the response body so the attempt context is cancelled
@@ -2197,6 +2217,13 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 				if (!netError.Timeout() || tr.enableRetryOnTimeout) && !tr.disableRetry {
 					shouldRetry = true
 				}
+			}
+
+			// A body-read failure means the node may already have applied the
+			// request, so only an operation that is safe to repeat is replayed.
+			// The node was still reported failed above.
+			if shouldRetry && errors.Is(err, ErrResponseBodyRead) && !repeatable(req.Method, origPath) {
+				shouldRetry = false
 			}
 		} else {
 			// Report the connection as successful
@@ -2325,7 +2352,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// attempt could not obtain a connection, which happens before setReqURL runs;
 	// a retry restores the caller path before routing for the same reason.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
-		res, err = tr.performSeedFallback(req.Context(), req, bodyOpen, compressed, &sr)
+		res, err = tr.performSeedFallback(req.Context(), req, bodyOpen, compressed, &sr, mode)
 	} else if bodyOpen {
 		// Nothing will send the body, so close it as a RoundTripper does for a
 		// request it fails.
@@ -2395,6 +2422,53 @@ func redactedRequestURL(req *http.Request) string {
 //nolint:gochecknoglobals // process-wide immutable classifier, built once
 var defaultOperationClassifier = sync.OnceValue(NewOperationClassifier)
 
+// bodyMode says who reads a response body: the caller, or each attempt.
+type bodyMode uint8
+
+const (
+	// bodyStreamed leaves the body unread for the caller, as [Transport.Stream]
+	// returns it.
+	bodyStreamed bodyMode = iota
+	// bodyBuffered has each attempt read the body whole into a [bufbody.Bytes]
+	// before the attempt is judged, as [Transport.Request] returns it.
+	bodyBuffered
+)
+
+// bodyDone reports whether res's body needs nothing more from the attempt that
+// fetched it: the attempt read it whole, or there is none. A RoundTripper
+// returns a non-nil body with every response, so a nil one is only defended
+// against here.
+func bodyDone(res *http.Response) bool {
+	if res.Body == nil {
+		return true
+	}
+	_, ok := res.Body.(*bufbody.Bytes)
+	return ok
+}
+
+// bufferedLen returns the length of res's body when a buffered attempt read it,
+// and 0 for a nil response or any other body.
+func bufferedLen(res *http.Response) int64 {
+	if res == nil {
+		return 0
+	}
+	if b, ok := res.Body.(*bufbody.Bytes); ok {
+		return int64(b.Len())
+	}
+	return 0
+}
+
+// repeatable reports whether a request may be sent again after the node may
+// already have handled it. It is true for a read-only operation of the built-in
+// classifier, never [Config.OperationClassifier], which only labels
+// observability. A scroll read is excluded: the server has already advanced the
+// cursor, so a replay would skip a page. path is the caller's, without any node
+// base path.
+func repeatable(method, path string) bool {
+	op := defaultOperationClassifier().Classify(method, path)
+	return op.IsRead() && op.Category() != CatScroll
+}
+
 // operationClassifier returns the transport's route-name classifier: the
 // caller-supplied [Config.OperationClassifier] when set, otherwise the shared
 // process-wide default. Used only to derive the observability RouteName label.
@@ -2441,12 +2515,17 @@ func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
 // The drain itself is [Connection.drainingConn]: a later request carries
 // Request.Close and net/http retires the connection. Nothing is closed here.
 //
+// With mode bodyBuffered the response body is read whole before returning; a
+// failed read returns the partial response together with an error wrapping
+// [ErrResponseBodyRead].
+//
 // The second result reports a caller cancellation observed when RoundTrip
-// returned, before observers or cleanup can cancel any context.
+// (or the body read) returned, before observers or cleanup can cancel any context.
 func (tr *Transport) roundTripAttempt(
 	attemptReq *http.Request,
 	attemptCtx, callerCtx context.Context,
 	conn *Connection,
+	mode bodyMode,
 ) (*http.Response, bool, error) {
 	// Rebuild the request only when a timeout or observer span actually derived
 	// a new context, so the default path allocates nothing.
@@ -2455,6 +2534,18 @@ func (tr *Transport) roundTripAttempt(
 	}
 
 	res, err := tr.transport.RoundTrip(attemptReq)
+
+	// A buffered attempt reads the body here, while attemptCtx is still live, so
+	// the per-attempt timeout bounds the read and a failed read is classified
+	// below like a RoundTrip error. The partial body stays on res.
+	if err == nil && res != nil && res.Body != nil && mode == bodyBuffered {
+		body, rerr := tr.readResponseBody(res)
+		res.Body.Close()
+		res.Body = bufbody.New(body)
+		if rerr != nil {
+			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
+		}
+	}
 	callerCanceled := err != nil && callerCtx.Err() != nil
 
 	// Ask for a drain only for a timeout we generated. context.DeadlineExceeded
@@ -2492,6 +2583,7 @@ func (tr *Transport) roundTripAttempt(
 // compressedBody.
 func (tr *Transport) performSeedFallback(
 	ctx context.Context, req *http.Request, bodyOpen bool, compressed *compressedBody, sr *streamResult,
+	mode bodyMode,
 ) (*http.Response, error) {
 	handedOver := false
 	if bodyOpen {
@@ -2572,10 +2664,11 @@ func (tr *Transport) performSeedFallback(
 	}
 
 	//nolint:contextcheck // child of req.Context()
-	res, callerCanceled, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
+	res, callerCanceled, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn, mode)
+	sr.bodyBytes = bufferedLen(res)
 
 	if attemptCancel != nil {
-		if err != nil || res == nil {
+		if err != nil || res == nil || bodyDone(res) {
 			attemptCancel()
 		} else {
 			res.Body = &cancelOnCloseBody{ReadCloser: res.Body, cancel: attemptCancel}
@@ -2597,7 +2690,11 @@ func (tr *Transport) performSeedFallback(
 			tr.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
 		}
 
-		return nil, fmt.Errorf("seed fallback request failed: %w", err)
+		if !errors.Is(err, ErrResponseBodyRead) {
+			res = nil
+		}
+
+		return res, fmt.Errorf("seed fallback request failed: %w", err)
 	}
 
 	Debug().Str("conn", conn.URLString).Msg("Seed fallback: request succeeded, triggering rediscovery")

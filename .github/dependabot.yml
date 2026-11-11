@@ -5,7 +5,7 @@ version: 2
 # job in lint.yml, so a module absent from the lists below is never scanned. A
 # new nested module has to be added here as well as to the Makefile and CI.
 updates:
-  # --- v5 (default branch: main) ---
+  # --- v6 (default branch: main) ---
   - package-ecosystem: "gomod"
     directories:
       - "/"
@@ -25,10 +25,44 @@ updates:
     labels:
       - "dependabot"
       - "dependencies"
-      - "v5"
+      - "v6"
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "main"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "v6"
+
+  # --- v5 maintenance branch ---
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+      - "/cmd/osapilint"
+      - "/cmd/osgen"
+      - "/compress"
+      - "/log-slog"
+      - "/log-zerolog"
+      - "/osotel"
+      - "/osprom"
+    target-branch: "v5"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "v5"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "v5"
     schedule:
       interval: "weekly"
       day: "tuesday"
