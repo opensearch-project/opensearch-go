@@ -425,8 +425,10 @@ type Config struct {
 	VerifyDeadAfter time.Duration
 
 	// NodeStatsInterval sets the polling interval for the node stats poll (GET /_nodes/_local/stats).
-	// A background goroutine polls each ready node's JVM heap usage and circuit breaker
-	// metrics to detect overloaded nodes and shed load away from them.
+	// A background goroutine polls each ready node's JVM heap, circuit breaker and,
+	// on OpenSearch 2.12 or later, CPU and IO usage to detect overloaded nodes and
+	// shed load away from them, and collects the adaptive_selection stats that
+	// search and get scoring reads.
 	// 0 = auto-derive from cluster size: clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 30s),
 	//     recalculated on each discovery cycle.
 	// >0 = explicit fixed interval, <0 = disabled.

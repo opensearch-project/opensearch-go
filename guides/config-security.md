@@ -436,15 +436,16 @@ In v5 the client enables the default router unless `OPENSEARCH_GO_ROUTER=false`.
 
 Every endpoint the routing and discovery machinery calls maps to a cluster-level monitoring action. No index-level privileges are required.
 
-| Endpoint                                                          | Method | Used by                                                              | Required privilege            |
-| ----------------------------------------------------------------- | ------ | -------------------------------------------------------------------- | ----------------------------- |
-| `/`                                                               | GET    | Baseline health check                                                | none (works unauthenticated)  |
-| `/_cluster/health?local=true`                                     | GET    | Health-based capability probing                                      | `cluster:monitor/health`      |
-| `/_nodes/http`                                                    | GET    | Node discovery (topology)                                            | `cluster:monitor/nodes/info`  |
-| `/_nodes/_local/http,os,thread_pool`                              | GET    | Hardware/thread-pool discovery                                       | `cluster:monitor/nodes/info`  |
-| `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection` | GET    | AIMD congestion window, overload detection, adaptive selection stats | `cluster:monitor/nodes/stats` |
-| `/_cat/shards?format=json`                                        | GET    | Shard placement (rendezvous hash)                                    | `cluster:monitor/shards`      |
-| `/_cluster/state/metadata/{index}`                                | GET    | Shard routing metadata                                               | `cluster:monitor/state`       |
+| Endpoint                                                                               | Method | Used by                                                                         | Required privilege            |
+| -------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------- | ----------------------------- |
+| `/`                                                                                    | GET    | Baseline health check                                                           | none (works unauthenticated)  |
+| `/_cluster/health?local=true`                                                          | GET    | Health-based capability probing                                                 | `cluster:monitor/health`      |
+| `/_nodes/http`                                                                         | GET    | Node discovery (topology)                                                       | `cluster:monitor/nodes/info`  |
+| `/_nodes/_local/http,os,thread_pool`                                                   | GET    | Hardware/thread-pool discovery                                                  | `cluster:monitor/nodes/info`  |
+| `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection`                      | GET    | AIMD congestion window, overload detection, adaptive selection stats            | `cluster:monitor/nodes/stats` |
+| `/_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection,resource_usage_stats` | GET    | The same poll on OpenSearch 2.12 or later, adding CPU and IO overload detection | `cluster:monitor/nodes/stats` |
+| `/_cat/shards?format=json`                                                             | GET    | Shard placement (rendezvous hash)                                               | `cluster:monitor/shards`      |
+| `/_cluster/state/metadata/{index}`                                                     | GET    | Shard routing metadata                                                          | `cluster:monitor/state`       |
 
 ### Copy-paste role
 
@@ -456,7 +457,7 @@ opensearch_go_client_routing:
   cluster_permissions:
     - "cluster:monitor/health" # GET /_cluster/health?local=true
     - "cluster:monitor/nodes/info" # GET /_nodes/http, /_nodes/_local/http,os,thread_pool
-    - "cluster:monitor/nodes/stats" # GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection
+    - "cluster:monitor/nodes/stats" # GET /_nodes/_local/stats/jvm,breaker,thread_pool,adaptive_selection[,resource_usage_stats]
     - "cluster:monitor/shards" # GET /_cat/shards
     - "cluster:monitor/state" # GET /_cluster/state/metadata/*
 ```

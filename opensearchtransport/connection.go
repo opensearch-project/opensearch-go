@@ -434,9 +434,10 @@ func (conn *Connection) RTTMedian() time.Duration {
 // Buckets use power-of-two quantization: bucket = floor(log2(microseconds)),
 // clamped to a floor of 8 (256us). Returns -1 if no RTT data is available.
 //
-// This is the value used in routing score calculations:
-//
-//	score = load * shardCostMultiplier   (load: see connLoadScore)
+// The bucket sorts nodes into latency tiers (AZ tiering, fan-out, sort order).
+// The routing score uses the pool's request latency instead
+// ([Connection.loadLatencyMicros]; see connLoadScore), which falls back to the
+// RTT median, not the bucket, until the pool has a sample.
 func (conn *Connection) RTTBucket() int64 {
 	if conn.rttRing == nil {
 		return -1
