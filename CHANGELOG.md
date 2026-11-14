@@ -33,6 +33,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bump `github.com/aws/aws-sdk-go-v2` from v1.47.5 to v1.48.0 and `github.com/aws/aws-sdk-go-v2/config` from v1.33.13 to v1.33.18 ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
 - Bump `github.com/getkin/kin-openapi` from 0.152.0 to 0.153.0 in `cmd/osgen`, and `golang.org/x/mod`, `golang.org/x/sync`, `golang.org/x/sys` and `golang.org/x/text` to their latest minor versions ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
 - Bump the `opensearch-go/v5` requirement in `compress`, `log-slog`, `log-zerolog`, `osotel` and `osprom` from a pseudo-version to v5.2.0 ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))
+- Set `Type` in `NewCommonMappingPropertyFromBinaryProperty` and `NewCommonMappingPropertyFromMatchOnlyTextProperty`, which left it empty and produced a mapping OpenSearch rejects ([#1336](https://github.com/opensearch-project/opensearch-go/issues/1336))
 
 ## [5.2.0]
 
