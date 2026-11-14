@@ -1175,10 +1175,6 @@ func TestRenameToSchemaLocalLeavesBranchAlone(t *testing.T) {
 	}
 }
 
-// TestResolveDiscriminatorFieldsRecursiveUnion covers a discriminated union whose
-// first branch refers back to the union. The nested walk registers the union
-// while that branch is still being built, so the branch must still end up with
-// its discriminator field once the outer walk finishes.
 func TestResolveDiscriminatorFieldsRecursiveUnion(t *testing.T) {
 	t.Parallel()
 

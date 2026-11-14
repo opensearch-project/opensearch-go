@@ -155,10 +155,7 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		return registered.Name
 	}
 	if existing, ok := w.registry.lookup(schemaKey); ok {
-		// A recursive union (a branch that refers back to the union) is
-		// registered by the nested walk while the outer branch is still being
-		// built, so that branch's field could not be found then. Resolve again
-		// now that every branch is registered.
+		// Recursive unions register before their first branch is built.
 		if existing.Discriminator != nil {
 			w.resolveDiscriminatorFields(existing.Branches, existing.Discriminator.PropertyName)
 		}
