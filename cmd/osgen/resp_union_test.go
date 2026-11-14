@@ -1174,3 +1174,64 @@ func TestRenameToSchemaLocalLeavesBranchAlone(t *testing.T) {
 		})
 	}
 }
+
+// TestResolveDiscriminatorFieldsRecursiveUnion covers a discriminated union whose
+// first branch refers back to the union. The nested walk registers the union
+// while that branch is still being built, so the branch must still end up with
+// its discriminator field once the outer walk finishes.
+func TestResolveDiscriminatorFieldsRecursiveUnion(t *testing.T) {
+	t.Parallel()
+
+	const doc = `
+openapi: 3.0.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    test___Property:
+      discriminator:
+        propertyName: type
+      oneOf:
+        - $ref: '#/components/schemas/test___BinaryProperty'
+        - $ref: '#/components/schemas/test___KeywordProperty'
+    test___PropertyBase:
+      type: object
+      properties:
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/test___Property'
+    test___BinaryProperty:
+      allOf:
+        - $ref: '#/components/schemas/test___PropertyBase'
+        - type: object
+          properties:
+            type: {type: string, enum: [binary]}
+          required: [type]
+    test___KeywordProperty:
+      allOf:
+        - $ref: '#/components/schemas/test___PropertyBase'
+        - type: object
+          properties:
+            type: {type: string, enum: [keyword]}
+          required: [type]
+`
+
+	spec, err := openapi3.NewLoader().LoadFromData([]byte(doc))
+	require.NoError(t, err)
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
+	w.walkSchema(&openapi3.SchemaRef{
+		Ref:   "#/components/schemas/test___Property",
+		Value: spec.Components.Schemas["test___Property"].Value,
+	}, "test___Holder", "test", false)
+
+	union, ok := reg.lookup("test___Property")
+	require.True(t, ok, "union type should be registered")
+	require.NotNil(t, union.Discriminator)
+	require.Len(t, union.Branches, 2)
+	for _, b := range union.Branches {
+		require.Equal(t, "Type", b.DiscriminatorField, "branch %s", b.Name)
+	}
+}

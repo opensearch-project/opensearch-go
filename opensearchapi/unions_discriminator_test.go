@@ -131,6 +131,20 @@ func TestDiscRoundTrip(t *testing.T) {
 	require.Equal(t, opensearchapi.CommonMappingPropertyKeywordPropertyType, back.Type())
 }
 
+// 6b. the binary and match_only_text constructors set their type too
+func TestDiscRoundTripBinaryAndMatchOnlyText(t *testing.T) {
+	for _, p := range []opensearchapi.CommonMappingProperty{
+		opensearchapi.NewCommonMappingPropertyFromBinaryProperty(opensearchapi.CommonMappingBinaryProperty{}),
+		opensearchapi.NewCommonMappingPropertyFromMatchOnlyTextProperty(opensearchapi.CommonMappingMatchOnlyTextProperty{}),
+	} {
+		wire, err := json.Marshal(p)
+		require.NoError(t, err)
+		var back opensearchapi.CommonMappingProperty
+		require.NoError(t, json.Unmarshal(wire, &back), string(wire))
+		require.Equal(t, p.Type(), back.Type())
+	}
+}
+
 // decodeAnalyzer decodes data as an analyzer and returns the decoded branch
 // and its re-marshaled wire form.
 func decodeAnalyzer(data []byte) (string, []byte, error) {
