@@ -155,6 +155,10 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		return registered.Name
 	}
 	if existing, ok := w.registry.lookup(schemaKey); ok {
+		// Recursive unions register before their first branch is built.
+		if existing.Discriminator != nil {
+			w.resolveDiscriminatorFields(existing.Branches, existing.Discriminator.PropertyName)
+		}
 		return existing.Name
 	}
 	return name
