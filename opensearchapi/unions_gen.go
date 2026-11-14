@@ -17509,7 +17509,11 @@ func (u *CommonMappingProperty) BinaryProperty() (CommonMappingBinaryProperty, e
 
 // NewCommonMappingPropertyFromBinaryProperty returns a CommonMappingProperty populated with v
 // on the BinaryProperty branch.
+//
+// It sets v.Type to "binary" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewCommonMappingPropertyFromBinaryProperty(v CommonMappingBinaryProperty) CommonMappingProperty {
+	v.Type = "binary"
 	return CommonMappingProperty{
 		typ:   CommonMappingPropertyBinaryPropertyType,
 		value: &v,
@@ -17605,7 +17609,11 @@ func (u *CommonMappingProperty) MatchOnlyTextProperty() (CommonMappingMatchOnlyT
 
 // NewCommonMappingPropertyFromMatchOnlyTextProperty returns a CommonMappingProperty populated with v
 // on the MatchOnlyTextProperty branch.
+//
+// It sets v.Type to "match_only_text" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewCommonMappingPropertyFromMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingProperty {
+	v.Type = "match_only_text"
 	return CommonMappingProperty{
 		typ:   CommonMappingPropertyMatchOnlyTextPropertyType,
 		value: &v,
