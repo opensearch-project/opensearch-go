@@ -12,10 +12,12 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -728,6 +730,8 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 // reference. extractQueryParams drops global parameters from each operation,
 // so the per-operation loop never sees them; their value types are still
 // emitted so callers can assign the constants to the shared string fields.
+// Paths and methods are walked in sorted order because registration order is
+// emission order.
 func registerGlobalParamEnums(w *walker) {
 	if w.spec.Paths == nil {
 		return
@@ -744,10 +748,13 @@ func registerGlobalParamEnums(w *walker) {
 			}
 		}
 	}
-	for _, item := range w.spec.Paths.Map() {
+	paths := w.spec.Paths.Map()
+	for _, urlPath := range slices.Sorted(maps.Keys(paths)) {
+		item := paths[urlPath]
 		register(item.Parameters)
-		for _, op := range item.Operations() {
-			register(op.Parameters)
+		ops := item.Operations()
+		for _, method := range slices.Sorted(maps.Keys(ops)) {
+			register(ops[method].Parameters)
 		}
 	}
 }

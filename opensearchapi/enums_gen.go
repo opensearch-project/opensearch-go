@@ -1098,6 +1098,38 @@ const (
 	CatRespFormatSmile CatRespFormat = "smile"
 )
 
+// Selects the response format returned by list operations. Equivalent
+// to the HTTP `Accept` header but expressed as a query parameter. The
+// server's omit-the-param behavior is `text`.
+type ListRespFormat = string
+
+const (
+	// ListRespFormatText. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatText ListRespFormat = "text"
+
+	// ListRespFormatJSON. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatJSON ListRespFormat = "json"
+
+	// ListRespFormatYaml. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatYaml ListRespFormat = "yaml"
+
+	// ListRespFormatCbor. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatCbor ListRespFormat = "cbor"
+
+	// ListRespFormatSmile. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatSmile ListRespFormat = "smile"
+)
+
 // Response format selector for PPL plugin operations. The valid set is
 // the union of values accepted across `_plugins/_ppl/*` endpoints;
 // defaults and per-endpoint subsets mirror the SQL plugin.
@@ -1236,38 +1268,6 @@ const (
 	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
 	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatCost SQLRespFormat = "cost"
-)
-
-// Selects the response format returned by list operations. Equivalent
-// to the HTTP `Accept` header but expressed as a query parameter. The
-// server's omit-the-param behavior is `text`.
-type ListRespFormat = string
-
-const (
-	// ListRespFormatText. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
-	ListRespFormatText ListRespFormat = "text"
-
-	// ListRespFormatJSON. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
-	ListRespFormatJSON ListRespFormat = "json"
-
-	// ListRespFormatYaml. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
-	ListRespFormatYaml ListRespFormat = "yaml"
-
-	// ListRespFormatCbor. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
-	ListRespFormatCbor ListRespFormat = "cbor"
-
-	// ListRespFormatSmile. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
-	ListRespFormatSmile ListRespFormat = "smile"
 )
 
 // Identifies a point in time (PIT): an opaque base64 token that encodes
