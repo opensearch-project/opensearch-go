@@ -94,7 +94,7 @@ type ReindexParams struct {
 
 	// If `true`, the request refreshes affected shards to make this operation
 	// visible to search.
-	Refresh string
+	Refresh Refresh
 
 	// The throttle for this request in sub-requests per second. Defaults to no
 	// throttle.
@@ -139,7 +139,7 @@ func (r ReindexParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequestsPerSecond != nil {

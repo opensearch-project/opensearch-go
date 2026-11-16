@@ -171,7 +171,7 @@ type QueryParam struct {
 	Group             ParamGroup
 	Required          bool
 	Deprecated        bool
-	IsStringEnum      bool // GoType is a named string-enum type; serialize with a string() cast
+	IsStringEnum      bool // GoType is a string-enum type (defined or alias) or a slice of one; scalars serialize via string()
 	VersionAdded      string
 	VersionDeprecated string
 	DeprecationMsg    string
@@ -238,6 +238,10 @@ type Type struct {
 	OwnerGroup string
 	Package    string
 	ImportPath string
+
+	// IsAlias marks a TypeStringEnum emitted as `type X = string` rather than a
+	// defined type, so it stays interchangeable with plain string values.
+	IsAlias bool
 
 	// Discriminator, when non-nil, carries the OpenAPI `discriminator` the
 	// spec declares on the union's oneOf/anyOf. It is the strongest of the

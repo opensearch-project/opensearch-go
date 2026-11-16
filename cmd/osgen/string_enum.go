@@ -14,14 +14,13 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-// stringEnumDenyList lists schema keys whose oneOf-of-{type:string, const:X}
-// shape should NOT be emitted as a named Go string type, keeping them as a plain
-// string instead. Detection is default-on: any schema matching the const-oneOf
-// shape is typed unless it appears here.
+// stringEnumDenyList lists schema keys that parseConstOneOf and parseParamEnum
+// must not type, keeping them a plain string instead. Detection is default-on:
+// any schema matching an accepted enum shape is typed unless it appears here.
 //
-// Empty today -- every const-oneOf schema in the bundled spec produces a clean,
-// useful typed enum. Add an entry (with a one-line rationale) if a future schema
-// should deliberately stay untyped.
+// Empty today -- every accepted enum schema in the bundled spec produces a clean,
+// useful typed enum. Add an entry (with a one-line rationale) if a future schema,
+// of either shape, should deliberately stay untyped.
 //
 //nolint:gochecknoglobals // const-ish read-only deny-list
 var stringEnumDenyList = set[string]{}
@@ -74,6 +73,35 @@ func parseConstOneOf(
 	deny set[string],
 	warnW io.Writer,
 ) ([]constEnumValue, bool) {
+	return parseEnumValues(typeName, schemaKey, schema, vr, deny, warnW, false)
+}
+
+// parseParamEnum is parseConstOneOf for query-parameter schemas, which also
+// accept the remaining enum spellings in the spec: a top-level
+// {type: string, enum: [...]}, oneOf branches carrying enum lists instead of a
+// const, and a {type: boolean} branch beside string consts (skipped, like a null
+// branch). Response and body fields keep using the strict parseConstOneOf, so
+// their Go types do not change.
+func parseParamEnum(
+	typeName, schemaKey string,
+	schema *openapi3.Schema,
+	vr VersionRange,
+	deny set[string],
+	warnW io.Writer,
+) ([]constEnumValue, bool) {
+	return parseEnumValues(typeName, schemaKey, schema, vr, deny, warnW, true)
+}
+
+// parseEnumValues implements parseConstOneOf and parseParamEnum; lenient selects
+// the extra query-parameter shapes described on parseParamEnum.
+func parseEnumValues(
+	typeName, schemaKey string,
+	schema *openapi3.Schema,
+	vr VersionRange,
+	deny set[string],
+	warnW io.Writer,
+	lenient bool,
+) ([]constEnumValue, bool) {
 	if schema == nil {
 		return nil, false
 	}
@@ -85,7 +113,12 @@ func parseConstOneOf(
 		branches = schema.AnyOf
 	}
 	if len(branches) == 0 {
-		return nil, false
+		if lenient && schema.Type != nil && schema.Type.Is(openapi3.TypeString) {
+			// The schema is its own single branch.
+			branches = openapi3.SchemaRefs{{Value: schema}}
+		} else {
+			return nil, false
+		}
 	}
 
 	var raw []constEnumValue
@@ -100,11 +133,19 @@ func parseConstOneOf(
 		if s.Type != nil && s.Type.Is(openapi3.TypeNull) {
 			continue
 		}
+		if lenient && s.Type != nil && s.Type.Is(openapi3.TypeBoolean) {
+			continue
+		}
 		if s.Type == nil || !s.Type.Is(openapi3.TypeString) {
 			return nil, false
 		}
-		cv, ok := s.Const.(string)
-		if !ok {
+		var values []string
+		if cv, ok := s.Const.(string); ok {
+			values = []string{cv}
+		} else if lenient && len(s.Enum) > 0 {
+			values = enumStringValues(s.Enum)
+		}
+		if len(values) == 0 {
 			return nil, false
 		}
 
@@ -116,13 +157,15 @@ func parseConstOneOf(
 		}
 
 		sawConst = true
-		raw = append(raw, constEnumValue{
-			Value:             cv,
-			Description:       s.Description,
-			VersionAdded:      vAdded,
-			VersionDeprecated: vDeprecated,
-			DeprecationMsg:    extensionString(s.Extensions, extDeprecationMessage),
-		})
+		for _, cv := range values {
+			raw = append(raw, constEnumValue{
+				Value:             cv,
+				Description:       s.Description,
+				VersionAdded:      vAdded,
+				VersionDeprecated: vDeprecated,
+				DeprecationMsg:    extensionString(s.Extensions, extDeprecationMessage),
+			})
+		}
 	}
 	if !sawConst {
 		return nil, false

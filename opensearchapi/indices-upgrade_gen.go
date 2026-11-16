@@ -77,7 +77,7 @@ type IndicesUpgradeParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Whether specified concrete indexes should be ignored when unavailable
 	// (missing or closed).

@@ -76,13 +76,13 @@ type CatIndicesParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
-	Bytes string
+	Bytes ByteUnit
 
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Limits indexes based on their health status. Supported values are
 	// `green`, `yellow`, and `red`.
-	Health string
+	Health HealthStatus
 
 	// Whether to include information from segments not loaded into memory.
 	//
@@ -119,7 +119,7 @@ func (r CatIndicesParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
@@ -127,7 +127,7 @@ func (r CatIndicesParams) get() map[string]string {
 	}
 
 	if r.Health != "" {
-		set("health", r.Health)
+		set("health", string(r.Health))
 	}
 
 	if r.IncludeUnloadedSegments != nil {

@@ -730,6 +730,65 @@ const (
 	OpTypeIndex OpType = "index"
 )
 
+type Refresh = string
+
+const (
+	// RefreshFalse. Do not refresh the affected shards.
+	RefreshFalse Refresh = "false"
+
+	// RefreshTrue. Refresh the affected shards immediately.
+	RefreshTrue Refresh = "true"
+
+	// RefreshWaitFor. Wait for the changes to become visible before replying.
+	RefreshWaitFor Refresh = "wait_for"
+)
+
+type ExpandWildcard = string
+
+const (
+	// ExpandWildcardAll. Match any index, including hidden ones.
+	ExpandWildcardAll ExpandWildcard = "all"
+
+	// ExpandWildcardClosed. Match closed, non-hidden indexes.
+	ExpandWildcardClosed ExpandWildcard = "closed"
+
+	// ExpandWildcardHidden. Match hidden indexes. Must be combined with
+	// `open`, `closed`, or both.
+	ExpandWildcardHidden ExpandWildcard = "hidden"
+
+	// ExpandWildcardNone. Wildcard expressions are not accepted.
+	ExpandWildcardNone ExpandWildcard = "none"
+
+	// ExpandWildcardOpen. Match open, non-hidden indexes.
+	ExpandWildcardOpen ExpandWildcard = "open"
+)
+
+type ByteUnit = string
+
+const (
+	ByteUnitB ByteUnit = "b"
+
+	ByteUnitKb ByteUnit = "kb"
+
+	ByteUnitK ByteUnit = "k"
+
+	ByteUnitMb ByteUnit = "mb"
+
+	ByteUnitM ByteUnit = "m"
+
+	ByteUnitGb ByteUnit = "gb"
+
+	ByteUnitG ByteUnit = "g"
+
+	ByteUnitTb ByteUnit = "tb"
+
+	ByteUnitT ByteUnit = "t"
+
+	ByteUnitPb ByteUnit = "pb"
+
+	ByteUnitP ByteUnit = "p"
+)
+
 // Specifies the time units, for example, `5d` or `7h`. For more information, see [Supported units](https://opensearch.org/docs/latest/api-reference/units/).
 type TimeUnit string
 
@@ -747,6 +806,44 @@ const (
 	TimeUnitH TimeUnit = "h"
 
 	TimeUnitD TimeUnit = "d"
+)
+
+type HealthStatus = string
+
+const (
+	// HealthStatusGreen. All shards are assigned.
+	HealthStatusGreen HealthStatus = "green"
+
+	// HealthStatusYellow. All primary shards are assigned, but one or more
+	// replica shards are unassigned. If a node in the cluster fails, some data
+	// could be unavailable until that node is repaired.
+	HealthStatusYellow HealthStatus = "yellow"
+
+	// HealthStatusRed. One or more primary shards are unassigned, so some data
+	// is unavailable. This can occur briefly during cluster startup as primary
+	// shards are assigned.
+	HealthStatusRed HealthStatus = "red"
+)
+
+// Controls the amount of detail included in the cluster health response.
+type ClusterHealthLevel = string
+
+const (
+	// ClusterHealthLevelAwarenessAttributes. Controls the amount of detail
+	// included in the cluster health response.
+	ClusterHealthLevelAwarenessAttributes ClusterHealthLevel = "awareness_attributes"
+
+	// ClusterHealthLevelCluster. Controls the amount of detail included in the
+	// cluster health response.
+	ClusterHealthLevelCluster ClusterHealthLevel = "cluster"
+
+	// ClusterHealthLevelIndices. Controls the amount of detail included in the
+	// cluster health response.
+	ClusterHealthLevelIndices ClusterHealthLevel = "indices"
+
+	// ClusterHealthLevelShards. Controls the amount of detail included in the
+	// cluster health response.
+	ClusterHealthLevelShards ClusterHealthLevel = "shards"
 )
 
 // Waits until all currently queued events with the given priority are processed.
@@ -774,6 +871,14 @@ const (
 	WaitForEventsLanguid WaitForEvents = "languid"
 )
 
+type CommonQueryDSLOperator = string
+
+const (
+	CommonQueryDSLOperatorAnd CommonQueryDSLOperator = "and"
+
+	CommonQueryDSLOperatorOr CommonQueryDSLOperator = "or"
+)
+
 type SearchType string
 
 const (
@@ -788,6 +893,51 @@ const (
 	SearchTypeQueryThenFetch SearchType = "query_then_fetch"
 )
 
+// Specifies the level of detail of the returned information.
+type Level = string
+
+const (
+	// LevelCluster. Specifies the level of detail of the returned information.
+	LevelCluster Level = "cluster"
+
+	// LevelIndices. Specifies the level of detail of the returned information.
+	LevelIndices Level = "indices"
+
+	// LevelShards. Specifies the level of detail of the returned information.
+	LevelShards Level = "shards"
+)
+
+type InsightsMetricType = string
+
+const (
+	InsightsMetricTypeCPU InsightsMetricType = "cpu"
+
+	InsightsMetricTypeLatency InsightsMetricType = "latency"
+
+	InsightsMetricTypeMemory InsightsMetricType = "memory"
+)
+
+type SuggestMode = string
+
+const (
+	SuggestModeAlways SuggestMode = "always"
+
+	SuggestModeMissing SuggestMode = "missing"
+
+	SuggestModePopular SuggestMode = "popular"
+)
+
+// The direction of the sort order.
+type SortOrder = string
+
+const (
+	// SortOrderAsc. The direction of the sort order.
+	SortOrderAsc SortOrder = "asc"
+
+	// SortOrderDesc. The direction of the sort order.
+	SortOrderDesc SortOrder = "desc"
+)
+
 // The type of resource to sample.
 type NodesSampleType string
 
@@ -800,6 +950,120 @@ const (
 
 	// NodesSampleTypeWait. Samples process wait times.
 	NodesSampleTypeWait NodesSampleType = "wait"
+)
+
+// Type of notification configuration.
+type NotificationsNotificationConfigType = string
+
+const (
+	// NotificationsNotificationConfigTypeChime. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeChime NotificationsNotificationConfigType = "chime"
+
+	// NotificationsNotificationConfigTypeEmail. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeEmail NotificationsNotificationConfigType = "email"
+
+	// NotificationsNotificationConfigTypeEmailGroup. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeEmailGroup NotificationsNotificationConfigType = "email_group"
+
+	// NotificationsNotificationConfigTypeMicrosoftTeams. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeMicrosoftTeams NotificationsNotificationConfigType = "microsoft_teams"
+
+	// NotificationsNotificationConfigTypeSESAccount. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeSESAccount NotificationsNotificationConfigType = "ses_account"
+
+	// NotificationsNotificationConfigTypeSlack. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeSlack NotificationsNotificationConfigType = "slack"
+
+	// NotificationsNotificationConfigTypeSMTPAccount. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeSMTPAccount NotificationsNotificationConfigType = "smtp_account"
+
+	// NotificationsNotificationConfigTypeSNS. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeSNS NotificationsNotificationConfigType = "sns"
+
+	// NotificationsNotificationConfigTypeWebhook. Type of notification
+	// configuration.
+	NotificationsNotificationConfigTypeWebhook NotificationsNotificationConfigType = "webhook"
+)
+
+type SecurityAnalyticsAlertsAlertState = string
+
+const (
+	SecurityAnalyticsAlertsAlertStateAcknowledged SecurityAnalyticsAlertsAlertState = "ACKNOWLEDGED"
+
+	SecurityAnalyticsAlertsAlertStateActive SecurityAnalyticsAlertsAlertState = "ACTIVE"
+
+	SecurityAnalyticsAlertsAlertStateCompleted SecurityAnalyticsAlertsAlertState = "COMPLETED"
+
+	SecurityAnalyticsAlertsAlertStateDeleted SecurityAnalyticsAlertsAlertState = "DELETED"
+
+	SecurityAnalyticsAlertsAlertStateError SecurityAnalyticsAlertsAlertState = "ERROR"
+)
+
+// Severity level with 1 the highest and 5 the lowest. `ALL` designates no particular severity.
+type SecurityAnalyticsAlertsAlertSeverityLevel = string
+
+const (
+	// SecurityAnalyticsAlertsAlertSeverityLevel1. Severity level with 1 the
+	// highest and 5 the lowest. `ALL` designates no particular severity.
+	SecurityAnalyticsAlertsAlertSeverityLevel1 SecurityAnalyticsAlertsAlertSeverityLevel = "1"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel2. Severity level with 1 the
+	// highest and 5 the lowest. `ALL` designates no particular severity.
+	SecurityAnalyticsAlertsAlertSeverityLevel2 SecurityAnalyticsAlertsAlertSeverityLevel = "2"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel3. Severity level with 1 the
+	// highest and 5 the lowest. `ALL` designates no particular severity.
+	SecurityAnalyticsAlertsAlertSeverityLevel3 SecurityAnalyticsAlertsAlertSeverityLevel = "3"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel4. Severity level with 1 the
+	// highest and 5 the lowest. `ALL` designates no particular severity.
+	SecurityAnalyticsAlertsAlertSeverityLevel4 SecurityAnalyticsAlertsAlertSeverityLevel = "4"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel5. Severity level with 1 the
+	// highest and 5 the lowest. `ALL` designates no particular severity.
+	SecurityAnalyticsAlertsAlertSeverityLevel5 SecurityAnalyticsAlertsAlertSeverityLevel = "5"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevelAll. Severity level with 1 the
+	// highest and 5 the lowest. `ALL` designates no particular severity.
+	SecurityAnalyticsAlertsAlertSeverityLevelAll SecurityAnalyticsAlertsAlertSeverityLevel = "ALL"
+)
+
+type SecurityAnalyticsFindingsDetectionType = string
+
+const (
+	SecurityAnalyticsFindingsDetectionTypeRule SecurityAnalyticsFindingsDetectionType = "rule"
+
+	SecurityAnalyticsFindingsDetectionTypeThreat SecurityAnalyticsFindingsDetectionType = "threat"
+)
+
+type SecurityAnalyticsFindingsRuleSeverity = string
+
+const (
+	SecurityAnalyticsFindingsRuleSeverityCritical SecurityAnalyticsFindingsRuleSeverity = "critical"
+
+	SecurityAnalyticsFindingsRuleSeverityHigh SecurityAnalyticsFindingsRuleSeverity = "high"
+
+	SecurityAnalyticsFindingsRuleSeverityLow SecurityAnalyticsFindingsRuleSeverity = "low"
+
+	SecurityAnalyticsFindingsRuleSeverityMedium SecurityAnalyticsFindingsRuleSeverity = "medium"
+)
+
+type TasksGroupBy = string
+
+const (
+	TasksGroupByNodes TasksGroupBy = "nodes"
+
+	TasksGroupByNone TasksGroupBy = "none"
+
+	TasksGroupByParents TasksGroupBy = "parents"
 )
 
 // Identifies a point in time (PIT): an opaque base64 token that encodes

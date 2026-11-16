@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/plugins/insights"
 	plugintest "github.com/opensearch-project/opensearch-go/v5/plugins/insights/internal/insightstest"
@@ -28,7 +29,7 @@ func TestTopQueries(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-top-queries")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.TopQueries(t.Context(), &insights.TopQueriesReq{Params: &insights.TopQueriesParams{Type: name}})
+		resp, err := client.TopQueries(t.Context(), &insights.TopQueriesReq{Params: &insights.TopQueriesParams{Type: opensearchapi.InsightsMetricType(name)}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

@@ -41,6 +41,12 @@ type walker struct {
 	excludedFields []ir.Exclusion
 	excSeen        map[string]bool // dedupe key: qualified field name
 
+	// paramPass is set by the query-param enum pass. It widens enum detection to
+	// the shapes only query params accept (see parseParamEnum) and registers the
+	// resulting types as string aliases, so a param typed with one stays
+	// assignable from and to plain string and []string.
+	paramPass bool
+
 	// warnOut receives generator diagnostics. Nil discards them, which keeps
 	// tests quiet unless they assert on the output.
 	warnOut io.Writer
@@ -669,21 +675,35 @@ func (w *walker) resolveOpaqueString(schema *openapi3.Schema, group string) (str
 	return "", false
 }
 
-// resolveStringEnumConst handles a schema whose oneOf/anyOf branches are all
-// {type: string, const: X} entries (e.g. _common___NodeRole). It registers a
-// shared, string-backed enum type named after the schema key and returns its Go
-// name. Returns ("", false) when the schema is not a const-oneOf (or is denied /
-// version-filtered to nothing), so the caller falls back to its normal handling.
+// resolveStringEnumConstAlias registers a shared, string-backed enum type named
+// after the schema key and returns its Go name. By default it accepts the strict
+// const-oneOf shape (parseConstOneOf): every oneOf/anyOf branch is a
+// {type: string, const: X} entry (e.g. _common___NodeRole), and the registered
+// type is a defined string type. When walker.paramPass is set (the query-param
+// pass) it accepts the wider parseParamEnum shapes instead, and registers the
+// type as a string alias (IsAlias) when the shape is not strict-parseable or
+// when forceAlias is set (list-param elements), so the param stays
+// assignable from and to plain string and []string. Returns ("", false) when
+// the schema is not an accepted enum (or is denied / version-filtered to
+// nothing), so the caller falls back to its normal handling.
 //
 // The generated type is PERMISSIVE: backed by string, it round-trips unknown
-// values (a newer server's role, a not-yet-listed value) rather than erroring,
-// while its consts give discoverability and compile-time typo/drift detection.
-// This differs from resolveStringEnum's closed int-backed enum, which rejects
+// values (a newer server's role, a not-yet-listed value) rather than erroring.
+// Its consts give discoverability; only defined (non-alias) types also give
+// compile-time typo/drift detection, since an alias accepts any string. This
+// differs from resolveStringEnum's closed int-backed enum, which rejects
 // unknown wire values. Detection is default-on via parseConstOneOf; see
-// string_enum.go.
-func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string) (string, bool) {
+// string_enum.go. forceAlias registers the type as an alias even when the shape
+// is strict-parseable (list-param elements).
+func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema, group string, forceAlias bool) (string, bool) {
 	name := schemaTypeName(key, false)
-	members, ok := parseConstOneOf(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
+	parse := parseConstOneOf
+	strictShape := true
+	if w.paramPass {
+		parse = parseParamEnum
+		_, strictShape = parseConstOneOf(name, key, schema, w.vrange, stringEnumDenyList, nil)
+	}
+	members, ok := parse(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
 	if !ok {
 		return "", false
 	}
@@ -698,6 +718,7 @@ func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, gro
 		SchemaRef:    key,
 		IsShared:     true,
 		IsStringEnum: true,
+		IsAlias:      w.paramPass && (forceAlias || !strictShape),
 		EnumConsts:   members,
 		Comment:      schema.Description,
 	}
@@ -707,6 +728,11 @@ func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, gro
 	// Name collided with an existing type; fall back to plain string rather than
 	// dropping to json.RawMessage.
 	return "", false
+}
+
+// resolveStringEnumConst is resolveStringEnumConstAlias without forced aliasing.
+func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string) (string, bool) {
+	return w.resolveStringEnumConstAlias(key, schema, group, false)
 }
 
 // enumStringValues converts a schema's enum constraint to a string slice,

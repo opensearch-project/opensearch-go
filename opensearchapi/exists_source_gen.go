@@ -92,7 +92,7 @@ type ExistsSourceParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
-	Refresh string
+	Refresh Refresh
 
 	// Target the specified primary shard.
 	Routing []string
@@ -138,7 +138,7 @@ func (r ExistsSourceParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {

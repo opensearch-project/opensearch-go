@@ -279,6 +279,7 @@ func convertType(gt *goType) *ir.Type {
 		SchemaRef: gt.SchemaRef,
 		Comment:   gt.Comment,
 		Package:   gt.Pkg,
+		IsAlias:   gt.IsAlias,
 	}
 
 	switch {

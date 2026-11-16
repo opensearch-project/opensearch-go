@@ -75,7 +75,7 @@ type CatFielddataParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
-	Bytes string
+	Bytes ByteUnit
 
 	// A comma-separated list of fields used to limit the amount of returned
 	// information.
@@ -97,7 +97,7 @@ func (r CatFielddataParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if len(r.Fields) > 0 {

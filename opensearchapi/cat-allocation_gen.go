@@ -75,7 +75,7 @@ type CatAllocationParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
-	Bytes string
+	Bytes ByteUnit
 
 	// Returns local information but does not retrieve the state from
 	// cluster-manager node.
@@ -99,7 +99,7 @@ func (r CatAllocationParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if r.Local != nil {

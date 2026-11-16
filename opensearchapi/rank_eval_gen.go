@@ -102,7 +102,7 @@ type RankEvalParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, missing or closed indexes are not included in the response.
 	IgnoreUnavailable *bool

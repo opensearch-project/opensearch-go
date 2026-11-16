@@ -111,14 +111,14 @@ type CountParams struct {
 	// The default operator for query string query: `AND` or `OR`. This
 	// parameter can only be used when the `q` query string parameter is
 	// specified.
-	DefaultOperator string
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string. This parameter can only be used when the `q` query string
 	// parameter is specified.
 	Df string
 
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, concrete, expanded or aliased indexes are ignored when
 	// frozen.
@@ -178,7 +178,7 @@ func (r CountParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {

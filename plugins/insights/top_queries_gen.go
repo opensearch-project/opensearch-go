@@ -62,7 +62,7 @@ type TopQueriesParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Get top n queries by a specific metric.
-	Type string
+	Type opensearchapi.InsightsMetricType
 }
 
 func (r TopQueriesParams) get() map[string]string {
@@ -77,7 +77,7 @@ func (r TopQueriesParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if r.Type != "" {
-		set("type", r.Type)
+		set("type", string(r.Type))
 	}
 
 	return params
