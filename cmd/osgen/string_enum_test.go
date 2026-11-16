@@ -382,3 +382,60 @@ func TestResolveStringEnumConst_ResponseWalkUnchanged(t *testing.T) {
 	_, isEnum := w.resolveStringEnumConst("_common___Refresh", spec.Components.Schemas["_common___Refresh"].Value, "indices")
 	require.False(t, isEnum)
 }
+
+// TestTypeQueryParamEnums_GlobalFormat pins that an enum referenced only by a
+// global query parameter (dropped from op.QueryParams because it lives on the
+// shared DebugParams struct) is still registered as a shared string alias, and
+// that no per-operation param is added or retyped.
+func TestTypeQueryParamEnums_GlobalFormat(t *testing.T) {
+	t.Parallel()
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	formatEnum := &openapi3.Schema{
+		Type: &openapi3.Types{openapi3.TypeString},
+		Enum: []any{"text", "json"},
+	}
+	formatParam := &openapi3.ParameterRef{Value: &openapi3.Parameter{
+		Name: "format",
+		In:   "query",
+		Schema: &openapi3.SchemaRef{
+			Ref:   "#/components/schemas/_common___CatResponseFormat",
+			Value: formatEnum,
+		},
+	}}
+	// A non-global query param with a $ref schema must not be registered by the
+	// global pass.
+	otherParam := &openapi3.ParameterRef{Value: &openapi3.Parameter{
+		Name: "other",
+		In:   "query",
+		Schema: &openapi3.SchemaRef{
+			Ref:   "#/components/schemas/_common___Other",
+			Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeString}, Enum: []any{"a"}},
+		},
+	}}
+	paths := openapi3.NewPaths()
+	paths.Set("/_cat/example", &openapi3.PathItem{
+		Parameters: openapi3.Parameters{formatParam},
+		Get:        &openapi3.Operation{Parameters: openapi3.Parameters{otherParam}},
+	})
+	spec := &openapi3.T{
+		Paths: paths,
+		Components: &openapi3.Components{Schemas: openapi3.Schemas{
+			"_common___CatResponseFormat": &openapi3.SchemaRef{Value: formatEnum},
+			"_common___Other":             otherParam.Value.Schema,
+		}},
+	}
+	ops := []apiOperation{{Group: "cat.example"}}
+
+	typeQueryParamEnums(ops, spec, reg, VersionRange{})
+
+	require.Empty(t, ops[0].QueryParams)
+	registered, ok := reg.lookup("_common___CatResponseFormat")
+	require.True(t, ok)
+	require.Equal(t, "CatRespFormat", registered.Name)
+	require.True(t, registered.IsShared)
+	require.True(t, registered.IsAlias)
+	require.Equal(t, []string{"text", "json"}, constValueList(registered.EnumConsts))
+	_, ok = reg.lookup("_common___Other")
+	require.False(t, ok)
+}
