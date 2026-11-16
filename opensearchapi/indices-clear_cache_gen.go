@@ -82,7 +82,7 @@ type IndicesClearCacheParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, clears the fields cache. Use the `fields` parameter to clear
 	// the cache of specific fields only.

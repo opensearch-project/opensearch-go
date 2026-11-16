@@ -80,7 +80,7 @@ type CreatePITParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Specify the keep alive for point in time. Each search against the PIT
 	// restarts it, and a search cannot shorten it. It cannot exceed the

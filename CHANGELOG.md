@@ -6,6 +6,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add typed constants for enum-valued query parameters that were plain strings: `Refresh`, `ExpandWildcards`, `Bytes`, `Level`, `WaitForStatus`, `Health`, `DefaultOperator`, `SortOrder`, `SuggestMode` and similar parameters across the core API and plugins. The new types are aliases of `string` (and `[]string` for `ExpandWildcards`), so existing code that assigns a `string` or `[]string` to these fields, or reads them into one, keeps compiling. Response fields keep their current types.
+
 ### Changed
 
 - Configure Dependabot to open weekly Go module and GitHub Actions updates against the `v5` maintenance branch, covering the same modules as `main` ([#1322](https://github.com/opensearch-project/opensearch-go/pull/1322))

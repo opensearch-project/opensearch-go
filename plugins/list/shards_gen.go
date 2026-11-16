@@ -74,7 +74,7 @@ type ShardsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The unit used to display byte values.
-	Bytes string
+	Bytes opensearchapi.ByteUnit
 
 	// Return local information, do not retrieve the state from cluster-manager
 	// node.
@@ -91,7 +91,7 @@ type ShardsParams struct {
 	// Defines order in which shards will be displayed. Accepted values are
 	// `asc` and `desc`. If `desc`, most recently created shards would be
 	// displayed first.
-	Sort string
+	Sort opensearchapi.SortOrder
 
 	// The unit in which to display time values.
 	Time opensearchapi.TimeUnit
@@ -112,7 +112,7 @@ func (r ShardsParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if r.Local != nil {
@@ -128,7 +128,7 @@ func (r ShardsParams) get() map[string]string {
 	}
 
 	if r.Sort != "" {
-		set("sort", r.Sort)
+		set("sort", string(r.Sort))
 	}
 
 	if r.Time != "" {

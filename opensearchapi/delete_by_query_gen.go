@@ -122,7 +122,7 @@ type DeleteByQueryParams struct {
 	Conflicts Conflicts
 
 	// The default operator for query string query: `AND` or `OR`.
-	DefaultOperator string
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string.
@@ -133,7 +133,7 @@ type DeleteByQueryParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Starting offset.
 	//
@@ -162,7 +162,7 @@ type DeleteByQueryParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
-	Refresh string
+	Refresh Refresh
 
 	// If `true`, the request cache is used for this request. Defaults to the
 	// index-level setting.
@@ -266,7 +266,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -302,7 +302,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequestCache != nil {

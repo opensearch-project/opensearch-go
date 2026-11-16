@@ -84,7 +84,7 @@ type DeleteParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
-	Refresh string
+	Refresh Refresh
 
 	// A custom value used to route operations to a specific shard.
 	Routing []string
@@ -123,7 +123,7 @@ func (r DeleteParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {

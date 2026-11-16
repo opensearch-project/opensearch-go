@@ -112,7 +112,7 @@ type BulkParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
-	Refresh string
+	Refresh Refresh
 
 	// If `true`, the request's actions must target an index alias.
 	//
@@ -163,7 +163,7 @@ func (r BulkParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequireAlias != nil {

@@ -210,3 +210,175 @@ func TestTypeQueryParamEnums(t *testing.T) {
 	require.True(t, registered.IsStringEnum)
 	require.Equal(t, []string{"d", "h"}, constValueList(registered.EnumConsts))
 }
+
+// enumBranch builds a {type: string, enum: [values...]} oneOf branch, the
+// bundled spec's ByteUnit/HealthStatus spelling for several wire values in one
+// branch.
+func enumBranch(values ...string) *openapi3.SchemaRef {
+	enum := make([]any, len(values))
+	for i, v := range values {
+		enum[i] = v
+	}
+	return &openapi3.SchemaRef{Value: &openapi3.Schema{
+		Type: &openapi3.Types{openapi3.TypeString},
+		Enum: enum,
+	}}
+}
+
+// boolBranch builds the {type: boolean} oneOf branch Refresh carries next to its
+// string consts.
+func boolBranch() *openapi3.SchemaRef {
+	return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeBoolean}}}
+}
+
+// TestParseParamEnum pins the query-param-only enum shapes: a top-level string
+// enum, oneOf branches carrying enum lists, and a boolean branch next to string
+// consts. parseConstOneOf must keep rejecting all of them.
+func TestParseParamEnum(t *testing.T) {
+	t.Parallel()
+
+	topLevel := &openapi3.Schema{
+		Type: &openapi3.Types{openapi3.TypeString},
+		Enum: []any{"asc", "desc"},
+	}
+	byteUnit := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		constBranch("b", "bytes", nil),
+		enumBranch("kb", "k"),
+	}}
+	refresh := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		boolBranch(),
+		constBranch("false", "", nil),
+		constBranch("true", "", nil),
+		constBranch("wait_for", "", nil),
+	}}
+	health := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		enumBranch("green", "GREEN"),
+		enumBranch("red"),
+	}}
+
+	boolOnly := &openapi3.Schema{OneOf: openapi3.SchemaRefs{boolBranch()}}
+
+	tests := []struct {
+		name     string
+		schema   *openapi3.Schema
+		wantOK   bool
+		want     []string
+		wantWarn string
+	}{
+		{name: "top-level enum", schema: topLevel, wantOK: true, want: []string{"asc", "desc"}},
+		{name: "enum-carrying oneOf branches", schema: byteUnit, wantOK: true, want: []string{"b", "kb", "k"}},
+		{name: "boolean branch skipped", schema: refresh, wantOK: true, want: []string{"false", "true", "wait_for"}},
+		{name: "case-only duplicate keeps the first", schema: health, wantOK: true, want: []string{"green", "red"}, wantWarn: `"GREEN" dropped`},
+		{name: "boolean-only schema is not an enum", schema: boolOnly},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var warn strings.Builder
+			got, ok := parseParamEnum("X", "x___X", tt.schema, VersionRange{}, nil, &warn)
+			require.Equal(t, tt.wantOK, ok)
+			if !tt.wantOK {
+				return
+			}
+			require.Equal(t, tt.want, constValueList(got))
+			if tt.wantWarn != "" {
+				require.Contains(t, warn.String(), tt.wantWarn)
+			}
+
+			_, strictOK := parseConstOneOf("X", "x___X", tt.schema, VersionRange{}, nil, nil)
+			require.False(t, strictOK)
+		})
+	}
+}
+
+// refreshEnumSpec returns a spec holding the bool-or-const Refresh enum, a
+// shape only query params accept.
+func refreshEnumSpec() *openapi3.T {
+	return &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		"_common___Refresh": &openapi3.SchemaRef{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+			boolBranch(),
+			constBranch("true", "", nil),
+			constBranch("wait_for", "", nil),
+		}}},
+	}}}
+}
+
+// TestTypeQueryParamEnums_Aliases pins the alias path: enum shapes only
+// query params accept become `type X = string` aliases, and an
+// array-or-single enum param becomes a slice of the alias.
+func TestTypeQueryParamEnums_Aliases(t *testing.T) {
+	t.Parallel()
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	arrayOf := func(key string) *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			Type:  &openapi3.Types{openapi3.TypeArray},
+			Items: &openapi3.SchemaRef{Ref: "#/components/schemas/" + key, Value: nil},
+		}}
+	}
+	expand := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		constBranch("open", "", nil),
+		constBranch("closed", "", nil),
+	}}
+	spec := refreshEnumSpec()
+	spec.Components.Schemas["_common___ExpandWildcard"] = &openapi3.SchemaRef{Value: expand}
+	spec.Components.Schemas["_common___ExpandWildcards"] = &openapi3.SchemaRef{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		{Ref: "#/components/schemas/_common___ExpandWildcard", Value: expand},
+		arrayOf("_common___ExpandWildcard"),
+	}}}
+	ops := []apiOperation{{
+		Group: "indices.refresh",
+		QueryParams: []apiQueryParam{
+			{ParamName: "refresh", GoName: "Refresh", GoType: "string", SchemaRef: "_common___Refresh"},
+			{ParamName: "expand_wildcards", GoName: "ExpandWildcards", GoType: "[]string", IsList: true, SchemaRef: "_common___ExpandWildcards"},
+		},
+	}}
+
+	typeQueryParamEnums(ops, spec, reg, VersionRange{})
+
+	refresh := ops[0].QueryParams[0]
+	require.Equal(t, "Refresh", refresh.GoType)
+	require.True(t, refresh.IsStringEnum)
+	registered, ok := reg.lookup("_common___Refresh")
+	require.True(t, ok)
+	require.True(t, registered.IsAlias)
+	require.Equal(t, []string{"true", "wait_for"}, constValueList(registered.EnumConsts))
+
+	expandParam := ops[0].QueryParams[1]
+	require.Equal(t, "[]ExpandWildcard", expandParam.GoType)
+	require.True(t, expandParam.IsList)
+	elem, ok := reg.lookup("_common___ExpandWildcard")
+	require.True(t, ok)
+	require.True(t, elem.IsAlias)
+}
+
+// TestTypeQueryParamEnums_StrictScalarStaysNamed pins that a strict-shape enum
+// reached only through a scalar param keeps its named type: only new shapes and
+// list elements become aliases.
+func TestTypeQueryParamEnums_StrictScalarStaysNamed(t *testing.T) {
+	t.Parallel()
+
+	named := newTypeRegistry(opensearchAPIPkgName)
+	namedSpec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		"_common___TimeUnit": &openapi3.SchemaRef{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("d", "", nil)}}},
+	}}}
+	namedOps := []apiOperation{{Group: "cat.nodes", QueryParams: []apiQueryParam{
+		{ParamName: "time", GoName: "Time", GoType: "string", SchemaRef: "_common___TimeUnit"},
+	}}}
+	typeQueryParamEnums(namedOps, namedSpec, named, VersionRange{})
+	timeUnit, ok := named.lookup("_common___TimeUnit")
+	require.True(t, ok)
+	require.False(t, timeUnit.IsAlias)
+}
+
+// TestResolveStringEnumConst_ResponseWalkUnchanged pins that a response/body
+// walk of a param-only enum shape keeps its plain string type.
+func TestResolveStringEnumConst_ResponseWalkUnchanged(t *testing.T) {
+	t.Parallel()
+
+	spec := refreshEnumSpec()
+	w := &walker{registry: newTypeRegistry(opensearchAPIPkgName), spec: spec, inFlight: make(map[string]struct{})}
+	_, isEnum := w.resolveStringEnumConst("_common___Refresh", spec.Components.Schemas["_common___Refresh"].Value, "indices")
+	require.False(t, isEnum)
+}

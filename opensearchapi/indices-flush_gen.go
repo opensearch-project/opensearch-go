@@ -82,7 +82,7 @@ type IndicesFlushParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, the request forces a flush even if there are no changes to
 	// commit to the index.

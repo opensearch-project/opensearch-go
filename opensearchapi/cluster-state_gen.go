@@ -80,7 +80,7 @@ type ClusterStateParams struct {
 	// have been specified.
 	AllowNoIndices *bool
 
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Whether to return settings in the flat form, which can improve
 	// readability, especially for heavily nested settings. For example, the

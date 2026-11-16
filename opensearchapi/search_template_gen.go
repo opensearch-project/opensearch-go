@@ -113,7 +113,7 @@ type SearchTemplateParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, the response includes additional details about score
 	// computation as part of a hit.

@@ -120,7 +120,7 @@ type MGetParams struct {
 
 	// If `true`, the request refreshes relevant shards before retrieving
 	// documents.
-	Refresh string
+	Refresh Refresh
 
 	// A custom value used to route operations to a specific shard.
 	Routing []string
@@ -162,7 +162,7 @@ func (r MGetParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {
