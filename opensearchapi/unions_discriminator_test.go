@@ -261,3 +261,41 @@ func TestDiscIndicesGetAnalyzerWithoutType(t *testing.T) {
 	_, err = normalizer.CustomNormalizer()
 	require.NoError(t, err)
 }
+
+// 7c. the cjk and smartcn constructors set their type, so the analyzer does not
+// marshal without one and decode back as custom.
+func TestDiscRoundTripCJKAndSmartcn(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		analyzer opensearchapi.CommonAnalysisAnalyzer
+		wantWire string
+		wantType opensearchapi.CommonAnalysisAnalyzerType
+	}{
+		{
+			name:     "cjk",
+			analyzer: opensearchapi.NewCommonAnalysisAnalyzerFromCJKAnalyzer(opensearchapi.CommonAnalysisCJKAnalyzer{}),
+			wantWire: `{"type":"cjk"}`,
+			wantType: opensearchapi.CommonAnalysisAnalyzerCJKAnalyzerType,
+		},
+		{
+			name:     "smartcn",
+			analyzer: opensearchapi.NewCommonAnalysisAnalyzerFromSmartcnAnalyzer(opensearchapi.CommonAnalysisSmartcnAnalyzer{}),
+			wantWire: `{"type":"smartcn"}`,
+			wantType: opensearchapi.CommonAnalysisAnalyzerSmartcnAnalyzerType,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			wire, err := json.Marshal(tt.analyzer)
+			require.NoError(t, err)
+			require.JSONEq(t, tt.wantWire, string(wire))
+			var back opensearchapi.CommonAnalysisAnalyzer
+			require.NoError(t, json.Unmarshal(wire, &back))
+			require.Equal(t, tt.wantType, back.Type())
+		})
+	}
+}

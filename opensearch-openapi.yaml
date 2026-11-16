@@ -45702,6 +45702,8 @@ components:
           $ref: '#/components/schemas/_common.analysis___StopWords'
         stopwords_path:
           type: string
+      required:
+        - type
     _common.analysis___CommonGramsTokenFilter:
       allOf:
         - $ref: '#/components/schemas/_common.analysis___TokenFilterBase'
@@ -46984,6 +46986,8 @@ components:
           type: string
           enum:
             - smartcn
+      required:
+        - type
     _common.analysis___SmartcnStopTokenFilter:
       allOf:
         - $ref: '#/components/schemas/_common.analysis___TokenFilterBase'

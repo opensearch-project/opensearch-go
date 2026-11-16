@@ -4407,7 +4407,7 @@ type CommonAnalysisDutchAnalyzer struct {
 }
 
 type CommonAnalysisSmartcnAnalyzer struct {
-	Type *string `json:"type,omitempty"`
+	Type string `json:"type"`
 }
 
 type CommonAnalysisCJKAnalyzer struct {
@@ -4418,7 +4418,7 @@ type CommonAnalysisCJKAnalyzer struct {
 	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
-	Type          *string `json:"type,omitempty"`
+	Type          string  `json:"type"`
 }
 
 type CommonAnalysisPhoneAnalyzerBase struct {

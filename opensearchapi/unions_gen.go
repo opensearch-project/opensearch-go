@@ -19503,7 +19503,11 @@ func (u *CommonAnalysisAnalyzer) SmartcnAnalyzer() (CommonAnalysisSmartcnAnalyze
 
 // NewCommonAnalysisAnalyzerFromSmartcnAnalyzer returns a CommonAnalysisAnalyzer populated with v
 // on the SmartcnAnalyzer branch.
+//
+// It sets v.Type to "smartcn" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewCommonAnalysisAnalyzerFromSmartcnAnalyzer(v CommonAnalysisSmartcnAnalyzer) CommonAnalysisAnalyzer {
+	v.Type = "smartcn"
 	return CommonAnalysisAnalyzer{
 		typ:   CommonAnalysisAnalyzerSmartcnAnalyzerType,
 		value: &v,
@@ -19524,7 +19528,11 @@ func (u *CommonAnalysisAnalyzer) CJKAnalyzer() (CommonAnalysisCJKAnalyzer, error
 
 // NewCommonAnalysisAnalyzerFromCJKAnalyzer returns a CommonAnalysisAnalyzer populated with v
 // on the CJKAnalyzer branch.
+//
+// It sets v.Type to "cjk" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewCommonAnalysisAnalyzerFromCJKAnalyzer(v CommonAnalysisCJKAnalyzer) CommonAnalysisAnalyzer {
+	v.Type = "cjk"
 	return CommonAnalysisAnalyzer{
 		typ:   CommonAnalysisAnalyzerCJKAnalyzerType,
 		value: &v,

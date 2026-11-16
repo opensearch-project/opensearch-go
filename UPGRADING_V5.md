@@ -930,3 +930,27 @@ client, err := opensearch.NewClient(opensearch.Config{
 ```
 
 A positive `CompressMinBytes` sets a different limit, such as 1024 for a slow or metered link.
+
+## `CJKAnalyzer` and `SmartcnAnalyzer` `Type` is a `string`
+
+The spec requires `type` on the `cjk` and `smartcn` analyzers, so `CommonAnalysisCJKAnalyzer.Type` and `CommonAnalysisSmartcnAnalyzer.Type` are `string` instead of `*string`. `NewCommonAnalysisAnalyzerFromCJKAnalyzer` and `NewCommonAnalysisAnalyzerFromSmartcnAnalyzer` set the field, so code that builds an analyzer through them does not need to name it. In 5.2.0 neither constructor set it: the analyzer marshalled as `{}`, which OpenSearch reads as a custom analyzer and the client decodes as `CustomAnalyzer`.
+
+Code that sets the field no longer compiles:
+
+```go
+// Before
+a := opensearchapi.CommonAnalysisCJKAnalyzer{Type: new("cjk")}
+
+// After: the constructor sets Type.
+analyzer := opensearchapi.NewCommonAnalysisAnalyzerFromCJKAnalyzer(opensearchapi.CommonAnalysisCJKAnalyzer{})
+```
+
+Code that reads it drops the dereference:
+
+```go
+// Before
+if a.Type != nil && *a.Type == "cjk" {
+
+// After
+if a.Type == "cjk" {
+```
