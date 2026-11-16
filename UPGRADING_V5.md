@@ -962,8 +962,8 @@ Code that reads it drops the dereference:
 
 ```go
 // Before
-if a.Type != nil && *a.Type == "cjk" {
+isCJK := a.Type != nil && *a.Type == "cjk"
 
 // After
-if a.Type == "cjk" {
+isCJK := a.Type == "cjk"
 ```

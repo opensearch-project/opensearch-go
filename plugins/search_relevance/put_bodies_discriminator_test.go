@@ -18,10 +18,10 @@ import (
 	sr "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance"
 )
 
-// The server picks the experiment or judgment kind from "type", so each
-// constructor sets it and a body decodes to the branch its type names. Each
-// branch's body here is also valid for the other branches, so decoding by shape
-// would pick the first branch rather than the one the type names.
+// The server picks the experiment kind from "type", so each constructor sets it
+// and a body decodes to the branch its type names. Each branch's body here is
+// also valid for the other branches, so decoding by shape would pick the first
+// branch rather than the one the type names.
 func TestPutExperimentsBodyDiscriminator(t *testing.T) {
 	t.Parallel()
 
@@ -70,6 +70,8 @@ func TestPutExperimentsBodyDiscriminator(t *testing.T) {
 	}
 }
 
+// The server picks the judgment kind from "type" in the same way, and each
+// branch's body here is again valid for the other branches.
 func TestPutJudgmentsBodyDiscriminator(t *testing.T) {
 	t.Parallel()
 
