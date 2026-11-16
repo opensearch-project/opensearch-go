@@ -139,13 +139,15 @@ func (e *Unknown{{$t.Name}}Error) Error() string {
 }
 {{end}}`))
 
-// StringEnumFragment renders string-backed enum types: a named string type plus
-// one exported const per known wire value. The type is PERMISSIVE -- because it
-// is backed by string, encoding/json round-trips any value (including ones not
-// in the const set, e.g. a role a newer server introduces), so no custom
-// (Un)MarshalJSON is generated. The consts provide discoverability, typo
-// protection, and drift detection: they are derived from the spec, so a value
-// removed upstream drops its const and any reference fails to compile.
+// StringEnumFragment renders string-backed enum types: a string type plus one
+// exported const per known wire value. The type is a defined string type, or an
+// alias of string when ir.Type.IsAlias is set. Either way it is PERMISSIVE --
+// because it is backed by string, encoding/json round-trips any value (including
+// ones not in the const set, e.g. a role a newer server introduces), so no custom
+// (Un)MarshalJSON is generated. The consts provide discoverability and drift
+// detection: they are derived from the spec, so a value removed upstream drops
+// its const and any reference fails to compile. A defined type also gives typo
+// protection; an alias accepts any string.
 //
 // This is distinct from EnumFragment's closed int-backed enum, which rejects
 // unknown wire values on decode.

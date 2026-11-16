@@ -1346,10 +1346,10 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 		case ir.ParamList:
 			fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
 		case ir.ParamString:
-			// A string-enum param is a named string type (kind ParamString but a
-			// non-"string" GoType), so the plain string var `name` must be
-			// converted; the type is shared, hence corePkg-qualified in the
-			// external _test package.
+			// A string-enum param has kind ParamString but a non-"string" GoType.
+			// The conversion is required for a defined type and a no-op for an
+			// alias; the type is shared, hence corePkg-qualified in the external
+			// _test package.
 			if p.IsStringEnum {
 				fields = append(fields, fmt.Sprintf("%s: %s.%s(name)", p.GoName, corePkg, p.GoType))
 			} else {

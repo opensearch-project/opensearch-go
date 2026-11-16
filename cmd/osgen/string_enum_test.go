@@ -7,6 +7,8 @@
 package main
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -438,4 +440,38 @@ func TestTypeQueryParamEnums_GlobalFormat(t *testing.T) {
 	require.Equal(t, []string{"text", "json"}, constValueList(registered.EnumConsts))
 	_, ok = reg.lookup("_common___Other")
 	require.False(t, ok)
+}
+
+// TestTypeQueryParamEnums_GlobalFormatOrder pins that global-param enums are
+// registered in sorted path order, so emission order does not depend on Go's
+// randomized map iteration. Paths are set in reverse so insertion order cannot
+// pass the test by accident; the loop repeats to give a random order a chance
+// to show.
+func TestTypeQueryParamEnums_GlobalFormatOrder(t *testing.T) {
+	t.Parallel()
+
+	formatParam := func(key string) *openapi3.ParameterRef {
+		return &openapi3.ParameterRef{Value: &openapi3.Parameter{
+			Name:   "format",
+			In:     "query",
+			Schema: &openapi3.SchemaRef{Ref: "#/components/schemas/" + key},
+		}}
+	}
+	keys := []string{"_common___AFormat", "_common___BFormat", "_common___CFormat", "_common___DFormat"}
+	schemas := openapi3.Schemas{}
+	paths := openapi3.NewPaths()
+	for i, key := range slices.Backward(keys) {
+		schemas[key] = &openapi3.SchemaRef{Value: &openapi3.Schema{
+			Type: &openapi3.Types{openapi3.TypeString},
+			Enum: []any{"x"},
+		}}
+		paths.Set(fmt.Sprintf("/p%d", i), &openapi3.PathItem{Parameters: openapi3.Parameters{formatParam(key)}})
+	}
+	spec := &openapi3.T{Paths: paths, Components: &openapi3.Components{Schemas: schemas}}
+
+	for range 20 {
+		reg := newTypeRegistry(opensearchAPIPkgName)
+		typeQueryParamEnums(nil, spec, reg, VersionRange{})
+		require.Equal(t, keys, reg.order)
+	}
 }
