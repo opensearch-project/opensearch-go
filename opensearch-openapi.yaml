@@ -33177,7 +33177,9 @@ components:
       content:
         application/json:
           schema:
-            anyOf:
+            discriminator:
+              propertyName: type
+            oneOf:
               - $ref: '#/components/schemas/search_relevance._common___PutHybridOptimizerExperimentRequest'
               - $ref: '#/components/schemas/search_relevance._common___PutPointwiseExperimentRequest'
               - $ref: '#/components/schemas/search_relevance._common___PutPairwiseExperimentRequest'
@@ -33185,6 +33187,8 @@ components:
       content:
         application/json:
           schema:
+            discriminator:
+              propertyName: type
             oneOf:
               - $ref: '#/components/schemas/search_relevance._common___PutLLMJudgmentsRequest'
               - $ref: '#/components/schemas/search_relevance._common___PutUBIJudgmentsRequest'
@@ -69669,6 +69673,10 @@ components:
           type: integer
         type:
           type: string
+          enum:
+            - HYBRID_OPTIMIZER
+      required:
+        - type
     search_relevance._common___PutImportJudgmentsRequest:
       type: object
       description: The schema for an import judgment.
@@ -69679,10 +69687,14 @@ components:
           type: string
         type:
           type: string
+          enum:
+            - IMPORT_JUDGMENT
         judgmentRatings:
           type: array
           items:
             type: object
+      required:
+        - type
     search_relevance._common___PutJudgmentsResponse:
       type: object
       properties:
@@ -69698,6 +69710,8 @@ components:
           type: string
         type:
           type: string
+          enum:
+            - LLM_JUDGMENT
         modelId:
           type: string
         querySetId:
@@ -69714,6 +69728,8 @@ components:
           type: array
           items:
             type: string
+      required:
+        - type
     search_relevance._common___PutPairwiseExperimentRequest:
       type: object
       description: The schema for a pairwise experiment.
@@ -69728,6 +69744,10 @@ components:
           type: integer
         type:
           type: string
+          enum:
+            - PAIRWISE_COMPARISON
+      required:
+        - type
     search_relevance._common___PutPointwiseExperimentRequest:
       type: object
       description: The schema for a pointwise experiment.
@@ -69746,6 +69766,10 @@ components:
           type: integer
         type:
           type: string
+          enum:
+            - POINTWISE_EVALUATION
+      required:
+        - type
     search_relevance._common___PutQuerySetsRequest:
       type: object
       description: The schema for updating a query set.
@@ -69795,10 +69819,14 @@ components:
           type: string
         type:
           type: string
+          enum:
+            - UBI_JUDGMENT
         clickModel:
           type: string
         maxRank:
           type: integer
+      required:
+        - type
     security_analytics.alerts___ActionExecutionResult:
       type: object
       properties:

@@ -15028,7 +15028,7 @@ type SearchRelevancePutHybridOptimizerExperimentRequest struct {
 	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
-	Type                    *string  `json:"type,omitempty"`
+	Type                    string   `json:"type"`
 }
 
 // The schema for a pointwise experiment.
@@ -15037,7 +15037,7 @@ type SearchRelevancePutPointwiseExperimentRequest struct {
 	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
-	Type                    *string  `json:"type,omitempty"`
+	Type                    string   `json:"type"`
 }
 
 // The schema for a pairwise experiment.
@@ -15045,7 +15045,7 @@ type SearchRelevancePutPairwiseExperimentRequest struct {
 	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
-	Type                    *string  `json:"type,omitempty"`
+	Type                    string   `json:"type"`
 }
 
 // The schema for a LLM judgment.
@@ -15058,7 +15058,7 @@ type SearchRelevancePutLLMJudgmentsRequest struct {
 	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
-	Type                    *string  `json:"type,omitempty"`
+	Type                    string   `json:"type"`
 }
 
 // The schema for a UBI judgment.
@@ -15067,7 +15067,7 @@ type SearchRelevancePutUBIJudgmentsRequest struct {
 	Description *string `json:"description,omitempty"`
 	MaxRank     *int    `json:"maxRank,omitempty"`
 	Name        *string `json:"name,omitempty"`
-	Type        *string `json:"type,omitempty"`
+	Type        string  `json:"type"`
 }
 
 // The schema for an import judgment.
@@ -15075,7 +15075,7 @@ type SearchRelevancePutImportJudgmentsRequest struct {
 	Description     *string           `json:"description,omitempty"`
 	JudgmentRatings []json.RawMessage `json:"judgmentRatings,omitempty"`
 	Name            *string           `json:"name,omitempty"`
-	Type            *string           `json:"type,omitempty"`
+	Type            string            `json:"type"`
 }
 
 // The schema for updating a query set.
