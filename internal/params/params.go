@@ -42,7 +42,9 @@ type DebugParams struct {
 	// Source provides an alternative way to pass the request body as a query parameter.
 	Source string
 
-	// Format controls the output format (used by cat operations).
+	// Format controls the output format (used by cat, list, SQL and PPL
+	// operations). Values are defined by the CatRespFormat, ListRespFormat,
+	// SQLRespFormat and PPLRespFormat types in package opensearchapi.
 	Format string
 
 	// Help returns help information about the operation (used by cat operations).
