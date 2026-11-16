@@ -1216,18 +1216,36 @@ components:
 	spec, err := openapi3.NewLoader().LoadFromData([]byte(doc))
 	require.NoError(t, err)
 
-	reg := newTypeRegistry(opensearchAPIPkgName)
-	w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
-	w.walkSchema(&openapi3.SchemaRef{
-		Ref:   "#/components/schemas/test___Property",
-		Value: spec.Components.Schemas["test___Property"].Value,
-	}, "test___Holder", "test", false)
+	// The union's branches are walked first when a branch is reached directly,
+	// for example through another endpoint, before anything refers to the union.
+	tests := []struct {
+		name      string
+		walkOrder []string
+	}{
+		{name: "union first", walkOrder: []string{"test___Property"}},
+		{name: "branch first", walkOrder: []string{"test___BinaryProperty", "test___Property"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	union, ok := reg.lookup("test___Property")
-	require.True(t, ok, "union type should be registered")
-	require.NotNil(t, union.Discriminator)
-	require.Len(t, union.Branches, 2)
-	for _, b := range union.Branches {
-		require.Equal(t, "Type", b.DiscriminatorField, "branch %s", b.Name)
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
+			for _, key := range tt.walkOrder {
+				w.walkSchema(&openapi3.SchemaRef{
+					Ref:   "#/components/schemas/" + key,
+					Value: spec.Components.Schemas[key].Value,
+				}, "test___Holder", "test", false)
+			}
+			reg.resolveDiscriminatorFields()
+
+			union, ok := reg.lookup("test___Property")
+			require.True(t, ok, "union type should be registered")
+			require.NotNil(t, union.Discriminator)
+			require.Len(t, union.Branches, 2)
+			for _, b := range union.Branches {
+				require.Equal(t, "Type", b.DiscriminatorField, "branch %q", b.Name)
+			}
+		})
 	}
 }
