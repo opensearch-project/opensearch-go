@@ -719,6 +719,37 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 			qp.IsStringEnum = true
 		}
 	}
+
+	registerGlobalParamEnums(w)
+}
+
+// registerGlobalParamEnums registers the enum component schemas that global
+// query parameters (those on the shared params structs, such as `format`)
+// reference. extractQueryParams drops global parameters from each operation,
+// so the per-operation loop never sees them; their value types are still
+// emitted so callers can assign the constants to the shared string fields.
+func registerGlobalParamEnums(w *walker) {
+	if w.spec.Paths == nil {
+		return
+	}
+	register := func(params openapi3.Parameters) {
+		for _, ref := range params {
+			p := ref.Value
+			if p == nil || p.In != "query" || !isGlobalParam(p.Name) || p.Schema == nil || p.Schema.Ref == "" {
+				continue
+			}
+			key := refToSchemaKey(p.Schema.Ref)
+			if schemaRef, ok := w.spec.Components.Schemas[key]; ok && schemaRef.Value != nil {
+				w.resolveStringEnumConst(key, schemaRef.Value, "")
+			}
+		}
+	}
+	for _, item := range w.spec.Paths.Map() {
+		register(item.Parameters)
+		for _, op := range item.Operations() {
+			register(op.Parameters)
+		}
+	}
 }
 
 // typeListParamEnum retypes a list param whose schema is a oneOf of an enum

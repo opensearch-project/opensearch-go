@@ -1066,6 +1066,210 @@ const (
 	TasksGroupByParents TasksGroupBy = "parents"
 )
 
+// Selects the response format returned by cat operations. Equivalent to
+// the HTTP `Accept` header but expressed as a query parameter. The
+// server's omit-the-param behavior is `text`.
+type CatRespFormat = string
+
+const (
+	// CatRespFormatText. Selects the response format returned by cat
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	CatRespFormatText CatRespFormat = "text"
+
+	// CatRespFormatJSON. Selects the response format returned by cat
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	CatRespFormatJSON CatRespFormat = "json"
+
+	// CatRespFormatYaml. Selects the response format returned by cat
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	CatRespFormatYaml CatRespFormat = "yaml"
+
+	// CatRespFormatCbor. Selects the response format returned by cat
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	CatRespFormatCbor CatRespFormat = "cbor"
+
+	// CatRespFormatSmile. Selects the response format returned by cat
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	CatRespFormatSmile CatRespFormat = "smile"
+)
+
+// Response format selector for PPL plugin operations. The valid set is
+// the union of values accepted across `_plugins/_ppl/*` endpoints;
+// defaults and per-endpoint subsets mirror the SQL plugin.
+type PPLRespFormat = string
+
+const (
+	// PPLRespFormatJdbc. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatJdbc PPLRespFormat = "jdbc"
+
+	// PPLRespFormatCSV. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatCSV PPLRespFormat = "csv"
+
+	// PPLRespFormatRaw. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatRaw PPLRespFormat = "raw"
+
+	// PPLRespFormatViz. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatViz PPLRespFormat = "viz"
+
+	// PPLRespFormatJSON. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatJSON PPLRespFormat = "json"
+
+	// PPLRespFormatYaml. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatYaml PPLRespFormat = "yaml"
+
+	// PPLRespFormatSimple. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatSimple PPLRespFormat = "simple"
+
+	// PPLRespFormatStandard. Response format selector for PPL plugin
+	// operations. The valid set is the union of values accepted across
+	// `_plugins/_ppl/*` endpoints; defaults and per-endpoint subsets mirror
+	// the SQL plugin.
+	PPLRespFormatStandard PPLRespFormat = "standard"
+
+	// PPLRespFormatExtended. Response format selector for PPL plugin
+	// operations. The valid set is the union of values accepted across
+	// `_plugins/_ppl/*` endpoints; defaults and per-endpoint subsets mirror
+	// the SQL plugin.
+	PPLRespFormatExtended PPLRespFormat = "extended"
+
+	// PPLRespFormatCost. Response format selector for PPL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_ppl/*`
+	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
+	PPLRespFormatCost PPLRespFormat = "cost"
+)
+
+// Response format selector for SQL plugin operations. The valid set
+// is the union of values accepted across `_plugins/_sql/*` endpoints:
+// query responses use `jdbc` (default), `csv`, `raw`, or `viz`; explain
+// responses use `json`, `yaml`, `simple`, `standard`, `extended`, or
+// `cost`. Not every endpoint accepts every value.
+type SQLRespFormat = string
+
+const (
+	// SQLRespFormatJdbc. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatJdbc SQLRespFormat = "jdbc"
+
+	// SQLRespFormatCSV. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatCSV SQLRespFormat = "csv"
+
+	// SQLRespFormatRaw. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatRaw SQLRespFormat = "raw"
+
+	// SQLRespFormatViz. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatViz SQLRespFormat = "viz"
+
+	// SQLRespFormatJSON. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatJSON SQLRespFormat = "json"
+
+	// SQLRespFormatYaml. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatYaml SQLRespFormat = "yaml"
+
+	// SQLRespFormatSimple. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatSimple SQLRespFormat = "simple"
+
+	// SQLRespFormatStandard. Response format selector for SQL plugin
+	// operations. The valid set is the union of values accepted across
+	// `_plugins/_sql/*` endpoints: query responses use `jdbc` (default),
+	// `csv`, `raw`, or `viz`; explain responses use `json`, `yaml`, `simple`,
+	// `standard`, `extended`, or `cost`. Not every endpoint accepts every
+	// value.
+	SQLRespFormatStandard SQLRespFormat = "standard"
+
+	// SQLRespFormatExtended. Response format selector for SQL plugin
+	// operations. The valid set is the union of values accepted across
+	// `_plugins/_sql/*` endpoints: query responses use `jdbc` (default),
+	// `csv`, `raw`, or `viz`; explain responses use `json`, `yaml`, `simple`,
+	// `standard`, `extended`, or `cost`. Not every endpoint accepts every
+	// value.
+	SQLRespFormatExtended SQLRespFormat = "extended"
+
+	// SQLRespFormatCost. Response format selector for SQL plugin operations.
+	// The valid set is the union of values accepted across `_plugins/_sql/*`
+	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
+	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
+	// or `cost`. Not every endpoint accepts every value.
+	SQLRespFormatCost SQLRespFormat = "cost"
+)
+
+// Selects the response format returned by list operations. Equivalent
+// to the HTTP `Accept` header but expressed as a query parameter. The
+// server's omit-the-param behavior is `text`.
+type ListRespFormat = string
+
+const (
+	// ListRespFormatText. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatText ListRespFormat = "text"
+
+	// ListRespFormatJSON. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatJSON ListRespFormat = "json"
+
+	// ListRespFormatYaml. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatYaml ListRespFormat = "yaml"
+
+	// ListRespFormatCbor. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatCbor ListRespFormat = "cbor"
+
+	// ListRespFormatSmile. Selects the response format returned by list
+	// operations. Equivalent to the HTTP `Accept` header but expressed as a
+	// query parameter. The server's omit-the-param behavior is `text`.
+	ListRespFormatSmile ListRespFormat = "smile"
+)
+
 // Identifies a point in time (PIT): an opaque base64 token that encodes
 // index names and node IDs. The create-PIT response returns it, and
 // every search against the PIT echoes it. A request takes it only in
