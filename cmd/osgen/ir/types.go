@@ -415,7 +415,7 @@ const (
 	// key-presence merge, or request selection.
 	TypeAmbiguousWire
 	TypeEnum       // int-backed iota enum (named int type + const block)
-	TypeStringEnum // string-backed enum (named string type + const block; permissive, unknown values round-trip)
+	TypeStringEnum // string-backed enum (defined or alias string type + const block; permissive, unknown values round-trip)
 	// TypeOpaqueString is an opaque token (x-type-name): a struct around an
 	// unexported string, encoded on the wire as that string.
 	TypeOpaqueString
