@@ -310,6 +310,29 @@ func TestStringEnumFragment_Body(t *testing.T) {
 	require.Empty(t, frag.Imports())
 }
 
+// TestStringEnumFragment_Alias asserts an alias string enum renders as
+// `type X = string`, so values stay interchangeable with plain strings, while
+// its consts keep the alias type.
+func TestStringEnumFragment_Alias(t *testing.T) {
+	t.Parallel()
+
+	frag := &emit.StringEnumFragment{
+		Types: []*ir.Type{{
+			Name:        "Refresh",
+			Kind:        ir.TypeStringEnum,
+			Scope:       ir.ScopeShared,
+			IsAlias:     true,
+			EnumMembers: []ir.EnumMember{{ConstName: "RefreshWaitFor", Value: "wait_for"}},
+		}},
+	}
+
+	body, err := frag.Body()
+	require.NoError(t, err)
+	require.Contains(t, body, "type Refresh = string")
+	require.NotContains(t, body, "type Refresh string")
+	require.Contains(t, body, `RefreshWaitFor Refresh = "wait_for"`)
+}
+
 // TestStringEnumFragment_Empty renders nothing and needs no imports.
 func TestStringEnumFragment_Empty(t *testing.T) {
 	t.Parallel()

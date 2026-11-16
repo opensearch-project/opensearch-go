@@ -115,7 +115,7 @@ type SearchModelsParams struct {
 	CcsMinimizeRoundtrips *bool
 
 	// The default operator for query string query (AND or OR).
-	DefaultOperator string
+	DefaultOperator opensearchapi.CommonQueryDSLOperator
 
 	// The field to use as default where no field prefix is given in the query
 	// string.
@@ -127,7 +127,7 @@ type SearchModelsParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	ExpandWildcards []opensearchapi.ExpandWildcard
 
 	// Specify whether to return detailed information about score computation
 	// as part of a hit.
@@ -216,7 +216,7 @@ type SearchModelsParams struct {
 	SuggestField string
 
 	// Specify suggest mode.
-	SuggestMode string
+	SuggestMode opensearchapi.SuggestMode
 
 	// How many suggestions to return in response.
 	SuggestSize int
@@ -292,7 +292,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -388,7 +388,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.SuggestMode != "" {
-		set("suggest_mode", r.SuggestMode)
+		set("suggest_mode", string(r.SuggestMode))
 	}
 
 	if r.SuggestSize != 0 {

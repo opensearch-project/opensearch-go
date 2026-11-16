@@ -95,7 +95,7 @@ type GetParams struct {
 
 	// If `true`, OpenSearch refreshes the affected shards to make this
 	// operation visible to search. If `false`, do nothing with refreshes.
-	Refresh string
+	Refresh Refresh
 
 	// Target the specified primary shard.
 	Routing []string
@@ -146,7 +146,7 @@ func (r GetParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {

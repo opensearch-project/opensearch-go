@@ -121,7 +121,7 @@ type UpdateParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes.
-	Refresh string
+	Refresh Refresh
 
 	// If `true`, the destination must be an index alias.
 	//
@@ -180,7 +180,7 @@ func (r UpdateParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequireAlias != nil {

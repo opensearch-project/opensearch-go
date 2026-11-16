@@ -81,7 +81,7 @@ type CatRecoveryParams struct {
 	ActiveOnly *bool
 
 	// The units used to display byte values.
-	Bytes string
+	Bytes ByteUnit
 
 	// When `true`, includes detailed information about shard recoveries.
 	//
@@ -118,7 +118,7 @@ func (r CatRecoveryParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if r.Detailed != nil {

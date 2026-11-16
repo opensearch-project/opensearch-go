@@ -97,7 +97,7 @@ type GetConfigsParams struct {
 	ConfigIDList []string
 
 	// Type of notification configuration.
-	ConfigType string
+	ConfigType opensearchapi.NotificationsNotificationConfigType
 
 	CreatedTimeMs int
 
@@ -198,7 +198,7 @@ func (r GetConfigsParams) get() map[string]string {
 	}
 
 	if r.ConfigType != "" {
-		set("config_type", r.ConfigType)
+		set("config_type", string(r.ConfigType))
 	}
 
 	if r.CreatedTimeMs != 0 {

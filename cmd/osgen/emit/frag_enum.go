@@ -184,7 +184,7 @@ var stringEnumFragTmpl = template.Must(template.New("stringEnum").Funcs(template
 {{- if $t.Comment}}
 {{comment $t.Comment}}
 {{- end}}
-type {{$t.Name}} string
+type {{$t.Name}} {{if $t.IsAlias}}= {{end}}string
 
 const (
 {{- range $i, $m := $t.EnumMembers}}

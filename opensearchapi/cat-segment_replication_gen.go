@@ -88,7 +88,7 @@ type CatSegmentReplicationParams struct {
 	AllowNoIndices *bool
 
 	// The units used to display byte values.
-	Bytes string
+	Bytes ByteUnit
 
 	// When `true`, the response only includes the last-completed segment
 	// replication events.
@@ -102,7 +102,7 @@ type CatSegmentReplicationParams struct {
 	// Default: false.
 	Detailed *bool
 
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Whether specified concrete, expanded, or aliased indexes should be
 	// ignored when throttled.
@@ -149,7 +149,7 @@ func (r CatSegmentReplicationParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if r.CompletedOnly != nil {

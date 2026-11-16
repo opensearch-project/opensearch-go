@@ -79,7 +79,7 @@ type IndicesForceMergeParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Specify whether the index should be flushed after performing the
 	// operation.

@@ -75,10 +75,10 @@ type ClusterHealthParams struct {
 	AwarenessAttribute string
 
 	// Default: open.
-	ExpandWildcards []string
+	ExpandWildcards []ExpandWildcard
 
 	// Default: cluster.
-	Level string
+	Level ClusterHealthLevel
 
 	// Whether to return information from the local node only instead of from
 	// the cluster manager node.
@@ -107,7 +107,7 @@ type ClusterHealthParams struct {
 	WaitForNodes string
 
 	// Waits until the cluster health reaches the specified status or better.
-	WaitForStatus string
+	WaitForStatus HealthStatus
 }
 
 func (r ClusterHealthParams) get() map[string]string {
@@ -130,7 +130,7 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if r.Level != "" {
-		set("level", r.Level)
+		set("level", string(r.Level))
 	}
 
 	if r.Local != nil {
@@ -158,7 +158,7 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if r.WaitForStatus != "" {
-		set("wait_for_status", r.WaitForStatus)
+		set("wait_for_status", string(r.WaitForStatus))
 	}
 
 	return params

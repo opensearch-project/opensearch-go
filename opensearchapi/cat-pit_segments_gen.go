@@ -91,7 +91,7 @@ type CatPITSegmentsParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
-	Bytes string
+	Bytes ByteUnit
 }
 
 func (r CatPITSegmentsParams) get() map[string]string {
@@ -109,7 +109,7 @@ func (r CatPITSegmentsParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	return params
