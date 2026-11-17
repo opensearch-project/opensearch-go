@@ -898,44 +898,12 @@ const (
 type ClusterHealthLevel = string
 
 const (
-	// ClusterHealthLevelAwarenessAttributes. Controls the amount of detail
-	// included in the cluster health response. Defaults to `cluster`, which
-	// reports only the cluster-wide health. `indices` adds the health of each
-	// index, and `shards` also adds the health of each shard within each
-	// index. `awareness_attributes` reports health for each value of an
-	// awareness attribute. It is required when `awareness_attribute` is set,
-	// and cannot be combined with an index target. An unrecognized value is
-	// treated as `cluster`.
 	ClusterHealthLevelAwarenessAttributes ClusterHealthLevel = "awareness_attributes"
 
-	// ClusterHealthLevelCluster. Controls the amount of detail included in the
-	// cluster health response. Defaults to `cluster`, which reports only the
-	// cluster-wide health. `indices` adds the health of each index, and
-	// `shards` also adds the health of each shard within each index.
-	// `awareness_attributes` reports health for each value of an awareness
-	// attribute. It is required when `awareness_attribute` is set, and cannot
-	// be combined with an index target. An unrecognized value is treated as
-	// `cluster`.
 	ClusterHealthLevelCluster ClusterHealthLevel = "cluster"
 
-	// ClusterHealthLevelIndices. Controls the amount of detail included in the
-	// cluster health response. Defaults to `cluster`, which reports only the
-	// cluster-wide health. `indices` adds the health of each index, and
-	// `shards` also adds the health of each shard within each index.
-	// `awareness_attributes` reports health for each value of an awareness
-	// attribute. It is required when `awareness_attribute` is set, and cannot
-	// be combined with an index target. An unrecognized value is treated as
-	// `cluster`.
 	ClusterHealthLevelIndices ClusterHealthLevel = "indices"
 
-	// ClusterHealthLevelShards. Controls the amount of detail included in the
-	// cluster health response. Defaults to `cluster`, which reports only the
-	// cluster-wide health. `indices` adds the health of each index, and
-	// `shards` also adds the health of each shard within each index.
-	// `awareness_attributes` reports health for each value of an awareness
-	// attribute. It is required when `awareness_attribute` is set, and cannot
-	// be combined with an index target. An unrecognized value is treated as
-	// `cluster`.
 	ClusterHealthLevelShards ClusterHealthLevel = "shards"
 )
 
@@ -968,16 +936,8 @@ const (
 type CommonQueryDSLOperator = string
 
 const (
-	// CommonQueryDSLOperatorAnd. The Boolean logic used to combine the terms
-	// of a query. `or` matches documents that contain any of the terms, and
-	// `and` matches only documents that contain all of them. The value is not
-	// case-sensitive.
 	CommonQueryDSLOperatorAnd CommonQueryDSLOperator = "and"
 
-	// CommonQueryDSLOperatorOr. The Boolean logic used to combine the terms of
-	// a query. `or` matches documents that contain any of the terms, and `and`
-	// matches only documents that contain all of them. The value is not
-	// case-sensitive.
 	CommonQueryDSLOperatorOr CommonQueryDSLOperator = "or"
 )
 
@@ -1014,22 +974,10 @@ func SlicesCount(n int) Slices {
 type Level = string
 
 const (
-	// LevelCluster. Specifies the level of detail of the returned statistics.
-	// `indices` adds a breakdown for each index, and `shards` also adds a
-	// breakdown for each shard of each index. For index statistics, `cluster`
-	// returns only the totals across all targeted indexes.
 	LevelCluster Level = "cluster"
 
-	// LevelIndices. Specifies the level of detail of the returned statistics.
-	// `indices` adds a breakdown for each index, and `shards` also adds a
-	// breakdown for each shard of each index. For index statistics, `cluster`
-	// returns only the totals across all targeted indexes.
 	LevelIndices Level = "indices"
 
-	// LevelShards. Specifies the level of detail of the returned statistics.
-	// `indices` adds a breakdown for each index, and `shards` also adds a
-	// breakdown for each shard of each index. For index statistics, `cluster`
-	// returns only the totals across all targeted indexes.
 	LevelShards Level = "shards"
 )
 
@@ -1050,28 +998,10 @@ const (
 type SuggestMode = string
 
 const (
-	// SuggestModeAlways. Controls which suggestions the term suggester returns
-	// for each term in the suggest text. Defaults to `missing`. The value is
-	// not case-sensitive. `missing` suggests only for terms that are not in
-	// the index. `popular` suggests only terms that occur in more documents
-	// than the original term. `always` suggests any matching terms based on
-	// the tokens in the suggest text.
 	SuggestModeAlways SuggestMode = "always"
 
-	// SuggestModeMissing. Controls which suggestions the term suggester
-	// returns for each term in the suggest text. Defaults to `missing`. The
-	// value is not case-sensitive. `missing` suggests only for terms that are
-	// not in the index. `popular` suggests only terms that occur in more
-	// documents than the original term. `always` suggests any matching terms
-	// based on the tokens in the suggest text.
 	SuggestModeMissing SuggestMode = "missing"
 
-	// SuggestModePopular. Controls which suggestions the term suggester
-	// returns for each term in the suggest text. Defaults to `missing`. The
-	// value is not case-sensitive. `missing` suggests only for terms that are
-	// not in the index. `popular` suggests only terms that occur in more
-	// documents than the original term. `always` suggests any matching terms
-	// based on the tokens in the suggest text.
 	SuggestModePopular SuggestMode = "popular"
 )
 
@@ -1079,10 +1009,8 @@ const (
 type SortOrder = string
 
 const (
-	// SortOrderAsc. The direction of the sort order.
 	SortOrderAsc SortOrder = "asc"
 
-	// SortOrderDesc. The direction of the sort order.
 	SortOrderDesc SortOrder = "desc"
 )
 
@@ -1104,40 +1032,22 @@ const (
 type NotificationsNotificationConfigType = string
 
 const (
-	// NotificationsNotificationConfigTypeChime. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeChime NotificationsNotificationConfigType = "chime"
 
-	// NotificationsNotificationConfigTypeEmail. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeEmail NotificationsNotificationConfigType = "email"
 
-	// NotificationsNotificationConfigTypeEmailGroup. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeEmailGroup NotificationsNotificationConfigType = "email_group"
 
-	// NotificationsNotificationConfigTypeMicrosoftTeams. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeMicrosoftTeams NotificationsNotificationConfigType = "microsoft_teams"
 
-	// NotificationsNotificationConfigTypeSESAccount. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeSESAccount NotificationsNotificationConfigType = "ses_account"
 
-	// NotificationsNotificationConfigTypeSlack. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeSlack NotificationsNotificationConfigType = "slack"
 
-	// NotificationsNotificationConfigTypeSMTPAccount. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeSMTPAccount NotificationsNotificationConfigType = "smtp_account"
 
-	// NotificationsNotificationConfigTypeSNS. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeSNS NotificationsNotificationConfigType = "sns"
 
-	// NotificationsNotificationConfigTypeWebhook. Type of notification
-	// configuration.
 	NotificationsNotificationConfigTypeWebhook NotificationsNotificationConfigType = "webhook"
 )
 
@@ -1160,28 +1070,16 @@ const (
 type SecurityAnalyticsAlertsAlertSeverityLevel = string
 
 const (
-	// SecurityAnalyticsAlertsAlertSeverityLevel1. Severity level with 1 the
-	// highest and 5 the lowest. `ALL` designates no particular severity.
 	SecurityAnalyticsAlertsAlertSeverityLevel1 SecurityAnalyticsAlertsAlertSeverityLevel = "1"
 
-	// SecurityAnalyticsAlertsAlertSeverityLevel2. Severity level with 1 the
-	// highest and 5 the lowest. `ALL` designates no particular severity.
 	SecurityAnalyticsAlertsAlertSeverityLevel2 SecurityAnalyticsAlertsAlertSeverityLevel = "2"
 
-	// SecurityAnalyticsAlertsAlertSeverityLevel3. Severity level with 1 the
-	// highest and 5 the lowest. `ALL` designates no particular severity.
 	SecurityAnalyticsAlertsAlertSeverityLevel3 SecurityAnalyticsAlertsAlertSeverityLevel = "3"
 
-	// SecurityAnalyticsAlertsAlertSeverityLevel4. Severity level with 1 the
-	// highest and 5 the lowest. `ALL` designates no particular severity.
 	SecurityAnalyticsAlertsAlertSeverityLevel4 SecurityAnalyticsAlertsAlertSeverityLevel = "4"
 
-	// SecurityAnalyticsAlertsAlertSeverityLevel5. Severity level with 1 the
-	// highest and 5 the lowest. `ALL` designates no particular severity.
 	SecurityAnalyticsAlertsAlertSeverityLevel5 SecurityAnalyticsAlertsAlertSeverityLevel = "5"
 
-	// SecurityAnalyticsAlertsAlertSeverityLevelAll. Severity level with 1 the
-	// highest and 5 the lowest. `ALL` designates no particular severity.
 	SecurityAnalyticsAlertsAlertSeverityLevelAll SecurityAnalyticsAlertsAlertSeverityLevel = "ALL"
 )
 
@@ -1219,70 +1117,38 @@ const (
 )
 
 // Selects the response format returned by cat operations. Equivalent to
-// the HTTP `Accept` header but expressed as a query parameter. The
-// server's omit-the-param behavior is `text`.
+// the HTTP `Accept` header but expressed as a query parameter.
 //
 // The server default is "text".
 type CatRespFormat = string
 
 const (
-	// CatRespFormatText. Selects the response format returned by cat
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	CatRespFormatText CatRespFormat = "text"
 
-	// CatRespFormatJSON. Selects the response format returned by cat
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	CatRespFormatJSON CatRespFormat = "json"
 
-	// CatRespFormatYaml. Selects the response format returned by cat
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	CatRespFormatYaml CatRespFormat = "yaml"
 
-	// CatRespFormatCbor. Selects the response format returned by cat
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	CatRespFormatCbor CatRespFormat = "cbor"
 
-	// CatRespFormatSmile. Selects the response format returned by cat
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	CatRespFormatSmile CatRespFormat = "smile"
 )
 
 // Selects the response format returned by list operations. Equivalent
-// to the HTTP `Accept` header but expressed as a query parameter. The
-// server's omit-the-param behavior is `text`.
+// to the HTTP `Accept` header but expressed as a query parameter.
 //
 // The server default is "text".
 type ListRespFormat = string
 
 const (
-	// ListRespFormatText. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	ListRespFormatText ListRespFormat = "text"
 
-	// ListRespFormatJSON. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	ListRespFormatJSON ListRespFormat = "json"
 
-	// ListRespFormatYaml. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	ListRespFormatYaml ListRespFormat = "yaml"
 
-	// ListRespFormatCbor. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	ListRespFormatCbor ListRespFormat = "cbor"
 
-	// ListRespFormatSmile. Selects the response format returned by list
-	// operations. Equivalent to the HTTP `Accept` header but expressed as a
-	// query parameter. The server's omit-the-param behavior is `text`.
 	ListRespFormatSmile ListRespFormat = "smile"
 )
 
@@ -1294,56 +1160,24 @@ const (
 type PPLRespFormat = string
 
 const (
-	// PPLRespFormatJdbc. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatJdbc PPLRespFormat = "jdbc"
 
-	// PPLRespFormatCSV. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatCSV PPLRespFormat = "csv"
 
-	// PPLRespFormatRaw. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatRaw PPLRespFormat = "raw"
 
-	// PPLRespFormatViz. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatViz PPLRespFormat = "viz"
 
-	// PPLRespFormatJSON. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatJSON PPLRespFormat = "json"
 
-	// PPLRespFormatYaml. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatYaml PPLRespFormat = "yaml"
 
-	// PPLRespFormatSimple. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatSimple PPLRespFormat = "simple"
 
-	// PPLRespFormatStandard. Response format selector for PPL plugin
-	// operations. The valid set is the union of values accepted across
-	// `_plugins/_ppl/*` endpoints; defaults and per-endpoint subsets mirror
-	// the SQL plugin.
 	PPLRespFormatStandard PPLRespFormat = "standard"
 
-	// PPLRespFormatExtended. Response format selector for PPL plugin
-	// operations. The valid set is the union of values accepted across
-	// `_plugins/_ppl/*` endpoints; defaults and per-endpoint subsets mirror
-	// the SQL plugin.
 	PPLRespFormatExtended PPLRespFormat = "extended"
 
-	// PPLRespFormatCost. Response format selector for PPL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_ppl/*`
-	// endpoints; defaults and per-endpoint subsets mirror the SQL plugin.
 	PPLRespFormatCost PPLRespFormat = "cost"
 )
 
@@ -1357,76 +1191,24 @@ const (
 type SQLRespFormat = string
 
 const (
-	// SQLRespFormatJdbc. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatJdbc SQLRespFormat = "jdbc"
 
-	// SQLRespFormatCSV. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatCSV SQLRespFormat = "csv"
 
-	// SQLRespFormatRaw. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatRaw SQLRespFormat = "raw"
 
-	// SQLRespFormatViz. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatViz SQLRespFormat = "viz"
 
-	// SQLRespFormatJSON. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatJSON SQLRespFormat = "json"
 
-	// SQLRespFormatYaml. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatYaml SQLRespFormat = "yaml"
 
-	// SQLRespFormatSimple. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatSimple SQLRespFormat = "simple"
 
-	// SQLRespFormatStandard. Response format selector for SQL plugin
-	// operations. The valid set is the union of values accepted across
-	// `_plugins/_sql/*` endpoints: query responses use `jdbc` (default),
-	// `csv`, `raw`, or `viz`; explain responses use `json`, `yaml`, `simple`,
-	// `standard`, `extended`, or `cost`. Not every endpoint accepts every
-	// value.
 	SQLRespFormatStandard SQLRespFormat = "standard"
 
-	// SQLRespFormatExtended. Response format selector for SQL plugin
-	// operations. The valid set is the union of values accepted across
-	// `_plugins/_sql/*` endpoints: query responses use `jdbc` (default),
-	// `csv`, `raw`, or `viz`; explain responses use `json`, `yaml`, `simple`,
-	// `standard`, `extended`, or `cost`. Not every endpoint accepts every
-	// value.
 	SQLRespFormatExtended SQLRespFormat = "extended"
 
-	// SQLRespFormatCost. Response format selector for SQL plugin operations.
-	// The valid set is the union of values accepted across `_plugins/_sql/*`
-	// endpoints: query responses use `jdbc` (default), `csv`, `raw`, or `viz`;
-	// explain responses use `json`, `yaml`, `simple`, `standard`, `extended`,
-	// or `cost`. Not every endpoint accepts every value.
 	SQLRespFormatCost SQLRespFormat = "cost"
 )
 
