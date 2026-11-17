@@ -42,7 +42,7 @@ _, err = client.Doc.Index(ctx, opensearchapi.IndexReq{
     Index:  "products",
     ID:     "1",
     Body:   strings.NewReader(`{"name":"Widget","price":9.99}`),
-    Params: &opensearchapi.IndexParams{Refresh: opensearchapi.RefreshTrue},
+    Params: &opensearchapi.IndexParams{Refresh: opensearchapi.RefreshWaitFor},
 })
 
 // Search
