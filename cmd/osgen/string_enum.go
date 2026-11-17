@@ -22,7 +22,7 @@ import (
 //
 // Empty today -- every accepted enum schema in the bundled spec produces a clean,
 // useful typed enum. Add an entry (with a one-line rationale) if a future schema,
-// of either shape, should deliberately stay untyped.
+// of any enumShape, should deliberately stay untyped.
 //
 //nolint:gochecknoglobals // const-ish read-only deny-list
 var stringEnumDenyList = set[string]{}
@@ -37,9 +37,8 @@ type constEnumValue struct {
 	DeprecationMsg    string
 }
 
-// enumShape is the schema shape an enum was recognized from. The shapes are
-// ordered from narrowest to widest; a parse given a widest shape accepts every
-// narrower one too.
+// enumShape is the schema shape an enum was recognized from. Response and body
+// fields accept only enumShapeConst; query parameters accept every shape.
 type enumShape int
 
 const (
@@ -92,17 +91,17 @@ type enumParser struct {
 	warnW io.Writer
 }
 
-// constOneOf parses the strict enumShapeConst shape and reports ok=false for any
-// other, so callers fall back to a plain string.
-func (p enumParser) constOneOf(typeName, schemaKey string, schema *openapi3.Schema) ([]constEnumValue, bool) {
-	values, shape := p.parse(typeName, schemaKey, schema, enumShapeConst)
-	return values, shape != enumShapeNone
+// constOneOf parses the strict enumShapeConst shape, the only one response and
+// body fields accept, and reports enumShapeNone for any other, so callers fall
+// back to a plain string.
+func (p enumParser) constOneOf(typeName, schemaKey string, schema *openapi3.Schema) ([]constEnumValue, enumShape) {
+	return p.parse(typeName, schemaKey, schema, false)
 }
 
 // paramEnum parses any shape a query parameter accepts and reports which one
 // matched, enumShapeNone when none did.
 func (p enumParser) paramEnum(typeName, schemaKey string, schema *openapi3.Schema) ([]constEnumValue, enumShape) {
-	if values, shape := p.parse(typeName, schemaKey, schema, enumShapeParam); shape != enumShapeNone {
+	if values, shape := p.parse(typeName, schemaKey, schema, true); shape != enumShapeNone {
 		return values, shape
 	}
 	return p.intOrConst(typeName, schemaKey, schema)
@@ -140,7 +139,7 @@ func (p enumParser) intOrConst(typeName, schemaKey string, schema *openapi3.Sche
 	if counts != 1 || len(keywords) == 0 {
 		return nil, enumShapeNone
 	}
-	values, shape := p.parse(typeName, schemaKey, &openapi3.Schema{OneOf: keywords}, enumShapeConst)
+	values, shape := p.parse(typeName, schemaKey, &openapi3.Schema{OneOf: keywords}, false)
 	if shape == enumShapeNone {
 		return nil, enumShapeNone
 	}
@@ -158,13 +157,13 @@ func oneOfBranchOfType(s *openapi3.Schema, typ string) *openapi3.Schema {
 	return nil
 }
 
-// parse recognizes enumShapeConst, and enumShapeParam too when widest is
-// enumShapeParam, and reports the narrowest shape the schema fits.
-func (p enumParser) parse(typeName, schemaKey string, schema *openapi3.Schema, widest enumShape) ([]constEnumValue, enumShape) {
+// parse recognizes enumShapeConst, and enumShapeParam too when allowParam is
+// set, and reports the shape the schema fits: enumShapeParam only when it uses
+// a spelling enumShapeConst does not accept.
+func (p enumParser) parse(typeName, schemaKey string, schema *openapi3.Schema, allowParam bool) ([]constEnumValue, enumShape) {
 	if schema == nil || p.deny.has(schemaKey) {
 		return nil, enumShapeNone
 	}
-	allowParam := widest >= enumShapeParam
 	shape := enumShapeConst
 	branches := schema.OneOf
 	if len(branches) == 0 {

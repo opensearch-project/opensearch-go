@@ -517,11 +517,11 @@ func TestBulkIndexerItemDeprecatedFieldsIntegration(t *testing.T) {
 	}{
 		{
 			name: "refresh",
-			item: opensearchutil.BulkIndexerItem{DocumentID: "refresh", Refresh: new("wait_for")},
+			item: opensearchutil.BulkIndexerItem{DocumentID: "refresh", Refresh: new(opensearchapi.RefreshWaitFor)},
 		},
 		{
 			name: "wait_for_active_shards",
-			item: opensearchutil.BulkIndexerItem{DocumentID: "wait", WaitForActiveShards: "all"},
+			item: opensearchutil.BulkIndexerItem{DocumentID: "wait", WaitForActiveShards: opensearchapi.WaitForActiveShardsAll},
 		},
 	}
 
