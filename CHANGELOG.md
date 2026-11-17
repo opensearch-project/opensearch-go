@@ -14,10 +14,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Deprecated
 
+- Deprecate `BulkIndexerItem.Refresh` and `BulkIndexerItem.WaitForActiveShards`. The server accepts neither in a bulk action line, and the bulk client no longer sends them. Use `BulkIndexerConfig.Refresh` and `BulkIndexerConfig.WaitForActiveShards`, which apply to every request the bulk client sends.
+
 ### Removed
 
 ### Fixed
 
+- Fix bulk items that set `BulkIndexerItem.Refresh` or `BulkIndexerItem.WaitForActiveShards` being rejected by the server. The client wrote both into the action metadata line, which the server does not accept, so every such item failed. The client no longer sends them.
 - Send a negative duration query parameter (`timeout`, `cluster_manager_timeout`, `scroll` and the other `time.Duration` parameters) as `-1`, the value the server accepts for "no timeout / unbounded". A negative duration such as `-1ms` was sent as `-1000000nanos`, which the server rejects. `opensearchapi.DurationUnbounded` names the intent. A zero duration still leaves the parameter unset.
 - Decode an analyzer or normalizer that has no `type` as the custom branch instead of failing with `payload has no type discriminator`. OpenSearch treats such an analyzer as `custom` and returns index settings as stored, so `Indices.Get` and other responses that carry index analysis settings failed to decode for an index created with, for example, `{"tokenizer":"keyword","filter":["lowercase"]}`. The decoded value carries `Type: "custom"`, so it marshals back to a definition OpenSearch accepts. The vendored spec now sets `x-default: custom` on the `Analyzer` and `Normalizer` discriminators ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))
 - Add a copy of `LICENSE.txt` to each nested module (`compress`, `osprom`, `osotel`, `log-slog`, `log-zerolog`, `cmd/osgen`, `cmd/osapilint`). A module zip holds only the files under its `go.mod`, so pkg.go.dev detected no license for these modules and did not display their documentation. `.github/check-license-headers.sh` now fails when a nested module's copy is missing or differs from the root file ([#1297](https://github.com/opensearch-project/opensearch-go/pull/1297))

@@ -577,17 +577,27 @@ func (s BulkIndexerStats) TimerFlushRatio() float64 {
 
 // BulkIndexerItem represents a bulk client item.
 type BulkIndexerItem struct {
-	Index               string
-	Action              string
-	DocumentID          string
-	Routing             *string
-	Version             *int64
-	VersionType         *string
-	IfSeqNum            *int64
-	IfPrimaryTerm       *int64
+	Index         string
+	Action        string
+	DocumentID    string
+	Routing       *string
+	Version       *int64
+	VersionType   *string
+	IfSeqNum      *int64
+	IfPrimaryTerm *int64
+	// WaitForActiveShards is not sent.
+	//
+	// Deprecated: The server rejects wait_for_active_shards in an action line, so the bulk
+	// client does not send it. Use [BulkIndexerConfig].WaitForActiveShards, which applies to
+	// every request the bulk client sends.
 	WaitForActiveShards any
-	Refresh             *string
-	RequireAlias        *bool
+	// Refresh is not sent.
+	//
+	// Deprecated: The server rejects refresh in an action line, so the bulk client does not
+	// send it. Use [BulkIndexerConfig].Refresh, which applies to every request the bulk
+	// client sends.
+	Refresh      *string
+	RequireAlias *bool
 	// Body is the document. The bulk client reads it from offset 0, whatever the
 	// position it is handed in at, once to size it, once more if a Fingerprinter
 	// needs it, and again for each attempt to send it, and it leaves the reader at 0.
@@ -771,21 +781,23 @@ func AddZeroCopy(ctx context.Context, bi BulkIndexer, item BulkIndexerZeroCopyIt
 }
 
 type bulkActionMetadata struct {
-	Index               string  `json:"_index,omitempty"`
-	DocumentID          string  `json:"_id,omitempty"`
-	Routing             *string `json:"routing,omitempty"`
-	Version             *int64  `json:"version,omitempty"`
-	VersionType         *string `json:"version_type,omitempty"`
-	IfSeqNum            *int64  `json:"if_seq_no,omitempty"`
-	IfPrimaryTerm       *int64  `json:"if_primary_term,omitempty"`
-	WaitForActiveShards any     `json:"wait_for_active_shards,omitempty"`
-	Refresh             *string `json:"refresh,omitempty"`
-	RequireAlias        *bool   `json:"require_alias,omitempty"`
-	RetryOnConflict     *int    `json:"retry_on_conflict,omitempty"`
+	Index           string  `json:"_index,omitempty"`
+	DocumentID      string  `json:"_id,omitempty"`
+	Routing         *string `json:"routing,omitempty"`
+	Version         *int64  `json:"version,omitempty"`
+	VersionType     *string `json:"version_type,omitempty"`
+	IfSeqNum        *int64  `json:"if_seq_no,omitempty"`
+	IfPrimaryTerm   *int64  `json:"if_primary_term,omitempty"`
+	RequireAlias    *bool   `json:"require_alias,omitempty"`
+	RetryOnConflict *int    `json:"retry_on_conflict,omitempty"`
 }
 
 type bulkClient struct {
 	wg sync.WaitGroup
+
+	// encodeMeta, when set, stands in for the metadata encoder; tests set it to inject an
+	// encoding failure. It is nil in production.
+	encodeMeta func(*BulkIndexerItem) ([]byte, error)
 
 	sched *scheduler
 	// router maps documents to shards and nodes; never nil.
@@ -1527,10 +1539,8 @@ const (
 	sizeVersionTypeField     = 24
 	sizeIfSeqNoField         = 16
 	sizeIfPrimaryTermField   = 21
-	sizeRefreshField         = 20
 	sizeRequireAliasField    = 21
 	sizeRetryOnConflictField = 22
-	sizeWaitForActiveField   = 32
 )
 
 // estimateItemBytesWithBody approximates the bytes an item takes once serialized:
@@ -1572,10 +1582,8 @@ func estimateItemBytesWithBody(item BulkIndexerItem, body int64) int64 {
 		{item.VersionType != nil && item.DocumentID != "", sizeVersionTypeField},
 		{item.IfSeqNum != nil, sizeIfSeqNoField},
 		{item.IfPrimaryTerm != nil, sizeIfPrimaryTermField},
-		{item.Refresh != nil, sizeRefreshField},
 		{item.RequireAlias != nil, sizeRequireAliasField},
 		{item.RetryOnConflict != nil, sizeRetryOnConflictField},
-		{item.WaitForActiveShards != nil, sizeWaitForActiveField},
 	} {
 		if size.set {
 			field(size.size)
@@ -2163,6 +2171,12 @@ func (w *worker) writeItem(ctx context.Context, item BulkIndexerItem) error {
 
 // writeMeta formats and writes the item metadata to the buffer.
 func (w *worker) writeMeta(item BulkIndexerItem) error {
+	if w.bi.encodeMeta != nil {
+		if _, err := w.bi.encodeMeta(&item); err != nil {
+			return err
+		}
+	}
+
 	enc := w.bi.metaPool.Get().(*metaEncoder)
 
 	line, err := enc.encode(&item)
@@ -2229,17 +2243,15 @@ const initialMetaBytes = 512
 // to the item once it returns.
 func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
 	e.meta = bulkActionMetadata{
-		Index:               item.Index,
-		DocumentID:          item.DocumentID,
-		Version:             item.Version,
-		VersionType:         item.VersionType,
-		Routing:             item.Routing,
-		IfPrimaryTerm:       item.IfPrimaryTerm,
-		IfSeqNum:            item.IfSeqNum,
-		WaitForActiveShards: item.WaitForActiveShards,
-		Refresh:             item.Refresh,
-		RequireAlias:        item.RequireAlias,
-		RetryOnConflict:     item.RetryOnConflict,
+		Index:           item.Index,
+		DocumentID:      item.DocumentID,
+		Version:         item.Version,
+		VersionType:     item.VersionType,
+		Routing:         item.Routing,
+		IfPrimaryTerm:   item.IfPrimaryTerm,
+		IfSeqNum:        item.IfSeqNum,
+		RequireAlias:    item.RequireAlias,
+		RetryOnConflict: item.RetryOnConflict,
 	}
 
 	// Can not specify version or seq num if no document ID is passed
@@ -2287,13 +2299,9 @@ func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
 
 // appendActionLine appends the action line encode writes for action and m, newline
 // included, byte for byte. It reports false, and appends nothing, for a line it leaves
-// to the encoder: one with a WaitForActiveShards, which may hold any value, or with a
-// string the encoder would escape. TestAppendActionLineKnowsEveryField fails when
+// to the encoder: one with a string the encoder would escape. TestAppendActionLineKnowsEveryField fails when
 // bulkActionMetadata gains a field this does not write.
 func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, bool) {
-	if m.WaitForActiveShards != nil {
-		return b, false
-	}
 	start := len(b)
 	// The encoder does not escape HTML; see newMetaEncoder.
 	const escapeHTML = false
@@ -2330,10 +2338,6 @@ func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, b
 	if ok && m.IfPrimaryTerm != nil {
 		b = append(b, `,"if_primary_term":`...)
 		b = strconv.AppendInt(b, *m.IfPrimaryTerm, 10)
-	}
-	if ok && m.Refresh != nil {
-		b = append(b, `,"refresh":`...)
-		b, ok = json.AppendString(b, *m.Refresh, escapeHTML)
 	}
 	if ok && m.RequireAlias != nil {
 		b = append(b, `,"require_alias":`...)
