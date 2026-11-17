@@ -45,7 +45,7 @@ const (
 	// enumShapeNone: the schema is not an accepted enum.
 	enumShapeNone enumShape = iota
 	// enumShapeConst: every oneOf/anyOf branch is {type: string, const: X}
-	// (e.g. _common___NodeRole). The only shape response and body fields accept.
+	// (e.g. _common___NodeRole).
 	enumShapeConst
 	// enumShapeParam: the remaining enum spellings in the spec, accepted only for
 	// query parameters: a top-level {type: string, enum: [...]}, oneOf branches
@@ -91,9 +91,8 @@ type enumParser struct {
 	warnW io.Writer
 }
 
-// constOneOf parses the strict enumShapeConst shape, the only one response and
-// body fields accept, and reports enumShapeNone for any other, so callers fall
-// back to a plain string.
+// constOneOf parses the strict enumShapeConst shape and reports enumShapeNone
+// for any other, so callers fall back to a plain string.
 func (p enumParser) constOneOf(typeName, schemaKey string, schema *openapi3.Schema) ([]constEnumValue, enumShape) {
 	return p.parse(typeName, schemaKey, schema, false)
 }
