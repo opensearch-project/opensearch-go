@@ -240,8 +240,9 @@ func TestParseParamEnum(t *testing.T) {
 	t.Parallel()
 
 	topLevel := &openapi3.Schema{
-		Type: &openapi3.Types{openapi3.TypeString},
-		Enum: []any{"asc", "desc"},
+		Type:        &openapi3.Types{openapi3.TypeString},
+		Enum:        []any{"asc", "desc"},
+		Description: "Sort order.",
 	}
 	byteUnit := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
 		constBranch("b", "bytes", nil),
@@ -284,6 +285,12 @@ func TestParseParamEnum(t *testing.T) {
 				return
 			}
 			require.Equal(t, tt.want, constValueList(got))
+			if tt.schema == topLevel {
+				// The schema description documents the type, not each value.
+				for _, v := range got {
+					require.Empty(t, v.Description, v.Value)
+				}
+			}
 			if tt.wantWarn != "" {
 				require.Contains(t, warn.String(), tt.wantWarn)
 			}

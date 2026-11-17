@@ -39343,8 +39343,7 @@ components:
       default: text
       description: |
         Selects the response format returned by cat operations. Equivalent to
-        the HTTP `Accept` header but expressed as a query parameter. The
-        server's omit-the-param behavior is `text`.
+        the HTTP `Accept` header but expressed as a query parameter.
     _common___ClusterStatistics:
       type: object
       properties:
@@ -40302,8 +40301,7 @@ components:
       default: text
       description: |
         Selects the response format returned by list operations. Equivalent
-        to the HTTP `Accept` header but expressed as a query parameter. The
-        server's omit-the-param behavior is `text`.
+        to the HTTP `Accept` header but expressed as a query parameter.
     _common___MergesStats:
       type: object
       description: The statistics about merge operations.
