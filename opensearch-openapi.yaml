@@ -39312,31 +39312,37 @@ components:
         - title: bytes
           type: string
           const: b
+          description: Shows byte values as a plain count of bytes. Pick it when exact sizes matter.
         - title: kilo_bytes
           type: string
           enum:
             - kb
             - k
+          description: Shows byte values in kibibytes (1024 bytes); `k` is the short form.
         - title: mega_bytes
           type: string
           enum:
             - mb
             - m
+          description: Shows byte values in mebibytes (1024 kibibytes); `m` is the short form.
         - title: giga_bytes
           type: string
           enum:
             - gb
             - g
+          description: Shows byte values in gibibytes (1024 mebibytes); `g` is the short form.
         - title: tera_bytes
           type: string
           enum:
             - tb
             - t
+          description: Shows byte values in tebibytes (1024 gibibytes); `t` is the short form.
         - title: peta_bytes
           type: string
           enum:
             - pb
             - p
+          description: Shows byte values in pebibytes (1024 tebibytes); `p` is the short form.
     _common___CatResponseFormat:
       type: string
       enum: [text, json, yaml, cbor, smile]
@@ -39344,6 +39350,12 @@ components:
       description: |
         Selects the response format returned by cat operations. Equivalent to
         the HTTP `Accept` header but expressed as a query parameter.
+      x-enum-descriptions:
+        text: Returns a plain-text table with one row per line. Add `v=true` to include column headers.
+        json: Returns the rows as a JSON array of objects, one object per row keyed by column name.
+        yaml: Returns the rows as a YAML list of objects, one object per row keyed by column name.
+        cbor: Returns the rows encoded as CBOR, a binary form of the JSON structure.
+        smile: Returns the rows encoded as Smile, a binary form of the JSON structure.
     _common___ClusterStatistics:
       type: object
       properties:
@@ -39507,30 +39519,39 @@ components:
         - title: centimeters
           type: string
           const: cm
+          description: Centimeters, 0.01 meters.
         - title: feet
           type: string
           const: ft
+          description: International feet, 0.3048 meters.
         - title: inches
           type: string
           const: in
+          description: International inches, 0.0254 meters.
         - title: kilometers
           type: string
           const: km
+          description: Kilometers, 1000 meters.
         - title: meters
           type: string
           const: m
+          description: Meters, the base unit the server converts other distance units to.
         - title: miles
           type: string
           const: mi
+          description: International statute miles, 1609.344 meters.
         - title: millimeters
           type: string
           const: mm
+          description: Millimeters, 0.001 meters.
         - title: nautical miles
           type: string
           const: nmi
+          description: Nautical miles, 1852 meters. The server also accepts `NM` for this unit.
         - title: yards
           type: string
           const: yd
+          description: International yards, 0.9144 meters.
     _common___DocStats:
       type: object
       description: The document-level statistics.
@@ -40295,6 +40316,10 @@ components:
         - cluster
         - indices
         - shards
+      x-enum-descriptions:
+        cluster: For index statistics, returns only the `_all` totals across the targeted indexes. Node statistics reject this value and use `node` for the per-node totals instead.
+        indices: Adds an `indices` object with statistics for each index. This is the index statistics default.
+        shards: Adds statistics for each shard, grouped under each index. Produces the largest response.
     _common___ListResponseFormat:
       type: string
       enum: [text, json, yaml, cbor, smile]
@@ -40302,6 +40327,12 @@ components:
       description: |
         Selects the response format returned by list operations. Equivalent
         to the HTTP `Accept` header but expressed as a query parameter.
+      x-enum-descriptions:
+        text: Returns a plain-text table with one row per line. Add `v=true` to include column headers.
+        json: Returns a JSON object holding the `next_token` for the following page and an array of row objects keyed by column name.
+        yaml: Returns the same paginated structure as `json`, encoded as YAML.
+        cbor: Returns the same paginated structure as `json`, encoded as CBOR.
+        smile: Returns the same paginated structure as `json`, encoded as Smile.
     _common___MergesStats:
       type: object
       description: The statistics about merge operations.
@@ -40732,6 +40763,17 @@ components:
         Response format selector for PPL plugin operations. The valid set is
         the union of values accepted across `_plugins/_ppl/*` endpoints;
         defaults and per-endpoint subsets mirror the SQL plugin.
+      x-enum-descriptions:
+        jdbc: Query response as a JSON object with a `schema` array of column names and types and a `datarows` array of row values. The query endpoint uses it when `format` is omitted.
+        csv: Query response as comma-separated text with a header row. Values that could be read as spreadsheet formulas are escaped unless `sanitize=false`.
+        raw: Query response as plain text with values separated by `|`.
+        viz: Query response as a JSON object with each column's values in an array keyed by column name, for charting.
+        json: Explain response as JSON. The explain endpoint uses it when `format` is omitted.
+        yaml: Explain response as YAML.
+        simple: Deprecated explain-mode alias. Returns the JSON explain output with the logical plan only, without node attributes; use `mode=simple` instead.
+        standard: Deprecated explain-mode alias. Returns the JSON explain output with the logical and physical plans; use `mode=standard` instead.
+        extended: Deprecated explain-mode alias. Returns the JSON explain output with the logical and physical plans plus the generated code; use `mode=extended` instead.
+        cost: Deprecated explain-mode alias. Returns the JSON explain output with all plan attributes, including cost estimates; use `mode=cost` instead.
     _common___PitId:
       type: string
       description: |-
@@ -41695,6 +41737,9 @@ components:
       enum:
         - asc
         - desc
+      x-enum-descriptions:
+        asc: Ascending order, smallest value first.
+        desc: Descending order, largest value first.
     _common___SortResults:
       type: array
       items:
@@ -41709,6 +41754,17 @@ components:
         query responses use `jdbc` (default), `csv`, `raw`, or `viz`; explain
         responses use `json`, `yaml`, `simple`, `standard`, `extended`, or
         `cost`. Not every endpoint accepts every value.
+      x-enum-descriptions:
+        jdbc: Query response as a JSON object with a `schema` array of column names and types and a `datarows` array of row values. Used when `format` is omitted.
+        csv: Query response as comma-separated text with a header row. Values that could be read as spreadsheet formulas are escaped unless `sanitize=false`.
+        raw: Query response as plain text with values separated by `|`.
+        viz: Column-oriented JSON output for charting. The PPL endpoint supports it; the SQL endpoint's format check rejects it.
+        json: JSON explain output. The PPL explain endpoint supports it; the SQL endpoint's format check rejects it.
+        yaml: YAML explain output. The PPL explain endpoint supports it; the SQL endpoint's format check rejects it.
+        simple: Explain mode with the logical plan only, without node attributes. The SQL endpoint's format check rejects it as a `format` value.
+        standard: Explain mode with the logical and physical plans. The SQL endpoint's format check rejects it as a `format` value.
+        extended: Explain mode with the logical and physical plans plus the generated code. The SQL endpoint's format check rejects it as a `format` value.
+        cost: Explain mode with all plan attributes, including cost estimates. The SQL endpoint's format check rejects it as a `format` value.
     _common___StoredScript:
       type: object
       description: The definition of a stored script.
@@ -41832,6 +41888,10 @@ components:
         - always
         - missing
         - popular
+      x-enum-descriptions:
+        always: Suggests matching terms for every term in the suggest text, including terms already in the index. Pick it to find alternatives for correctly spelled terms.
+        missing: Suggests only for terms that are not in the index; terms already present get no suggestions.
+        popular: Suggests only terms that occur in more documents than the original term, even when the original term is in the index.
     _common___TaskFailure:
       type: object
       description: The details of a task failure.
@@ -41895,24 +41955,31 @@ components:
         - title: nanoseconds
           type: string
           const: nanos
+          description: Shows time values as a whole number of nanoseconds.
         - title: microseconds
           type: string
           const: micros
+          description: Shows time values as a whole number of microseconds.
         - title: milliseconds
           type: string
           const: ms
+          description: Shows time values as a whole number of milliseconds.
         - title: seconds
           type: string
           const: s
+          description: Shows time values as a whole number of seconds, truncating any fraction.
         - title: minutes
           type: string
           const: m
+          description: Shows time values as a whole number of minutes, truncating any fraction.
         - title: hours
           type: string
           const: h
+          description: Shows time values as a whole number of hours, truncating any fraction.
         - title: days
           type: string
           const: d
+          description: Shows time values as a whole number of days, truncating any fraction.
     _common___TimeZone:
       type: string
       description: The time zone identifier.
@@ -43835,9 +43902,11 @@ components:
         - title: additive
           type: string
           const: add
+          description: Models seasonality as an amount added to the level and trend. Pick it when the seasonal swing stays roughly constant in size.
         - title: multiplicative
           type: string
           const: mult
+          description: Models seasonality as a factor multiplied with the level and trend. Pick it when the seasonal swing grows with the data. By default the server adds a tiny padding to every value to avoid division by zero.
     _common.aggregations___IpRangeAggregate:
       allOf:
         - $ref: '#/components/schemas/_common.aggregations___MultiBucketAggregateBaseIpRangeBucket'
@@ -50150,6 +50219,11 @@ components:
         - AND
         - or
         - OR
+      x-enum-descriptions:
+        and: Every term must match (each term becomes a `must` clause).
+        AND: Uppercase spelling of `and`, with the same behavior.
+        or: At least one term must match (each term becomes a `should` clause). This is the `query_string` default.
+        OR: Uppercase spelling of `or`, with the same behavior.
     _common.query_dsl___ParentIdQuery:
       allOf:
         - $ref: '#/components/schemas/_common.query_dsl___QueryBase'
@@ -52312,11 +52386,14 @@ components:
       oneOf:
         - type: string
           const: plain
+          description: Re-analyzes the field text with the standard Lucene highlighter. Works on any field but can be slow on large text.
         - title: fast_vector
           type: string
           const: fvh
+          description: 'Uses stored term vectors to find highlights. Requires the field to store term vectors with offsets, for example `term_vector: with_positions_offsets`.'
         - type: string
           const: unified
+          description: Uses the Lucene unified highlighter, which reads offsets from postings or term vectors when indexed and re-analyzes the text otherwise. Used when no type is set.
     _core.search___Collector:
       type: object
       properties:
@@ -56384,6 +56461,11 @@ components:
         - cluster
         - indices
         - shards
+      x-enum-descriptions:
+        awareness_attributes: Reports health broken down by each value of the cluster's awareness attributes, without per-index detail. Must be used when `awareness_attribute` is set and cannot target specific indexes.
+        cluster: Reports only the cluster-wide health and shard counts, the smallest response.
+        indices: Adds an `indices` object with the health and shard counts of each index.
+        shards: Adds per-index health plus the health of each shard within each index, the largest response.
     cluster.health___ShardHealthStats:
       type: object
       properties:
@@ -62036,6 +62118,10 @@ components:
         - cpu
         - latency
         - memory
+      x-enum-descriptions:
+        cpu: Ranks queries by the CPU time their search tasks used, summed across tasks and measured in nanoseconds.
+        latency: Ranks queries by end-to-end search latency in milliseconds, from request start to completion.
+        memory: Ranks queries by the heap memory their search tasks used, summed across tasks and measured in bytes.
     insights._common___Source:
       type: object
       properties:
@@ -68235,6 +68321,16 @@ components:
         - smtp_account
         - sns
         - webhook
+      x-enum-descriptions:
+        chime: An Amazon Chime channel that receives messages through its webhook URL.
+        email: An email channel that sends through a configured SMTP or SES sender account to listed recipients and email groups.
+        email_group: A reusable list of email recipients that email channels can reference.
+        microsoft_teams: A Microsoft Teams channel that receives messages through its webhook URL.
+        ses_account: An Amazon SES sender account, defined by an AWS region, a from address, and an optional IAM role ARN.
+        slack: A Slack channel that receives messages through its webhook URL.
+        smtp_account: An SMTP sender account, defined by host, port, connection method, and a from address.
+        sns: An Amazon SNS topic, defined by a topic ARN and an optional IAM role ARN.
+        webhook: A custom webhook that receives messages at a URL, with optional headers and HTTP method.
     notifications._common___NotificationsConfig:
       type: object
       properties:
@@ -70011,6 +70107,13 @@ components:
         - '4'
         - '5'
         - ALL
+      x-enum-descriptions:
+        '1': Returns only alerts whose trigger severity is 1, the highest.
+        '2': Returns only alerts whose trigger severity is 2.
+        '3': Returns only alerts whose trigger severity is 3.
+        '4': Returns only alerts whose trigger severity is 4.
+        '5': Returns only alerts whose trigger severity is 5, the lowest.
+        ALL: Applies no severity filter. This is the default when the parameter is omitted.
     security_analytics.alerts___AlertState:
       type: string
       enum:
@@ -70019,6 +70122,12 @@ components:
         - COMPLETED
         - DELETED
         - ERROR
+      x-enum-descriptions:
+        ACKNOWLEDGED: A user acknowledged the alert while it was active; only active alerts can be acknowledged.
+        ACTIVE: The trigger condition is met and the alert has not been acknowledged.
+        COMPLETED: The trigger condition is no longer met, so the alert ended and was removed from the active alerts index.
+        DELETED: The monitor or detector behind the alert was deleted or changed, and the alert was moved to history in this state.
+        ERROR: The monitor hit an error while running or evaluating the trigger; the alert carries the error message.
     security_analytics.alerts___GetAlertsResponse:
       type: object
       properties:
@@ -70035,6 +70144,9 @@ components:
       enum:
         - rule
         - threat
+      x-enum-descriptions:
+        rule: Returns findings produced by detection rules, meaning every finding whose query ID does not start with `threat_intel_`.
+        threat: Returns findings produced by threat intelligence matching, meaning findings whose query ID starts with `threat_intel_`.
     security_analytics.findings___Document:
       type: object
       properties:
@@ -70127,6 +70239,11 @@ components:
         - high
         - low
         - medium
+      x-enum-descriptions:
+        critical: Returns findings from rules with Sigma level `critical`, the most severe.
+        high: Returns findings from rules with Sigma level `high`.
+        low: Returns findings from rules with Sigma level `low`.
+        medium: Returns findings from rules with Sigma level `medium`.
     security_analytics.findings___SearchFindingCorrelationsResponse:
       type: object
       properties:
@@ -71874,6 +71991,10 @@ components:
         - nodes
         - none
         - parents
+      x-enum-descriptions:
+        nodes: Groups tasks under a `nodes` object keyed by the ID of the node running them, with node details. This is the default.
+        none: Returns tasks as a flat `tasks` array with no grouping.
+        parents: Returns a `tasks` object keyed by task ID, with child tasks nested under their parent task.
     tasks._common___PersistentTaskStatus:
       type: object
       properties:
