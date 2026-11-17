@@ -15022,59 +15022,117 @@ type SearchRelevancePostScheduledExperimentsRequest struct {
 	ExperimentID   *string `json:"experimentId,omitempty"`
 }
 
+// The common fields shared by all experiment creation requests.
+type SearchRelevancePutExperimentRequestBase struct {
+	QuerySetID              string   `json:"querySetId"`
+	SearchConfigurationList []string `json:"searchConfigurationList"`
+	Size                    int      `json:"size"`
+}
+
 // The schema for a hybrid optimizer experiment.
 type SearchRelevancePutHybridOptimizerExperimentRequest struct {
-	JudgmentList            []string `json:"judgmentList,omitempty"`
-	QuerySetID              *string  `json:"querySetId,omitempty"`
-	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
-	Size                    *int     `json:"size,omitempty"`
-	Type                    string   `json:"type"`
+	SearchRelevancePutExperimentRequestBase
+	JudgmentList []string `json:"judgmentList,omitempty"`
+	Type         string   `json:"type"`
 }
 
 // The schema for a pointwise experiment.
 type SearchRelevancePutPointwiseExperimentRequest struct {
-	JudgmentList            []string `json:"judgmentList,omitempty"`
-	QuerySetID              *string  `json:"querySetId,omitempty"`
-	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
-	Size                    *int     `json:"size,omitempty"`
-	Type                    string   `json:"type"`
+	SearchRelevancePutExperimentRequestBase
+	JudgmentList []string `json:"judgmentList,omitempty"`
+	Type         string   `json:"type"`
 }
 
 // The schema for a pairwise experiment.
 type SearchRelevancePutPairwiseExperimentRequest struct {
-	QuerySetID              *string  `json:"querySetId,omitempty"`
-	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
-	Size                    *int     `json:"size,omitempty"`
-	Type                    string   `json:"type"`
+	SearchRelevancePutExperimentRequestBase
+	Type string `json:"type"`
+}
+
+// The common fields shared by all judgment creation requests.
+type SearchRelevancePutJudgmentsRequestBase struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
 }
 
 // The schema for a LLM judgment.
 type SearchRelevancePutLLMJudgmentsRequest struct {
-	ContextFields           []string `json:"contextFields,omitempty"`
-	Description             *string  `json:"description,omitempty"`
-	IgnoreFailure           *bool    `json:"ignoreFailure,omitempty"`
-	ModelID                 *string  `json:"modelId,omitempty"`
-	Name                    *string  `json:"name,omitempty"`
-	QuerySetID              *string  `json:"querySetId,omitempty"`
+	SearchRelevancePutJudgmentsRequestBase
+	ContextFields []string `json:"contextFields,omitempty"`
+
+	// ExistingJudgments is a list of existing judgment ids whose ratings
+	// should be reused instead of being re-scored.
+	//
+	// Available: >= 3.9.0.
+	ExistingJudgments []string `json:"existingJudgments,omitempty"`
+
+	// IgnoreFailure. Whether to continue when individual documents fail to be
+	// rated. Defaults to `false`.
+	IgnoreFailure *bool `json:"ignoreFailure,omitempty"`
+
+	// LLMJudgmentRatingType is the rating scale used by the LLM judge.
+	// Defaults to `SCORE0_1`.
+	//
+	// Available: >= 3.5.0.
+	LLMJudgmentRatingType *string `json:"llmJudgmentRatingType,omitempty"`
+
+	ModelID string `json:"modelId"`
+
+	// Deprecated and ignored. The global judgment cache was removed; use
+	// `existingJudgments` to reuse ratings or the `_retry` endpoint to
+	// re-score failed documents.
+	//
+	// Deprecated: since 3.9.0. Available >= 3.5.0.
+	OverwriteCache *bool `json:"overwriteCache,omitempty"`
+
+	// PromptTemplate is the prompt template to use. Must contain a `{{hits}}`
+	// or `{{results}}` placeholder and a `{{queryText}}` or `{{searchText}}`
+	// placeholder. A default template is used when omitted.
+	//
+	// Available: >= 3.5.0.
+	PromptTemplate *string `json:"promptTemplate,omitempty"`
+
+	QuerySetID              string   `json:"querySetId"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
-	Type                    string   `json:"type"`
+
+	// TokenLimit is the maximum number of tokens allowed for the LLM prompt.
+	// Defaults to 4000.
+	TokenLimit *int `json:"tokenLimit,omitempty"`
+
+	Type string `json:"type"`
 }
 
 // The schema for a UBI judgment.
 type SearchRelevancePutUBIJudgmentsRequest struct {
-	ClickModel  *string `json:"clickModel,omitempty"`
-	Description *string `json:"description,omitempty"`
-	MaxRank     *int    `json:"maxRank,omitempty"`
-	Name        *string `json:"name,omitempty"`
-	Type        string  `json:"type"`
+	SearchRelevancePutJudgmentsRequestBase
+	ClickModel string `json:"clickModel"`
+
+	// EndDate is the end of the UBI events date range (inclusive).
+	//
+	// Available: >= 3.2.0.
+	EndDate *string `json:"endDate,omitempty"`
+
+	MaxRank int `json:"maxRank"`
+
+	// StartDate is the start of the UBI events date range (inclusive).
+	//
+	// Available: >= 3.2.0.
+	StartDate *string `json:"startDate,omitempty"`
+
+	Type string `json:"type"`
+
+	// UBIEventsIndex is the name of the UBI events index to source click data
+	// from.
+	//
+	// Available: >= 3.5.0.
+	UBIEventsIndex *string `json:"ubiEventsIndex,omitempty"`
 }
 
 // The schema for an import judgment.
 type SearchRelevancePutImportJudgmentsRequest struct {
-	Description     *string           `json:"description,omitempty"`
-	JudgmentRatings []json.RawMessage `json:"judgmentRatings,omitempty"`
-	Name            *string           `json:"name,omitempty"`
+	SearchRelevancePutJudgmentsRequestBase
+	JudgmentRatings []json.RawMessage `json:"judgmentRatings"`
 	Type            string            `json:"type"`
 }
 

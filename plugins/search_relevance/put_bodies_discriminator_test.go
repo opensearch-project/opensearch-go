@@ -15,45 +15,50 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
-	sr "github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance"
+	"github.com/opensearch-project/opensearch-go/v5/plugins/search_relevance"
 )
 
 // The server picks the experiment kind from "type", so each constructor sets it
-// and a body decodes to the branch its type names. Each branch's body here is
-// also valid for the other branches, so decoding by shape would pick the first
-// branch rather than the one the type names.
+// and a body decodes to the branch its type names. The experiment branches
+// accept the same fields, so decoding by shape would pick the first branch
+// rather than the one the type names.
 func TestPutExperimentsBodyDiscriminator(t *testing.T) {
 	t.Parallel()
 
+	base := opensearchapi.SearchRelevancePutExperimentRequestBase{
+		QuerySetID:              "q",
+		SearchConfigurationList: []string{"a"},
+		Size:                    10,
+	}
 	tests := []struct {
 		name     string
-		body     sr.SearchRelevancePutExperimentsBody
+		body     search_relevance.SearchRelevancePutExperimentsBody
 		wantWire string
-		wantType sr.SearchRelevancePutExperimentsBodyType
+		wantType search_relevance.SearchRelevancePutExperimentsBodyType
 	}{
 		{
 			name: "pairwise",
-			body: sr.NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest(
-				opensearchapi.SearchRelevancePutPairwiseExperimentRequest{},
+			body: search_relevance.NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest(
+				opensearchapi.SearchRelevancePutPairwiseExperimentRequest{SearchRelevancePutExperimentRequestBase: base},
 			),
-			wantWire: `{"type":"PAIRWISE_COMPARISON"}`,
-			wantType: sr.SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType,
+			wantWire: `{"querySetId":"q","searchConfigurationList":["a"],"size":10,"type":"PAIRWISE_COMPARISON"}`,
+			wantType: search_relevance.SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType,
 		},
 		{
 			name: "pointwise",
-			body: sr.NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest(
-				opensearchapi.SearchRelevancePutPointwiseExperimentRequest{},
+			body: search_relevance.NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest(
+				opensearchapi.SearchRelevancePutPointwiseExperimentRequest{SearchRelevancePutExperimentRequestBase: base},
 			),
-			wantWire: `{"type":"POINTWISE_EVALUATION"}`,
-			wantType: sr.SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType,
+			wantWire: `{"querySetId":"q","searchConfigurationList":["a"],"size":10,"type":"POINTWISE_EVALUATION"}`,
+			wantType: search_relevance.SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType,
 		},
 		{
 			name: "hybrid optimizer",
-			body: sr.NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest(
-				opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest{},
+			body: search_relevance.NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest(
+				opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest{SearchRelevancePutExperimentRequestBase: base},
 			),
-			wantWire: `{"type":"HYBRID_OPTIMIZER"}`,
-			wantType: sr.SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType,
+			wantWire: `{"querySetId":"q","searchConfigurationList":["a"],"size":10,"type":"HYBRID_OPTIMIZER"}`,
+			wantType: search_relevance.SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType,
 		},
 	}
 	for _, tt := range tests {
@@ -63,41 +68,60 @@ func TestPutExperimentsBodyDiscriminator(t *testing.T) {
 			wire, err := json.Marshal(tt.body)
 			require.NoError(t, err)
 			require.JSONEq(t, tt.wantWire, string(wire))
-			var back sr.SearchRelevancePutExperimentsBody
+			var back search_relevance.SearchRelevancePutExperimentsBody
 			require.NoError(t, json.Unmarshal(wire, &back))
 			require.Equal(t, tt.wantType, back.Type())
 		})
 	}
 }
 
-// The server picks the judgment kind from "type" in the same way, and each
-// branch's body here is again valid for the other branches.
+// The server picks the judgment kind from "type" in the same way. Each judgment
+// branch requires its own fields, but a body that leaves them out would still
+// decode by shape as the first branch, so the decoder goes by "type".
 func TestPutJudgmentsBodyDiscriminator(t *testing.T) {
 	t.Parallel()
 
+	base := opensearchapi.SearchRelevancePutJudgmentsRequestBase{Name: "n"}
 	tests := []struct {
 		name     string
-		body     sr.SearchRelevancePutJudgmentsBody
+		body     search_relevance.SearchRelevancePutJudgmentsBody
 		wantWire string
-		wantType sr.SearchRelevancePutJudgmentsBodyType
+		wantType search_relevance.SearchRelevancePutJudgmentsBodyType
 	}{
 		{
-			name:     "llm",
-			body:     sr.NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest(opensearchapi.SearchRelevancePutLLMJudgmentsRequest{}),
-			wantWire: `{"type":"LLM_JUDGMENT"}`,
-			wantType: sr.SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType,
+			name: "llm",
+			body: search_relevance.NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest(
+				opensearchapi.SearchRelevancePutLLMJudgmentsRequest{
+					SearchRelevancePutJudgmentsRequestBase: base,
+					ModelID:                                "m",
+					QuerySetID:                             "q",
+				},
+			),
+			wantWire: `{"name":"n","modelId":"m","querySetId":"q","type":"LLM_JUDGMENT"}`,
+			wantType: search_relevance.SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType,
 		},
 		{
-			name:     "ubi",
-			body:     sr.NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest(opensearchapi.SearchRelevancePutUBIJudgmentsRequest{}),
-			wantWire: `{"type":"UBI_JUDGMENT"}`,
-			wantType: sr.SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType,
+			name: "ubi",
+			body: search_relevance.NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest(
+				opensearchapi.SearchRelevancePutUBIJudgmentsRequest{
+					SearchRelevancePutJudgmentsRequestBase: base,
+					ClickModel:                             "coec",
+					MaxRank:                                20,
+				},
+			),
+			wantWire: `{"name":"n","clickModel":"coec","maxRank":20,"type":"UBI_JUDGMENT"}`,
+			wantType: search_relevance.SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType,
 		},
 		{
-			name:     "import",
-			body:     sr.NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest(opensearchapi.SearchRelevancePutImportJudgmentsRequest{}),
-			wantWire: `{"type":"IMPORT_JUDGMENT"}`,
-			wantType: sr.SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType,
+			name: "import",
+			body: search_relevance.NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest(
+				opensearchapi.SearchRelevancePutImportJudgmentsRequest{
+					SearchRelevancePutJudgmentsRequestBase: base,
+					JudgmentRatings:                        []json.RawMessage{},
+				},
+			),
+			wantWire: `{"name":"n","judgmentRatings":[],"type":"IMPORT_JUDGMENT"}`,
+			wantType: search_relevance.SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType,
 		},
 	}
 	for _, tt := range tests {
@@ -107,7 +131,7 @@ func TestPutJudgmentsBodyDiscriminator(t *testing.T) {
 			wire, err := json.Marshal(tt.body)
 			require.NoError(t, err)
 			require.JSONEq(t, tt.wantWire, string(wire))
-			var back sr.SearchRelevancePutJudgmentsBody
+			var back search_relevance.SearchRelevancePutJudgmentsBody
 			require.NoError(t, json.Unmarshal(wire, &back))
 			require.Equal(t, tt.wantType, back.Type())
 		})
