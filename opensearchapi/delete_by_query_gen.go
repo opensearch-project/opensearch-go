@@ -195,7 +195,7 @@ type DeleteByQueryParams struct {
 	Size int
 
 	// The number of slices this task should be divided into.
-	Slices string
+	Slices Slices
 
 	// A comma-separated list of <field>:<direction> pairs.
 	Sort []string
@@ -218,7 +218,7 @@ type DeleteByQueryParams struct {
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
 	// of shards in the index (`number_of_replicas+1`).
-	WaitForActiveShards string
+	WaitForActiveShards WaitForActiveShards
 
 	// If `true`, the request blocks until the operation is complete.
 	//
@@ -338,7 +338,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.Slices != "" {
-		set("slices", r.Slices)
+		set("slices", string(r.Slices))
 	}
 
 	if len(r.Sort) > 0 {
@@ -358,7 +358,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	if r.WaitForCompletion != nil {

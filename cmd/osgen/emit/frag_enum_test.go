@@ -388,3 +388,51 @@ func TestNewEnumTypesFile_StringEnumOnly(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(src), "type NodeRole string")
 }
+
+// TestStringEnumFragment_HasCount asserts a type with HasCount renders a Count
+// constructor and requests strconv, and a type without it renders neither.
+func TestStringEnumFragment_HasCount(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		hasCount  bool
+		wantFunc  bool
+		wantPaths []string
+	}{
+		{name: "with count", hasCount: true, wantFunc: true, wantPaths: []string{"strconv"}},
+		{name: "without count"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			frag := &emit.StringEnumFragment{
+				Types: []*ir.Type{{
+					Name:        "WaitForActiveShards",
+					Kind:        ir.TypeStringEnum,
+					Scope:       ir.ScopeShared,
+					IsAlias:     true,
+					HasCount:    tt.hasCount,
+					EnumMembers: []ir.EnumMember{{ConstName: "WaitForActiveShardsAll", Value: "all"}},
+				}},
+			}
+
+			body, err := frag.Body()
+			require.NoError(t, err)
+			const sig = "func WaitForActiveShardsCount(n int) WaitForActiveShards {"
+			if tt.wantFunc {
+				require.Contains(t, body, sig)
+				require.Contains(t, body, "strconv.Itoa(n)")
+				require.Contains(t, body, "// WaitForActiveShardsCount ")
+			} else {
+				require.NotContains(t, body, "Count")
+			}
+
+			var paths []string
+			for _, imp := range frag.Imports() {
+				paths = append(paths, imp.Path)
+			}
+			require.Equal(t, tt.wantPaths, paths)
+		})
+	}
+}
