@@ -33177,7 +33177,9 @@ components:
       content:
         application/json:
           schema:
-            anyOf:
+            discriminator:
+              propertyName: type
+            oneOf:
               - $ref: '#/components/schemas/search_relevance._common___PutHybridOptimizerExperimentRequest'
               - $ref: '#/components/schemas/search_relevance._common___PutPointwiseExperimentRequest'
               - $ref: '#/components/schemas/search_relevance._common___PutPairwiseExperimentRequest'
@@ -33185,6 +33187,8 @@ components:
       content:
         application/json:
           schema:
+            discriminator:
+              propertyName: type
             oneOf:
               - $ref: '#/components/schemas/search_relevance._common___PutLLMJudgmentsRequest'
               - $ref: '#/components/schemas/search_relevance._common___PutUBIJudgmentsRequest'
@@ -38854,6 +38858,39 @@ components:
           schema:
             $ref: '#/components/schemas/wlm._common___QueryGroupResponse'
   schemas:
+    search_relevance._common___PutJudgmentsRequestBase:
+      type: object
+      description: The common fields shared by all judgment creation requests.
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+    search_relevance._common___PutExperimentRequestBase:
+      type: object
+      description: The common fields shared by all experiment creation requests.
+      properties:
+        querySetId:
+          type: string
+        searchConfigurationList:
+          type: array
+          items:
+            type: string
+        size:
+          type: integer
+      required:
+        - querySetId
+        - searchConfigurationList
+        - size
+    search_relevance._common___LLMJudgmentRatingType:
+      type: string
+      description: The rating scale used by the LLM judge. Defaults to `SCORE0_1`.
+      enum:
+        - RELEVANT_IRRELEVANT
+        - SCORE0_1
+      x-version-added: '3.5'
     _common.errors___BroadcastShards:
       description: |-
         Index-broadcast response where one or more shards failed the
@@ -45702,6 +45739,8 @@ components:
           $ref: '#/components/schemas/_common.analysis___StopWords'
         stopwords_path:
           type: string
+      required:
+        - type
     _common.analysis___CommonGramsTokenFilter:
       allOf:
         - $ref: '#/components/schemas/_common.analysis___TokenFilterBase'
@@ -46984,6 +47023,8 @@ components:
           type: string
           enum:
             - smartcn
+      required:
+        - type
     _common.analysis___SmartcnStopTokenFilter:
       allOf:
         - $ref: '#/components/schemas/_common.analysis___TokenFilterBase'
@@ -69648,100 +69689,123 @@ components:
         experiment_result:
           type: string
     search_relevance._common___PutHybridOptimizerExperimentRequest:
-      type: object
       description: The schema for a hybrid optimizer experiment.
-      properties:
-        querySetId:
-          type: string
-        searchConfigurationList:
-          type: array
-          items:
-            type: string
-        judgmentList:
-          type: array
-          items:
-            type: string
-        size:
-          type: integer
-        type:
-          type: string
+      allOf:
+        - $ref: '#/components/schemas/search_relevance._common___PutExperimentRequestBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - HYBRID_OPTIMIZER
+            judgmentList:
+              type: array
+              items:
+                type: string
+          required:
+            - type
     search_relevance._common___PutImportJudgmentsRequest:
-      type: object
       description: The schema for an import judgment.
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        judgmentRatings:
-          type: array
-          items:
-            type: object
+      allOf:
+        - $ref: '#/components/schemas/search_relevance._common___PutJudgmentsRequestBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - IMPORT_JUDGMENT
+            judgmentRatings:
+              type: array
+              items:
+                type: object
+          required:
+            - judgmentRatings
+            - type
     search_relevance._common___PutJudgmentsResponse:
       type: object
       properties:
         judgment_id:
           type: string
     search_relevance._common___PutLLMJudgmentsRequest:
-      type: object
       description: The schema for a LLM judgment.
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        modelId:
-          type: string
-        querySetId:
-          type: string
-        searchConfigurationList:
-          type: array
-          items:
-            type: string
-        size:
-          type: integer
-        ignoreFailure:
-          type: boolean
-        contextFields:
-          type: array
-          items:
-            type: string
+      allOf:
+        - $ref: '#/components/schemas/search_relevance._common___PutJudgmentsRequestBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - LLM_JUDGMENT
+            modelId:
+              type: string
+            querySetId:
+              type: string
+            searchConfigurationList:
+              type: array
+              items:
+                type: string
+            size:
+              type: integer
+            ignoreFailure:
+              type: boolean
+              description: Whether to continue when individual documents fail to be rated. Defaults to `false`.
+            contextFields:
+              type: array
+              items:
+                type: string
+            tokenLimit:
+              type: integer
+              description: The maximum number of tokens allowed for the LLM prompt. Defaults to 4000.
+            promptTemplate:
+              type: string
+              description: The prompt template to use. Must contain a `{{hits}}` or `{{results}}` placeholder and a `{{queryText}}` or `{{searchText}}` placeholder. A default template is used when omitted.
+              x-version-added: '3.5'
+            llmJudgmentRatingType:
+              $ref: '#/components/schemas/search_relevance._common___LLMJudgmentRatingType'
+            existingJudgments:
+              type: array
+              description: A list of existing judgment ids whose ratings should be reused instead of being re-scored.
+              items:
+                type: string
+              x-version-added: '3.9'
+            overwriteCache:
+              type: boolean
+              deprecated: true
+              x-version-added: '3.5'
+              x-version-deprecated: '3.9'
+              description: Deprecated and ignored. The global judgment cache was removed; use `existingJudgments` to reuse ratings or the `_retry` endpoint to re-score failed documents.
+          required:
+            - modelId
+            - querySetId
+            - type
     search_relevance._common___PutPairwiseExperimentRequest:
-      type: object
       description: The schema for a pairwise experiment.
-      properties:
-        querySetId:
-          type: string
-        searchConfigurationList:
-          type: array
-          items:
-            type: string
-        size:
-          type: integer
-        type:
-          type: string
+      allOf:
+        - $ref: '#/components/schemas/search_relevance._common___PutExperimentRequestBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - PAIRWISE_COMPARISON
+          required:
+            - type
     search_relevance._common___PutPointwiseExperimentRequest:
-      type: object
       description: The schema for a pointwise experiment.
-      properties:
-        querySetId:
-          type: string
-        searchConfigurationList:
-          type: array
-          items:
-            type: string
-        judgmentList:
-          type: array
-          items:
-            type: string
-        size:
-          type: integer
-        type:
-          type: string
+      allOf:
+        - $ref: '#/components/schemas/search_relevance._common___PutExperimentRequestBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - POINTWISE_EVALUATION
+            judgmentList:
+              type: array
+              items:
+                type: string
+          required:
+            - type
     search_relevance._common___PutQuerySetsRequest:
       type: object
       description: The schema for updating a query set.
@@ -69782,19 +69846,35 @@ components:
         search_configuration_result:
           type: string
     search_relevance._common___PutUBIJudgmentsRequest:
-      type: object
       description: The schema for a UBI judgment.
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        clickModel:
-          type: string
-        maxRank:
-          type: integer
+      allOf:
+        - $ref: '#/components/schemas/search_relevance._common___PutJudgmentsRequestBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - UBI_JUDGMENT
+            clickModel:
+              type: string
+            maxRank:
+              type: integer
+            startDate:
+              type: string
+              description: The start of the UBI events date range (inclusive).
+              x-version-added: '3.2'
+            endDate:
+              type: string
+              description: The end of the UBI events date range (inclusive).
+              x-version-added: '3.2'
+            ubiEventsIndex:
+              type: string
+              description: The name of the UBI events index to source click data from.
+              x-version-added: '3.5'
+          required:
+            - clickModel
+            - maxRank
+            - type
     security_analytics.alerts___ActionExecutionResult:
       type: object
       properties:

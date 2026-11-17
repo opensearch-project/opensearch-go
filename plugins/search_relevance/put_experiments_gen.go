@@ -108,12 +108,15 @@ func (r PutExperimentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutExperimentsBody is a oneOf union decoded by trying each branch in turn.
-// The spec declares no discriminator and no single key tells the branches apart,
-// so each is attempted (newest schema version first) until one decodes.
+// SearchRelevancePutExperimentsBody is a oneOf union whose branch the payload names itself.
 //
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
+// The OpenAPI spec declares a discriminator on SearchRelevancePutExperimentsBody: the type
+// property carries the branch name, so UnmarshalJSON reads that one property and
+// decodes exactly that branch -- it never guesses, and a type naming
+// no known branch is an error rather than a silent mis-decode.
+//
+// Use Type() to learn which branch was decoded, then call the corresponding
+// accessor.
 type SearchRelevancePutExperimentsBody struct {
 	typ   SearchRelevancePutExperimentsBodyType
 	raw   json.RawMessage
@@ -180,7 +183,11 @@ func (u *SearchRelevancePutExperimentsBody) PutHybridOptimizerExperimentRequest(
 
 // NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
 // on the PutHybridOptimizerExperimentRequest branch.
+//
+// It sets v.Type to "HYBRID_OPTIMIZER" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest(v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody {
+	v.Type = "HYBRID_OPTIMIZER"
 	return SearchRelevancePutExperimentsBody{
 		typ:   SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType,
 		value: &v,
@@ -201,7 +208,11 @@ func (u *SearchRelevancePutExperimentsBody) PutPointwiseExperimentRequest() (ope
 
 // NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
 // on the PutPointwiseExperimentRequest branch.
+//
+// It sets v.Type to "POINTWISE_EVALUATION" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest(v opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+	v.Type = "POINTWISE_EVALUATION"
 	return SearchRelevancePutExperimentsBody{
 		typ:   SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType,
 		value: &v,
@@ -222,7 +233,11 @@ func (u *SearchRelevancePutExperimentsBody) PutPairwiseExperimentRequest() (open
 
 // NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
 // on the PutPairwiseExperimentRequest branch.
+//
+// It sets v.Type to "PAIRWISE_COMPARISON" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest(v opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+	v.Type = "PAIRWISE_COMPARISON"
 	return SearchRelevancePutExperimentsBody{
 		typ:   SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType,
 		value: &v,
@@ -236,37 +251,39 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required properties. A branch is eligible
-	// only when the payload carries every required key, so a more specific branch
-	// (e.g. an error sub-response keyed by "error") is not absorbed by a
-	// structurally permissive success branch. encoding/json does not enforce a
-	// schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required properties, tried newest-first.
-	{
+	discriminator, present, err := build.JSONDiscriminator(data, "type")
+	if err != nil {
+		return fmt.Errorf("SearchRelevancePutExperimentsBody: reading type discriminator: %w", err)
+	}
+	if !present {
+		return fmt.Errorf("SearchRelevancePutExperimentsBody: payload has no type discriminator: %s", data[:min(len(data), 64)])
+	}
+	switch discriminator {
+	case "HYBRID_OPTIMIZER":
 		var v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType
-			u.value = &v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
-	}
-	{
+		u.typ = SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType
+		u.value = &v
+	case "POINTWISE_EVALUATION":
 		var v opensearchapi.SearchRelevancePutPointwiseExperimentRequest
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType
-			u.value = &v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
-	}
-	{
+		u.typ = SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType
+		u.value = &v
+	case "PAIRWISE_COMPARISON":
 		var v opensearchapi.SearchRelevancePutPairwiseExperimentRequest
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType
-			u.value = &v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType
+		u.value = &v
+	default:
+		return fmt.Errorf("SearchRelevancePutExperimentsBody: unknown type discriminator %q", discriminator)
 	}
-	return fmt.Errorf("SearchRelevancePutExperimentsBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return nil
 }
 
 func (u SearchRelevancePutExperimentsBody) MarshalJSON() ([]byte, error) {
