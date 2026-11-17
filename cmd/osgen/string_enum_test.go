@@ -40,7 +40,7 @@ func constValueList(consts []constEnumValue) []string {
 	return values
 }
 
-func TestParseConstOneOf(t *testing.T) {
+func TestEnumParser_ConstOneOf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("collects values and descriptions in order", func(t *testing.T) {
@@ -49,8 +49,8 @@ func TestParseConstOneOf(t *testing.T) {
 			constBranch("data_hot", "hot data", nil),
 			constBranch("ml", "machine learning", nil),
 		}}
-		got, ok := enumParser{}.constOneOf("NodeRole", "_common___NodeRole", schema)
-		require.True(t, ok)
+		got, shape := enumParser{}.constOneOf("NodeRole", "_common___NodeRole", schema)
+		require.Equal(t, enumShapeConst, shape)
 		require.Equal(t, []constEnumValue{
 			{Value: "data_hot", Description: "hot data"},
 			{Value: "ml", Description: "machine learning"},
@@ -66,8 +66,8 @@ func TestParseConstOneOf(t *testing.T) {
 			constBranch("search", "3.0 search", map[string]any{extVersionAdded: "3.0"}),
 		}}
 		var warn strings.Builder
-		got, ok := enumParser{warnW: &warn}.constOneOf("NodeRole", "_common___NodeRole", schema)
-		require.True(t, ok)
+		got, shape := enumParser{warnW: &warn}.constOneOf("NodeRole", "_common___NodeRole", schema)
+		require.Equal(t, enumShapeConst, shape)
 		require.Len(t, got, 1)
 		require.Equal(t, "search", got[0].Value)
 		require.Equal(t, "pre-3.0 search", got[0].Description)
@@ -84,8 +84,8 @@ func TestParseConstOneOf(t *testing.T) {
 			constBranch("async", "lower", nil),
 		}}
 		var warn strings.Builder
-		got, ok := enumParser{warnW: &warn}.constOneOf("IndicesTranslogDurability", "indices._common___TranslogDurability", schema)
-		require.True(t, ok)
+		got, shape := enumParser{warnW: &warn}.constOneOf("IndicesTranslogDurability", "indices._common___TranslogDurability", schema)
+		require.Equal(t, enumShapeConst, shape)
 		require.Len(t, got, 1)
 		require.Equal(t, "ASYNC", got[0].Value)
 		require.Contains(t, warn.String(), `value "async" dropped`)
@@ -100,8 +100,8 @@ func TestParseConstOneOf(t *testing.T) {
 		}}
 		vr, err := ParseVersionRange("epoch", "2.19", "epoch", false)
 		require.NoError(t, err)
-		got, ok := enumParser{vr: vr}.constOneOf("NodeRole", "_common___NodeRole", schema)
-		require.True(t, ok)
+		got, shape := enumParser{vr: vr}.constOneOf("NodeRole", "_common___NodeRole", schema)
+		require.Equal(t, enumShapeConst, shape)
 		require.Len(t, got, 1)
 		require.Equal(t, "data", got[0].Value)
 	})
@@ -113,8 +113,8 @@ func TestParseConstOneOf(t *testing.T) {
 			{Value: openapi3.NewStringSchema()},
 			{Value: openapi3.NewIntegerSchema()},
 		}}
-		_, ok := enumParser{}.constOneOf("X", "x___X", schema)
-		require.False(t, ok)
+		_, shape := enumParser{}.constOneOf("X", "x___X", schema)
+		require.Equal(t, enumShapeNone, shape)
 	})
 
 	t.Run("honors the deny-list", func(t *testing.T) {
@@ -126,8 +126,8 @@ func TestParseConstOneOf(t *testing.T) {
 		// other parallel tests read).
 		deny := stringEnumDenyList.clone()
 		deny.add(key)
-		_, ok := enumParser{deny: deny}.constOneOf("Denied", key, schema)
-		require.False(t, ok)
+		_, shape := enumParser{deny: deny}.constOneOf("Denied", key, schema)
+		require.Equal(t, enumShapeNone, shape)
 	})
 }
 
@@ -233,10 +233,10 @@ func boolBranch() *openapi3.SchemaRef {
 	return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeBoolean}}}
 }
 
-// TestParseParamEnum pins the query-param-only enum shapes: a top-level string
-// enum, oneOf branches carrying enum lists, and a boolean branch next to string
-// consts. parseConstOneOf must keep rejecting all of them.
-func TestParseParamEnum(t *testing.T) {
+// TestEnumParser_ParamShape pins the enumShapeParam spellings: a top-level
+// string enum, oneOf branches carrying enum lists, and a boolean branch next to
+// string consts. constOneOf must keep rejecting all of them.
+func TestEnumParser_ParamShape(t *testing.T) {
 	t.Parallel()
 
 	topLevel := &openapi3.Schema{
@@ -299,7 +299,7 @@ func TestParseParamEnum(t *testing.T) {
 			t.Parallel()
 
 			var warn strings.Builder
-			got, shape := enumParser{warnW: &warn}.parse("X", "x___X", tt.schema, enumShapeParam)
+			got, shape := enumParser{warnW: &warn}.parse("X", "x___X", tt.schema, true)
 			ok := shape != enumShapeNone
 			require.Equal(t, tt.wantOK, ok)
 			if !tt.wantOK {
@@ -317,8 +317,8 @@ func TestParseParamEnum(t *testing.T) {
 				require.Contains(t, warn.String(), tt.wantWarn)
 			}
 
-			_, strictOK := enumParser{}.constOneOf("X", "x___X", tt.schema)
-			require.False(t, strictOK)
+			_, strictShape := enumParser{}.constOneOf("X", "x___X", tt.schema)
+			require.Equal(t, enumShapeNone, strictShape)
 		})
 	}
 }
@@ -527,10 +527,10 @@ func stringPatternBranch() *openapi3.SchemaRef {
 	return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeString}, Pattern: `^[+-]?\d+$`}}
 }
 
-// TestParseIntOrConstEnum pins the int-or-keyword query-parameter shape: exactly
+// TestEnumParser_IntOrConst pins the enumShapeIntOrConst shape: exactly
 // one integer branch (directly or inside a nested oneOf) beside at least one
 // const branch (directly or inside a nested oneOf, null skipped).
-func TestParseIntOrConstEnum(t *testing.T) {
+func TestEnumParser_IntOrConst(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

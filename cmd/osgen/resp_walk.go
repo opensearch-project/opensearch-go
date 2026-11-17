@@ -42,9 +42,10 @@ type walker struct {
 	excSeen        map[string]bool // dedupe key: qualified field name
 
 	// paramPass is set by the query-param enum pass. It widens enum detection to
-	// the shapes only query params accept (see enumShapeParam) and registers the
-	// resulting types as string aliases, so a param typed with one stays
-	// assignable from and to plain string and []string.
+	// every enumShape and registers a type of any shape wider than
+	// enumShapeConst as a string alias, so a param typed with one stays
+	// assignable from and to plain string and []string. A strict-const param
+	// type stays a defined type (see resolveStringEnumConst).
 	paramPass bool
 
 	// warnOut receives generator diagnostics. Nil discards them, which keeps
@@ -695,13 +696,11 @@ func (w *walker) resolveOpaqueString(schema *openapi3.Schema, group string) (str
 func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string, forceAlias bool) (string, bool) {
 	name := schemaTypeName(key, false)
 	p := enumParser{vr: w.vrange, deny: stringEnumDenyList, warnW: os.Stderr}
-	var members []constEnumValue
-	shape := enumShapeNone
+	parse := p.constOneOf
 	if w.paramPass {
-		members, shape = p.paramEnum(name, key, schema)
-	} else if values, ok := p.constOneOf(name, key, schema); ok {
-		members, shape = values, enumShapeConst
+		parse = p.paramEnum
 	}
+	members, shape := parse(name, key, schema)
 	if shape == enumShapeNone {
 		return "", false
 	}
