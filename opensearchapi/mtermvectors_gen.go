@@ -146,6 +146,8 @@ type MTermVectorsParams struct {
 	Version *int
 
 	// The specific version type.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 
@@ -337,7 +339,11 @@ type MTermVectorsOperation struct {
 	// and the document frequency.
 	TermStatistics *bool `json:"term_statistics,omitempty"`
 
-	Version     *int64       `json:"version,omitempty"`
+	Version *int64 `json:"version,omitempty"`
+
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"version_type,omitempty"`
 }
 

@@ -94,6 +94,8 @@ type ReindexParams struct {
 
 	// If `true`, the request refreshes affected shards to make this operation
 	// visible to search.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// The throttle for this request in sub-requests per second. Defaults to no
@@ -110,11 +112,15 @@ type ReindexParams struct {
 
 	// The number of slices this task should be divided into. Defaults to 1
 	// slice, meaning the task isn't sliced into subtasks.
+	//
+	// See [Slices] for valid values.
 	Slices Slices
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
 	// number of shards in the index (`number_of_replicas+1`).
+	//
+	// See [WaitForActiveShards] for valid values.
 	WaitForActiveShards WaitForActiveShards
 
 	// If `true`, the request blocks until the operation is complete.
@@ -427,8 +433,12 @@ func (u ReindexRespBody) MarshalJSONTo(enc *json.TextEncoder) error {
 //
 // The search definition using the Query DSL and the prototype for the index request.
 type ReindexBody struct {
-	Conflicts *Conflicts         `json:"conflicts,omitempty"`
-	Dest      ReindexDestination `json:"dest"`
+	// Conflicts. Controls what a reindex, update by query, or delete by query
+	// operation does when a document fails with a version conflict. Defaults
+	// to `abort`.
+	Conflicts *Conflicts `json:"conflicts,omitempty"`
+
+	Dest ReindexDestination `json:"dest"`
 
 	// MaxDocs is the maximum number of documents to reindex.
 	MaxDocs *int `json:"max_docs,omitempty"`
@@ -440,7 +450,10 @@ type ReindexBody struct {
 
 // ReindexDestination is a typed component of the reindex operation.
 type ReindexDestination struct {
-	Index  string  `json:"index"`
+	Index string `json:"index"`
+
+	// OpType is the kind of write to perform for an index request. Defaults to
+	// `index`. The value is not case-sensitive.
 	OpType *OpType `json:"op_type,omitempty"`
 
 	// Pipeline is the name of the pipeline to use.
@@ -449,6 +462,9 @@ type ReindexDestination struct {
 	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"version_type,omitempty"`
 }
 

@@ -607,3 +607,58 @@ func TestTypeQueryParamEnums_IntOrConst(t *testing.T) {
 	_, typed := w.resolveStringEnumConst("_common___WaitForActiveShards", schema, "index")
 	require.False(t, typed)
 }
+
+// TestTypeQueryParamEnums_ParamNamesAndDefault pins that each enum type records
+// the sorted, deduplicated wire names of the query params that use it, and the
+// schema default.
+func TestTypeQueryParamEnums_ParamNamesAndDefault(t *testing.T) {
+	t.Parallel()
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	spec := &openapi3.T{
+		Components: &openapi3.Components{
+			Schemas: openapi3.Schemas{
+				"_common___Refresh": &openapi3.SchemaRef{Value: &openapi3.Schema{
+					Default: "false",
+					OneOf: openapi3.SchemaRefs{
+						constBranch("true", "", nil),
+						constBranch("false", "", nil),
+					},
+				}},
+				"_common___Level": &openapi3.SchemaRef{Value: &openapi3.Schema{
+					OneOf: openapi3.SchemaRefs{constBranch("a", "", nil), constBranch("b", "", nil)},
+				}},
+			},
+		},
+	}
+	ops := []apiOperation{
+		{Group: "index", QueryParams: []apiQueryParam{
+			{ParamName: "refresh", GoName: "Refresh", GoType: "string", SchemaRef: "_common___Refresh"},
+		}},
+		{Group: "bulk", QueryParams: []apiQueryParam{
+			{ParamName: "refresh", GoName: "Refresh", GoType: "string", SchemaRef: "_common___Refresh"},
+			{ParamName: "level", GoName: "Level", GoType: "string", SchemaRef: "_common___Level"},
+			{ParamName: "bulk_level", GoName: "BulkLevel", GoType: "string", SchemaRef: "_common___Level"},
+		}},
+	}
+
+	typeQueryParamEnums(ops, spec, reg, VersionRange{})
+
+	tests := []struct {
+		ref         string
+		wantParams  []string
+		wantDefault string
+	}{
+		{"_common___Refresh", []string{"refresh"}, "false"},
+		{"_common___Level", []string{"bulk_level", "level"}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.ref, func(t *testing.T) {
+			t.Parallel()
+			got, ok := reg.lookup(tt.ref)
+			require.True(t, ok)
+			require.Equal(t, tt.wantParams, got.ParamNames)
+			require.Equal(t, tt.wantDefault, got.Default)
+		})
+	}
+}

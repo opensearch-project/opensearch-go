@@ -88,6 +88,8 @@ type CatSegmentReplicationParams struct {
 	AllowNoIndices *bool
 
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 
 	// When `true`, the response only includes the last-completed segment
@@ -102,6 +104,7 @@ type CatSegmentReplicationParams struct {
 	// Default: false.
 	Detailed *bool
 
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// Whether specified concrete, expanded, or aliased indexes should be
@@ -123,6 +126,8 @@ type CatSegmentReplicationParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 }
 

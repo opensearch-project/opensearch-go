@@ -224,6 +224,7 @@ func (e *UnknownRestStatusError) Error() string {
 	return fmt.Sprintf("unknown RestStatus %q", e.Value)
 }
 
+// SearchTotalHitsRelation is one of the values below.
 type SearchTotalHitsRelation string
 
 const (
@@ -235,6 +236,7 @@ const (
 	SearchTotalHitsRelationGte SearchTotalHitsRelation = "gte"
 )
 
+// GeoDistanceType is one of the values below.
 type GeoDistanceType string
 
 const (
@@ -270,6 +272,7 @@ const (
 	DistanceUnitYd DistanceUnit = "yd"
 )
 
+// SearchBuiltinHighlighterType is one of the values below.
 type SearchBuiltinHighlighterType string
 
 const (
@@ -333,19 +336,27 @@ const (
 	ScriptSortTypeVersion ScriptSortType = "version"
 )
 
+// Selects how the `version` supplied with a request is checked against the document's current version, and how the stored version changes on a successful write. Defaults to `internal`.
 type VersionType string
 
 const (
-	// VersionTypeExternal. The version number must be greater than the current
-	// version.
+	// VersionTypeExternal. Uses a version number maintained by an external
+	// system. A write succeeds only if the document does not exist or the
+	// supplied version is greater than the current version. The document then
+	// stores the supplied version. Use this when another data store owns the
+	// version numbers.
 	VersionTypeExternal VersionType = "external"
 
-	// VersionTypeExternalGte. The version number must be greater than or equal
-	// to the current version.
+	// VersionTypeExternalGte. Like `external`, but a write also succeeds when
+	// the supplied version equals the current version. The document then
+	// stores the supplied version.
 	VersionTypeExternalGte VersionType = "external_gte"
 
-	// VersionTypeInternal. The version number is managed internally by
-	// OpenSearch.
+	// VersionTypeInternal. OpenSearch manages the version and increments it by
+	// one on each successful write. This is the default. Write requests can't
+	// supply a version with this type; use `if_seq_no` and `if_primary_term`
+	// for optimistic concurrency control instead. A read that supplies a
+	// version must match the current version exactly.
 	VersionTypeInternal VersionType = "internal"
 )
 
@@ -400,6 +411,7 @@ const (
 	IndicesIndexRoutingRebalanceOptionsReplicas IndicesIndexRoutingRebalanceOptions = "replicas"
 )
 
+// DFIIndependenceMeasure is one of the values below.
 type DFIIndependenceMeasure string
 
 const (
@@ -415,6 +427,7 @@ const (
 	DFIIndependenceMeasureStandardized DFIIndependenceMeasure = "standardized"
 )
 
+// DFRAfterEffect is one of the values below.
 type DFRAfterEffect string
 
 const (
@@ -428,6 +441,7 @@ const (
 	DFRAfterEffectNo DFRAfterEffect = "no"
 )
 
+// DFRBasicModel is one of the values below.
 type DFRBasicModel string
 
 const (
@@ -453,6 +467,7 @@ const (
 	DFRBasicModelP DFRBasicModel = "p"
 )
 
+// TermFrequencyNormalization is one of the values below.
 type TermFrequencyNormalization string
 
 const (
@@ -472,6 +487,7 @@ const (
 	TermFrequencyNormalizationZ TermFrequencyNormalization = "z"
 )
 
+// IBDistribution is one of the values below.
 type IBDistribution string
 
 const (
@@ -482,6 +498,7 @@ const (
 	IBDistributionSpl IBDistribution = "spl"
 )
 
+// IBLambda is one of the values below.
 type IBLambda string
 
 const (
@@ -562,6 +579,7 @@ const (
 	ClusterDecommissionAwarenessDecommissionStatusFailed ClusterDecommissionAwarenessDecommissionStatus = "FAILED"
 )
 
+// Result is one of the values below.
 type Result string
 
 const (
@@ -581,6 +599,7 @@ const (
 	ResultUpdated Result = "updated"
 )
 
+// NodeRole is one of the values below.
 type NodeRole string
 
 const (
@@ -662,6 +681,7 @@ const (
 	IndicesShardStoresShardStoreAllocationUnused IndicesShardStoresShardStoreAllocation = "unused"
 )
 
+// ActionStatusOptions is one of the values below.
 type ActionStatusOptions string
 
 const (
@@ -703,6 +723,7 @@ const (
 	SnapshotShardsStatsStageStarted SnapshotShardsStatsStage = "STARTED"
 )
 
+// CommonAggregationsHoltWintersType is one of the values below.
 type CommonAggregationsHoltWintersType string
 
 const (
@@ -711,44 +732,66 @@ const (
 	CommonAggregationsHoltWintersTypeMult CommonAggregationsHoltWintersType = "mult"
 )
 
+// Controls what a reindex, update by query, or delete by query operation does when a document fails with a version conflict. Defaults to `abort`.
 type Conflicts string
 
 const (
-	// ConflictsAbort. Abort the operation on version conflicts.
+	// ConflictsAbort. Stops the operation and reports the conflicts in
+	// `failures`. This is the default.
 	ConflictsAbort Conflicts = "abort"
 
-	// ConflictsProceed. Proceed with the operation on version conflicts.
+	// ConflictsProceed. Skips conflicting documents and continues. The number
+	// of skipped documents is reported in `version_conflicts`.
 	ConflictsProceed Conflicts = "proceed"
 )
 
+// The kind of write to perform for an index request. Defaults to `index`. The value is not case-sensitive.
 type OpType string
 
 const (
-	// OpTypeCreate. Create a new document.
+	// OpTypeCreate. Creates the document only if no document with the same ID
+	// exists. Otherwise the request fails with a version conflict and the
+	// existing document is left unchanged. Only `internal` versioning is
+	// supported.
 	OpTypeCreate OpType = "create"
 
-	// OpTypeIndex. Create a new document or replace an existing one.
+	// OpTypeIndex. Creates the document, or replaces the existing document
+	// with the same ID. This is the default.
 	OpTypeIndex OpType = "index"
 )
 
+// Controls whether a write operation makes its changes visible to search before the response is returned. The values are `true`, `false` (the default), and `wait_for`; an empty value is treated as `true`.
 type Refresh = string
 
 const (
-	// RefreshFalse. Do not refresh the affected shards.
+	// RefreshFalse. Returns without refreshing or waiting for a refresh. This
+	// is the default.
 	RefreshFalse Refresh = "false"
 
-	// RefreshTrue. Refresh the affected shards immediately.
+	// RefreshTrue. Refreshes the affected shards immediately after the
+	// operation, so the changes are visible to search when the response is
+	// returned. Every request triggers its own refresh, which does not scale
+	// under heavy indexing or search load. Use it for low-traffic indexes or
+	// tests.
 	RefreshTrue Refresh = "true"
 
-	// RefreshWaitFor. Wait for the changes to become visible before replying.
+	// RefreshWaitFor. Holds the response until a refresh makes the changes
+	// visible to search, without forcing a refresh. This suits high indexing
+	// throughput, at the cost of a slower response. Each shard accepts up to
+	// `index.max_refresh_listeners` waiting requests (default 1000). When that
+	// limit is reached, the shard forces a refresh instead and the response
+	// reports `forced_refresh: true`.
 	RefreshWaitFor Refresh = "wait_for"
 )
 
-// Waits until the specified number of shards is active before returning a response. Use `all` for all shards.
+// The number of active copies of each shard, counting the primary, that must be available before the operation proceeds. Use `all` for every copy, or a number from `0` (do not wait) up to the number of replicas plus one.
+//
+// For write operations the check is made before writing to the primary. If not enough copies become active before the request times out, the operation fails without writing.
 type WaitForActiveShards = string
 
 const (
-	// WaitForActiveShardsAll. Wait for all shards to be active.
+	// WaitForActiveShardsAll. Waits until every copy of each shard, the
+	// primary and all of its replicas, is active.
 	WaitForActiveShardsAll WaitForActiveShards = "all"
 )
 
@@ -758,26 +801,34 @@ func WaitForActiveShardsCount(n int) WaitForActiveShards {
 	return strconv.Itoa(n)
 }
 
+// The kind of index that a wildcard expression in an index name can expand to. Values are case-sensitive and can be combined; the server applies them in order, so `none` clears any value listed before it.
 type ExpandWildcard = string
 
 const (
-	// ExpandWildcardAll. Match any index, including hidden ones.
+	// ExpandWildcardAll. Expands wildcards to open, closed, and hidden
+	// indexes. Equivalent to `open,closed,hidden`.
 	ExpandWildcardAll ExpandWildcard = "all"
 
-	// ExpandWildcardClosed. Match closed, non-hidden indexes.
+	// ExpandWildcardClosed. Expands wildcards to closed, non-hidden indexes.
 	ExpandWildcardClosed ExpandWildcard = "closed"
 
-	// ExpandWildcardHidden. Match hidden indexes. Must be combined with
-	// `open`, `closed`, or both.
+	// ExpandWildcardHidden. Also expands wildcards to hidden indexes. It has
+	// no effect on its own and must be combined with `open`, `closed`, or
+	// both. A wildcard expression that starts with `.` matches hidden indexes
+	// whose names start with `.` even without this value.
 	ExpandWildcardHidden ExpandWildcard = "hidden"
 
-	// ExpandWildcardNone. Wildcard expressions are not accepted.
+	// ExpandWildcardNone. Does not expand wildcards. Wildcard expressions are
+	// passed through unresolved instead of matching indexes.
 	ExpandWildcardNone ExpandWildcard = "none"
 
-	// ExpandWildcardOpen. Match open, non-hidden indexes.
+	// ExpandWildcardOpen. Expands wildcards to open, non-hidden indexes.
 	ExpandWildcardOpen ExpandWildcard = "open"
 )
 
+// The unit used to display byte values in cat and list responses. Units are binary multiples (1 kb is 1024 bytes), and values are truncated to whole numbers. The value is case-sensitive.
+//
+// When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5gb`.
 type ByteUnit = string
 
 const (
@@ -823,6 +874,7 @@ const (
 	TimeUnitD TimeUnit = "d"
 )
 
+// The health of a shard, an index, or the cluster. An index reports the worst status of its shards, and the cluster reports the worst status of its indexes. Values are not case-sensitive.
 type HealthStatus = string
 
 const (
@@ -840,24 +892,50 @@ const (
 	HealthStatusRed HealthStatus = "red"
 )
 
-// Controls the amount of detail included in the cluster health response.
+// Controls the amount of detail included in the cluster health response. Defaults to `cluster`, which reports only the cluster-wide health. `indices` adds the health of each index, and `shards` also adds the health of each shard within each index.
+//
+// `awareness_attributes` reports health for each value of an awareness attribute. It is required when `awareness_attribute` is set, and cannot be combined with an index target. An unrecognized value is treated as `cluster`.
 type ClusterHealthLevel = string
 
 const (
 	// ClusterHealthLevelAwarenessAttributes. Controls the amount of detail
-	// included in the cluster health response.
+	// included in the cluster health response. Defaults to `cluster`, which
+	// reports only the cluster-wide health. `indices` adds the health of each
+	// index, and `shards` also adds the health of each shard within each
+	// index. `awareness_attributes` reports health for each value of an
+	// awareness attribute. It is required when `awareness_attribute` is set,
+	// and cannot be combined with an index target. An unrecognized value is
+	// treated as `cluster`.
 	ClusterHealthLevelAwarenessAttributes ClusterHealthLevel = "awareness_attributes"
 
 	// ClusterHealthLevelCluster. Controls the amount of detail included in the
-	// cluster health response.
+	// cluster health response. Defaults to `cluster`, which reports only the
+	// cluster-wide health. `indices` adds the health of each index, and
+	// `shards` also adds the health of each shard within each index.
+	// `awareness_attributes` reports health for each value of an awareness
+	// attribute. It is required when `awareness_attribute` is set, and cannot
+	// be combined with an index target. An unrecognized value is treated as
+	// `cluster`.
 	ClusterHealthLevelCluster ClusterHealthLevel = "cluster"
 
 	// ClusterHealthLevelIndices. Controls the amount of detail included in the
-	// cluster health response.
+	// cluster health response. Defaults to `cluster`, which reports only the
+	// cluster-wide health. `indices` adds the health of each index, and
+	// `shards` also adds the health of each shard within each index.
+	// `awareness_attributes` reports health for each value of an awareness
+	// attribute. It is required when `awareness_attribute` is set, and cannot
+	// be combined with an index target. An unrecognized value is treated as
+	// `cluster`.
 	ClusterHealthLevelIndices ClusterHealthLevel = "indices"
 
 	// ClusterHealthLevelShards. Controls the amount of detail included in the
-	// cluster health response.
+	// cluster health response. Defaults to `cluster`, which reports only the
+	// cluster-wide health. `indices` adds the health of each index, and
+	// `shards` also adds the health of each shard within each index.
+	// `awareness_attributes` reports health for each value of an awareness
+	// attribute. It is required when `awareness_attribute` is set, and cannot
+	// be combined with an index target. An unrecognized value is treated as
+	// `cluster`.
 	ClusterHealthLevelShards ClusterHealthLevel = "shards"
 )
 
@@ -886,25 +964,35 @@ const (
 	WaitForEventsLanguid WaitForEvents = "languid"
 )
 
+// The Boolean logic used to combine the terms of a query. `or` matches documents that contain any of the terms, and `and` matches only documents that contain all of them. The value is not case-sensitive.
 type CommonQueryDSLOperator = string
 
 const (
+	// CommonQueryDSLOperatorAnd. The Boolean logic used to combine the terms
+	// of a query. `or` matches documents that contain any of the terms, and
+	// `and` matches only documents that contain all of them. The value is not
+	// case-sensitive.
 	CommonQueryDSLOperatorAnd CommonQueryDSLOperator = "and"
 
+	// CommonQueryDSLOperatorOr. The Boolean logic used to combine the terms of
+	// a query. `or` matches documents that contain any of the terms, and `and`
+	// matches only documents that contain all of them. The value is not
+	// case-sensitive.
 	CommonQueryDSLOperatorOr CommonQueryDSLOperator = "or"
 )
 
+// Selects how a search request computes relevance scores across shards. Defaults to `query_then_fetch`.
 type SearchType string
 
 const (
-	// SearchTypeDFSQueryThenFetch. Documents are scored using global term and
-	// document frequencies across all shards. This is usually slower but more
-	// accurate.
+	// SearchTypeDFSQueryThenFetch. Adds an initial phase that collects term
+	// and document frequencies from all shards, then scores documents using
+	// these global frequencies. This is usually slower but more accurate.
 	SearchTypeDFSQueryThenFetch SearchType = "dfs_query_then_fetch"
 
-	// SearchTypeQueryThenFetch. Documents are scored using local term and
-	// document frequencies for the shard. This is usually faster but less
-	// accurate.
+	// SearchTypeQueryThenFetch. Scores documents using the term and document
+	// frequencies of each shard. This is usually faster but less accurate.
+	// This is the default.
 	SearchTypeQueryThenFetch SearchType = "query_then_fetch"
 )
 
@@ -922,20 +1010,30 @@ func SlicesCount(n int) Slices {
 	return strconv.Itoa(n)
 }
 
-// Specifies the level of detail of the returned information.
+// Specifies the level of detail of the returned statistics. `indices` adds a breakdown for each index, and `shards` also adds a breakdown for each shard of each index. For index statistics, `cluster` returns only the totals across all targeted indexes.
 type Level = string
 
 const (
-	// LevelCluster. Specifies the level of detail of the returned information.
+	// LevelCluster. Specifies the level of detail of the returned statistics.
+	// `indices` adds a breakdown for each index, and `shards` also adds a
+	// breakdown for each shard of each index. For index statistics, `cluster`
+	// returns only the totals across all targeted indexes.
 	LevelCluster Level = "cluster"
 
-	// LevelIndices. Specifies the level of detail of the returned information.
+	// LevelIndices. Specifies the level of detail of the returned statistics.
+	// `indices` adds a breakdown for each index, and `shards` also adds a
+	// breakdown for each shard of each index. For index statistics, `cluster`
+	// returns only the totals across all targeted indexes.
 	LevelIndices Level = "indices"
 
-	// LevelShards. Specifies the level of detail of the returned information.
+	// LevelShards. Specifies the level of detail of the returned statistics.
+	// `indices` adds a breakdown for each index, and `shards` also adds a
+	// breakdown for each shard of each index. For index statistics, `cluster`
+	// returns only the totals across all targeted indexes.
 	LevelShards Level = "shards"
 )
 
+// InsightsMetricType is a value of the `type` query parameter.
 type InsightsMetricType = string
 
 const (
@@ -946,13 +1044,34 @@ const (
 	InsightsMetricTypeMemory InsightsMetricType = "memory"
 )
 
+// Controls which suggestions the term suggester returns for each term in the suggest text. Defaults to `missing`. The value is not case-sensitive.
+//
+// `missing` suggests only for terms that are not in the index. `popular` suggests only terms that occur in more documents than the original term. `always` suggests any matching terms based on the tokens in the suggest text.
 type SuggestMode = string
 
 const (
+	// SuggestModeAlways. Controls which suggestions the term suggester returns
+	// for each term in the suggest text. Defaults to `missing`. The value is
+	// not case-sensitive. `missing` suggests only for terms that are not in
+	// the index. `popular` suggests only terms that occur in more documents
+	// than the original term. `always` suggests any matching terms based on
+	// the tokens in the suggest text.
 	SuggestModeAlways SuggestMode = "always"
 
+	// SuggestModeMissing. Controls which suggestions the term suggester
+	// returns for each term in the suggest text. Defaults to `missing`. The
+	// value is not case-sensitive. `missing` suggests only for terms that are
+	// not in the index. `popular` suggests only terms that occur in more
+	// documents than the original term. `always` suggests any matching terms
+	// based on the tokens in the suggest text.
 	SuggestModeMissing SuggestMode = "missing"
 
+	// SuggestModePopular. Controls which suggestions the term suggester
+	// returns for each term in the suggest text. Defaults to `missing`. The
+	// value is not case-sensitive. `missing` suggests only for terms that are
+	// not in the index. `popular` suggests only terms that occur in more
+	// documents than the original term. `always` suggests any matching terms
+	// based on the tokens in the suggest text.
 	SuggestModePopular SuggestMode = "popular"
 )
 
@@ -1022,6 +1141,7 @@ const (
 	NotificationsNotificationConfigTypeWebhook NotificationsNotificationConfigType = "webhook"
 )
 
+// SecurityAnalyticsAlertsAlertState is a value of the `alertState` query parameter.
 type SecurityAnalyticsAlertsAlertState = string
 
 const (
@@ -1065,6 +1185,7 @@ const (
 	SecurityAnalyticsAlertsAlertSeverityLevelAll SecurityAnalyticsAlertsAlertSeverityLevel = "ALL"
 )
 
+// SecurityAnalyticsFindingsDetectionType is a value of the `detectionType` query parameter.
 type SecurityAnalyticsFindingsDetectionType = string
 
 const (
@@ -1073,6 +1194,7 @@ const (
 	SecurityAnalyticsFindingsDetectionTypeThreat SecurityAnalyticsFindingsDetectionType = "threat"
 )
 
+// SecurityAnalyticsFindingsRuleSeverity is a value of the `severity` query parameter.
 type SecurityAnalyticsFindingsRuleSeverity = string
 
 const (
@@ -1085,6 +1207,7 @@ const (
 	SecurityAnalyticsFindingsRuleSeverityMedium SecurityAnalyticsFindingsRuleSeverity = "medium"
 )
 
+// TasksGroupBy is a value of the `group_by` query parameter.
 type TasksGroupBy = string
 
 const (
@@ -1098,6 +1221,8 @@ const (
 // Selects the response format returned by cat operations. Equivalent to
 // the HTTP `Accept` header but expressed as a query parameter. The
 // server's omit-the-param behavior is `text`.
+//
+// The server default is "text".
 type CatRespFormat = string
 
 const (
@@ -1130,6 +1255,8 @@ const (
 // Selects the response format returned by list operations. Equivalent
 // to the HTTP `Accept` header but expressed as a query parameter. The
 // server's omit-the-param behavior is `text`.
+//
+// The server default is "text".
 type ListRespFormat = string
 
 const (
@@ -1162,6 +1289,8 @@ const (
 // Response format selector for PPL plugin operations. The valid set is
 // the union of values accepted across `_plugins/_ppl/*` endpoints;
 // defaults and per-endpoint subsets mirror the SQL plugin.
+//
+// The server default is "jdbc".
 type PPLRespFormat = string
 
 const (
@@ -1223,6 +1352,8 @@ const (
 // query responses use `jdbc` (default), `csv`, `raw`, or `viz`; explain
 // responses use `json`, `yaml`, `simple`, `standard`, `extended`, or
 // `cost`. Not every endpoint accepts every value.
+//
+// The server default is "jdbc".
 type SQLRespFormat = string
 
 const (

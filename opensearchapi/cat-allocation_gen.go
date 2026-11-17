@@ -75,6 +75,8 @@ type CatAllocationParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 
 	// Returns local information but does not retrieve the state from

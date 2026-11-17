@@ -720,6 +720,7 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 			}
 			qp.GoType = name
 			qp.IsStringEnum = true
+			registry.addParamName(qp.SchemaRef, qp.ParamName)
 		}
 	}
 
@@ -745,7 +746,9 @@ func registerGlobalParamEnums(w *walker) {
 			}
 			key := refToSchemaKey(p.Schema.Ref)
 			if schemaRef, ok := w.spec.Components.Schemas[key]; ok && schemaRef.Value != nil {
-				w.resolveStringEnumConst(key, schemaRef.Value, "")
+				if _, ok := w.resolveStringEnumConst(key, schemaRef.Value, ""); ok {
+					w.registry.addParamName(key, p.Name)
+				}
 			}
 		}
 	}
@@ -789,6 +792,7 @@ func typeListParamEnum(w *walker, qp *apiQueryParam, schema *openapi3.Schema, gr
 	}
 	qp.GoType = "[]" + name
 	qp.IsStringEnum = true
+	w.registry.addParamName(key, qp.ParamName)
 }
 
 // classifyRespShape determines the response body shape for operations whose

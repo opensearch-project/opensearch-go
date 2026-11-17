@@ -75,6 +75,7 @@ func (r CatAliasesReq) GetRequest(method string) (*http.Request, error) {
 type CatAliasesParams struct {
 	TimeoutParams
 	DebugParams
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// Whether to return information from the local node only instead of from

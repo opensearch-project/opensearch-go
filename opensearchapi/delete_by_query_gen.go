@@ -119,9 +119,13 @@ type DeleteByQueryParams struct {
 
 	// What to do if delete by query hits version conflicts: `abort` or
 	// `proceed`.
+	//
+	// See [Conflicts] for valid values.
 	Conflicts Conflicts
 
 	// The default operator for query string query: `AND` or `OR`.
+	//
+	// See [CommonQueryDSLOperator] for valid values.
 	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
@@ -133,6 +137,8 @@ type DeleteByQueryParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// Starting offset.
@@ -162,6 +168,8 @@ type DeleteByQueryParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// If `true`, the request cache is used for this request. Defaults to the
@@ -189,12 +197,16 @@ type DeleteByQueryParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// Deprecated: use `max_docs` instead.
 	Size int
 
 	// The number of slices this task should be divided into.
+	//
+	// See [Slices] for valid values.
 	Slices Slices
 
 	// A comma-separated list of <field>:<direction> pairs.
@@ -218,6 +230,8 @@ type DeleteByQueryParams struct {
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
 	// of shards in the index (`number_of_replicas+1`).
+	//
+	// See [WaitForActiveShards] for valid values.
 	WaitForActiveShards WaitForActiveShards
 
 	// If `true`, the request blocks until the operation is complete.

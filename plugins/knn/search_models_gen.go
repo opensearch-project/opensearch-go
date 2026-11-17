@@ -115,6 +115,8 @@ type SearchModelsParams struct {
 	CcsMinimizeRoundtrips *bool
 
 	// The default operator for query string query (AND or OR).
+	//
+	// See [opensearchapi.CommonQueryDSLOperator] for valid values.
 	DefaultOperator opensearchapi.CommonQueryDSLOperator
 
 	// The field to use as default where no field prefix is given in the query
@@ -127,6 +129,8 @@ type SearchModelsParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
+	//
+	// See [opensearchapi.ExpandWildcard] for valid values.
 	ExpandWildcards []opensearchapi.ExpandWildcard
 
 	// Specify whether to return detailed information about score computation
@@ -192,6 +196,8 @@ type SearchModelsParams struct {
 	Scroll time.Duration
 
 	// Search operation type.
+	//
+	// See [opensearchapi.SearchType] for valid values.
 	SearchType opensearchapi.SearchType
 
 	// Specify whether to return sequence number and primary term of the last
@@ -216,6 +222,8 @@ type SearchModelsParams struct {
 	SuggestField string
 
 	// Specify suggest mode.
+	//
+	// See [opensearchapi.SuggestMode] for valid values.
 	SuggestMode opensearchapi.SuggestMode
 
 	// How many suggestions to return in response.

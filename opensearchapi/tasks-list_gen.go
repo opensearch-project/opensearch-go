@@ -78,6 +78,8 @@ type TasksListParams struct {
 	// Groups tasks by parent/child relationships or nodes.
 	//
 	// Default: nodes.
+	//
+	// See [TasksGroupBy] for valid values.
 	GroupBy TasksGroupBy
 
 	// A comma-separated list of node IDs or names used to limit the returned

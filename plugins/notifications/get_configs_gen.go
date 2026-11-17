@@ -97,6 +97,8 @@ type GetConfigsParams struct {
 	ConfigIDList []string
 
 	// Type of notification configuration.
+	//
+	// See [opensearchapi.NotificationsNotificationConfigType] for valid values.
 	ConfigType opensearchapi.NotificationsNotificationConfigType
 
 	CreatedTimeMs int

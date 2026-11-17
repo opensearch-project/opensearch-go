@@ -75,6 +75,8 @@ type CatFielddataParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 
 	// A comma-separated list of fields used to limit the amount of returned
