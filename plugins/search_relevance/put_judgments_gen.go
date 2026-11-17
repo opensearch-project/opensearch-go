@@ -107,12 +107,15 @@ func (r PutJudgmentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutJudgmentsBody is a oneOf union decoded by trying each branch in turn.
-// The spec declares no discriminator and no single key tells the branches apart,
-// so each is attempted (newest schema version first) until one decodes.
+// SearchRelevancePutJudgmentsBody is a oneOf union whose branch the payload names itself.
 //
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
+// The OpenAPI spec declares a discriminator on SearchRelevancePutJudgmentsBody: the type
+// property carries the branch name, so UnmarshalJSON reads that one property and
+// decodes exactly that branch -- it never guesses, and a type naming
+// no known branch is an error rather than a silent mis-decode.
+//
+// Use Type() to learn which branch was decoded, then call the corresponding
+// accessor.
 type SearchRelevancePutJudgmentsBody struct {
 	typ   SearchRelevancePutJudgmentsBodyType
 	raw   json.RawMessage
@@ -177,7 +180,11 @@ func (u *SearchRelevancePutJudgmentsBody) PutLLMJudgmentsRequest() (opensearchap
 
 // NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
 // on the PutLLMJudgmentsRequest branch.
+//
+// It sets v.Type to "LLM_JUDGMENT" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest(v opensearchapi.SearchRelevancePutLLMJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+	v.Type = "LLM_JUDGMENT"
 	return SearchRelevancePutJudgmentsBody{
 		typ:   SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType,
 		value: &v,
@@ -198,7 +205,11 @@ func (u *SearchRelevancePutJudgmentsBody) PutUBIJudgmentsRequest() (opensearchap
 
 // NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
 // on the PutUBIJudgmentsRequest branch.
+//
+// It sets v.Type to "UBI_JUDGMENT" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest(v opensearchapi.SearchRelevancePutUBIJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+	v.Type = "UBI_JUDGMENT"
 	return SearchRelevancePutJudgmentsBody{
 		typ:   SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType,
 		value: &v,
@@ -219,7 +230,11 @@ func (u *SearchRelevancePutJudgmentsBody) PutImportJudgmentsRequest() (opensearc
 
 // NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
 // on the PutImportJudgmentsRequest branch.
+//
+// It sets v.Type to "IMPORT_JUDGMENT" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
 func NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest(v opensearchapi.SearchRelevancePutImportJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+	v.Type = "IMPORT_JUDGMENT"
 	return SearchRelevancePutJudgmentsBody{
 		typ:   SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType,
 		value: &v,
@@ -233,37 +248,39 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required properties. A branch is eligible
-	// only when the payload carries every required key, so a more specific branch
-	// (e.g. an error sub-response keyed by "error") is not absorbed by a
-	// structurally permissive success branch. encoding/json does not enforce a
-	// schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required properties, tried newest-first.
-	{
+	discriminator, present, err := build.JSONDiscriminator(data, "type")
+	if err != nil {
+		return fmt.Errorf("SearchRelevancePutJudgmentsBody: reading type discriminator: %w", err)
+	}
+	if !present {
+		return fmt.Errorf("SearchRelevancePutJudgmentsBody: payload has no type discriminator: %s", data[:min(len(data), 64)])
+	}
+	switch discriminator {
+	case "LLM_JUDGMENT":
 		var v opensearchapi.SearchRelevancePutLLMJudgmentsRequest
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType
-			u.value = &v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
-	}
-	{
+		u.typ = SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType
+		u.value = &v
+	case "UBI_JUDGMENT":
 		var v opensearchapi.SearchRelevancePutUBIJudgmentsRequest
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType
-			u.value = &v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
-	}
-	{
+		u.typ = SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType
+		u.value = &v
+	case "IMPORT_JUDGMENT":
 		var v opensearchapi.SearchRelevancePutImportJudgmentsRequest
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType
-			u.value = &v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType
+		u.value = &v
+	default:
+		return fmt.Errorf("SearchRelevancePutJudgmentsBody: unknown type discriminator %q", discriminator)
 	}
-	return fmt.Errorf("SearchRelevancePutJudgmentsBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return nil
 }
 
 func (u SearchRelevancePutJudgmentsBody) MarshalJSON() ([]byte, error) {
