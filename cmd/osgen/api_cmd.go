@@ -668,7 +668,7 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 }
 
 // typeQueryParamEnums types string query parameters whose component schema is
-// an enum in any shape parseParamEnum accepts (e.g. cat's `time` -> TimeUnit,
+// an enum in any shape enumParser.paramEnum accepts (e.g. cat's `time` -> TimeUnit,
 // nodes.info's `metric` -> Metric), and string-list parameters whose schema is
 // a oneOf of an enum and an array of it (via typeListParamEnum, giving
 // []Elem). Enums already registered by the response/body walks are reused
@@ -714,7 +714,7 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 				typeListParamEnum(w, qp, schemaRef.Value, op.Group)
 				continue
 			}
-			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group)
+			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group, false)
 			if !ok {
 				continue
 			}
@@ -746,7 +746,7 @@ func registerGlobalParamEnums(w *walker) {
 			}
 			key := refToSchemaKey(p.Schema.Ref)
 			if schemaRef, ok := w.spec.Components.Schemas[key]; ok && schemaRef.Value != nil {
-				if _, ok := w.resolveStringEnumConst(key, schemaRef.Value, ""); ok {
+				if _, ok := w.resolveStringEnumConst(key, schemaRef.Value, "", false); ok {
 					w.registry.addParamName(key, p.Name)
 				}
 			}
@@ -769,15 +769,11 @@ func registerGlobalParamEnums(w *walker) {
 // response or body walk is left as []string: a named element type would break
 // callers passing a plain []string.
 func typeListParamEnum(w *walker, qp *apiQueryParam, schema *openapi3.Schema, group string) {
-	var elemRef *openapi3.SchemaRef
-	for _, b := range schema.OneOf {
-		if b != nil && b.Value != nil && b.Value.Type != nil && b.Value.Type.Is(openapi3.TypeArray) {
-			elemRef = b.Value.Items
-		}
-	}
-	if elemRef == nil || elemRef.Ref == "" {
+	arr := oneOfBranchOfType(schema, openapi3.TypeArray)
+	if arr == nil || arr.Items == nil || arr.Items.Ref == "" {
 		return
 	}
+	elemRef := arr.Items
 	key := refToSchemaKey(elemRef.Ref)
 	elem, ok := w.spec.Components.Schemas[key]
 	if !ok || elem.Value == nil {
@@ -786,7 +782,7 @@ func typeListParamEnum(w *walker, qp *apiQueryParam, schema *openapi3.Schema, gr
 	if existing, found := w.registry.lookup(key); found && !existing.IsAlias {
 		return
 	}
-	name, ok := w.resolveStringEnumConstAlias(key, elem.Value, group, true)
+	name, ok := w.resolveStringEnumConst(key, elem.Value, group, true)
 	if !ok {
 		return
 	}

@@ -310,29 +310,6 @@ func TestStringEnumFragment_Body(t *testing.T) {
 	require.Empty(t, frag.Imports())
 }
 
-// TestStringEnumFragment_Alias asserts an alias string enum renders as
-// `type X = string`, so values stay interchangeable with plain strings, while
-// its consts keep the alias type.
-func TestStringEnumFragment_Alias(t *testing.T) {
-	t.Parallel()
-
-	frag := &emit.StringEnumFragment{
-		Types: []*ir.Type{{
-			Name:        "Refresh",
-			Kind:        ir.TypeStringEnum,
-			Scope:       ir.ScopeShared,
-			IsAlias:     true,
-			EnumMembers: []ir.EnumMember{{ConstName: "RefreshWaitFor", Value: "wait_for"}},
-		}},
-	}
-
-	body, err := frag.Body()
-	require.NoError(t, err)
-	require.Contains(t, body, "type Refresh = string")
-	require.NotContains(t, body, "type Refresh string")
-	require.Contains(t, body, `RefreshWaitFor Refresh = "wait_for"`)
-}
-
 // TestStringEnumFragment_Empty renders nothing and needs no imports.
 func TestStringEnumFragment_Empty(t *testing.T) {
 	t.Parallel()
@@ -437,9 +414,10 @@ func TestStringEnumFragment_HasCount(t *testing.T) {
 	}
 }
 
-// TestStringEnumFragment_TypeDoc asserts the type doc: spec comments are kept,
-// a missing comment falls back to naming the query parameters (or the values
-// below), and a schema default adds the server-default line to either.
+// TestStringEnumFragment_TypeDoc asserts the type declaration and its doc: spec
+// comments are kept, a missing comment falls back to naming the query
+// parameters (or the values below), a schema default adds the server-default
+// line to either, and an alias renders as `type X = string`.
 func TestStringEnumFragment_TypeDoc(t *testing.T) {
 	t.Parallel()
 
@@ -479,6 +457,17 @@ func TestStringEnumFragment_TypeDoc(t *testing.T) {
 			name: "default after comment",
 			typ:  ir.Type{Name: "Refresh", Comment: "Controls visibility.", Default: "false"},
 			want: []string{"// Controls visibility.\n//\n// The server default is \"false\".\ntype Refresh string"},
+		},
+		{
+			// An alias keeps values interchangeable with plain strings, while its
+			// consts keep the alias type.
+			name: "alias",
+			typ: ir.Type{
+				Name: "Refresh", IsAlias: true,
+				EnumMembers: []ir.EnumMember{{ConstName: "RefreshWaitFor", Value: "wait_for"}},
+			},
+			want:       []string{"type Refresh = string", `RefreshWaitFor Refresh = "wait_for"`},
+			wantAbsent: []string{"type Refresh string"},
 		},
 	}
 	for _, tt := range tests {

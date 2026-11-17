@@ -78,7 +78,7 @@ type goType struct {
 	// so the payload must be inspected to pick one.
 	IsAmbiguousWire bool
 	IsEnum          bool             // true for int-backed iota enum types (x-enum-name marker)
-	IsStringEnum    bool             // true for string-backed enum types (see parseConstOneOf / parseParamEnum; permissive)
+	IsStringEnum    bool             // true for string-backed enum types (see enumParser; permissive)
 	IsAlias         bool             // true when a string enum is emitted as `type X = string` (query-param-only enums)
 	HasCount        bool             // true when a string enum also emits a <Name>Count(int) constructor (int-or-keyword query params)
 	IsOpaqueString  bool             // true for opaque string tokens (x-type-name marker)

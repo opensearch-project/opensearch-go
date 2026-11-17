@@ -29,6 +29,11 @@ const (
 	// extDeprecationMessage provides human-readable deprecation guidance.
 	extDeprecationMessage = "x-deprecation-message"
 
+	// extEnumDescriptions maps each value of a top-level `enum` schema to its
+	// description. JSON Schema has no per-value description for `enum`, so the
+	// bundled spec carries one here; it becomes the value's const doc.
+	extEnumDescriptions = "x-enum-descriptions"
+
 	// extIgnorable marks operations that should be skipped during generation
 	// (typically internal or unsupported endpoints).
 	extIgnorable = "x-ignorable"
@@ -261,6 +266,36 @@ func extensionStringSlice(extensions map[string]any, key string) []string {
 			}
 		}
 		return ss
+	default:
+		return nil
+	}
+}
+
+// extensionStringMap reads a string-to-string map extension from a map,
+// skipping entries whose value is not a string.
+func extensionStringMap(extensions map[string]any, key string) map[string]string {
+	if extensions == nil {
+		return nil
+	}
+	raw, ok := extensions[key]
+	if !ok {
+		return nil
+	}
+	switch v := raw.(type) {
+	case json.RawMessage:
+		var m map[string]string
+		if err := json.Unmarshal(v, &m); err != nil {
+			return nil
+		}
+		return m
+	case map[string]any:
+		m := make(map[string]string, len(v))
+		for k, item := range v {
+			if s, ok := item.(string); ok {
+				m[k] = s
+			}
+		}
+		return m
 	default:
 		return nil
 	}
