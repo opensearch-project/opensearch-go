@@ -82,6 +82,8 @@ type IndicesStatsParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// A comma-separated list or wildcard expressions of fields to include in
@@ -115,6 +117,8 @@ type IndicesStatsParams struct {
 
 	// Indicates whether statistics are aggregated at the cluster, index, or
 	// shard level.
+	//
+	// See [Level] for valid values.
 	Level Level
 }
 

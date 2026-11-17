@@ -103,6 +103,8 @@ type NodesStatsParams struct {
 
 	// Indicates whether statistics are aggregated at the cluster, index, or
 	// shard level.
+	//
+	// See [Level] for valid values.
 	Level Level
 
 	// A comma-separated list of document types for the indexing index metric.

@@ -162,6 +162,8 @@ type SearchParams struct {
 
 	// The default operator for query string query: AND or OR. This parameter
 	// can only be used when the `q` query string parameter is specified.
+	//
+	// See [CommonQueryDSLOperator] for valid values.
 	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
@@ -177,6 +179,8 @@ type SearchParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// If `true`, returns detailed information about score computation as part
@@ -289,6 +293,8 @@ type SearchParams struct {
 	SearchPipeline string
 
 	// How distributed term frequencies are calculated for relevance scoring.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// If `true`, returns sequence number and primary term of the last
@@ -321,6 +327,8 @@ type SearchParams struct {
 	// Specifies the suggest mode. This parameter can only be used when the
 	// `suggest_field` and `suggest_text` query string parameters are
 	// specified.
+	//
+	// See [SuggestMode] for valid values.
 	SuggestMode SuggestMode
 
 	// Number of suggestions to return. This parameter can only be used when

@@ -76,12 +76,17 @@ type CatIndicesParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// Limits indexes based on their health status. Supported values are
 	// `green`, `yellow`, and `red`.
+	//
+	// See [HealthStatus] for valid values.
 	Health HealthStatus
 
 	// Whether to include information from segments not loaded into memory.
@@ -101,6 +106,8 @@ type CatIndicesParams struct {
 	Pri *bool
 
 	// Specifies the time units.
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 }
 

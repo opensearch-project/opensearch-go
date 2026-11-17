@@ -96,6 +96,8 @@ type GetSourceParams struct {
 
 	// If `true`, OpenSearch refreshes the affected shards to make this
 	// operation visible to search. If `false`, do nothing with refreshes.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// Target the specified primary shard.
@@ -108,6 +110,8 @@ type GetSourceParams struct {
 
 	// The specific version type. One of `internal`, `external`,
 	// `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 

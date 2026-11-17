@@ -112,6 +112,8 @@ type BulkParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// If `true`, the request's actions must target an index alias.
@@ -128,6 +130,8 @@ type BulkParams struct {
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
 	// of shards in the index (`number_of_replicas+1`).
+	//
+	// See [WaitForActiveShards] for valid values.
 	WaitForActiveShards WaitForActiveShards
 }
 

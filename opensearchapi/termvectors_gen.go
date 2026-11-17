@@ -145,6 +145,8 @@ type TermVectorsParams struct {
 	Version *int
 
 	// The specific version type.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 

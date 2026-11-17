@@ -182,15 +182,41 @@ func (f *StringEnumFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+// stringEnumFallbackDoc returns the type doc for a string enum whose spec
+// schema has no description: it names the query parameters that take the type,
+// or says the type is one of its listed values when no parameter uses it.
+func stringEnumFallbackDoc(t *ir.Type) string {
+	names := make([]string, 0, len(t.ParamNames))
+	for _, n := range t.ParamNames {
+		names = append(names, "`"+n+"`")
+	}
+	switch len(names) {
+	case 0:
+		return t.Name + " is one of the values below."
+	case 1:
+		return t.Name + " is a value of the " + names[0] + " query parameter."
+	default:
+		return t.Name + " is a value of the " + strings.Join(names[:len(names)-1], ", ") +
+			" and " + names[len(names)-1] + " query parameters."
+	}
+}
+
 //nolint:gochecknoglobals // const-ish read-only template
 var stringEnumFragTmpl = template.Must(template.New("stringEnum").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
 	"constComment":     ConstComment,
 	"availabilityNote": AvailabilityNote,
+	"fallbackDoc":      stringEnumFallbackDoc,
 }).Parse(`{{range $t := .}}
 {{- if $t.Comment}}
 {{comment $t.Comment}}
+{{- else}}
+{{comment (fallbackDoc $t)}}
+{{- end}}
+{{- if $t.Default}}
+//
+// The server default is "{{$t.Default}}".
 {{- end}}
 type {{$t.Name}} {{if $t.IsAlias}}= {{end}}string
 

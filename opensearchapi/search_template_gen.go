@@ -113,6 +113,8 @@ type SearchTemplateParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// If `true`, the response includes additional details about score
@@ -158,6 +160,8 @@ type SearchTemplateParams struct {
 	SearchPipeline string
 
 	// The type of the search operation.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// If `true`, the response prefixes aggregation and suggester names with

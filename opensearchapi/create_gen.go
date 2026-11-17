@@ -92,6 +92,8 @@ type CreateParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// A custom value used to route operations to a specific shard.
@@ -103,11 +105,15 @@ type CreateParams struct {
 	Version *int
 
 	// The specific version type: `external`, `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
 	// number of shards in the index (`number_of_replicas+1`).
+	//
+	// See [WaitForActiveShards] for valid values.
 	WaitForActiveShards WaitForActiveShards
 }
 

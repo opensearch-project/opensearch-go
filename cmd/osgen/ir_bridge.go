@@ -281,6 +281,9 @@ func convertType(gt *goType) *ir.Type {
 		Package:   gt.Pkg,
 		IsAlias:   gt.IsAlias,
 		HasCount:  gt.HasCount,
+
+		ParamNames: gt.ParamNames,
+		Default:    gt.Default,
 	}
 
 	switch {

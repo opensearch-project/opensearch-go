@@ -65,6 +65,8 @@ type GetAlertsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Used to filter by alert state. Optional.
+	//
+	// See [opensearchapi.SecurityAnalyticsAlertsAlertState] for valid values.
 	AlertState opensearchapi.SecurityAnalyticsAlertsAlertState
 
 	// The type of detector used to fetch alerts. Optional when `detector_id`
@@ -87,6 +89,8 @@ type GetAlertsParams struct {
 	SearchString string
 
 	// Used to filter by alert severity level. Optional.
+	//
+	// See [opensearchapi.SecurityAnalyticsAlertsAlertSeverityLevel] for valid values.
 	SeverityLevel opensearchapi.SecurityAnalyticsAlertsAlertSeverityLevel
 
 	// The maximum number of results returned in the response. Optional.
@@ -98,6 +102,8 @@ type GetAlertsParams struct {
 	// or `desc`. Optional.
 	//
 	// Default: asc.
+	//
+	// See [opensearchapi.SortOrder] for valid values.
 	SortOrder opensearchapi.SortOrder
 
 	// The string used by Security Analytics to sort the alerts. Optional.

@@ -90,6 +90,8 @@ type IndexParams struct {
 	// the indexing operation will fail. Same as using the `<index>/_create`
 	// endpoint. Valid values: `index`, `create`. If document id is specified,
 	// it defaults to `index`. Otherwise, it defaults to `create`.
+	//
+	// See [OpType] for valid values.
 	OpType OpType
 
 	// ID of the pipeline to use to preprocess incoming documents. If the index
@@ -103,6 +105,8 @@ type IndexParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// If `true`, the destination must be an index alias.
@@ -119,11 +123,15 @@ type IndexParams struct {
 	Version *int
 
 	// The specific version type: `external`, `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
 	// of shards in the index (`number_of_replicas+1`).
+	//
+	// See [WaitForActiveShards] for valid values.
 	WaitForActiveShards WaitForActiveShards
 }
 

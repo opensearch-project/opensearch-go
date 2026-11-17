@@ -112,6 +112,8 @@ type IndicesValidateQueryParams struct {
 	Analyzer string
 
 	// The default operator for query string query: `AND` or `OR`.
+	//
+	// See [CommonQueryDSLOperator] for valid values.
 	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
@@ -124,6 +126,8 @@ type IndicesValidateQueryParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// If `true`, the response returns detailed information if an error has

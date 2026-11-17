@@ -436,3 +436,65 @@ func TestStringEnumFragment_HasCount(t *testing.T) {
 		})
 	}
 }
+
+// TestStringEnumFragment_TypeDoc asserts the type doc: spec comments are kept,
+// a missing comment falls back to naming the query parameters (or the values
+// below), and a schema default adds the server-default line to either.
+func TestStringEnumFragment_TypeDoc(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		typ        ir.Type
+		want       []string
+		wantAbsent []string
+	}{
+		{
+			name: "no comment, one param",
+			typ:  ir.Type{Name: "Refresh", ParamNames: []string{"refresh"}},
+			want: []string{"// Refresh is a value of the `refresh` query parameter.\ntype Refresh string"},
+		},
+		{
+			name: "no comment, several params",
+			typ:  ir.Type{Name: "Level", ParamNames: []string{"a", "b", "c"}},
+			want: []string{"// Level is a value of the `a`, `b` and `c` query parameters."},
+		},
+		{
+			name: "no comment, no params",
+			typ:  ir.Type{Name: "NodeRole"},
+			want: []string{"// NodeRole is one of the values below."},
+		},
+		{
+			name:       "comment kept",
+			typ:        ir.Type{Name: "Refresh", Comment: "Controls visibility.", ParamNames: []string{"refresh"}},
+			want:       []string{"// Controls visibility.\ntype Refresh string"},
+			wantAbsent: []string{"is a value of the"},
+		},
+		{
+			name: "default after fallback",
+			typ:  ir.Type{Name: "Refresh", ParamNames: []string{"refresh"}, Default: "false"},
+			want: []string{"query parameter.\n//\n// The server default is \"false\".\ntype Refresh string"},
+		},
+		{
+			name: "default after comment",
+			typ:  ir.Type{Name: "Refresh", Comment: "Controls visibility.", Default: "false"},
+			want: []string{"// Controls visibility.\n//\n// The server default is \"false\".\ntype Refresh string"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			typ := tt.typ
+			typ.Kind = ir.TypeStringEnum
+			typ.Scope = ir.ScopeShared
+			body, err := (&emit.StringEnumFragment{Types: []*ir.Type{&typ}}).Body()
+			require.NoError(t, err)
+			for _, w := range tt.want {
+				require.Contains(t, body, w)
+			}
+			for _, w := range tt.wantAbsent {
+				require.NotContains(t, body, w)
+			}
+		})
+	}
+}

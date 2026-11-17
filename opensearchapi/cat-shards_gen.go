@@ -75,6 +75,8 @@ type CatShardsParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 
 	// Returns local information but does not retrieve the state from the
@@ -83,6 +85,7 @@ type CatShardsParams struct {
 	// Default: false.
 	Local *bool
 
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 }
 

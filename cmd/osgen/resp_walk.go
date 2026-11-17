@@ -719,10 +719,12 @@ func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema
 		return existing.Name, true
 	}
 
+	defaultValue, _ := schema.Default.(string)
 	t := &goType{
 		Name:         name,
 		Pkg:          typePkg(true, group, w.registry),
 		SchemaRef:    key,
+		Default:      defaultValue,
 		IsShared:     true,
 		IsStringEnum: true,
 		IsAlias:      w.paramPass && (forceAlias || !strictShape),

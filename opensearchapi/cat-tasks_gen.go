@@ -93,6 +93,8 @@ type CatTasksParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 }
 
