@@ -167,8 +167,12 @@ func parseEnumValues(
 	}
 	if len(branches) == 0 {
 		if lenient && schema.Type != nil && schema.Type.Is(openapi3.TypeString) {
-			// The schema is its own single branch.
-			branches = openapi3.SchemaRefs{{Value: schema}}
+			// The schema is its own single branch. Its description documents the
+			// type, so the copy standing in for the branch drops it rather than
+			// repeating it on every value.
+			self := *schema
+			self.Description = ""
+			branches = openapi3.SchemaRefs{{Value: &self}}
 		} else {
 			return nil, false
 		}
