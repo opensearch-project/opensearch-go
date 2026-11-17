@@ -506,7 +506,7 @@ func TestBulkIndexerItemDeprecatedFieldsIntegration(t *testing.T) {
 	createResp, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
 		Index:      indexName,
 		BodyReader: strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
-		Params:     &opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
+		Params:     &opensearchapi.IndicesCreateParams{WaitForActiveShards: opensearchapi.WaitForActiveShardsCount(1)},
 	})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, createResp.Inspect().Response.StatusCode)

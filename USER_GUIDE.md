@@ -232,6 +232,8 @@ func example() error {
 
 ```
 
+[`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) describes each refresh value used above.
+
 ## Amazon OpenSearch Service
 
 Before starting, we strongly recommend reading the full AWS documentation regarding using IAM credentials to sign requests to OpenSearch APIs. See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html)

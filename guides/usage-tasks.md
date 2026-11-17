@@ -63,6 +63,8 @@ Next, create a source index with some test data:
 	})
 ```
 
+[`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) describes each refresh value.
+
 ## Submitting Async Tasks
 
 Long-running operations like reindex, delete_by_query, and update_by_query can be submitted asynchronously by setting `WaitForCompletion` to `false`. The response body has a dynamic schema and is captured as raw JSON, so unmarshal it to read the task ID.

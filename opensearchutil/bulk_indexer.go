@@ -795,8 +795,9 @@ type bulkActionMetadata struct {
 type bulkClient struct {
 	wg sync.WaitGroup
 
-	// encodeMeta, when set, stands in for the metadata encoder; tests set it to inject an
-	// encoding failure. It is nil in production.
+	// encodeMeta, when set, runs before the metadata encoder, and a non-nil error
+	// fails the item; tests set it to inject an encoding failure. It is nil in
+	// production.
 	encodeMeta func(*BulkIndexerItem) ([]byte, error)
 
 	sched *scheduler
@@ -2299,8 +2300,9 @@ func (e *metaEncoder) encode(item *BulkIndexerItem) ([]byte, error) {
 
 // appendActionLine appends the action line encode writes for action and m, newline
 // included, byte for byte. It reports false, and appends nothing, for a line it leaves
-// to the encoder: one with a string the encoder would escape. TestAppendActionLineKnowsEveryField fails when
-// bulkActionMetadata gains a field this does not write.
+// to the encoder: one with a string the encoder would escape.
+// TestAppendActionLineKnowsEveryField fails when bulkActionMetadata gains a field this
+// does not write.
 func appendActionLine(b []byte, action string, m *bulkActionMetadata) ([]byte, bool) {
 	start := len(b)
 	// The encoder does not escape HTML; see newMetaEncoder.
