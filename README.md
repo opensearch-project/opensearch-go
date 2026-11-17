@@ -80,7 +80,7 @@ func main() {
 		indexed, err := client.Doc.Index(ctx, opensearchapi.IndexReq{
 			Index:  "movies",
 			Body:   strings.NewReader(doc),
-			Params: &opensearchapi.IndexParams{Refresh: "true"},
+			Params: &opensearchapi.IndexParams{Refresh: opensearchapi.RefreshTrue},
 		})
 		if err != nil {
 			log.Fatal(err)

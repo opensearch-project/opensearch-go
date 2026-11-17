@@ -264,7 +264,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
           },
       },
       Params: &opensearchapi.SearchParams{
-          ExpandWildcards: []string{"open"},
+          ExpandWildcards: []opensearchapi.ExpandWildcard{opensearchapi.ExpandWildcardOpen},
       },
   })
   ```
