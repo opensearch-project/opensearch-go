@@ -325,6 +325,20 @@ fetch-opensearch-spec-force: ## Re-download the OpenSearch OpenAPI spec from ups
 	@printf "\033[2m-> Downloading %s...\033[0m\n" "$(OPENAPI_SPEC)"
 	@curl -sSfL "$(OPENAPI_SPEC_URL)" -o "$(OPENAPI_SPEC)"
 
+# The resolved client model (opensearch-api-specification `npm run model`), built from the
+# vendored spec so it describes exactly the same types. SPEC_REPO is a checkout of
+# opensearch-api-specification that has the client model tooling (#1329).
+CLIENT_MODEL := $(REPO_ROOT)/opensearch-client-model.json
+SPEC_REPO    ?= ../opensearch-api-specification
+# GEN_FROM_MODEL=1 makes gen-api read types from $(CLIENT_MODEL) instead of
+# interpreting allOf/oneOf/anyOf in the spec (experimental; see
+# cmd/osgen/clientmodel/README.md for the remaining differences).
+GEN_FROM_MODEL ?=
+
+gen-client-model: fetch-opensearch-spec  ## Rebuild opensearch-client-model.json from the vendored spec (needs SPEC_REPO)
+	@printf "\033[2m-> Building %s from %s...\033[0m\n" "$(CLIENT_MODEL)" "$(OPENAPI_SPEC)"
+	cd $(SPEC_REPO) && npx ts-node tools/src/model/model.ts --label -i $(OPENAPI_SPEC) -o $(CLIENT_MODEL)
+
 clean-gen:  ## Remove all generated Go files (opensearchapi, plugins, internal/path)
 	@printf "\033[2m-> Removing generated files...\033[0m\n"
 	@rm -f $(GEN_PATH_DIR)/builders_gen.go $(GEN_PATH_DIR)/builders_gen_test.go
@@ -346,6 +360,7 @@ gen-api: fetch-opensearch-spec  ## Regenerate API consumer files only
 	@printf "\033[2m-> Regenerating API consumer files...\033[0m\n"
 	cd $(REPO_ROOT)/cmd/osgen && go run . api \
 		-spec $(OPENAPI_SPEC) \
+		$(if $(GEN_FROM_MODEL),-model $(CLIENT_MODEL)) \
 		-out $(GEN_OSAPI_DIR) \
 		-pkg opensearchapi \
 		-plugins-out $(GEN_PLUGINS_DIR) \
@@ -357,6 +372,7 @@ gen-api-update-rawlist: fetch-opensearch-spec  ## Regenerate API files and refre
 	@printf "\033[2m-> Regenerating API consumer files and json.RawMessage allowlist...\033[0m\n"
 	cd $(REPO_ROOT)/cmd/osgen && go run . api \
 		-spec $(OPENAPI_SPEC) \
+		$(if $(GEN_FROM_MODEL),-model $(CLIENT_MODEL)) \
 		-out $(GEN_OSAPI_DIR) \
 		-pkg opensearchapi \
 		-plugins-out $(GEN_PLUGINS_DIR) \

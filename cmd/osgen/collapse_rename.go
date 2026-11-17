@@ -87,6 +87,13 @@ func plannedRenames(spec *openapi3.T, registry *typeRegistry) []typeRename {
 		if !ok {
 			continue
 		}
+		// The target must be its own type. When the walk collapsed the target
+		// onto a further base this static pass doesn't see (a redeclaration the
+		// walker judged redundant), the type is that base's, which the alias
+		// would wrongly rename.
+		if typ.SchemaRef != target {
+			continue
+		}
 		// The alias must have collapsed onto this very type, not merely share a
 		// prefix: aliasRef points both refs at one *goType.
 		if aliasType, ok := registry.lookup(alias); !ok || aliasType != typ {
