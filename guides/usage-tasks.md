@@ -58,7 +58,7 @@ Next, create a source index with some test data:
 		Index: sourceIndex,
 		Body:  strings.NewReader(`{"title": "Test Document", "year": 2024}`),
 		Params: &opensearchapi.IndexParams{
-			Refresh: "true",
+			Refresh: opensearchapi.RefreshTrue,
 		},
 	})
 ```

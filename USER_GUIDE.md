@@ -133,7 +133,7 @@ func example() error {
 			ID:    docId,
 			Body:  opensearchutil.NewJSONReader(&document),
 			Params: &opensearchapi.IndexParams{
-				Refresh: "true",
+				Refresh: opensearchapi.RefreshTrue,
 			},
 		},
 	)
