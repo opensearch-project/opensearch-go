@@ -110,12 +110,12 @@ type ReindexParams struct {
 
 	// The number of slices this task should be divided into. Defaults to 1
 	// slice, meaning the task isn't sliced into subtasks.
-	Slices string
+	Slices Slices
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
 	// number of shards in the index (`number_of_replicas+1`).
-	WaitForActiveShards string
+	WaitForActiveShards WaitForActiveShards
 
 	// If `true`, the request blocks until the operation is complete.
 	//
@@ -155,11 +155,11 @@ func (r ReindexParams) get() map[string]string {
 	}
 
 	if r.Slices != "" {
-		set("slices", r.Slices)
+		set("slices", string(r.Slices))
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	if r.WaitForCompletion != nil {

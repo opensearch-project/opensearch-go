@@ -92,6 +92,59 @@ func parseParamEnum(
 	return parseEnumValues(typeName, schemaKey, schema, vr, deny, warnW, true)
 }
 
+// parseIntOrConstEnum recognizes the query-parameter shape "an integer or one of
+// a few keywords" (wait_for_active_shards: an integer or "all"; slices: an
+// integer or "auto") and returns the keyword consts. The schema is a oneOf with
+// exactly one integer branch and at least one const branch. A branch may nest
+// one oneOf level: an integer branch whose oneOf holds an integer beside a
+// numeric string pattern, a const branch whose oneOf holds consts and null.
+// Keywords go through parseEnumValues, so version filtering, identifier checks
+// and dedup match the other enum shapes. It reports ok=false for any other shape.
+func parseIntOrConstEnum(
+	typeName, schemaKey string,
+	schema *openapi3.Schema,
+	vr VersionRange,
+	deny set[string],
+	warnW io.Writer,
+) ([]constEnumValue, bool) {
+	if schema == nil {
+		return nil, false
+	}
+	var keywords openapi3.SchemaRefs
+	counts := 0
+	for _, ref := range schema.OneOf {
+		if ref == nil || ref.Value == nil {
+			return nil, false
+		}
+		s := ref.Value
+		switch {
+		case s.Type != nil && s.Type.Is(openapi3.TypeNull):
+		case s.Type != nil && s.Type.Is(openapi3.TypeInteger):
+			counts++
+		case len(s.OneOf) > 0 && hasIntegerBranch(s):
+			counts++
+		case len(s.OneOf) > 0:
+			keywords = append(keywords, s.OneOf...)
+		default:
+			keywords = append(keywords, ref)
+		}
+	}
+	if counts != 1 || len(keywords) == 0 {
+		return nil, false
+	}
+	return parseEnumValues(typeName, schemaKey, &openapi3.Schema{OneOf: keywords}, vr, deny, warnW, false)
+}
+
+// hasIntegerBranch reports whether any direct oneOf branch of s is an integer.
+func hasIntegerBranch(s *openapi3.Schema) bool {
+	for _, b := range s.OneOf {
+		if b != nil && b.Value != nil && b.Value.Type != nil && b.Value.Type.Is(openapi3.TypeInteger) {
+			return true
+		}
+	}
+	return false
+}
+
 // parseEnumValues implements parseConstOneOf and parseParamEnum; lenient selects
 // the extra query-parameter shapes described on parseParamEnum.
 func parseEnumValues(

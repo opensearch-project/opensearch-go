@@ -141,7 +141,7 @@ type UpdateParams struct {
 	// the operations. Set to 'all' or any positive integer up to the total
 	// number of shards in the index (number_of_replicas+1). Defaults to 1
 	// meaning the primary shard.
-	WaitForActiveShards string
+	WaitForActiveShards WaitForActiveShards
 }
 
 func (r UpdateParams) get() map[string]string {
@@ -196,7 +196,7 @@ func (r UpdateParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	return params

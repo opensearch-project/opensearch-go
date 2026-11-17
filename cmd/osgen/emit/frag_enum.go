@@ -155,9 +155,15 @@ type StringEnumFragment struct {
 	Types []*ir.Type
 }
 
-// Imports returns the imports the string-enum fragment needs: none. The type is
-// a plain string with const declarations and no methods.
+// Imports returns the imports the string-enum fragment needs: strconv when any
+// type emits a Count constructor, otherwise none (the type is a plain string
+// with const declarations).
 func (f *StringEnumFragment) Imports() []Import {
+	for _, t := range f.Types {
+		if t.HasCount {
+			return []Import{{Path: "strconv"}}
+		}
+	}
 	return nil
 }
 
@@ -204,4 +210,12 @@ const (
 	{{$m.ConstName}} {{$t.Name}} = "{{$m.Value}}"
 {{- end}}
 )
+{{- if $t.HasCount}}
+
+// {{$t.Name}}Count returns the {{$t.Name}} value that selects n, formatted as
+// the decimal integer the server expects.
+func {{$t.Name}}Count(n int) {{$t.Name}} {
+	return strconv.Itoa(n)
+}
+{{- end}}
 {{end}}`))

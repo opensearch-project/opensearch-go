@@ -243,6 +243,11 @@ type Type struct {
 	// defined type, so it stays interchangeable with plain string values.
 	IsAlias bool
 
+	// HasCount marks a TypeStringEnum for an integer-or-keyword query parameter:
+	// the emitted code also carries a <Name>Count(n int) constructor that formats
+	// the integer form of the value.
+	HasCount bool
+
 	// Discriminator, when non-nil, carries the OpenAPI `discriminator` the
 	// spec declares on the union's oneOf/anyOf. It is the strongest of the
 	// decode strategies and takes precedence over every other: the payload

@@ -280,6 +280,7 @@ func convertType(gt *goType) *ir.Type {
 		Comment:   gt.Comment,
 		Package:   gt.Pkg,
 		IsAlias:   gt.IsAlias,
+		HasCount:  gt.HasCount,
 	}
 
 	switch {
