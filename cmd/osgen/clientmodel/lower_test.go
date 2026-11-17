@@ -4,13 +4,17 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package clientmodel
+package clientmodel_test
 
 import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/clientmodel"
 )
+
+const schemaRefPrefix = "#/components/schemas/"
 
 const lowerModel = `{
   "format": "opensearch-client-model", "version": "0.2.0",
@@ -28,7 +32,9 @@ const lowerModel = `{
     "Container": {"type_kind": "object", "fields": {"meta": {"type": {"any": true}, "required": false}},
       "constraints": [{"union_kind": "container", "variants": {
         "avg": {"value": {"ref": "Doc"}, "extra_fields": {}, "extra_constraints": []},
-        "terms": {"value": {"ref": "Doc"}, "extra_fields": {"aggs": {"type": {"map": {"ref": "Container"}}, "required": false}}, "extra_constraints": []}}}]},
+        "terms": {"value": {"ref": "Doc"},
+          "extra_fields": {"aggs": {"type": {"map": {"ref": "Container"}}, "required": false}},
+          "extra_constraints": []}}}]},
     "Role": {"type_kind": "union", "union_kind": "scalar", "exclusive": true,
       "members": [{"enum": ["data"]}, {"enum": ["master"]}],
       "branch_versions": [null, {"deprecated": "2.0", "deprecation_message": "Use cluster_manager."}]},
@@ -42,7 +48,7 @@ const lowerModel = `{
 
 func lowered(t *testing.T) *openapi3.T {
 	t.Helper()
-	m, err := Parse([]byte(lowerModel))
+	m, err := clientmodel.Parse([]byte(lowerModel))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +61,7 @@ func lowered(t *testing.T) *openapi3.T {
 			Content: openapi3.Content{"application/json": {Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}}}},
 		}}},
 	}}
-	if err := Lower(spec, m); err != nil {
+	if err := clientmodel.Lower(spec, m); err != nil {
 		t.Fatal(err)
 	}
 	return spec
@@ -149,7 +155,7 @@ func TestLowerVendoredSpec(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := load(t)
-	if err := Lower(spec, m); err != nil {
+	if err := clientmodel.Lower(spec, m); err != nil {
 		t.Fatal(err)
 	}
 	for name := range m.Types {
