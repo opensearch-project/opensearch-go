@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"slices"
 	"strings"
@@ -186,6 +185,7 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 		want      failureCallback
 		wantErrIn string // substring of err; empty when err is nil
 		wantOnErr int    // OnUnhandledError calls
+		failMeta  bool   // the encoder fails the item's action line
 	}{
 		{
 			name:    "item rejected by the cluster",
@@ -238,12 +238,12 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 		{
 			name:    "document cannot be serialized",
 			outcome: outcomeOK,
-			// NaN cannot be serialized into the action metadata line. The
-			// failure is reported when the item is written, so no request is
+			// The failure is reported when the item is written, so no request is
 			// made for it and the flush has nothing to fail.
-			item:      BulkIndexerItem{Action: "index", DocumentID: "doc", WaitForActiveShards: math.NaN()},
+			item:      BulkIndexerItem{Action: "index", DocumentID: "doc"},
+			failMeta:  true,
 			want:      failureCallback{ID: "doc", HasErr: true},
-			wantErrIn: "json: unsupported value: NaN",
+			wantErrIn: errInjectedMeta.Error(),
 		},
 	}
 
@@ -264,6 +264,9 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 				Client:           client,
 				OnUnhandledError: func(_ context.Context, err error) { onErrors = append(onErrors, err.Error()) },
 			})
+			if tt.failMeta {
+				bi.(*bulkClient).encodeMeta = failMetaFor("doc")
+			}
 
 			item := tt.item
 			item.OnError = func(_ context.Context, item BulkIndexerItem, err *BulkError) {
@@ -423,6 +426,8 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 		name    string
 		outcome bulkOutcome
 		item    BulkIndexerItem
+		// failMeta makes the encoder fail the item's action line.
+		failMeta bool
 	}{
 		{
 			name:    "OnSuccess",
@@ -440,9 +445,10 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 			item:    BulkIndexerItem{Action: "index", DocumentID: "doc", Body: strings.NewReader(`{"a":1}`)},
 		},
 		{
-			name:    "OnError for an unserializable document",
-			outcome: outcomeOK,
-			item:    BulkIndexerItem{Action: "index", DocumentID: "doc", WaitForActiveShards: math.NaN()},
+			name:     "OnError for an unserializable document",
+			outcome:  outcomeOK,
+			item:     BulkIndexerItem{Action: "index", DocumentID: "doc"},
+			failMeta: true,
 		},
 	}
 
@@ -456,6 +462,9 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 				NumWorkers: 1,
 				Client:     client,
 			})
+			if tt.failMeta {
+				bi.(*bulkClient).encodeMeta = failMetaFor("doc")
+			}
 			sched := bi.(*bulkClient).sched
 
 			// Only the goroutine sending the buffer appends, and the test reads

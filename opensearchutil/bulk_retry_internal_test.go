@@ -12,7 +12,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
 	"strings"
 	"sync"
@@ -433,13 +432,12 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		policy := &recordingPolicy{decide: retryThrice}
 		seq := &bulkSequence{outcomes: []bulkOutcome{outcomeOK}}
 		client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
-		bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, RetryPolicy: policy})
+		bi := newFailingMetaBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, RetryPolicy: policy}, "a")
 
 		var failures []error
 		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-			Action:              "index",
-			DocumentID:          "a",
-			WaitForActiveShards: math.NaN(),
+			Action:     "index",
+			DocumentID: "a",
 			OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 				failures = append(failures, err)
 			},
@@ -448,7 +446,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 
 		require.Empty(t, policy.recorded())
 		require.Len(t, failures, 1)
-		require.ErrorContains(t, failures[0], "json: unsupported value: NaN")
+		require.ErrorContains(t, failures[0], errInjectedMeta.Error())
 		require.Empty(t, seq.requests())
 	})
 
