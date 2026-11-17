@@ -683,7 +683,9 @@ func (w *walker) resolveOpaqueString(schema *openapi3.Schema, group string) (str
 // pass) it accepts the wider parseParamEnum shapes instead, and registers the
 // type as a string alias (IsAlias) when the shape is not strict-parseable or
 // when forceAlias is set (list-param elements), so the param stays
-// assignable from and to plain string and []string. Returns ("", false) when
+// assignable from and to plain string and []string. The param pass also accepts
+// the integer-or-keyword shape (parseIntOrConstEnum), registering an alias whose
+// emitted code carries a Count constructor (HasCount). Returns ("", false) when
 // the schema is not an accepted enum (or is denied / version-filtered to
 // nothing), so the caller falls back to its normal handling.
 //
@@ -704,6 +706,11 @@ func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema
 		_, strictShape = parseConstOneOf(name, key, schema, w.vrange, stringEnumDenyList, nil)
 	}
 	members, ok := parse(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
+	hasCount := false
+	if !ok && w.paramPass {
+		members, ok = parseIntOrConstEnum(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
+		hasCount = ok
+	}
 	if !ok {
 		return "", false
 	}
@@ -719,6 +726,7 @@ func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema
 		IsShared:     true,
 		IsStringEnum: true,
 		IsAlias:      w.paramPass && (forceAlias || !strictShape),
+		HasCount:     hasCount,
 		EnumConsts:   members,
 		Comment:      schema.Description,
 	}

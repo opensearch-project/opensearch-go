@@ -87,7 +87,7 @@ type ClusterHealthParams struct {
 	Local *bool
 
 	// Default: 0.
-	WaitForActiveShards string
+	WaitForActiveShards WaitForActiveShards
 
 	WaitForEvents WaitForEvents
 
@@ -138,7 +138,7 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	if r.WaitForEvents != "" {

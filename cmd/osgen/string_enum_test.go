@@ -475,3 +475,135 @@ func TestTypeQueryParamEnums_GlobalFormatOrder(t *testing.T) {
 		require.Equal(t, keys, reg.order)
 	}
 }
+
+// integerBranch builds a {type: integer} oneOf branch.
+func integerBranch() *openapi3.SchemaRef {
+	return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeInteger}}}
+}
+
+// oneOfBranch wraps branches in a nested oneOf schema, the spelling of the
+// spec's StringifiedInteger, WaitForActiveShardOptions and SlicesCalculation.
+func oneOfBranch(branches ...*openapi3.SchemaRef) *openapi3.SchemaRef {
+	return &openapi3.SchemaRef{Value: &openapi3.Schema{OneOf: branches}}
+}
+
+// nullBranch builds a {type: null} oneOf branch.
+func nullBranch() *openapi3.SchemaRef {
+	return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeNull}}}
+}
+
+// stringPatternBranch builds the {type: string, pattern} branch next to an
+// integer inside StringifiedInteger.
+func stringPatternBranch() *openapi3.SchemaRef {
+	return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeString}, Pattern: `^[+-]?\d+$`}}
+}
+
+// TestParseIntOrConstEnum pins the int-or-keyword query-parameter shape: exactly
+// one integer branch (directly or inside a nested oneOf) beside at least one
+// const branch (directly or inside a nested oneOf, null skipped).
+func TestParseIntOrConstEnum(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		schema *openapi3.Schema
+		want   []string
+		wantOK bool
+	}{
+		{
+			name: "wait_for_active_shards shape",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				oneOfBranch(integerBranch(), stringPatternBranch()),
+				oneOfBranch(constBranch("all", "", nil), nullBranch()),
+			}},
+			want:   []string{"all"},
+			wantOK: true,
+		},
+		{
+			name: "slices shape",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				integerBranch(),
+				oneOfBranch(constBranch("auto", "", nil)),
+			}},
+			want:   []string{"auto"},
+			wantOK: true,
+		},
+		{
+			name: "no integer branch",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				oneOfBranch(constBranch("all", "", nil)),
+				constBranch("auto", "", nil),
+			}},
+		},
+		{
+			name: "no const branch",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				integerBranch(),
+				nullBranch(),
+			}},
+		},
+		{
+			name: "two integer branches",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				integerBranch(),
+				oneOfBranch(integerBranch(), stringPatternBranch()),
+				constBranch("auto", "", nil),
+			}},
+		},
+		{
+			name:   "no oneOf",
+			schema: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeInteger}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := parseIntOrConstEnum("X", "_common___X", tt.schema, VersionRange{}, nil, nil)
+			require.Equal(t, tt.wantOK, ok)
+			if tt.wantOK {
+				require.Equal(t, tt.want, constValueList(got))
+			} else {
+				require.Nil(t, got)
+			}
+		})
+	}
+}
+
+// TestTypeQueryParamEnums_IntOrConst pins that an int-or-keyword query param is
+// retyped to an alias that carries a Count constructor, and that the response
+// and body walks leave the same schema untyped.
+func TestTypeQueryParamEnums_IntOrConst(t *testing.T) {
+	t.Parallel()
+
+	schema := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		oneOfBranch(integerBranch(), stringPatternBranch()),
+		oneOfBranch(constBranch("all", "", nil), nullBranch()),
+	}}
+	spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		"_common___WaitForActiveShards": &openapi3.SchemaRef{Value: schema},
+	}}}
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	ops := []apiOperation{{
+		Group: "index",
+		QueryParams: []apiQueryParam{
+			{ParamName: "wait_for_active_shards", GoName: "WaitForActiveShards", GoType: "string", SchemaRef: "_common___WaitForActiveShards"},
+		},
+	}}
+
+	typeQueryParamEnums(ops, spec, reg, VersionRange{})
+
+	qp := ops[0].QueryParams[0]
+	require.Equal(t, "WaitForActiveShards", qp.GoType)
+	require.True(t, qp.IsStringEnum)
+	registered, ok := reg.lookup("_common___WaitForActiveShards")
+	require.True(t, ok)
+	require.True(t, registered.IsAlias)
+	require.True(t, registered.HasCount)
+	require.Equal(t, []string{"all"}, constValueList(registered.EnumConsts))
+
+	// A non-param walker does not type the schema.
+	other := newTypeRegistry(opensearchAPIPkgName)
+	w := &walker{registry: other, spec: spec, inFlight: make(set[string]), vrange: VersionRange{}}
+	_, typed := w.resolveStringEnumConst("_common___WaitForActiveShards", schema, "index")
+	require.False(t, typed)
+}

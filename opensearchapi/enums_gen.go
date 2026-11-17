@@ -11,6 +11,7 @@ package opensearchapi
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
@@ -743,6 +744,20 @@ const (
 	RefreshWaitFor Refresh = "wait_for"
 )
 
+// Waits until the specified number of shards is active before returning a response. Use `all` for all shards.
+type WaitForActiveShards = string
+
+const (
+	// WaitForActiveShardsAll. Wait for all shards to be active.
+	WaitForActiveShardsAll WaitForActiveShards = "all"
+)
+
+// WaitForActiveShardsCount returns the WaitForActiveShards value that selects n, formatted as
+// the decimal integer the server expects.
+func WaitForActiveShardsCount(n int) WaitForActiveShards {
+	return strconv.Itoa(n)
+}
+
 type ExpandWildcard = string
 
 const (
@@ -892,6 +907,20 @@ const (
 	// accurate.
 	SearchTypeQueryThenFetch SearchType = "query_then_fetch"
 )
+
+// The slice configuration used to parallelize a process.
+type Slices = string
+
+const (
+	// SlicesAuto. Automatically determine the number of slices.
+	SlicesAuto Slices = "auto"
+)
+
+// SlicesCount returns the Slices value that selects n, formatted as
+// the decimal integer the server expects.
+func SlicesCount(n int) Slices {
+	return strconv.Itoa(n)
+}
 
 // Specifies the level of detail of the returned information.
 type Level = string

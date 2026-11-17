@@ -109,7 +109,7 @@ type IndicesSplitParams struct {
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
 	// number of shards in the index (`number_of_replicas+1`).
-	WaitForActiveShards string
+	WaitForActiveShards WaitForActiveShards
 
 	// Should this request wait until the operation has completed before
 	// returning.
@@ -140,7 +140,7 @@ func (r IndicesSplitParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	if r.WaitForCompletion != nil {
