@@ -904,7 +904,9 @@ const (
 	ByteUnitP ByteUnit = "p"
 )
 
-// Specifies the time units, for example, `5d` or `7h`. For more information, see [Supported units](https://opensearch.org/docs/latest/api-reference/units/).
+// The unit used to display time values in cat and list responses. Each value is shown as a whole number of that unit, truncated. The value is case-sensitive.
+//
+// When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5m`.
 type TimeUnit string
 
 const (
@@ -1332,9 +1334,11 @@ const (
 	ListRespFormatSmile ListRespFormat = "smile"
 )
 
-// Response format selector for PPL plugin operations. The valid set is
-// the union of values accepted across `_plugins/_ppl/*` endpoints;
-// defaults and per-endpoint subsets mirror the SQL plugin.
+// Response format selector for PPL plugin operations. Query responses
+// use `jdbc` (default), `csv`, `raw` or `viz`; explain responses use
+// `json` (default) or `yaml`. `simple`, `standard`, `extended` and
+// `cost` are deprecated explain-mode spellings of the `mode`
+// parameter.
 //
 // The server default is "jdbc".
 type PPLRespFormat = string
@@ -1383,11 +1387,13 @@ const (
 	PPLRespFormatCost PPLRespFormat = "cost"
 )
 
-// Response format selector for SQL plugin operations. The valid set
-// is the union of values accepted across `_plugins/_sql/*` endpoints:
-// query responses use `jdbc` (default), `csv`, `raw`, or `viz`; explain
-// responses use `json`, `yaml`, `simple`, `standard`, `extended`, or
-// `cost`. Not every endpoint accepts every value.
+// Response format selector for SQL plugin operations. The SQL endpoints
+// check `format` on every request except a cursor continuation,
+// explain included, and accept only `jdbc` (default), `csv` and `raw`;
+// any other value fails with an unknown response format error. The
+// server also accepts `table`, but returns an empty body for it, so
+// it has no constant here. The remaining values are listed for
+// parity with the PPL format.
 //
 // The server default is "jdbc".
 type SQLRespFormat = string
