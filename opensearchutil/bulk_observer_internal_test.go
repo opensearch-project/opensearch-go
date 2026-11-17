@@ -11,7 +11,6 @@ package opensearchutil
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -83,6 +82,7 @@ func TestBulkIndexerObserver(t *testing.T) {
 		outcomes []bulkOutcome
 		policy   RetryPolicy
 		items    []BulkIndexerItem
+		failMeta bool // the encoder fails every action line
 		want     []string
 		wantStat [numErrorKinds]uint64
 	}{
@@ -138,7 +138,8 @@ func TestBulkIndexerObserver(t *testing.T) {
 		{
 			name:     "an item that cannot be serialized is never sent",
 			outcomes: []bulkOutcome{outcomeOK},
-			items:    []BulkIndexerItem{{DocumentID: "a", WaitForActiveShards: math.NaN()}},
+			items:    []BulkIndexerItem{{DocumentID: "a"}},
+			failMeta: true,
 			want: []string{
 				"item-failure scope=item a=0 kind=permanent id=a status=0 retry=false delay=0s err=true",
 				"done id=a attempts=0 failed=true status=0 err=true meta=<nil>",
@@ -159,6 +160,9 @@ func TestBulkIndexerObserver(t *testing.T) {
 				Observer:    log,
 				RetryPolicy: tt.policy,
 			})
+			if tt.failMeta {
+				bi.(*bulkClient).encodeMeta = failMetaFor("a")
+			}
 
 			for _, item := range tt.items {
 				item.Action = "index"

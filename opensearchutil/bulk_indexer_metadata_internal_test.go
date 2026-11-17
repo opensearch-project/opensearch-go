@@ -10,7 +10,6 @@ package opensearchutil
 
 import (
 	"context"
-	"math"
 	"strings"
 	"testing"
 	"time"
@@ -80,6 +79,9 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 				cfg.RetryPolicy = tt.policy
 			}
 			bi := newBulkIndexer(t, cfg)
+			if tt.unserializable {
+				bi.(*bulkClient).encodeMeta = failMetaFor("doc")
+			}
 
 			var succeeded, failed []any
 			item := BulkIndexerItem{
@@ -94,10 +96,6 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 					failed = append(failed, item.Metadata)
 				},
 			}
-			if tt.unserializable {
-				item.WaitForActiveShards = math.NaN()
-			}
-
 			require.NoError(t, bi.Add(t.Context(), item))
 			require.NoError(t, bi.Close(t.Context()))
 

@@ -35,7 +35,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"os"
 	"reflect"
@@ -113,6 +112,8 @@ func TestWriteMeta(t *testing.T) {
 		args    args
 		want    string
 		wantErr error
+		// encodeMeta is the bulkClient's encodeMeta hook.
+		encodeMeta func(*BulkIndexerItem) ([]byte, error)
 	}{
 		{
 			name: "without _index and _id",
@@ -186,7 +187,7 @@ func TestWriteMeta(t *testing.T) {
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
 		},
 		{
-			name: "wait_for_active_shards",
+			name: "wait_for_active_shards is not written",
 			args: args{BulkIndexerItem{
 				Action:              "index",
 				DocumentID:          "42",
@@ -195,21 +196,7 @@ func TestWriteMeta(t *testing.T) {
 				VersionType:         new("external"),
 				WaitForActiveShards: 1,
 			}},
-			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,`+
-				`"version_type":"external","wait_for_active_shards":1}}`, testIndex) + "\n",
-		},
-		{
-			name: "wait_for_active_shards, all",
-			args: args{BulkIndexerItem{
-				Action:              "index",
-				DocumentID:          "42",
-				Index:               testIndex,
-				Version:             new(int64(25)),
-				VersionType:         new("external"),
-				WaitForActiveShards: "all",
-			}},
-			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,`+
-				`"version_type":"external","wait_for_active_shards":"all"}}`, testIndex) + "\n",
+			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
 		},
 		{
 			name: "with retry_on_conflict",
@@ -242,13 +229,13 @@ func TestWriteMeta(t *testing.T) {
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"foo&bar"}}`, testIndex) + "\n",
 		},
 		{
-			name: "encode error from unsupported value",
+			name: "encode error",
 			args: args{BulkIndexerItem{
-				Action:              "index",
-				DocumentID:          "1",
-				WaitForActiveShards: math.NaN(),
+				Action:     "index",
+				DocumentID: "1",
 			}},
-			wantErr: &json.UnsupportedValueError{},
+			encodeMeta: failMetaFor("1"),
+			wantErr:    errInjectedMeta,
 		},
 	}
 	for _, tt := range tests {
@@ -256,6 +243,7 @@ func TestWriteMeta(t *testing.T) {
 			bi := &bulkClient{
 				metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 				metaPool:         sync.Pool{New: newMetaEncoder},
+				encodeMeta:       tt.encodeMeta,
 			}
 			w := &worker{
 				bi:  bi,
@@ -263,11 +251,8 @@ func TestWriteMeta(t *testing.T) {
 			}
 			err := w.writeMeta(tt.args.item)
 			if tt.wantErr != nil {
-				// The only error case expects a *json.UnsupportedValueError;
-				// match the concrete type via a typed target so ErrorAs does
-				// not receive a *error.
-				var target *json.UnsupportedValueError
-				require.ErrorAs(t, err, &target)
+				require.ErrorIs(t, err, tt.wantErr)
+				require.Equal(t, 0, w.buf.Len())
 				return
 			}
 			require.NoError(t, err)
@@ -693,6 +678,33 @@ func newBulkIndexer(t *testing.T, cfg BulkIndexerConfig) BulkIndexer {
 	return bi
 }
 
+// errInjectedMeta is the failure failMeta reports.
+var errInjectedMeta = errors.New("injected metadata encoding failure")
+
+// failMetaFor is a bulkClient.encodeMeta that fails for the item with the document ID id
+// and succeeds, with an empty line, for any other. No item field makes the real
+// encoder fail, so the write path's error handling is reached through it.
+func failMetaFor(id string) func(*BulkIndexerItem) ([]byte, error) {
+	return func(item *BulkIndexerItem) ([]byte, error) {
+		if item.DocumentID == id {
+			return nil, errInjectedMeta
+		}
+
+		return nil, nil
+	}
+}
+
+// newFailingMetaBulkIndexer is newBulkIndexer with the metadata of the item with
+// document ID id failing to encode.
+func newFailingMetaBulkIndexer(t *testing.T, cfg BulkIndexerConfig, id string) BulkIndexer {
+	t.Helper()
+
+	bi := newBulkIndexer(t, cfg)
+	bi.(*bulkClient).encodeMeta = failMetaFor(id)
+
+	return bi
+}
+
 // testItemCallback is what one item's OnSuccess or OnError callback reported. A
 // rejection the cluster made carries a status, and an error type when the
 // response item named one; a rejection the bulk client made while writing the
@@ -1045,13 +1057,13 @@ func TestBulkIndexerOnErrorDetail(t *testing.T) {
 			// body failed to read, so the drain on Close ships that line alone.
 			bulkResp: `{"items":[]}`,
 			items: []BulkIndexerItem{
-				// NaN cannot be serialized into the action metadata line.
-				{Action: "index", DocumentID: "meta-fail", WaitForActiveShards: math.NaN()},
+				// The injected encoder fails this item's action line.
+				{Action: "index", DocumentID: "meta-fail"},
 				{Action: "index", DocumentID: "body-fail", Body: &failingBody{}},
 			},
 			// No response item exists for either, so neither carries a status.
 			want: []testItemCallback{
-				{ID: "meta-fail", Err: "json: unsupported value: NaN"},
+				{ID: "meta-fail", Err: errInjectedMeta.Error()},
 				{ID: "body-fail", Err: "body read failed"},
 			},
 		},
@@ -1062,10 +1074,10 @@ func TestBulkIndexerOnErrorDetail(t *testing.T) {
 			t.Parallel()
 
 			client := newBulkTestClient(t, respondWith(tt.bulkResp))
-			bi := newBulkIndexer(t, BulkIndexerConfig{
+			bi := newFailingMetaBulkIndexer(t, BulkIndexerConfig{
 				NumWorkers: 1,
 				Client:     client,
-			})
+			}, "meta-fail")
 
 			// A slice rather than a map keyed by ID, so a second callback for one
 			// item shows up as an extra element instead of overwriting the first.
@@ -1112,10 +1124,10 @@ func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
 	}{
 		{
 			name: "unserializable metadata is not reported to OnUnhandledError",
-			// NaN cannot be serialized into the action metadata line.
-			item:         BulkIndexerItem{Action: "index", DocumentID: "meta-fail", WaitForActiveShards: math.NaN()},
+			// The injected encoder fails this item's action line.
+			item:         BulkIndexerItem{Action: "index", DocumentID: "meta-fail"},
 			wantOnErrors: nil,
-			wantOnError:  testItemCallback{ID: "meta-fail", Err: "json: unsupported value: NaN"},
+			wantOnError:  testItemCallback{ID: "meta-fail", Err: errInjectedMeta.Error()},
 		},
 		{
 			name:         "unreadable body is reported to OnUnhandledError",
@@ -1135,13 +1147,13 @@ func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
 				onErrorErrs []string
 				rejected    []testItemCallback
 			)
-			bi := newBulkIndexer(t, BulkIndexerConfig{
+			bi := newFailingMetaBulkIndexer(t, BulkIndexerConfig{
 				NumWorkers: 1,
 				Client:     client,
 				OnUnhandledError: func(_ context.Context, err error) {
 					onErrorErrs = append(onErrorErrs, err.Error())
 				},
-			})
+			}, "meta-fail")
 
 			item := tt.item
 			item.OnError = func(_ context.Context, item BulkIndexerItem, err *BulkError) {
@@ -2070,8 +2082,7 @@ func referenceMeta(t *testing.T, item BulkIndexerItem) string {
 	meta := bulkActionMetadata{
 		Index: item.Index, DocumentID: item.DocumentID, Version: item.Version, VersionType: item.VersionType,
 		Routing: item.Routing, IfPrimaryTerm: item.IfPrimaryTerm, IfSeqNum: item.IfSeqNum,
-		WaitForActiveShards: item.WaitForActiveShards, Refresh: item.Refresh, RequireAlias: item.RequireAlias,
-		RetryOnConflict: item.RetryOnConflict,
+		RequireAlias: item.RequireAlias, RetryOnConflict: item.RetryOnConflict,
 	}
 	if meta.DocumentID == "" {
 		meta.Version, meta.VersionType = nil, nil
@@ -2096,7 +2107,7 @@ func TestMetaEncoderReuse(t *testing.T) {
 	version := int64(3)
 	versionType := "external"
 	seqNo, primaryTerm := int64(7), int64(2)
-	refresh, requireAlias, retries := "wait_for", true, 4
+	requireAlias, retries := true, 4
 
 	tests := []struct {
 		name string
@@ -2104,8 +2115,8 @@ func TestMetaEncoderReuse(t *testing.T) {
 	}{
 		{name: "an index with every field", item: BulkIndexerItem{
 			Action: "index", Index: "i", DocumentID: "d", Routing: &routing, Version: &version, VersionType: &versionType,
-			IfSeqNum: &seqNo, IfPrimaryTerm: &primaryTerm, Refresh: &refresh, RequireAlias: &requireAlias,
-			RetryOnConflict: &retries, WaitForActiveShards: "all",
+			IfSeqNum: &seqNo, IfPrimaryTerm: &primaryTerm, RequireAlias: &requireAlias,
+			RetryOnConflict: &retries,
 		}},
 		{name: "a bare delete after a full index", item: BulkIndexerItem{Action: "delete", DocumentID: "x"}},
 		{name: "a create with no fields at all", item: BulkIndexerItem{Action: "create"}},
@@ -2119,7 +2130,7 @@ func TestMetaEncoderReuse(t *testing.T) {
 		// Each of the four actions with a field the fast path leaves to the encoder.
 		{name: "an index the encoder writes", item: BulkIndexerItem{Action: "index", DocumentID: "é"}},
 		{name: "a create the encoder writes", item: BulkIndexerItem{Action: "create", DocumentID: "a\"b"}},
-		{name: "an update the encoder writes", item: BulkIndexerItem{Action: "update", WaitForActiveShards: 2}},
+		{name: "an update the encoder writes", item: BulkIndexerItem{Action: "update", Index: "i\u2028"}},
 		{name: "a delete the encoder writes", item: BulkIndexerItem{Action: "delete", Routing: new("r\\1")}},
 		{name: "an index again, after the others", item: BulkIndexerItem{Action: "index", Index: "i2", DocumentID: "d2"}},
 	}
@@ -2135,26 +2146,13 @@ func TestMetaEncoderReuse(t *testing.T) {
 	}
 }
 
-func TestMetaEncoderFailure(t *testing.T) {
-	t.Parallel()
-
-	e := newMetaEncoder().(*metaEncoder)
-
-	for _, action := range []string{"index", "custom"} {
-		_, err := e.encode(&BulkIndexerItem{Action: action, DocumentID: "1", WaitForActiveShards: math.NaN()})
-
-		var target *json.UnsupportedValueError
-		require.ErrorAs(t, err, &target, action)
-	}
-}
-
 // TestAppendActionLine checks which action lines appendActionLine writes itself and
 // which it leaves to the encoder, and that each line it writes is the encoder's,
 // byte for byte.
 func TestAppendActionLine(t *testing.T) {
 	t.Parallel()
 
-	routing, versionType, refresh := "r-1", "external", "wait_for"
+	routing, versionType := "r-1", "external"
 	version, seqNo, primaryTerm := int64(-3), int64(7), int64(2)
 	requireAlias, retries := false, 4
 
@@ -2165,7 +2163,7 @@ func TestAppendActionLine(t *testing.T) {
 	}{
 		{name: "an index with every field it writes", item: BulkIndexerItem{
 			Action: "index", Index: "i", DocumentID: "d", Routing: &routing, Version: &version, VersionType: &versionType,
-			IfSeqNum: &seqNo, IfPrimaryTerm: &primaryTerm, Refresh: &refresh, RequireAlias: &requireAlias,
+			IfSeqNum: &seqNo, IfPrimaryTerm: &primaryTerm, RequireAlias: &requireAlias,
 			RetryOnConflict: &retries,
 		}, wantOK: true},
 		{name: "a bare delete", item: BulkIndexerItem{Action: "delete", DocumentID: "x"}, wantOK: true},
@@ -2174,11 +2172,10 @@ func TestAppendActionLine(t *testing.T) {
 		{name: "characters HTML escaping would change", item: BulkIndexerItem{Action: "index", DocumentID: "a<b>&c"}, wantOK: true},
 		{name: "an action the bulk API does not have", item: BulkIndexerItem{Action: "custom", DocumentID: "1"}, wantOK: true},
 		{name: "an empty action", item: BulkIndexerItem{DocumentID: "1"}, wantOK: true},
-		{name: "wait_for_active_shards is left to the encoder", item: BulkIndexerItem{Action: "index", WaitForActiveShards: "all"}},
 		{name: "a quote in the id", item: BulkIndexerItem{Action: "index", DocumentID: `a"b`}},
 		{name: "a backslash in the index", item: BulkIndexerItem{Action: "index", Index: `i\`}},
 		{name: "a newline in the routing", item: BulkIndexerItem{Action: "index", Routing: new("r\n")}},
-		{name: "non-ASCII in the refresh", item: BulkIndexerItem{Action: "index", Refresh: new("é")}},
+		{name: "non-ASCII in the routing", item: BulkIndexerItem{Action: "index", Routing: new("é")}},
 		{name: "invalid UTF-8 in the version type", item: BulkIndexerItem{Action: "index", DocumentID: "d", VersionType: new("\xff")}},
 		{name: "an action name that needs escaping", item: BulkIndexerItem{Action: "in\"dex", DocumentID: "1"}},
 	}
@@ -2189,8 +2186,7 @@ func TestAppendActionLine(t *testing.T) {
 			meta := bulkActionMetadata{
 				Index: tt.item.Index, DocumentID: tt.item.DocumentID, Version: tt.item.Version, VersionType: tt.item.VersionType,
 				Routing: tt.item.Routing, IfPrimaryTerm: tt.item.IfPrimaryTerm, IfSeqNum: tt.item.IfSeqNum,
-				WaitForActiveShards: tt.item.WaitForActiveShards, Refresh: tt.item.Refresh, RequireAlias: tt.item.RequireAlias,
-				RetryOnConflict: tt.item.RetryOnConflict,
+				RequireAlias: tt.item.RequireAlias, RetryOnConflict: tt.item.RetryOnConflict,
 			}
 			prefix := []byte("prior\n")
 			got, ok := appendActionLine(prefix, tt.item.Action, &meta)
@@ -2215,8 +2211,7 @@ func TestAppendActionLineKnowsEveryField(t *testing.T) {
 	}
 	require.Equal(t, []string{
 		"_index,omitempty", "_id,omitempty", "routing,omitempty", "version,omitempty", "version_type,omitempty",
-		"if_seq_no,omitempty", "if_primary_term,omitempty", "wait_for_active_shards,omitempty", "refresh,omitempty",
-		"require_alias,omitempty", "retry_on_conflict,omitempty",
+		"if_seq_no,omitempty", "if_primary_term,omitempty", "require_alias,omitempty", "retry_on_conflict,omitempty",
 	}, tags, "update appendActionLine to write the new field, then this list")
 }
 
