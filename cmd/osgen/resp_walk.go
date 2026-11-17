@@ -42,7 +42,7 @@ type walker struct {
 	excSeen        map[string]bool // dedupe key: qualified field name
 
 	// paramPass is set by the query-param enum pass. It widens enum detection to
-	// the shapes only query params accept (see parseParamEnum) and registers the
+	// the shapes only query params accept (see enumShapeParam) and registers the
 	// resulting types as string aliases, so a param typed with one stays
 	// assignable from and to plain string and []string.
 	paramPass bool
@@ -85,7 +85,7 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 		return schemaTypeName(key, false)
 	}
 
-	if name, ok := w.resolveStringEnumConst(key, ref.Value, group); ok {
+	if name, ok := w.resolveStringEnumConst(key, ref.Value, group, false); ok {
 		return name
 	}
 
@@ -675,43 +675,34 @@ func (w *walker) resolveOpaqueString(schema *openapi3.Schema, group string) (str
 	return "", false
 }
 
-// resolveStringEnumConstAlias registers a shared, string-backed enum type named
-// after the schema key and returns its Go name. By default it accepts the strict
-// const-oneOf shape (parseConstOneOf): every oneOf/anyOf branch is a
-// {type: string, const: X} entry (e.g. _common___NodeRole), and the registered
-// type is a defined string type. When walker.paramPass is set (the query-param
-// pass) it accepts the wider parseParamEnum shapes instead, and registers the
-// type as a string alias (IsAlias) when the shape is not strict-parseable or
-// when forceAlias is set (list-param elements), so the param stays
-// assignable from and to plain string and []string. The param pass also accepts
-// the integer-or-keyword shape (parseIntOrConstEnum), registering an alias whose
-// emitted code carries a Count constructor (HasCount). Returns ("", false) when
-// the schema is not an accepted enum (or is denied / version-filtered to
-// nothing), so the caller falls back to its normal handling.
+// resolveStringEnumConst registers a shared, string-backed enum type named after
+// the schema key and returns its Go name. Outside the query-param pass it
+// accepts only enumShapeConst and registers a defined string type. In the
+// query-param pass (walker.paramPass) it accepts every shape enumParser.paramEnum
+// does, and registers a string alias for any shape wider than enumShapeConst, so
+// the param stays assignable from and to plain string; enumShapeIntOrConst also
+// gets a Count constructor (HasCount). forceAlias registers an alias even for
+// enumShapeConst, for list-param elements that must accept a plain []string.
+// Returns ("", false) when the schema is not an accepted enum (or is denied /
+// version-filtered to nothing), so the caller falls back to its normal handling.
 //
 // The generated type is PERMISSIVE: backed by string, it round-trips unknown
 // values (a newer server's role, a not-yet-listed value) rather than erroring.
 // Its consts give discoverability; only defined (non-alias) types also give
 // compile-time typo/drift detection, since an alias accepts any string. This
 // differs from resolveStringEnum's closed int-backed enum, which rejects
-// unknown wire values. Detection is default-on via parseConstOneOf; see
-// string_enum.go. forceAlias registers the type as an alias even when the shape
-// is strict-parseable (list-param elements).
-func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema, group string, forceAlias bool) (string, bool) {
+// unknown wire values.
+func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string, forceAlias bool) (string, bool) {
 	name := schemaTypeName(key, false)
-	parse := parseConstOneOf
-	strictShape := true
+	p := enumParser{vr: w.vrange, deny: stringEnumDenyList, warnW: os.Stderr}
+	var members []constEnumValue
+	shape := enumShapeNone
 	if w.paramPass {
-		parse = parseParamEnum
-		_, strictShape = parseConstOneOf(name, key, schema, w.vrange, stringEnumDenyList, nil)
+		members, shape = p.paramEnum(name, key, schema)
+	} else if values, ok := p.constOneOf(name, key, schema); ok {
+		members, shape = values, enumShapeConst
 	}
-	members, ok := parse(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
-	hasCount := false
-	if !ok && w.paramPass {
-		members, ok = parseIntOrConstEnum(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
-		hasCount = ok
-	}
-	if !ok {
+	if shape == enumShapeNone {
 		return "", false
 	}
 
@@ -727,8 +718,8 @@ func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema
 		Default:      defaultValue,
 		IsShared:     true,
 		IsStringEnum: true,
-		IsAlias:      w.paramPass && (forceAlias || !strictShape),
-		HasCount:     hasCount,
+		IsAlias:      w.paramPass && (forceAlias || shape != enumShapeConst),
+		HasCount:     shape == enumShapeIntOrConst,
 		EnumConsts:   members,
 		Comment:      schema.Description,
 	}
@@ -738,11 +729,6 @@ func (w *walker) resolveStringEnumConstAlias(key string, schema *openapi3.Schema
 	// Name collided with an existing type; fall back to plain string rather than
 	// dropping to json.RawMessage.
 	return "", false
-}
-
-// resolveStringEnumConst is resolveStringEnumConstAlias without forced aliasing.
-func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string) (string, bool) {
-	return w.resolveStringEnumConstAlias(key, schema, group, false)
 }
 
 // enumStringValues converts a schema's enum constraint to a string slice,
