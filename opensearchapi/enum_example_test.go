@@ -98,7 +98,8 @@ func ExampleSearchParams_durationUnbounded() {
 	// Output: scroll=-1
 }
 
-// CatRespFormatJSON asks a cat API for a JSON response.
+// CatRespFormat selects a cat API's response format; CatRespFormatJSON asks for
+// JSON.
 func ExampleCatRespFormat() {
 	req, err := opensearchapi.CatIndicesReq{
 		Params: &opensearchapi.CatIndicesParams{

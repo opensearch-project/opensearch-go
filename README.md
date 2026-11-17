@@ -118,6 +118,8 @@ func main() {
 }
 ```
 
+Enum-valued parameters such as `Refresh` take typed constants; see [`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) for what each value does.
+
 Next steps:
 
 - [Security](guides/config-security.md) - TLS, certificate verification, and authentication. The example above uses a plaintext-friendly local setup; read this before connecting to a real cluster.
