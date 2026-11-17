@@ -79,6 +79,8 @@ type IndicesExistsParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// If `true`, returns settings in flat format.

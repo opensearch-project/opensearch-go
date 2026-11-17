@@ -75,9 +75,13 @@ type ClusterHealthParams struct {
 	AwarenessAttribute string
 
 	// Default: open.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// Default: cluster.
+	//
+	// See [ClusterHealthLevel] for valid values.
 	Level ClusterHealthLevel
 
 	// Whether to return information from the local node only instead of from
@@ -87,8 +91,11 @@ type ClusterHealthParams struct {
 	Local *bool
 
 	// Default: 0.
+	//
+	// See [WaitForActiveShards] for valid values.
 	WaitForActiveShards WaitForActiveShards
 
+	// See [WaitForEvents] for valid values.
 	WaitForEvents WaitForEvents
 
 	// Whether to wait until there are no initializing shards in the cluster.
@@ -107,6 +114,8 @@ type ClusterHealthParams struct {
 	WaitForNodes string
 
 	// Waits until the cluster health reaches the specified status or better.
+	//
+	// See [HealthStatus] for valid values.
 	WaitForStatus HealthStatus
 }
 
@@ -230,6 +239,9 @@ type ClusterHealthResp struct {
 	// RelocatingShards is the number of shards that are under relocation.
 	RelocatingShards int `json:"relocating_shards"`
 
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
 	Status string `json:"status"`
 
 	// TaskMaxWaitingInQueue is a duration. Units can be `nanos`, `micros`,
@@ -284,18 +296,28 @@ type ClusterHealthIndexStats struct {
 	NumberOfShards      int                                `json:"number_of_shards"`
 	RelocatingShards    int                                `json:"relocating_shards"`
 	Shards              map[string]ClusterHealthShardStats `json:"shards,omitempty"`
-	Status              string                             `json:"status"`
-	UnassignedShards    int                                `json:"unassigned_shards"`
+
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
+	Status string `json:"status"`
+
+	UnassignedShards int `json:"unassigned_shards"`
 }
 
 // ClusterHealthShardStats is a typed component of the cluster.health operation.
 type ClusterHealthShardStats struct {
-	ActiveShards       int    `json:"active_shards"`
-	InitializingShards int    `json:"initializing_shards"`
-	PrimaryActive      bool   `json:"primary_active"`
-	RelocatingShards   int    `json:"relocating_shards"`
-	Status             string `json:"status"`
-	UnassignedShards   int    `json:"unassigned_shards"`
+	ActiveShards       int  `json:"active_shards"`
+	InitializingShards int  `json:"initializing_shards"`
+	PrimaryActive      bool `json:"primary_active"`
+	RelocatingShards   int  `json:"relocating_shards"`
+
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
+	Status string `json:"status"`
+
+	UnassignedShards int `json:"unassigned_shards"`
 }
 
 // Health returns basic information about the health of the cluster.

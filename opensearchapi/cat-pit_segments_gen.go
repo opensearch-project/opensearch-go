@@ -91,6 +91,8 @@ type CatPITSegmentsParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 }
 

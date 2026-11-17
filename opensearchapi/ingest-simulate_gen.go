@@ -174,6 +174,9 @@ type IngestSimulateDocumentSimulation struct {
 	// parse strings to the target type.
 	Version *StringifiedVersionNumber `json:"_version,omitempty"`
 
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"_version_type,omitempty"`
 }
 

@@ -248,6 +248,14 @@ type Type struct {
 	// the integer form of the value.
 	HasCount bool
 
+	// ParamNames lists the query parameter wire names whose value type is this
+	// TypeStringEnum, sorted and deduplicated. The enum doc names them when the
+	// spec supplies no description.
+	ParamNames []string
+
+	// Default is the schema's default wire value for a TypeStringEnum, or "".
+	Default string
+
 	// Discriminator, when non-nil, carries the OpenAPI `discriminator` the
 	// spec declares on the union's oneOf/anyOf. It is the strongest of the
 	// decode strategies and takes precedence over every other: the payload

@@ -92,6 +92,8 @@ type ExistsSourceParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
+	//
+	// See [Refresh] for valid values.
 	Refresh Refresh
 
 	// Target the specified primary shard.
@@ -103,6 +105,8 @@ type ExistsSourceParams struct {
 	Version *int
 
 	// The specific version type: `external`, `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 

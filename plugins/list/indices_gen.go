@@ -75,13 +75,19 @@ type IndicesParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The unit used to display byte values.
+	//
+	// See [opensearchapi.ByteUnit] for valid values.
 	Bytes opensearchapi.ByteUnit
 
 	// The type of index that wildcard patterns can match.
+	//
+	// See [opensearchapi.ExpandWildcard] for valid values.
 	ExpandWildcards []opensearchapi.ExpandWildcard
 
 	// The health status used to limit returned indexes. By default, the
 	// response includes indexes of any health status.
+	//
+	// See [opensearchapi.HealthStatus] for valid values.
 	Health opensearchapi.HealthStatus
 
 	// If `true`, the response includes information from segments that are not
@@ -110,9 +116,13 @@ type IndicesParams struct {
 	// Defines order in which indexes will be displayed. Accepted values are
 	// `asc` and `desc`. If `desc`, most recently created indexes would be
 	// displayed first.
+	//
+	// See [opensearchapi.SortOrder] for valid values.
 	Sort opensearchapi.SortOrder
 
 	// The unit used to display time values.
+	//
+	// See [opensearchapi.TimeUnit] for valid values.
 	Time opensearchapi.TimeUnit
 }
 

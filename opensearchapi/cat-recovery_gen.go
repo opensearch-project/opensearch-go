@@ -81,6 +81,8 @@ type CatRecoveryParams struct {
 	ActiveOnly *bool
 
 	// The units used to display byte values.
+	//
+	// See [ByteUnit] for valid values.
 	Bytes ByteUnit
 
 	// When `true`, includes detailed information about shard recoveries.
@@ -96,6 +98,8 @@ type CatRecoveryParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 }
 

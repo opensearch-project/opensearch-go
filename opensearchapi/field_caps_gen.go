@@ -103,6 +103,8 @@ type FieldCapsParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// A comma-separated list of fields to retrieve capabilities for. Wildcard

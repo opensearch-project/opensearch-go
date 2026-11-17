@@ -111,6 +111,8 @@ type CountParams struct {
 	// The default operator for query string query: `AND` or `OR`. This
 	// parameter can only be used when the `q` query string parameter is
 	// specified.
+	//
+	// See [CommonQueryDSLOperator] for valid values.
 	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
@@ -118,6 +120,7 @@ type CountParams struct {
 	// parameter is specified.
 	Df string
 
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// If `true`, concrete, expanded or aliased indexes are ignored when

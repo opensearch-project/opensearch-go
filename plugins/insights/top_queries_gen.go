@@ -62,6 +62,8 @@ type TopQueriesParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Get top n queries by a specific metric.
+	//
+	// See [opensearchapi.InsightsMetricType] for valid values.
 	Type opensearchapi.InsightsMetricType
 }
 

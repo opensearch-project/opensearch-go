@@ -79,6 +79,8 @@ type GetPoliciesParams struct {
 	// The order to sort the snapshot management policies.
 	//
 	// Default: asc.
+	//
+	// See [opensearchapi.SortOrder] for valid values.
 	SortOrder opensearchapi.SortOrder
 }
 

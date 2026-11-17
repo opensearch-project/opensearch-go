@@ -70,6 +70,8 @@ type GetFindingsParams struct {
 	// the detector’s rule. Optional.
 	//
 	// Default: rule.
+	//
+	// See [opensearchapi.SecurityAnalyticsFindingsDetectionType] for valid values.
 	DetectionType opensearchapi.SecurityAnalyticsFindingsDetectionType
 
 	// The type of detector used to fetch alerts. Optional when the
@@ -100,6 +102,8 @@ type GetFindingsParams struct {
 
 	// The rule severity for which retrieve findings. Severity can be
 	// `critical`, `high`, `medium`, or `low`. Optional.
+	//
+	// See [opensearchapi.SecurityAnalyticsFindingsRuleSeverity] for valid values.
 	Severity opensearchapi.SecurityAnalyticsFindingsRuleSeverity
 
 	// The maximum number of results returned in the response. Optional.
@@ -111,6 +115,8 @@ type GetFindingsParams struct {
 	// or `desc`. Optional.
 	//
 	// Default: asc.
+	//
+	// See [opensearchapi.SortOrder] for valid values.
 	SortOrder opensearchapi.SortOrder
 
 	// The string used by the Alerting plugin to sort the findings. Optional.

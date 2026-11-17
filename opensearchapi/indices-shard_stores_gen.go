@@ -81,6 +81,8 @@ type IndicesShardStoresParams struct {
 	// expressions match hidden data streams.
 	//
 	// Default: open.
+	//
+	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
 	// If `true`, missing or closed indexes are not included in the response.

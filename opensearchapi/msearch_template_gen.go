@@ -103,6 +103,8 @@ type MSearchTemplateParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// If `true`, the response prefixes aggregation and suggester names with

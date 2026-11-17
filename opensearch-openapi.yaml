@@ -39267,6 +39267,10 @@ components:
       format: int64
       description: The size in bytes.
     _common___ByteUnit:
+      description: |-
+        The unit used to display byte values in cat and list responses. Units are binary multiples (1 kb is 1024 bytes), and values are truncated to whole numbers. The value is case-sensitive.
+
+        When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5gb`.
       oneOf:
         - title: bytes
           type: string
@@ -39337,13 +39341,17 @@ components:
       required:
         - size_in_bytes
     _common___Conflicts:
+      description: |-
+        Controls what a reindex, update by query, or delete by query operation does when a document fails with a version conflict. Defaults to `abort`.
       oneOf:
         - type: string
           const: abort
-          description: Abort the operation on version conflicts.
+          description: |-
+            Stops the operation and reports the conflicts in `failures`. This is the default.
         - type: string
           const: proceed
-          description: Proceed with the operation on version conflicts.
+          description: |-
+            Skips conflicting documents and continues. The number of skipped documents is reported in `version_conflicts`.
     _common___CoordsGeoBounds:
       type: object
       description: The geographical bounds specified using coordinate values.
@@ -39671,22 +39679,27 @@ components:
         - error
         - status
     _common___ExpandWildcard:
+      description: |-
+        The kind of index that a wildcard expression in an index name can expand to. Values are case-sensitive and can be combined; the server applies them in order, so `none` clears any value listed before it.
       oneOf:
         - type: string
           const: all
-          description: Match any index, including hidden ones.
+          description: Expands wildcards to open, closed, and hidden indexes. Equivalent to `open,closed,hidden`.
         - type: string
           const: closed
-          description: Match closed, non-hidden indexes.
+          description: Expands wildcards to closed, non-hidden indexes.
         - type: string
           const: hidden
-          description: Match hidden indexes. Must be combined with `open`, `closed`, or both.
+          description: |-
+            Also expands wildcards to hidden indexes. It has no effect on its own and must be combined with `open`, `closed`, or both.
+
+            A wildcard expression that starts with `.` matches hidden indexes whose names start with `.` even without this value.
         - type: string
           const: none
-          description: Wildcard expressions are not accepted.
+          description: Does not expand wildcards. Wildcard expressions are passed through unresolved instead of matching indexes.
         - type: string
           const: open
-          description: Match open, non-hidden indexes.
+          description: Expands wildcards to open, non-hidden indexes.
     _common___ExpandWildcards:
       description: Specifies the type of index that wildcard expressions can match. Supports comma-separated values.
       oneOf:
@@ -39996,6 +40009,8 @@ components:
         - time_in_millis
         - total
     _common___HealthStatus:
+      description: |-
+        The health of a shard, an index, or the cluster. An index reports the worst status of its shards, and the cluster reports the worst status of its indexes. Values are not case-sensitive.
       oneOf:
         - description: All shards are assigned.
           type: string
@@ -40237,7 +40252,8 @@ components:
         - lat
         - lon
     _common___Level:
-      description: Specifies the level of detail of the returned information.
+      description: |-
+        Specifies the level of detail of the returned statistics. `indices` adds a breakdown for each index, and `shards` also adds a breakdown for each shard of each index. For index statistics, `cluster` returns only the totals across all targeted indexes.
       type: string
       enum:
         - cluster
@@ -40574,13 +40590,16 @@ components:
         - minimum_wire_compatibility_version
         - number
     _common___OpType:
+      description: |-
+        The kind of write to perform for an index request. Defaults to `index`. The value is not case-sensitive.
       oneOf:
         - type: string
           const: create
-          description: Create a new document.
+          description: |-
+            Creates the document only if no document with the same ID exists. Otherwise the request fails with a version conflict and the existing document is left unchanged. Only `internal` versioning is supported.
         - type: string
           const: index
-          description: Create a new document or replace an existing one.
+          description: Creates the document, or replaces the existing document with the same ID. This is the default.
     _common___Password:
       type: string
       description: The password for authentication.
@@ -40756,19 +40775,27 @@ components:
         - current_as_target
         - throttle_time_in_millis
     _common___Refresh:
+      description: |-
+        Controls whether a write operation makes its changes visible to search before the response is returned. The values are `true`, `false` (the default), and `wait_for`; an empty value is treated as `true`.
       oneOf:
         - type: boolean
           description: Whether to refresh the affected shards immediately.
           x-protobuf-excluded: true
         - type: string
           const: 'false'
-          description: Do not refresh the affected shards.
+          description: Returns without refreshing or waiting for a refresh. This is the default.
         - type: string
           const: 'true'
-          description: Refresh the affected shards immediately.
+          description: |-
+            Refreshes the affected shards immediately after the operation, so the changes are visible to search when the response is returned.
+
+            Every request triggers its own refresh, which does not scale under heavy indexing or search load. Use it for low-traffic indexes or tests.
         - type: string
           const: wait_for
-          description: Wait for the changes to become visible before replying.
+          description: |-
+            Holds the response until a refresh makes the changes visible to search, without forcing a refresh. This suits high indexing throughput, at the cost of a slower response.
+
+            Each shard accepts up to `index.max_refresh_listeners` waiting requests (default 1000). When that limit is reached, the shard forces a refresh instead and the response reports `forced_refresh: true`.
     _common___RefreshStats:
       type: object
       description: The statistics about refresh operations.
@@ -41314,13 +41341,17 @@ components:
         - suggest_time_in_millis
         - suggest_total
     _common___SearchType:
+      description: |-
+        Selects how a search request computes relevance scores across shards. Defaults to `query_then_fetch`.
       oneOf:
         - type: string
           const: dfs_query_then_fetch
-          description: Documents are scored using global term and document frequencies across all shards. This is usually slower but more accurate.
+          description: |-
+            Adds an initial phase that collects term and document frequencies from all shards, then scores documents using these global frequencies. This is usually slower but more accurate.
         - type: string
           const: query_then_fetch
-          description: Documents are scored using local term and document frequencies for the shard. This is usually faster but less accurate.
+          description: |-
+            Scores documents using the term and document frequencies of each shard. This is usually faster but less accurate. This is the default.
     _common___SegmentReplicationStats:
       x-version-added: 2.10.0
       oneOf:
@@ -41757,6 +41788,10 @@ components:
           items:
             type: string
     _common___SuggestMode:
+      description: |-
+        Controls which suggestions the term suggester returns for each term in the suggest text. Defaults to `missing`. The value is not case-sensitive.
+
+        `missing` suggests only for terms that are not in the index. `popular` suggests only terms that occur in more documents than the original term. `always` suggests any matching terms based on the tokens in the suggest text.
       type: string
       enum:
         - always
@@ -41950,16 +41985,25 @@ components:
     _common___VersionString:
       type: string
     _common___VersionType:
+      description: |-
+        Selects how the `version` supplied with a request is checked against the document's current version, and how the stored version changes on a successful write. Defaults to `internal`.
       oneOf:
         - type: string
           const: external
-          description: The version number must be greater than the current version.
+          description: |-
+            Uses a version number maintained by an external system. A write succeeds only if the document does not exist or the supplied version is greater than the current version. The document then stores the supplied version.
+
+            Use this when another data store owns the version numbers.
         - type: string
           const: external_gte
-          description: The version number must be greater than or equal to the current version.
+          description: |-
+            Like `external`, but a write also succeeds when the supplied version equals the current version. The document then stores the supplied version.
         - type: string
           const: internal
-          description: The version number is managed internally by OpenSearch.
+          description: |-
+            OpenSearch manages the version and increments it by one on each successful write. This is the default.
+
+            Write requests can't supply a version with this type; use `if_seq_no` and `if_primary_term` for optimistic concurrency control instead. A read that supplies a version must match the current version exactly.
     _common___Void:
       description: |-
         The absence of any type. This is commonly used in APIs that don't return a body.
@@ -41973,11 +42017,16 @@ components:
       oneOf:
         - type: string
           const: all
-          description: Wait for all shards to be active.
+          description: |-
+            Waits until every copy of each shard, the primary and all of its replicas, is active.
         - type: 'null'
-          description: null represents the default value (which defaults to one shard copy).
+          description: |-
+            Uses the default. For write operations the index setting `index.write.wait_for_active_shards` applies, which defaults to one shard copy (the primary).
     _common___WaitForActiveShards:
-      description: Waits until the specified number of shards is active before returning a response. Use `all` for all shards.
+      description: |-
+        The number of active copies of each shard, counting the primary, that must be available before the operation proceeds. Use `all` for every copy, or a number from `0` (do not wait) up to the number of replicas plus one.
+
+        For write operations the check is made before writing to the primary. If not enough copies become active before the request times out, the operation fails without writing.
       oneOf:
         - title: count
           $ref: '#/components/schemas/_common___StringifiedInteger'
@@ -50054,6 +50103,8 @@ components:
         - origin
         - scale
     _common.query_dsl___Operator:
+      description: |-
+        The Boolean logic used to combine the terms of a query. `or` matches documents that contain any of the terms, and `and` matches only documents that contain all of them. The value is not case-sensitive.
       type: string
       enum:
         - and
@@ -56284,7 +56335,10 @@ components:
         - status
         - unassigned_shards
     cluster.health___Level:
-      description: Controls the amount of detail included in the cluster health response.
+      description: |-
+        Controls the amount of detail included in the cluster health response. Defaults to `cluster`, which reports only the cluster-wide health. `indices` adds the health of each index, and `shards` also adds the health of each shard within each index.
+
+        `awareness_attributes` reports health for each value of an awareness attribute. It is required when `awareness_attribute` is set, and cannot be combined with an index target. An unrecognized value is treated as `cluster`.
       type: string
       enum:
         - awareness_attributes

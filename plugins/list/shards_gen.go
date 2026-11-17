@@ -74,6 +74,8 @@ type ShardsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The unit used to display byte values.
+	//
+	// See [opensearchapi.ByteUnit] for valid values.
 	Bytes opensearchapi.ByteUnit
 
 	// Return local information, do not retrieve the state from cluster-manager
@@ -91,9 +93,13 @@ type ShardsParams struct {
 	// Defines order in which shards will be displayed. Accepted values are
 	// `asc` and `desc`. If `desc`, most recently created shards would be
 	// displayed first.
+	//
+	// See [opensearchapi.SortOrder] for valid values.
 	Sort opensearchapi.SortOrder
 
 	// The unit in which to display time values.
+	//
+	// See [opensearchapi.TimeUnit] for valid values.
 	Time opensearchapi.TimeUnit
 }
 

@@ -116,6 +116,8 @@ type ExplainParams struct {
 	Analyzer string
 
 	// The default operator for query string query: `AND` or `OR`.
+	//
+	// See [CommonQueryDSLOperator] for valid values.
 	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
