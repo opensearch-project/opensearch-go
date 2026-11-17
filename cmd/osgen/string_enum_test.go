@@ -49,7 +49,7 @@ func TestParseConstOneOf(t *testing.T) {
 			constBranch("data_hot", "hot data", nil),
 			constBranch("ml", "machine learning", nil),
 		}}
-		got, ok := parseConstOneOf("NodeRole", "_common___NodeRole", schema, VersionRange{}, nil, nil)
+		got, ok := enumParser{}.constOneOf("NodeRole", "_common___NodeRole", schema)
 		require.True(t, ok)
 		require.Equal(t, []constEnumValue{
 			{Value: "data_hot", Description: "hot data"},
@@ -66,7 +66,7 @@ func TestParseConstOneOf(t *testing.T) {
 			constBranch("search", "3.0 search", map[string]any{extVersionAdded: "3.0"}),
 		}}
 		var warn strings.Builder
-		got, ok := parseConstOneOf("NodeRole", "_common___NodeRole", schema, VersionRange{}, nil, &warn)
+		got, ok := enumParser{warnW: &warn}.constOneOf("NodeRole", "_common___NodeRole", schema)
 		require.True(t, ok)
 		require.Len(t, got, 1)
 		require.Equal(t, "search", got[0].Value)
@@ -84,7 +84,7 @@ func TestParseConstOneOf(t *testing.T) {
 			constBranch("async", "lower", nil),
 		}}
 		var warn strings.Builder
-		got, ok := parseConstOneOf("IndicesTranslogDurability", "indices._common___TranslogDurability", schema, VersionRange{}, nil, &warn)
+		got, ok := enumParser{warnW: &warn}.constOneOf("IndicesTranslogDurability", "indices._common___TranslogDurability", schema)
 		require.True(t, ok)
 		require.Len(t, got, 1)
 		require.Equal(t, "ASYNC", got[0].Value)
@@ -100,7 +100,7 @@ func TestParseConstOneOf(t *testing.T) {
 		}}
 		vr, err := ParseVersionRange("epoch", "2.19", "epoch", false)
 		require.NoError(t, err)
-		got, ok := parseConstOneOf("NodeRole", "_common___NodeRole", schema, vr, nil, nil)
+		got, ok := enumParser{vr: vr}.constOneOf("NodeRole", "_common___NodeRole", schema)
 		require.True(t, ok)
 		require.Len(t, got, 1)
 		require.Equal(t, "data", got[0].Value)
@@ -113,7 +113,7 @@ func TestParseConstOneOf(t *testing.T) {
 			{Value: openapi3.NewStringSchema()},
 			{Value: openapi3.NewIntegerSchema()},
 		}}
-		_, ok := parseConstOneOf("X", "x___X", schema, VersionRange{}, nil, nil)
+		_, ok := enumParser{}.constOneOf("X", "x___X", schema)
 		require.False(t, ok)
 	})
 
@@ -126,7 +126,7 @@ func TestParseConstOneOf(t *testing.T) {
 		// other parallel tests read).
 		deny := stringEnumDenyList.clone()
 		deny.add(key)
-		_, ok := parseConstOneOf("Denied", key, schema, VersionRange{}, deny, nil)
+		_, ok := enumParser{deny: deny}.constOneOf("Denied", key, schema)
 		require.False(t, ok)
 	})
 }
@@ -261,14 +261,34 @@ func TestParseParamEnum(t *testing.T) {
 
 	boolOnly := &openapi3.Schema{OneOf: openapi3.SchemaRefs{boolBranch()}}
 
+	described := &openapi3.Schema{
+		Type:        &openapi3.Types{openapi3.TypeString},
+		Enum:        []any{"asc", "desc"},
+		Description: "Sort order.",
+		Extensions: map[string]any{extEnumDescriptions: map[string]any{
+			"asc":  "Smallest first.",
+			"desc": "Largest first.",
+			"up":   "Not a value.",
+		}},
+	}
+
 	tests := []struct {
 		name     string
 		schema   *openapi3.Schema
 		wantOK   bool
 		want     []string
+		wantDocs []string
 		wantWarn string
 	}{
-		{name: "top-level enum", schema: topLevel, wantOK: true, want: []string{"asc", "desc"}},
+		{
+			name: "top-level enum leaves values undocumented", schema: topLevel, wantOK: true,
+			want: []string{"asc", "desc"}, wantDocs: []string{"", ""},
+		},
+		{
+			name: "x-enum-descriptions documents each value", schema: described, wantOK: true,
+			want: []string{"asc", "desc"}, wantDocs: []string{"Smallest first.", "Largest first."},
+			wantWarn: `x-enum-descriptions names "up"`,
+		},
 		{name: "enum-carrying oneOf branches", schema: byteUnit, wantOK: true, want: []string{"b", "kb", "k"}},
 		{name: "boolean branch skipped", schema: refresh, wantOK: true, want: []string{"false", "true", "wait_for"}},
 		{name: "case-only duplicate keeps the first", schema: health, wantOK: true, want: []string{"green", "red"}, wantWarn: `"GREEN" dropped`},
@@ -279,23 +299,25 @@ func TestParseParamEnum(t *testing.T) {
 			t.Parallel()
 
 			var warn strings.Builder
-			got, ok := parseParamEnum("X", "x___X", tt.schema, VersionRange{}, nil, &warn)
+			got, shape := enumParser{warnW: &warn}.parse("X", "x___X", tt.schema, enumShapeParam)
+			ok := shape != enumShapeNone
 			require.Equal(t, tt.wantOK, ok)
 			if !tt.wantOK {
 				return
 			}
 			require.Equal(t, tt.want, constValueList(got))
-			if tt.schema == topLevel {
-				// The schema description documents the type, not each value.
-				for _, v := range got {
-					require.Empty(t, v.Description, v.Value)
+			if tt.wantDocs != nil {
+				docs := make([]string, len(got))
+				for i, v := range got {
+					docs[i] = v.Description
 				}
+				require.Equal(t, tt.wantDocs, docs)
 			}
 			if tt.wantWarn != "" {
 				require.Contains(t, warn.String(), tt.wantWarn)
 			}
 
-			_, strictOK := parseConstOneOf("X", "x___X", tt.schema, VersionRange{}, nil, nil)
+			_, strictOK := enumParser{}.constOneOf("X", "x___X", tt.schema)
 			require.False(t, strictOK)
 		})
 	}
@@ -388,7 +410,7 @@ func TestResolveStringEnumConst_ResponseWalkUnchanged(t *testing.T) {
 
 	spec := refreshEnumSpec()
 	w := &walker{registry: newTypeRegistry(opensearchAPIPkgName), spec: spec, inFlight: make(map[string]struct{})}
-	_, isEnum := w.resolveStringEnumConst("_common___Refresh", spec.Components.Schemas["_common___Refresh"].Value, "indices")
+	_, isEnum := w.resolveStringEnumConst("_common___Refresh", spec.Components.Schemas["_common___Refresh"].Value, "indices", false)
 	require.False(t, isEnum)
 }
 
@@ -565,7 +587,8 @@ func TestParseIntOrConstEnum(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, ok := parseIntOrConstEnum("X", "_common___X", tt.schema, VersionRange{}, nil, nil)
+			got, shape := enumParser{}.intOrConst("X", "_common___X", tt.schema)
+			ok := shape != enumShapeNone
 			require.Equal(t, tt.wantOK, ok)
 			if tt.wantOK {
 				require.Equal(t, tt.want, constValueList(got))
@@ -611,7 +634,7 @@ func TestTypeQueryParamEnums_IntOrConst(t *testing.T) {
 	// A non-param walker does not type the schema.
 	other := newTypeRegistry(opensearchAPIPkgName)
 	w := &walker{registry: other, spec: spec, inFlight: make(set[string]), vrange: VersionRange{}}
-	_, typed := w.resolveStringEnumConst("_common___WaitForActiveShards", schema, "index")
+	_, typed := w.resolveStringEnumConst("_common___WaitForActiveShards", schema, "index", false)
 	require.False(t, typed)
 }
 

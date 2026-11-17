@@ -261,10 +261,11 @@ func TestParamsFragment_EnumLink(t *testing.T) {
 	require.True(t, ok)
 
 	tests := []struct {
-		name   string
-		plugin bool
-		param  ir.QueryParam
-		want   string
+		name    string
+		plugin  bool
+		param   ir.QueryParam
+		want    string
+		notWant string
 	}{
 		{
 			name: "scalar",
@@ -291,6 +292,14 @@ func TestParamsFragment_EnumLink(t *testing.T) {
 			},
 			want: "// See [" + ir.DefaultCorePkgName + ".Refresh] for valid values.",
 		},
+		{
+			name: "non-enum has no link",
+			param: ir.QueryParam{
+				GoName: "Routing", WireName: "routing", GoType: "string", Kind: ir.ParamString, Description: "Routing.",
+			},
+			want:    "Routing string",
+			notWant: "for valid values",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -299,16 +308,9 @@ func TestParamsFragment_EnumLink(t *testing.T) {
 			body, err := (&emit.ParamsFragment{Op: op, Registry: reg}).Body()
 			require.NoError(t, err)
 			require.Contains(t, body, tt.want)
+			if tt.notWant != "" {
+				require.NotContains(t, body, tt.notWant)
+			}
 		})
 	}
-
-	t.Run("non-enum has no link", func(t *testing.T) {
-		t.Parallel()
-		op := &ir.Operation{TypePrefix: "Index", QueryParams: []ir.QueryParam{
-			{GoName: "Routing", WireName: "routing", GoType: "string", Kind: ir.ParamString, Description: "Routing."},
-		}}
-		body, err := (&emit.ParamsFragment{Op: op}).Body()
-		require.NoError(t, err)
-		require.NotContains(t, body, "for valid values")
-	})
 }
