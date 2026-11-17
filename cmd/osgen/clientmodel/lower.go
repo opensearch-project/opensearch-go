@@ -8,6 +8,7 @@ package clientmodel
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"reflect"
 	"sort"
@@ -17,11 +18,14 @@ import (
 
 const schemaRefPrefix = "#/components/schemas/"
 
-// Extensions of a component schema that are not about composition and are kept
-// from the OpenAPI file: type and enum naming, and error wrapper metadata.
-var keptExtensions = []string{
-	"x-type-name", "x-enum-name", "x-error-status", "x-error-root-cause-type", "x-ignorable",
-	"x-distributions-excluded",
+// keptExtensions are the extensions of a component schema that are not about
+// composition and are kept from the OpenAPI file: type and enum naming, and
+// error wrapper metadata.
+func keptExtensions() []string {
+	return []string{
+		"x-type-name", "x-enum-name", "x-error-status", "x-error-root-cause-type", "x-ignorable",
+		"x-distributions-excluded",
+	}
 }
 
 // Lower replaces the component schemas and the JSON bodies of the response and
@@ -54,7 +58,7 @@ func Lower(spec *openapi3.T, m *Model) error {
 	for name, entry := range m.Types {
 		if target, ok := bareRefTarget(name, entry, original); ok {
 			bare[name] = true
-			for i := 0; i < 16; i++ { // follow a chain of bare $refs
+			for range 16 { // follow a chain of bare $refs
 				next, ok := bareRefTarget(target, m.Types[target], original)
 				if !ok {
 					break
@@ -78,9 +82,8 @@ func Lower(spec *openapi3.T, m *Model) error {
 	sort.Strings(names)
 
 	lowered := make(openapi3.Schemas, len(original))
-	for name, ref := range original {
-		lowered[name] = ref // not in the model: kept
-	}
+	// not in the model: kept
+	maps.Copy(lowered, original)
 	for _, name := range names {
 		entry := m.Types[name]
 		if bare[name] {
@@ -262,7 +265,7 @@ func (l *lowerer) object(o *ObjectShape) *openapi3.Schema {
 
 	var unions openapi3.SchemaRefs
 	for i := range o.Constraints {
-		if u := l.constraint(&o.Constraints[i], o); u != nil {
+		if u := l.constraint(&o.Constraints[i]); u != nil {
 			unions = append(unions, &openapi3.SchemaRef{Value: u})
 		}
 	}
@@ -286,7 +289,7 @@ func (l *lowerer) object(o *ObjectShape) *openapi3.Schema {
 
 // constraint lowers a constraint that adds fields to a union member; presence
 // and not_all constraints only restrict fields the object already has.
-func (l *lowerer) constraint(c *Constraint, o *ObjectShape) *openapi3.Schema {
+func (l *lowerer) constraint(c *Constraint) *openapi3.Schema {
 	switch {
 	case c.UnionKind == "container":
 		u := &openapi3.Schema{}
@@ -445,9 +448,7 @@ func copyMap(m map[string]any) map[string]any {
 		return nil
 	}
 	c := make(map[string]any, len(m))
-	for k, v := range m {
-		c[k] = v
-	}
+	maps.Copy(c, m)
 	return c
 }
 
@@ -471,7 +472,7 @@ func setVersions(ext *map[string]any, v *Versions) {
 }
 
 func keepExtensions(s, orig *openapi3.Schema) {
-	for _, key := range keptExtensions {
+	for _, key := range keptExtensions() {
 		if v, ok := orig.Extensions[key]; ok {
 			if s.Extensions == nil {
 				s.Extensions = make(map[string]any)
@@ -505,7 +506,7 @@ func keepPropertyExtensions(s, orig *openapi3.Schema) {
 			if p == nil || p.Ref != "" || p.Value == nil {
 				continue
 			}
-			for _, key := range keptExtensions {
+			for _, key := range keptExtensions() {
 				if v, ok := p.Value.Extensions[key]; ok {
 					if exts[name] == nil {
 						exts[name] = make(map[string]any)
@@ -534,9 +535,7 @@ func keepPropertyExtensions(s, orig *openapi3.Schema) {
 			if v.Extensions == nil {
 				v.Extensions = make(map[string]any)
 			}
-			for k, x := range e {
-				v.Extensions[k] = x
-			}
+			maps.Copy(v.Extensions, e)
 			p.Value = v
 		}
 	}

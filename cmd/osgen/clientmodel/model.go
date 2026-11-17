@@ -233,7 +233,10 @@ func (o Ordered[T]) MarshalJSON() ([]byte, error) {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		kb, _ := json.Marshal(k)
+		kb, err := json.Marshal(k)
+		if err != nil {
+			return nil, err
+		}
 		vb, err := json.Marshal(o.Values[k])
 		if err != nil {
 			return nil, err

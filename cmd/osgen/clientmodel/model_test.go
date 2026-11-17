@@ -4,19 +4,21 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package clientmodel
+package clientmodel_test
 
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/clientmodel"
 )
 
 // vendoredModel is the model built from the vendored spec (make gen-client-model).
 const vendoredModel = "../../../opensearch-client-model.json"
 
-func load(t *testing.T) *Model {
+func load(t *testing.T) *clientmodel.Model {
 	t.Helper()
-	m, err := Load(vendoredModel)
+	m, err := clientmodel.Load(vendoredModel)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,14 +30,14 @@ func TestParseRejectsOtherFormatsAndVersions(t *testing.T) {
 		`{"format":"other","version":"0.2.0","types":{}}`,
 		`{"format":"opensearch-client-model","version":"0.1.0","types":{}}`,
 	} {
-		if _, err := Parse([]byte(doc)); err == nil {
+		if _, err := clientmodel.Parse([]byte(doc)); err == nil {
 			t.Errorf("Parse(%s) succeeded, want an error", doc)
 		}
 	}
 }
 
 func TestOrderedKeepsKeyOrder(t *testing.T) {
-	var o Ordered[int]
+	var o clientmodel.Ordered[int]
 	if err := json.Unmarshal([]byte(`{"z":1,"a":2,"m":3}`), &o); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +54,7 @@ func TestVendoredModel(t *testing.T) {
 	m := load(t)
 
 	lookup := m.Types["_common.query_dsl___TermsLookup"]
-	if lookup == nil || lookup.TypeKind != KindObject {
+	if lookup == nil || lookup.TypeKind != clientmodel.KindObject {
 		t.Fatalf("TermsLookup = %+v, want an object", lookup)
 	}
 	for _, name := range []string{"index", "path"} {
