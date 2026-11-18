@@ -345,7 +345,7 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 			},
 		}
 	}
-	tc := ParamTestCase{Name: p.WireName}
+	tc := ParamTestCase{Name: p.WireName, SetsFormat: p.WireName == FormatParam}
 	tc.FieldAssign, tc.WantAssign = paramTestValues(p)
 	return []ParamTestCase{tc}
 }
@@ -1322,7 +1322,7 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 	var fields []string
 
 	// Cat and list APIs need format=json to get JSON instead of plain text.
-	if (strings.HasPrefix(op.Group, "cat.") || strings.HasPrefix(op.Group, "list.")) && !op.IsNoBody && hasQueryParam(op, "format") {
+	if (strings.HasPrefix(op.Group, "cat.") || strings.HasPrefix(op.Group, "list.")) && !op.IsNoBody && hasQueryParam(op, FormatParam) {
 		fields = append(fields, `Format: "json"`)
 	}
 

@@ -516,7 +516,7 @@ func TestEnumParser_IntOrConst(t *testing.T) {
 }
 
 // TestTypeQueryParamEnums_IntOrConst pins that an int-or-keyword query param is
-// retyped to an alias that carries a Count constructor, and that the response
+// retyped to an enum type that carries a Count constructor, and that the response
 // and body walks leave the same schema untyped.
 func TestTypeQueryParamEnums_IntOrConst(t *testing.T) {
 	t.Parallel()

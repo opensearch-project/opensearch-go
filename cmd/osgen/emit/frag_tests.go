@@ -17,6 +17,9 @@ type ParamTestCase struct {
 	Name        string
 	FieldAssign string
 	WantAssign  string
+	// SetsFormat marks the case that sets the format param itself, so the
+	// expected map holds the caller's value instead of the client default.
+	SetsFormat bool
 }
 
 // ParamsTestFragment renders the _internal_gen_test.go content for Params.get().
@@ -81,7 +84,7 @@ var paramsTestFragTmpl = template.Must(template.New("paramsTest").Funcs(template
 		{
 			name:   {{quote .Name}},
 			params: {{$.TypePrefix}}Params{ {{.FieldAssign}} },
-			want:   map[string]string{ {{if and $.FormatOverride (ne .Name "format")}}"format": {{quote $.FormatOverride}}, {{end}}{{.WantAssign}} },
+			want:   map[string]string{ {{if and $.FormatOverride (not .SetsFormat)}}"format": {{quote $.FormatOverride}}, {{end}}{{.WantAssign}} },
 		},
 {{- end}}
 	}

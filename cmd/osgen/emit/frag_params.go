@@ -77,6 +77,10 @@ var groupFormatOverrides = map[string]string{
 	"sql.explain": "json",
 }
 
+// FormatParam is the wire name of the `format` query parameter, which some
+// operations default on the client (see FormatOverride).
+const FormatParam = "format"
+
 // FormatOverride returns the SDK-side runtime default for op's `format` query
 // param, or the empty string when no override applies. An operation gets one
 // only when it declares `format` (the spec declares it per operation, so a
@@ -84,7 +88,7 @@ var groupFormatOverrides = map[string]string{
 // groupFormatOverrides (full group name) first, then from
 // prefixFormatOverrides keyed by the segment of Group before the first dot.
 func FormatOverride(op *ir.Operation) string {
-	if !hasQueryParam(op, "format") {
+	if !hasQueryParam(op, FormatParam) {
 		return ""
 	}
 	if v, ok := groupFormatOverrides[op.Group]; ok {

@@ -38,7 +38,9 @@ func TestJoinStrings(t *testing.T) {
 }
 
 // A defined string type must cost no more to join than a []string: one
-// allocation for the result, none for converting the slice.
+// allocation for the result, none for converting the slice. Not parallel:
+// AllocsPerRun counts every allocation in the process, so a concurrent test
+// would inflate it.
 func TestJoinStringsAllocs(t *testing.T) {
 	in := []wildcard{"open", "hidden"}
 	require.InDelta(t, 1, testing.AllocsPerRun(100, func() { _ = apiutil.JoinStrings(in, ",") }), 0)
