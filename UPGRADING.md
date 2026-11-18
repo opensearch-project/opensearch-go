@@ -4,6 +4,7 @@ This is the version-history index for the OpenSearch Go client. Each entry below
 
 | Upgrade target | Guide                                |
 | -------------- | ------------------------------------ |
+| `>= 6.0.0`     | [`UPGRADING_V6.md`](UPGRADING_V6.md) |
 | `>= 5.0.0`     | [`UPGRADING_V5.md`](UPGRADING_V5.md) |
 | `>= 4.0.0`     | [`UPGRADING_V4.md`](UPGRADING_V4.md) |
 | `>= 3.0.0`     | [`UPGRADING_V3.md`](UPGRADING_V3.md) |
