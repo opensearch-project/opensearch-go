@@ -426,18 +426,19 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 		require.Equal(t, uint64(1), run.stats.NumFailed)
 	})
 
-	t.Run("an unserializable item is never offered to the policy", func(t *testing.T) {
+	t.Run("an item whose body cannot be read is never offered to the policy", func(t *testing.T) {
 		t.Parallel()
 
 		policy := &recordingPolicy{decide: retryThrice}
 		seq := &bulkSequence{outcomes: []bulkOutcome{outcomeOK}}
 		client := newBulkTestClient(t, seq.roundTrip, unmaskedBulkItems, withoutTransportRetry)
-		bi := newFailingMetaBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, RetryPolicy: policy}, "a")
+		bi := newBulkIndexer(t, BulkIndexerConfig{NumWorkers: 1, Client: client, RetryPolicy: policy})
 
 		var failures []error
 		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 			Action:     "index",
 			DocumentID: "a",
+			Body:       &failingBody{},
 			OnError: func(_ context.Context, _ BulkIndexerItem, err *BulkError) {
 				failures = append(failures, err)
 			},
@@ -446,7 +447,7 @@ func TestBulkIndexerRetryPolicy(t *testing.T) {
 
 		require.Empty(t, policy.recorded())
 		require.Len(t, failures, 1)
-		require.ErrorContains(t, failures[0], errInjectedMeta.Error())
+		require.ErrorContains(t, failures[0], errInjectedBody.Error())
 		require.Empty(t, seq.requests())
 	})
 
