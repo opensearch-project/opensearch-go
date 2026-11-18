@@ -2,7 +2,7 @@ module github.com/opensearch-project/opensearch-go/compress/v5
 
 go 1.26.0
 
-toolchain go1.26.10
+toolchain go1.26.11
 
 require (
 	github.com/klauspost/compress v1.20.3
