@@ -108,12 +108,9 @@ func TestWriteMeta(t *testing.T) {
 		item BulkIndexerItem
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr error
-		// encodeMeta is the bulkClient's encodeMeta hook.
-		encodeMeta func(*BulkIndexerItem) ([]byte, error)
+		name string
+		args args
+		want string
 	}{
 		{
 			name: "without _index and _id",
@@ -216,33 +213,18 @@ func TestWriteMeta(t *testing.T) {
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"foo&bar"}}`, testIndex) + "\n",
 		},
-		{
-			name: "encode error",
-			args: args{BulkIndexerItem{
-				Action:     "index",
-				DocumentID: "1",
-			}},
-			encodeMeta: failMetaFor("1"),
-			wantErr:    errInjectedMeta,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bi := &bulkClient{
 				metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
 				metaPool:         sync.Pool{New: newMetaEncoder},
-				encodeMeta:       tt.encodeMeta,
 			}
 			w := &worker{
 				bi:  bi,
 				buf: newChunkBuffer(newChunkPool(defaultChunkSize)),
 			}
 			err := w.writeMeta(tt.args.item)
-			if tt.wantErr != nil {
-				require.ErrorIs(t, err, tt.wantErr)
-				require.Equal(t, 0, w.buf.Len())
-				return
-			}
 			require.NoError(t, err)
 			require.Equal(t, tt.want, w.buf.String())
 		})
@@ -666,32 +648,8 @@ func newBulkIndexer(t *testing.T, cfg BulkIndexerConfig) BulkIndexer {
 	return bi
 }
 
-// errInjectedMeta is the failure failMeta reports.
-var errInjectedMeta = errors.New("injected metadata encoding failure")
-
-// failMetaFor is a bulkClient.encodeMeta that fails for the item with the document ID id
-// and succeeds, with an empty line, for any other. No item field makes the real
-// encoder fail, so the write path's error handling is reached through it.
-func failMetaFor(id string) func(*BulkIndexerItem) ([]byte, error) {
-	return func(item *BulkIndexerItem) ([]byte, error) {
-		if item.DocumentID == id {
-			return nil, errInjectedMeta
-		}
-
-		return nil, nil
-	}
-}
-
-// newFailingMetaBulkIndexer is newBulkIndexer with the metadata of the item with
-// document ID id failing to encode.
-func newFailingMetaBulkIndexer(t *testing.T, cfg BulkIndexerConfig, id string) BulkIndexer {
-	t.Helper()
-
-	bi := newBulkIndexer(t, cfg)
-	bi.(*bulkClient).encodeMeta = failMetaFor(id)
-
-	return bi
-}
+// errInjectedBody is the failure a failingBody reports from Read.
+var errInjectedBody = errors.New("body read failed")
 
 // testItemCallback is what one item's OnSuccess or OnError callback reported. A
 // rejection the cluster made carries a status, and an error type when the
@@ -1040,19 +998,14 @@ func TestBulkIndexerOnErrorDetail(t *testing.T) {
 		},
 		{
 			name: "rejected while writing the request",
-			// Carries no items, and neither rejected document is in it. Still
-			// sent: body-fail's metadata line was already in the buffer when its
-			// body failed to read, so the drain on Close ships that line alone.
+			// Carries no items, and the rejected document is not in it, so it
+			// carries no status.
 			bulkResp: `{"items":[]}`,
 			items: []BulkIndexerItem{
-				// The injected encoder fails this item's action line.
-				{Action: "index", DocumentID: "meta-fail"},
 				{Action: "index", DocumentID: "body-fail", Body: &failingBody{}},
 			},
-			// No response item exists for either, so neither carries a status.
 			want: []testItemCallback{
-				{ID: "meta-fail", Err: errInjectedMeta.Error()},
-				{ID: "body-fail", Err: "body read failed"},
+				{ID: "body-fail", Err: errInjectedBody.Error()},
 			},
 		},
 	}
@@ -1062,10 +1015,10 @@ func TestBulkIndexerOnErrorDetail(t *testing.T) {
 			t.Parallel()
 
 			client := newBulkTestClient(t, respondWith(tt.bulkResp))
-			bi := newFailingMetaBulkIndexer(t, BulkIndexerConfig{
+			bi := newBulkIndexer(t, BulkIndexerConfig{
 				NumWorkers: 1,
 				Client:     client,
-			}, "meta-fail")
+			})
 
 			// A slice rather than a map keyed by ID, so a second callback for one
 			// item shows up as an extra element instead of overwriting the first.
@@ -1097,10 +1050,8 @@ func TestBulkIndexerOnErrorDetail(t *testing.T) {
 	}
 }
 
-// TestBulkIndexerOnErrorOnWriteErrors pins which write failures reach the
-// bulk client's OnUnhandledError. Both failures below reject one item and both reach its
-// OnError, but only a body that cannot be read is also reported to OnUnhandledError; a
-// metadata line that cannot be serialized is not.
+// TestBulkIndexerOnErrorOnWriteErrors pins that a body that cannot be read
+// rejects its item through OnError and is also reported to OnUnhandledError.
 func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
 	t.Parallel()
 
@@ -1111,17 +1062,10 @@ func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
 		wantOnError  testItemCallback
 	}{
 		{
-			name: "unserializable metadata is not reported to OnUnhandledError",
-			// The injected encoder fails this item's action line.
-			item:         BulkIndexerItem{Action: "index", DocumentID: "meta-fail"},
-			wantOnErrors: nil,
-			wantOnError:  testItemCallback{ID: "meta-fail", Err: errInjectedMeta.Error()},
-		},
-		{
 			name:         "unreadable body is reported to OnUnhandledError",
 			item:         BulkIndexerItem{Action: "index", DocumentID: "body-fail", Body: &failingBody{}},
-			wantOnErrors: []string{"body read failed"},
-			wantOnError:  testItemCallback{ID: "body-fail", Err: "body read failed"},
+			wantOnErrors: []string{errInjectedBody.Error()},
+			wantOnError:  testItemCallback{ID: "body-fail", Err: errInjectedBody.Error()},
 		},
 	}
 
@@ -1135,13 +1079,13 @@ func TestBulkIndexerOnErrorOnWriteErrors(t *testing.T) {
 				onErrorErrs []string
 				rejected    []testItemCallback
 			)
-			bi := newFailingMetaBulkIndexer(t, BulkIndexerConfig{
+			bi := newBulkIndexer(t, BulkIndexerConfig{
 				NumWorkers: 1,
 				Client:     client,
 				OnUnhandledError: func(_ context.Context, err error) {
 					onErrorErrs = append(onErrorErrs, err.Error())
 				},
-			}, "meta-fail")
+			})
 
 			item := tt.item
 			item.OnError = func(_ context.Context, item BulkIndexerItem, err *BulkError) {
@@ -1200,7 +1144,7 @@ type failingBody struct {
 func (b *failingBody) Read(p []byte) (int, error) {
 	if len(b.data) == 0 {
 		if b.fail == failOnRead {
-			return 0, errors.New("body read failed")
+			return 0, errInjectedBody
 		}
 
 		return 0, io.EOF

@@ -783,11 +783,6 @@ type bulkActionMetadata struct {
 type bulkClient struct {
 	wg sync.WaitGroup
 
-	// encodeMeta, when set, runs before the metadata encoder, and a non-nil error
-	// fails the item; tests set it to inject an encoding failure. It is nil in
-	// production.
-	encodeMeta func(*BulkIndexerItem) ([]byte, error)
-
 	sched *scheduler
 	// router maps documents to shards and nodes; never nil.
 	router ShardRouter
@@ -2160,12 +2155,6 @@ func (w *worker) writeItem(ctx context.Context, item BulkIndexerItem) error {
 
 // writeMeta formats and writes the item metadata to the buffer.
 func (w *worker) writeMeta(item BulkIndexerItem) error {
-	if w.bi.encodeMeta != nil {
-		if _, err := w.bi.encodeMeta(&item); err != nil {
-			return err
-		}
-	}
-
 	enc := w.bi.metaPool.Get().(*metaEncoder)
 
 	line, err := enc.encode(&item)
