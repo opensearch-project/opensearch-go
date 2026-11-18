@@ -83,6 +83,32 @@ func ExampleWaitForActiveShards_all() {
 	// Output: wait_for_active_shards=all
 }
 
+// SlicesCount splits the operation into a fixed number of slices.
+func ExampleSlices() {
+	req, err := opensearchapi.DeleteByQueryReq{
+		Indices: []string{"logs"},
+		Params:  &opensearchapi.DeleteByQueryParams{Slices: opensearchapi.SlicesCount(4)},
+	}.GetRequest(http.MethodPost)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(req.URL.RawQuery)
+	// Output: slices=4
+}
+
+// SlicesAuto lets the server choose the number of slices.
+func ExampleSlices_auto() {
+	req, err := opensearchapi.DeleteByQueryReq{
+		Indices: []string{"logs"},
+		Params:  &opensearchapi.DeleteByQueryParams{Slices: opensearchapi.SlicesAuto},
+	}.GetRequest(http.MethodPost)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(req.URL.RawQuery)
+	// Output: slices=auto
+}
+
 // DurationUnbounded sends a duration parameter as -1, the server's value for
 // "no limit" or "disabled" on parameters that accept it. A zero time.Duration
 // leaves the parameter unset, so it is omitted from the query string.

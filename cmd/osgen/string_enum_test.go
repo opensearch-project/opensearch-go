@@ -8,6 +8,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -129,6 +130,55 @@ func TestEnumParser_ConstOneOf(t *testing.T) {
 		_, shape := enumParser{deny: deny}.constOneOf("Denied", key, schema)
 		require.Equal(t, enumShapeNone, shape)
 	})
+}
+
+// TestEnumParser_RejectsUnusableInput pins the inputs the parser drops rather
+// than emitting: a value that yields no Go identifier is skipped with a note
+// (and leaves no enum when it is the only one), and a malformed branch rejects
+// the schema. Each shape is checked through both the strict and param paths.
+func TestEnumParser_RejectsUnusableInput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		schema   *openapi3.Schema
+		want     []string
+		wantWarn string
+	}{
+		{
+			name:     "value with no identifier is skipped with a note",
+			schema:   &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("_", "", nil), constBranch("open", "", nil)}},
+			want:     []string{"open"},
+			wantWarn: `value "_" skipped`,
+		},
+		{
+			name:     "only an unusable value leaves no enum",
+			schema:   &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("a b", "", nil)}},
+			wantWarn: `value "a b" skipped`,
+		},
+		{name: "nil branch", schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{nil}}},
+		{name: "branch with no value", schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{{}}}},
+		{name: "nil schema", schema: nil},
+	}
+	for _, tt := range tests {
+		for _, allowParam := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/allowParam=%t", tt.name, allowParam), func(t *testing.T) {
+				t.Parallel()
+				var warn strings.Builder
+				got, shape := enumParser{warnW: &warn}.parse("X", "x___X", tt.schema, allowParam)
+				if tt.want == nil {
+					require.Equal(t, enumShapeNone, shape)
+					require.Nil(t, got)
+				} else {
+					require.NotEqual(t, enumShapeNone, shape)
+					require.Equal(t, tt.want, constValueList(got))
+				}
+				if tt.wantWarn != "" {
+					require.Contains(t, warn.String(), tt.wantWarn)
+				}
+			})
+		}
+	}
 }
 
 // TestWalkerStringEnumConst pins the walker path: a $ref to a const-oneOf schema
@@ -384,6 +434,67 @@ func TestTypeQueryParamEnums_Aliases(t *testing.T) {
 	require.True(t, elem.IsAlias)
 }
 
+// TestTypeListParamEnum_LeavesStringSlice pins the list-param shapes that stay
+// []string. The compatibility case: an element enum a response or body walk
+// registered first is a defined type, and a slice of it would reject a caller's
+// plain []string, so the param is not retyped.
+func TestTypeListParamEnum_LeavesStringSlice(t *testing.T) {
+	t.Parallel()
+
+	expand := &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("open", "", nil), constBranch("closed", "", nil)}}
+	const elemRef = "#/components/schemas/_common___ExpandWildcard"
+	arrayOf := func(items *openapi3.SchemaRef) *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeArray}, Items: items}}
+	}
+	// refList is a list param whose array branch references the element enum.
+	refList := &openapi3.Schema{OneOf: openapi3.SchemaRefs{arrayOf(&openapi3.SchemaRef{Ref: elemRef})}}
+
+	tests := []struct {
+		name   string
+		list   *openapi3.Schema
+		schema openapi3.Schemas
+		setup  func(w *walker)
+	}{
+		{
+			name:   "element already a defined type",
+			list:   refList,
+			schema: openapi3.Schemas{"_common___ExpandWildcard": {Value: expand}},
+			setup: func(w *walker) {
+				_, ok := w.resolveStringEnumConst("_common___ExpandWildcard", expand, "", false)
+				require.True(t, ok)
+			},
+		},
+		{name: "no array branch", list: &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("open", "", nil)}}},
+		{name: "array of inline items", list: &openapi3.Schema{OneOf: openapi3.SchemaRefs{arrayOf(&openapi3.SchemaRef{Value: expand})}}},
+		{name: "element ref missing from components", list: refList},
+		{
+			name:   "element is not an enum",
+			list:   refList,
+			schema: openapi3.Schemas{"_common___ExpandWildcard": {Value: openapi3.NewIntegerSchema()}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			schemas := openapi3.Schemas{}
+			maps.Copy(schemas, tt.schema)
+			w := &walker{
+				registry: newTypeRegistry(opensearchAPIPkgName),
+				spec:     &openapi3.T{Components: &openapi3.Components{Schemas: schemas}},
+				inFlight: make(set[string]),
+			}
+			if tt.setup != nil {
+				tt.setup(w)
+			}
+			w.paramPass = true
+			qp := &apiQueryParam{ParamName: "expand_wildcards", GoName: "ExpandWildcards", GoType: "[]string", IsList: true}
+			typeListParamEnum(w, qp, tt.list, "search")
+			require.Equal(t, "[]string", qp.GoType)
+			require.False(t, qp.IsStringEnum)
+		})
+	}
+}
+
 // TestTypeQueryParamEnums_StrictScalarStaysNamed pins that a strict-shape enum
 // reached only through a scalar param keeps its named type: only new shapes and
 // list elements become aliases.
@@ -583,6 +694,17 @@ func TestEnumParser_IntOrConst(t *testing.T) {
 			name:   "no oneOf",
 			schema: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeInteger}},
 		},
+		{name: "nil schema", schema: nil},
+		{name: "nil branch", schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{integerBranch(), nil}}},
+		{
+			// The keyword branch is a plain string, not a const, so the keyword
+			// parse rejects it even though the integer branch is present.
+			name: "keyword branch is not a const",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				integerBranch(),
+				{Value: openapi3.NewStringSchema()},
+			}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -689,6 +811,45 @@ func TestTypeQueryParamEnums_ParamNamesAndDefault(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, tt.wantParams, got.ParamNames)
 			require.Equal(t, tt.wantDefault, got.Default)
+		})
+	}
+}
+
+// TestAddParamName_OnlyStringEnums pins that param names are recorded only on a
+// registered string enum, so a struct type never gains a "query parameter" doc.
+func TestAddParamName_OnlyStringEnums(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		typ   *goType
+		ref   string
+		wants []string
+	}{
+		{
+			name: "string enum records the name", ref: "r", wants: []string{"refresh"},
+			typ: &goType{Name: "Refresh", SchemaRef: "r", IsStringEnum: true},
+		},
+		{name: "non-enum type is left alone", typ: &goType{Name: "Hit", SchemaRef: "h"}, ref: "h"},
+		{name: "unregistered ref is ignored", ref: "missing"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			if tt.typ != nil {
+				_, ok := reg.register(tt.typ)
+				require.True(t, ok)
+			}
+			reg.addParamName(tt.ref, "refresh")
+			reg.addParamName(tt.ref, "refresh")
+			got, ok := reg.lookup(tt.ref)
+			if tt.typ == nil {
+				require.False(t, ok)
+				return
+			}
+			require.True(t, ok)
+			require.Equal(t, tt.wants, got.ParamNames)
 		})
 	}
 }
