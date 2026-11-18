@@ -25,6 +25,11 @@ func TestCloseParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CloseParams{}, want: map[string]string{"format": "jdbc"}},
 		{
+			name:   "format",
+			params: CloseParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
 			name:   "sanitize=true",
 			params: CloseParams{Sanitize: new(true)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "true"},

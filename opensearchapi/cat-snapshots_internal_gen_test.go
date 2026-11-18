@@ -25,6 +25,26 @@ func TestCatSnapshotsParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatSnapshotsParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatSnapshotsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatSnapshotsParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatSnapshotsParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatSnapshotsParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "ignore_unavailable=true",
 			params: CatSnapshotsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"format": "json", "ignore_unavailable": "true"},
@@ -40,9 +60,24 @@ func TestCatSnapshotsParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "repository": "a,b"},
 		},
 		{
+			name:   "s",
+			params: CatSnapshotsParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "time",
 			params: CatSnapshotsParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: CatSnapshotsParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatSnapshotsParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

@@ -28,7 +28,10 @@ type ParamsTestFragment struct {
 	// the extra map entry.
 	FormatOverride string
 	HasDuration    bool
-	Cases          []ParamTestCase
+	// CoreImport is the core package import a plugin test needs when a case
+	// names a shared enum slice type; empty otherwise.
+	CoreImport string
+	Cases      []ParamTestCase
 }
 
 // Imports returns the imports the Params-test fragment needs.
@@ -39,6 +42,9 @@ func (f *ParamsTestFragment) Imports() []Import {
 	}
 	if f.HasDuration {
 		imps = append(imps, Import{Path: "time"})
+	}
+	if f.CoreImport != "" {
+		imps = append(imps, Import{Path: f.CoreImport})
 	}
 	return imps
 }
@@ -75,7 +81,7 @@ var paramsTestFragTmpl = template.Must(template.New("paramsTest").Funcs(template
 		{
 			name:   {{quote .Name}},
 			params: {{$.TypePrefix}}Params{ {{.FieldAssign}} },
-			want:   map[string]string{ {{if $.FormatOverride}}"format": {{quote $.FormatOverride}}, {{end}}{{.WantAssign}} },
+			want:   map[string]string{ {{if and $.FormatOverride (ne .Name "format")}}"format": {{quote $.FormatOverride}}, {{end}}{{.WantAssign}} },
 		},
 {{- end}}
 	}

@@ -102,9 +102,7 @@ func ExampleSearchParams_durationUnbounded() {
 // JSON.
 func ExampleCatRespFormat() {
 	req, err := opensearchapi.CatIndicesReq{
-		Params: &opensearchapi.CatIndicesParams{
-			DebugParams: opensearchapi.DebugParams{Format: opensearchapi.CatRespFormatJSON},
-		},
+		Params: &opensearchapi.CatIndicesParams{Format: opensearchapi.CatRespFormatJSON},
 	}.GetRequest(http.MethodGet)
 	if err != nil {
 		panic(err)

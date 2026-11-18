@@ -16,6 +16,7 @@ import (
 	"strconv"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -70,11 +71,29 @@ func (r CatPendingTasksReq) GetRequest(method string) (*http.Request, error) {
 type CatPendingTasksParams struct {
 	TimeoutParams
 	DebugParams
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// Default: text.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
+
 	// Returns local information but does not retrieve the state from the
 	// cluster manager node.
 	//
 	// Default: false.
 	Local *bool
+
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
 
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
@@ -82,6 +101,11 @@ type CatPendingTasksParams struct {
 	//
 	// See [TimeUnit] for valid values.
 	Time TimeUnit
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatPendingTasksParams) get() map[string]string {
@@ -98,12 +122,32 @@ func (r CatPendingTasksParams) get() map[string]string {
 		set("format", "json")
 	}
 
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
+	}
+
 	if r.Local != nil {
 		set("local", strconv.FormatBool(*r.Local))
 	}
 
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
+	}
+
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

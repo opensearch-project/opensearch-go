@@ -16,6 +16,7 @@ import (
 	"strconv"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -75,14 +76,37 @@ func (r CatThreadPoolReq) GetRequest(method string) (*http.Request, error) {
 type CatThreadPoolParams struct {
 	TimeoutParams
 	DebugParams
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// Default: text.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
+
 	// Returns local information but does not retrieve the state from the
 	// cluster manager node.
 	//
 	// Default: false.
 	Local *bool
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// The multiplier in which to display values.
 	Size int
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatThreadPoolParams) get() map[string]string {
@@ -99,12 +123,32 @@ func (r CatThreadPoolParams) get() map[string]string {
 		set("format", "json")
 	}
 
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
+	}
+
 	if r.Local != nil {
 		set("local", strconv.FormatBool(*r.Local))
 	}
 
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
+	}
+
 	if r.Size != 0 {
 		set("size", strconv.Itoa(r.Size))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

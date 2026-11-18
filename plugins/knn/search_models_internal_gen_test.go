@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func TestSearchModelsParams_get(t *testing.T) {
@@ -107,7 +109,7 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: SearchModelsParams{ExpandWildcards: []string{"a", "b"}},
+			params: SearchModelsParams{ExpandWildcards: []opensearchapi.ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

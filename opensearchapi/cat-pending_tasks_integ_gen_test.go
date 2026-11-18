@@ -26,7 +26,7 @@ func TestCatPendingTasks(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.PendingTasks(t.Context(), &opensearchapi.CatPendingTasksReq{Params: &opensearchapi.CatPendingTasksParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.PendingTasks(t.Context(), &opensearchapi.CatPendingTasksReq{Params: &opensearchapi.CatPendingTasksParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

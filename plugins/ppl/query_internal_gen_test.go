@@ -25,6 +25,11 @@ func TestQueryParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: QueryParams{}, want: map[string]string{"format": "jdbc"}},
 		{
+			name:   "format",
+			params: QueryParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
 			name:   "sanitize=true",
 			params: QueryParams{Sanitize: new(true)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "true"},

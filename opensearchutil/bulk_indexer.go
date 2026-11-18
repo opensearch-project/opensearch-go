@@ -312,13 +312,13 @@ type BulkIndexerConfig struct {
 	Human               bool
 	Pipeline            string
 	Pretty              bool
-	Refresh             string
+	Refresh             opensearchapi.Refresh
 	Routing             string
 	Source              []string
 	SourceExcludes      []string
 	SourceIncludes      []string
 	Timeout             time.Duration
-	WaitForActiveShards string
+	WaitForActiveShards opensearchapi.WaitForActiveShards
 
 	// MetaBufferPoolMaxBytes is the upper bound for buffers retained in
 	// the metadata serialization pool. Buffers that grow beyond this
@@ -585,19 +585,7 @@ type BulkIndexerItem struct {
 	VersionType   *string
 	IfSeqNum      *int64
 	IfPrimaryTerm *int64
-	// WaitForActiveShards is not sent.
-	//
-	// Deprecated: The server rejects wait_for_active_shards in an action line, so the bulk
-	// client does not send it. Use [BulkIndexerConfig].WaitForActiveShards, which applies to
-	// every request the bulk client sends.
-	WaitForActiveShards any
-	// Refresh is not sent.
-	//
-	// Deprecated: The server rejects refresh in an action line, so the bulk client does not
-	// send it. Use [BulkIndexerConfig].Refresh, which applies to every request the bulk
-	// client sends.
-	Refresh      *string
-	RequireAlias *bool
+	RequireAlias  *bool
 	// Body is the document. The bulk client reads it from offset 0, whatever the
 	// position it is handed in at, once to size it, once more if a Fingerprinter
 	// needs it, and again for each attempt to send it, and it leaves the reader at 0.

@@ -73,6 +73,12 @@ func (r SettingsReq) GetRequest(method string) (*http.Request, error) {
 type SettingsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
+	// Specifies the response format (JSON or YAML).
+	//
+	// Default: jdbc.
+	//
+	// See [opensearchapi.SQLRespFormat] for valid values.
+	Format opensearchapi.SQLRespFormat
 }
 
 func (r SettingsParams) get() map[string]string {
@@ -87,6 +93,10 @@ func (r SettingsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 	if r.Format == "" {
 		set("format", "jdbc")
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
 	}
 
 	return params

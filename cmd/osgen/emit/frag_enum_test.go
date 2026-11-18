@@ -388,7 +388,6 @@ func TestStringEnumFragment_HasCount(t *testing.T) {
 					Name:        "WaitForActiveShards",
 					Kind:        ir.TypeStringEnum,
 					Scope:       ir.ScopeShared,
-					IsAlias:     true,
 					HasCount:    tt.hasCount,
 					EnumMembers: []ir.EnumMember{{ConstName: "WaitForActiveShardsAll", Value: "all"}},
 				}},
@@ -399,7 +398,7 @@ func TestStringEnumFragment_HasCount(t *testing.T) {
 			const sig = "func WaitForActiveShardsCount(n int) WaitForActiveShards {"
 			if tt.wantFunc {
 				require.Contains(t, body, sig)
-				require.Contains(t, body, "strconv.Itoa(n)")
+				require.Contains(t, body, "return WaitForActiveShards(strconv.Itoa(n))")
 				require.Contains(t, body, "// WaitForActiveShardsCount ")
 			} else {
 				require.NotContains(t, body, "Count")
@@ -417,7 +416,7 @@ func TestStringEnumFragment_HasCount(t *testing.T) {
 // TestStringEnumFragment_TypeDoc asserts the type declaration and its doc: spec
 // comments are kept, a missing comment falls back to naming the query
 // parameters (or the values below), a schema default adds the server-default
-// line to either, and an alias renders as `type X = string`.
+// line to either, and the type is a defined string type.
 func TestStringEnumFragment_TypeDoc(t *testing.T) {
 	t.Parallel()
 
@@ -459,15 +458,14 @@ func TestStringEnumFragment_TypeDoc(t *testing.T) {
 			want: []string{"// Controls visibility.\n//\n// The server default is \"false\".\ntype Refresh string"},
 		},
 		{
-			// An alias keeps values interchangeable with plain strings, while its
-			// consts keep the alias type.
-			name: "alias",
+			// Every string enum is a defined type; none is an alias of string.
+			name: "defined type",
 			typ: ir.Type{
-				Name: "Refresh", IsAlias: true,
+				Name:        "Refresh",
 				EnumMembers: []ir.EnumMember{{ConstName: "RefreshWaitFor", Value: "wait_for"}},
 			},
-			want:       []string{"type Refresh = string", `RefreshWaitFor Refresh = "wait_for"`},
-			wantAbsent: []string{"type Refresh string"},
+			want:       []string{"type Refresh string", `RefreshWaitFor Refresh = "wait_for"`},
+			wantAbsent: []string{"= string"},
 		},
 	}
 	for _, tt := range tests {

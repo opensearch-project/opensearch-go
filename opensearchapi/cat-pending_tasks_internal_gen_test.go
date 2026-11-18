@@ -25,6 +25,26 @@ func TestCatPendingTasksParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatPendingTasksParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatPendingTasksParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatPendingTasksParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatPendingTasksParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatPendingTasksParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatPendingTasksParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -35,9 +55,24 @@ func TestCatPendingTasksParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{
+			name:   "s",
+			params: CatPendingTasksParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "time",
 			params: CatPendingTasksParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: CatPendingTasksParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatPendingTasksParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

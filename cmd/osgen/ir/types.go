@@ -239,10 +239,6 @@ type Type struct {
 	Package    string
 	ImportPath string
 
-	// IsAlias marks a TypeStringEnum emitted as `type X = string` rather than a
-	// defined type, so it stays interchangeable with plain string values.
-	IsAlias bool
-
 	// HasCount marks a TypeStringEnum for an integer-or-keyword query parameter:
 	// the emitted code also carries a <Name>Count(n int) constructor that formats
 	// the integer form of the value.

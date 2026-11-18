@@ -139,15 +139,14 @@ func (e *Unknown{{$t.Name}}Error) Error() string {
 }
 {{end}}`))
 
-// StringEnumFragment renders string-backed enum types: a string type plus one
-// exported const per known wire value. The type is a defined string type, or an
-// alias of string when ir.Type.IsAlias is set. Either way it is PERMISSIVE --
+// StringEnumFragment renders string-backed enum types: a defined string type
+// plus one exported const per known wire value. The type is PERMISSIVE --
 // because it is backed by string, encoding/json round-trips any value (including
 // ones not in the const set, e.g. a role a newer server introduces), so no custom
 // (Un)MarshalJSON is generated. The consts provide discoverability and drift
 // detection: they are derived from the spec, so a value removed upstream drops
-// its const and any reference fails to compile. A defined type also gives typo
-// protection; an alias accepts any string.
+// its const and any reference fails to compile. Being a defined type, it also
+// rejects a plain string variable without an explicit conversion.
 //
 // This is distinct from EnumFragment's closed int-backed enum, which rejects
 // unknown wire values on decode.
@@ -218,7 +217,7 @@ var stringEnumFragTmpl = template.Must(template.New("stringEnum").Funcs(template
 //
 // The server default is "{{$t.Default}}".
 {{- end}}
-type {{$t.Name}} {{if $t.IsAlias}}= {{end}}string
+type {{$t.Name}} string
 
 const (
 {{- range $i, $m := $t.EnumMembers}}
@@ -241,7 +240,7 @@ const (
 // {{$t.Name}}Count returns the {{$t.Name}} value that selects n, formatted as
 // the decimal integer the server expects.
 func {{$t.Name}}Count(n int) {{$t.Name}} {
-	return strconv.Itoa(n)
+	return {{$t.Name}}(strconv.Itoa(n))
 }
 {{- end}}
 {{end}}`))

@@ -13,9 +13,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -89,7 +89,7 @@ func (r DeleteMemoryContainerParams) get() map[string]string {
 	}
 
 	if len(r.DeleteMemories) > 0 {
-		set("delete_memories", strings.Join(r.DeleteMemories, ","))
+		set("delete_memories", apiutil.JoinStrings(r.DeleteMemories, ","))
 	}
 
 	return params

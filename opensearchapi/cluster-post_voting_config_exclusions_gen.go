@@ -13,9 +13,9 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -89,11 +89,11 @@ func (r ClusterPostVotingConfigExclusionsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.NodeIDs) > 0 {
-		set("node_ids", strings.Join(r.NodeIDs, ","))
+		set("node_ids", apiutil.JoinStrings(r.NodeIDs, ","))
 	}
 
 	if len(r.NodeNames) > 0 {
-		set("node_names", strings.Join(r.NodeNames, ","))
+		set("node_names", apiutil.JoinStrings(r.NodeNames, ","))
 	}
 
 	return params

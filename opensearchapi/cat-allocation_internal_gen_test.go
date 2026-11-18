@@ -30,6 +30,26 @@ func TestCatAllocationParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "bytes": "test-value"},
 		},
 		{
+			name:   "format",
+			params: CatAllocationParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatAllocationParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatAllocationParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatAllocationParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatAllocationParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -38,6 +58,21 @@ func TestCatAllocationParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatAllocationParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatAllocationParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatAllocationParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatAllocationParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

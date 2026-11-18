@@ -71,8 +71,28 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: CatSegmentReplicationParams{ExpandWildcards: []string{"a", "b"}},
+			params: CatSegmentReplicationParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"format": "json", "expand_wildcards": "a,b"},
+		},
+		{
+			name:   "format",
+			params: CatSegmentReplicationParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatSegmentReplicationParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatSegmentReplicationParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatSegmentReplicationParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
 		},
 		{
 			name:   "ignore_throttled=true",
@@ -100,6 +120,11 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "index": "a,b"},
 		},
 		{
+			name:   "s",
+			params: CatSegmentReplicationParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "shards",
 			params: CatSegmentReplicationParams{Shards: []string{"a", "b"}},
 			want:   map[string]string{"format": "json", "shards": "a,b"},
@@ -108,6 +133,16 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 			name:   "time",
 			params: CatSegmentReplicationParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: CatSegmentReplicationParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatSegmentReplicationParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

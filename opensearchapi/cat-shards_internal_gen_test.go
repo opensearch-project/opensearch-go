@@ -30,6 +30,26 @@ func TestCatShardsParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "bytes": "test-value"},
 		},
 		{
+			name:   "format",
+			params: CatShardsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatShardsParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatShardsParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatShardsParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatShardsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -40,9 +60,24 @@ func TestCatShardsParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{
+			name:   "s",
+			params: CatShardsParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "time",
 			params: CatShardsParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: CatShardsParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatShardsParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

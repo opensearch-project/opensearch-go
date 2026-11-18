@@ -14,6 +14,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func TestIndicesParams_get(t *testing.T) {
@@ -31,13 +33,33 @@ func TestIndicesParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesParams{ExpandWildcards: []opensearchapi.ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"format": "json", "expand_wildcards": "a,b"},
+		},
+		{
+			name:   "format",
+			params: IndicesParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: IndicesParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
 		},
 		{
 			name:   "health",
 			params: IndicesParams{Health: "test-value"},
 			want:   map[string]string{"format": "json", "health": "test-value"},
+		},
+		{
+			name:   "help=true",
+			params: IndicesParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: IndicesParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
 		},
 		{
 			name:   "include_unloaded_segments=true",
@@ -75,6 +97,11 @@ func TestIndicesParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "pri": "false"},
 		},
 		{
+			name:   "s",
+			params: IndicesParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "size",
 			params: IndicesParams{Size: 42},
 			want:   map[string]string{"format": "json", "size": "42"},
@@ -88,6 +115,16 @@ func TestIndicesParams_get(t *testing.T) {
 			name:   "time",
 			params: IndicesParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: IndicesParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: IndicesParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

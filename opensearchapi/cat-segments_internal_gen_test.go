@@ -29,6 +29,41 @@ func TestCatSegmentsParams_get(t *testing.T) {
 			params: CatSegmentsParams{Bytes: "test-value"},
 			want:   map[string]string{"format": "json", "bytes": "test-value"},
 		},
+		{
+			name:   "format",
+			params: CatSegmentsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatSegmentsParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatSegmentsParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatSegmentsParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
+			name:   "s",
+			params: CatSegmentsParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatSegmentsParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatSegmentsParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

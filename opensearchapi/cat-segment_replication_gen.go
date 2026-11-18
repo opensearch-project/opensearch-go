@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -107,6 +107,21 @@ type CatSegmentReplicationParams struct {
 	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// Default: text.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
+
 	// Whether specified concrete, expanded, or aliased indexes should be
 	// ignored when throttled.
 	IgnoreThrottled *bool
@@ -120,6 +135,9 @@ type CatSegmentReplicationParams struct {
 	// and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// A comma-separated list of shards to display.
 	Shards []string
 
@@ -129,6 +147,11 @@ type CatSegmentReplicationParams struct {
 	//
 	// See [TimeUnit] for valid values.
 	Time TimeUnit
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatSegmentReplicationParams) get() map[string]string {
@@ -166,7 +189,19 @@ func (r CatSegmentReplicationParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
 	}
 
 	if r.IgnoreThrottled != nil {
@@ -178,15 +213,23 @@ func (r CatSegmentReplicationParams) get() map[string]string {
 	}
 
 	if len(r.Indices) > 0 {
-		set("index", strings.Join(r.Indices, ","))
+		set("index", apiutil.JoinStrings(r.Indices, ","))
+	}
+
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
 	}
 
 	if len(r.Shards) > 0 {
-		set("shards", strings.Join(r.Shards, ","))
+		set("shards", apiutil.JoinStrings(r.Shards, ","))
 	}
 
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

@@ -27,7 +27,7 @@ func TestCatTemplates(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-cat-templates")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Templates(t.Context(), opensearchapi.CatTemplatesReq{Params: &opensearchapi.CatTemplatesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Name: name})
+		resp, err := client.Cat.Templates(t.Context(), opensearchapi.CatTemplatesReq{Params: &opensearchapi.CatTemplatesParams{Format: "json"}, Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -123,7 +123,7 @@ func (r ClusterRerouteParams) get() map[string]string {
 	}
 
 	if len(r.Metric) > 0 {
-		set("metric", strings.Join(r.Metric, ","))
+		set("metric", apiutil.JoinStrings(r.Metric, ","))
 	}
 
 	if r.RetryFailed != nil {

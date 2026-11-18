@@ -90,6 +90,13 @@ func (r ExplainReq) GetRequest(method string) (*http.Request, error) {
 type ExplainParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
+	// Specifies the response format (JSON, YAML).
+	//
+	// Default: jdbc.
+	//
+	// See [opensearchapi.PPLRespFormat] for valid values.
+	Format opensearchapi.PPLRespFormat
+
 	// Whether to escape special characters in the results.
 	//
 	// Default: true.
@@ -108,6 +115,10 @@ func (r ExplainParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 	if r.Format == "" {
 		set("format", "json")
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
 	}
 
 	if r.Sanitize != nil {

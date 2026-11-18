@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -83,11 +83,26 @@ type CatIndicesParams struct {
 	// See [ExpandWildcard] for valid values.
 	ExpandWildcards []ExpandWildcard
 
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// Default: text.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
 	// Limits indexes based on their health status. Supported values are
 	// `green`, `yellow`, and `red`.
 	//
 	// See [HealthStatus] for valid values.
 	Health HealthStatus
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
 
 	// Whether to include information from segments not loaded into memory.
 	//
@@ -105,10 +120,18 @@ type CatIndicesParams struct {
 	// Default: false.
 	Pri *bool
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// Specifies the time units.
 	//
 	// See [TimeUnit] for valid values.
 	Time TimeUnit
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatIndicesParams) get() map[string]string {
@@ -130,11 +153,23 @@ func (r CatIndicesParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
 	}
 
 	if r.Health != "" {
 		set("health", string(r.Health))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
 	}
 
 	if r.IncludeUnloadedSegments != nil {
@@ -149,8 +184,16 @@ func (r CatIndicesParams) get() map[string]string {
 		set("pri", strconv.FormatBool(*r.Pri))
 	}
 
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
+	}
+
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

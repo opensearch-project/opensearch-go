@@ -37,7 +37,7 @@ func TestCatSegmentReplication(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.SegmentReplication(t.Context(), &opensearchapi.CatSegmentReplicationReq{Params: &opensearchapi.CatSegmentReplicationParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Indices: []string{index}})
+		resp, err := client.Cat.SegmentReplication(t.Context(), &opensearchapi.CatSegmentReplicationReq{Params: &opensearchapi.CatSegmentReplicationParams{Format: "json"}, Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

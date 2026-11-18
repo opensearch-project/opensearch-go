@@ -61,7 +61,7 @@ func TestCountParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: CountParams{ExpandWildcards: []string{"a", "b"}},
+			params: CountParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

@@ -26,7 +26,7 @@ func TestCatNodeattrs(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Nodeattrs(t.Context(), &opensearchapi.CatNodeattrsReq{Params: &opensearchapi.CatNodeattrsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.Nodeattrs(t.Context(), &opensearchapi.CatNodeattrsReq{Params: &opensearchapi.CatNodeattrsParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

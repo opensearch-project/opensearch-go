@@ -36,7 +36,7 @@ func TestSearchShardsParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: SearchShardsParams{ExpandWildcards: []string{"a", "b"}},
+			params: SearchShardsParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

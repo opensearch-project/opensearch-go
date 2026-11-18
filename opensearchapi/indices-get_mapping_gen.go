@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -115,7 +115,7 @@ func (r IndicesGetMappingParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.IgnoreUnavailable != nil {
@@ -123,7 +123,7 @@ func (r IndicesGetMappingParams) get() map[string]string {
 	}
 
 	if len(r.Indices) > 0 {
-		set("index", strings.Join(r.Indices, ","))
+		set("index", apiutil.JoinStrings(r.Indices, ","))
 	}
 
 	if r.Local != nil {

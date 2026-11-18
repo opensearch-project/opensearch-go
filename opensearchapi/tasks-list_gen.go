@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -111,7 +111,7 @@ func (r TasksListParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.Actions) > 0 {
-		set("actions", strings.Join(r.Actions, ","))
+		set("actions", apiutil.JoinStrings(r.Actions, ","))
 	}
 
 	if r.Detailed != nil {
@@ -123,7 +123,7 @@ func (r TasksListParams) get() map[string]string {
 	}
 
 	if len(r.Nodes) > 0 {
-		set("nodes", strings.Join(r.Nodes, ","))
+		set("nodes", apiutil.JoinStrings(r.Nodes, ","))
 	}
 
 	if r.ParentTaskID != "" {

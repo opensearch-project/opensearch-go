@@ -27,7 +27,7 @@ func TestCatNodes(t *testing.T) {
 	testutil.WaitForAllNodesReady(t, client)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Nodes(t.Context(), &opensearchapi.CatNodesReq{Params: &opensearchapi.CatNodesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.Nodes(t.Context(), &opensearchapi.CatNodesReq{Params: &opensearchapi.CatNodesParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

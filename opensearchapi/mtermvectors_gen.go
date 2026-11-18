@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -167,11 +167,11 @@ func (r MTermVectorsParams) get() map[string]string {
 	}
 
 	if len(r.Fields) > 0 {
-		set("fields", strings.Join(r.Fields, ","))
+		set("fields", apiutil.JoinStrings(r.Fields, ","))
 	}
 
 	if len(r.IDs) > 0 {
-		set("ids", strings.Join(r.IDs, ","))
+		set("ids", apiutil.JoinStrings(r.IDs, ","))
 	}
 
 	if r.Offsets != nil {
@@ -195,7 +195,7 @@ func (r MTermVectorsParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.TermStatistics != nil {

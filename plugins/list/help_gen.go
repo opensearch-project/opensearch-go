@@ -48,11 +48,6 @@ func (r HelpReq) GetRequest(method string) (*http.Request, error) {
 	var params map[string]string
 	if r.Params != nil {
 		params = r.Params.get()
-	} else {
-		// This operation defaults the format query param (the typed Resp
-		// only decodes that format). The default lives in Params.get(), so
-		// build it from a zero-value Params when the caller passes none.
-		params = HelpParams{}.get()
 	}
 
 	return build.Request(
@@ -80,9 +75,6 @@ func (r HelpParams) get() map[string]string {
 	}
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
-	if r.Format == "" {
-		set("format", "json")
-	}
 
 	return params
 }

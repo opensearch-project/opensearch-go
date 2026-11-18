@@ -29,7 +29,9 @@ type TimeoutParams struct {
 	MasterTimeout time.Duration
 }
 
-// DebugParams holds diagnostic and display parameters.
+// DebugParams holds the diagnostic parameters every operation accepts (the
+// spec's global parameters). Display parameters such as format, h and v are
+// fields of the operations that take them.
 type DebugParams struct {
 	// Pretty enables indented JSON responses for debugging readability.
 	Pretty bool
@@ -45,23 +47,6 @@ type DebugParams struct {
 
 	// Source provides an alternative way to pass the request body as a query parameter.
 	Source string
-
-	// Format controls the output format (used by cat, list, SQL and PPL
-	// operations). Values are defined by the CatRespFormat, ListRespFormat,
-	// SQLRespFormat and PPLRespFormat types in package opensearchapi.
-	Format string
-
-	// Help returns help information about the operation (used by cat operations).
-	Help bool
-
-	// V enables verbose output (used by cat operations).
-	V bool
-
-	// S specifies the columns used for sorting output (used by cat operations).
-	S []string
-
-	// H specifies which columns to display in the output (used by cat operations).
-	H []string
 }
 
 // EncodeTimeout serializes non-zero timeout fields into query parameters.
@@ -93,20 +78,5 @@ func EncodeDebug(p DebugParams, set func(k, v string)) {
 	}
 	if p.Source != "" {
 		set("source", p.Source)
-	}
-	if p.Format != "" {
-		set("format", p.Format)
-	}
-	if p.Help {
-		set("help", "true")
-	}
-	if p.V {
-		set("v", "true")
-	}
-	if len(p.S) > 0 {
-		set("s", strings.Join(p.S, ","))
-	}
-	if len(p.H) > 0 {
-		set("h", strings.Join(p.H, ","))
 	}
 }

@@ -37,7 +37,7 @@ func (f *ParamsFragment) Imports() []Import {
 		case ir.ParamInt, ir.ParamFloat:
 			imps = append(imps, Import{Path: "strconv"})
 		case ir.ParamList:
-			imps = append(imps, Import{Path: "strings"})
+			imps = append(imps, Import{Path: LocalModule + "/internal/apiutil"})
 		case ir.ParamString:
 			// no extra import
 		}
@@ -77,25 +77,34 @@ var groupFormatOverrides = map[string]string{
 	"sql.explain": "json",
 }
 
-// HasFormatOverride returns the SDK-side runtime default for the operation
-// group's `format` query param, or the empty string when no override
-// applies. The lookup consults groupFormatOverrides first (full group
-// name) and falls back to prefixFormatOverrides keyed by the segment of
-// Group before the first dot.
-//
-// Every generated Params struct embeds DebugParams, which carries the
-// Format field, so the override may be emitted for any operation in a
-// matching group regardless of whether the spec lists `format` as an
-// operation-specific query parameter.
-func HasFormatOverride(group string) string {
-	if v, ok := groupFormatOverrides[group]; ok {
+// FormatOverride returns the SDK-side runtime default for op's `format` query
+// param, or the empty string when no override applies. An operation gets one
+// only when it declares `format` (the spec declares it per operation, so a
+// family member such as cat help may not); the value comes from
+// groupFormatOverrides (full group name) first, then from
+// prefixFormatOverrides keyed by the segment of Group before the first dot.
+func FormatOverride(op *ir.Operation) string {
+	if !hasQueryParam(op, "format") {
+		return ""
+	}
+	if v, ok := groupFormatOverrides[op.Group]; ok {
 		return v
 	}
-	prefix, _, found := strings.Cut(group, ".")
+	prefix, _, found := strings.Cut(op.Group, ".")
 	if !found {
 		return ""
 	}
 	return prefixFormatOverrides[prefix]
+}
+
+// hasQueryParam reports whether op declares the query parameter wireName.
+func hasQueryParam(op *ir.Operation, wireName string) bool {
+	for _, p := range op.QueryParams {
+		if p.WireName == wireName {
+			return true
+		}
+	}
+	return false
 }
 
 // Body renders the Params struct (and its associated apply method) for the
@@ -114,20 +123,20 @@ func (f *ParamsFragment) Body() (string, error) {
 	qualifyGoType := qualifierFunc(f.Op.IsPlugin, f.Registry)
 
 	tmpl := template.Must(template.New("params").Funcs(template.FuncMap{
-		"wrapField":         WrapField,
-		"availabilityNote":  AvailabilityNote,
-		"qualify":           qualify,
-		"qualifyType":       qualifyGoType,
-		"enumRef":           func(goType string) string { return qualifyGoType(strings.TrimPrefix(goType, "[]")) },
-		"isDuration":        func(k ir.ParamKind) bool { return k == ir.ParamDuration },
-		"isBool":            func(k ir.ParamKind) bool { return k == ir.ParamBool },
-		"isList":            func(k ir.ParamKind) bool { return k == ir.ParamList },
-		"isInt":             func(k ir.ParamKind) bool { return k == ir.ParamInt },
-		"isIntPtr":          func(p ir.QueryParam) bool { return p.Kind == ir.ParamInt && p.GoType == "*int" },
-		"isFloat":           func(k ir.ParamKind) bool { return k == ir.ParamFloat },
-		"isFloatPtr":        func(p ir.QueryParam) bool { return p.Kind == ir.ParamFloat && p.GoType == "*float64" },
-		"isStringEnum":      func(p ir.QueryParam) bool { return p.IsStringEnum },
-		"hasFormatOverride": HasFormatOverride,
+		"wrapField":        WrapField,
+		"availabilityNote": AvailabilityNote,
+		"qualify":          qualify,
+		"qualifyType":      qualifyGoType,
+		"enumRef":          func(goType string) string { return qualifyGoType(strings.TrimPrefix(goType, "[]")) },
+		"isDuration":       func(k ir.ParamKind) bool { return k == ir.ParamDuration },
+		"isBool":           func(k ir.ParamKind) bool { return k == ir.ParamBool },
+		"isList":           func(k ir.ParamKind) bool { return k == ir.ParamList },
+		"isInt":            func(k ir.ParamKind) bool { return k == ir.ParamInt },
+		"isIntPtr":         func(p ir.QueryParam) bool { return p.Kind == ir.ParamInt && p.GoType == "*int" },
+		"isFloat":          func(k ir.ParamKind) bool { return k == ir.ParamFloat },
+		"isFloatPtr":       func(p ir.QueryParam) bool { return p.Kind == ir.ParamFloat && p.GoType == "*float64" },
+		"isStringEnum":     func(p ir.QueryParam) bool { return p.IsStringEnum },
+		"formatOverride":   func() string { return FormatOverride(f.Op) },
 	}).Parse(paramsTmplStr))
 
 	var sb strings.Builder
@@ -179,7 +188,7 @@ func (r {{.TypePrefix}}Params) get() map[string]string {
 	}
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
-{{- with hasFormatOverride .Group}}
+{{- with formatOverride}}
 	if r.Format == "" {
 		set("format", "{{.}}")
 	}
@@ -195,7 +204,7 @@ func (r {{.TypePrefix}}Params) get() map[string]string {
 	}
 {{- else if isList .Kind}}
 	if len(r.{{.GoName}}) > 0 {
-		set("{{.WireName}}", strings.Join(r.{{.GoName}}, ","))
+		set("{{.WireName}}", apiutil.JoinStrings(r.{{.GoName}}, ","))
 	}
 {{- else if isIntPtr .}}
 	if r.{{.GoName}} != nil {

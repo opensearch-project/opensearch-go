@@ -35,7 +35,7 @@ func TestCatIndices(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Indices(t.Context(), &opensearchapi.CatIndicesReq{Params: &opensearchapi.CatIndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Indices: []string{index}})
+		resp, err := client.Cat.Indices(t.Context(), &opensearchapi.CatIndicesReq{Params: &opensearchapi.CatIndicesParams{Format: "json"}, Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

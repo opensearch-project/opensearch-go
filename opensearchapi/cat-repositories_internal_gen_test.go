@@ -25,6 +25,26 @@ func TestCatRepositoriesParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatRepositoriesParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatRepositoriesParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatRepositoriesParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatRepositoriesParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatRepositoriesParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatRepositoriesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -33,6 +53,21 @@ func TestCatRepositoriesParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatRepositoriesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatRepositoriesParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatRepositoriesParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatRepositoriesParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

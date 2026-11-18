@@ -52,8 +52,8 @@ func (f *ReqFragment) Body() (string, error) {
 		"wrapLine":         WrapLine,
 		"availabilityNote": AvailabilityNote,
 		"qualify":          qualify,
-		"hasFormatOverride": func(group string) bool {
-			return HasFormatOverride(group) != ""
+		"hasFormatOverride": func() bool {
+			return FormatOverride(f.Op) != ""
 		},
 	}).Parse(reqTmplStr))
 
@@ -198,7 +198,7 @@ func (r {{.TypePrefix}}Req) GetRequest(method string) (*http.Request, error) {
 	var params map[string]string
 	if r.Params != nil {
 		params = r.Params.get()
-{{- if hasFormatOverride .Group}}
+{{- if hasFormatOverride}}
 	} else {
 		// This operation defaults the format query param (the typed Resp
 		// only decodes that format). The default lives in Params.get(), so

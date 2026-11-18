@@ -14,11 +14,11 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -114,7 +114,7 @@ func (r CreatePITParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.KeepAlive != 0 {
@@ -126,7 +126,7 @@ func (r CreatePITParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	return params

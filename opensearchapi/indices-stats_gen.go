@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -134,19 +134,19 @@ func (r IndicesStatsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.CompletionFields) > 0 {
-		set("completion_fields", strings.Join(r.CompletionFields, ","))
+		set("completion_fields", apiutil.JoinStrings(r.CompletionFields, ","))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if len(r.FielddataFields) > 0 {
-		set("fielddata_fields", strings.Join(r.FielddataFields, ","))
+		set("fielddata_fields", apiutil.JoinStrings(r.FielddataFields, ","))
 	}
 
 	if len(r.Fields) > 0 {
-		set("fields", strings.Join(r.Fields, ","))
+		set("fields", apiutil.JoinStrings(r.Fields, ","))
 	}
 
 	if r.ForbidClosedIndices != nil {
@@ -154,7 +154,7 @@ func (r IndicesStatsParams) get() map[string]string {
 	}
 
 	if len(r.Groups) > 0 {
-		set("groups", strings.Join(r.Groups, ","))
+		set("groups", apiutil.JoinStrings(r.Groups, ","))
 	}
 
 	if r.IncludeSegmentFileSizes != nil {

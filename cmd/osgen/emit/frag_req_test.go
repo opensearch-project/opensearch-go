@@ -210,7 +210,7 @@ func TestParamsFragment_Imports(t *testing.T) {
 	require.True(t, paths[emit.LocalModule+"/internal/params"], "missing internal/params import")
 	require.True(t, paths["time"], "missing time import for Duration param")
 	require.True(t, paths["strconv"], "missing strconv import for Int param")
-	require.True(t, paths["strings"], "missing strings import for List param")
+	require.True(t, paths[emit.LocalModule+"/internal/apiutil"], "missing internal/apiutil import for List param")
 }
 
 func TestFileAssembly_ReqAndParams(t *testing.T) {

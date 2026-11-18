@@ -162,7 +162,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 })
 ```
 
-Duration parameters (timeouts, intervals) accept `time.Duration` and are formatted automatically. Boolean and enum parameters use their Go-native types. Enum-valued parameters have typed constants (aliases of `string`) documented on each type in the package godoc, for example [`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh). Set them by constant, such as `WaitForActiveShards: opensearchapi.WaitForActiveShardsAll`.
+Duration parameters (timeouts, intervals) accept `time.Duration` and are formatted automatically. Boolean and enum parameters use their Go-native types. Enum-valued parameters have their own string types with typed constants, documented on each type in the package godoc, for example [`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh). Set them by constant, such as `WaitForActiveShards: opensearchapi.WaitForActiveShardsAll`, or by a string literal; a `string` variable needs a conversion, such as `opensearchapi.Refresh(s)`.
 
 ### Pointer parameters
 

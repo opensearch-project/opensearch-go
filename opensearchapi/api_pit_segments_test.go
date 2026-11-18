@@ -66,7 +66,7 @@ func TestManual_PITSegments(t *testing.T) {
 				return client.Cat.PITSegments(ctx, &opensearchapi.CatPITSegmentsReq{
 					Body: &opensearchapi.CatPITSegmentsBody{PITID: []opensearchapi.PITID{pitID}},
 					Params: &opensearchapi.CatPITSegmentsParams{
-						DebugParams: opensearchapi.DebugParams{Format: "json"},
+						Format: "json",
 					},
 				})
 			},
@@ -76,7 +76,7 @@ func TestManual_PITSegments(t *testing.T) {
 			exec: func(ctx context.Context) (interface{ Inspect() opensearchapi.Inspect }, error) {
 				return client.Cat.AllPITSegments(ctx, &opensearchapi.CatAllPITSegmentsReq{
 					Params: &opensearchapi.CatAllPITSegmentsParams{
-						DebugParams: opensearchapi.DebugParams{Format: "json"},
+						Format: "json",
 					},
 				})
 			},

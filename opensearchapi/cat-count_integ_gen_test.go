@@ -35,7 +35,7 @@ func TestCatCount(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Count(t.Context(), &opensearchapi.CatCountReq{Params: &opensearchapi.CatCountParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Indices: []string{index}})
+		resp, err := client.Cat.Count(t.Context(), &opensearchapi.CatCountReq{Params: &opensearchapi.CatCountParams{Format: "json"}, Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

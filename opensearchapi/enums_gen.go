@@ -788,7 +788,7 @@ const (
 )
 
 // Controls whether a write operation makes its changes visible to search before the response is returned. The values are `true`, `false` (the default), and `wait_for`; an empty value is treated as `true`.
-type Refresh = string
+type Refresh string
 
 const (
 	// RefreshFalse. Returns without refreshing or waiting for a refresh. This
@@ -814,7 +814,7 @@ const (
 // The number of active copies of each shard, counting the primary, that must be available before the operation proceeds. Use `all` for every copy, or a number from `0` (do not wait) up to the number of replicas plus one.
 //
 // For write operations the check is made before writing to the primary. If not enough copies become active before the request times out, the operation fails without writing.
-type WaitForActiveShards = string
+type WaitForActiveShards string
 
 const (
 	// WaitForActiveShardsAll. Waits until every copy of each shard, the
@@ -825,11 +825,11 @@ const (
 // WaitForActiveShardsCount returns the WaitForActiveShards value that selects n, formatted as
 // the decimal integer the server expects.
 func WaitForActiveShardsCount(n int) WaitForActiveShards {
-	return strconv.Itoa(n)
+	return WaitForActiveShards(strconv.Itoa(n))
 }
 
 // The kind of index that a wildcard expression in an index name can expand to. Values are case-sensitive and can be combined; the server applies them in order, so `none` clears any value listed before it.
-type ExpandWildcard = string
+type ExpandWildcard string
 
 const (
 	// ExpandWildcardAll. Expands wildcards to open, closed, and hidden
@@ -853,10 +853,38 @@ const (
 	ExpandWildcardOpen ExpandWildcard = "open"
 )
 
+// Selects the response format returned by cat operations. Equivalent to
+// the HTTP `Accept` header but expressed as a query parameter.
+//
+// The server default is "text".
+type CatRespFormat string
+
+const (
+	// CatRespFormatText. Returns a plain-text table with one row per line. Add
+	// `v=true` to include column headers.
+	CatRespFormatText CatRespFormat = "text"
+
+	// CatRespFormatJSON. Returns the rows as a JSON array of objects, one
+	// object per row keyed by column name.
+	CatRespFormatJSON CatRespFormat = "json"
+
+	// CatRespFormatYaml. Returns the rows as a YAML list of objects, one
+	// object per row keyed by column name.
+	CatRespFormatYaml CatRespFormat = "yaml"
+
+	// CatRespFormatCbor. Returns the rows encoded as CBOR, a binary form of
+	// the JSON structure.
+	CatRespFormatCbor CatRespFormat = "cbor"
+
+	// CatRespFormatSmile. Returns the rows encoded as Smile, a binary form of
+	// the JSON structure.
+	CatRespFormatSmile CatRespFormat = "smile"
+)
+
 // The unit used to display byte values in cat and list responses. Units are binary multiples (1 kb is 1024 bytes), and values are truncated to whole numbers. The value is case-sensitive.
 //
 // When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5gb`.
-type ByteUnit = string
+type ByteUnit string
 
 const (
 	// ByteUnitB. Shows byte values as a plain count of bytes. Pick it when
@@ -937,7 +965,7 @@ const (
 )
 
 // The health of a shard, an index, or the cluster. An index reports the worst status of its shards, and the cluster reports the worst status of its indexes. Values are not case-sensitive.
-type HealthStatus = string
+type HealthStatus string
 
 const (
 	// HealthStatusGreen. All shards are assigned.
@@ -957,7 +985,7 @@ const (
 // Controls the amount of detail included in the cluster health response. Defaults to `cluster`, which reports only the cluster-wide health. `indices` adds the health of each index, and `shards` also adds the health of each shard within each index.
 //
 // `awareness_attributes` reports health for each value of an awareness attribute. It is required when `awareness_attribute` is set, and cannot be combined with an index target. An unrecognized value is treated as `cluster`.
-type ClusterHealthLevel = string
+type ClusterHealthLevel string
 
 const (
 	// ClusterHealthLevelAwarenessAttributes. Reports health broken down by
@@ -1005,7 +1033,7 @@ const (
 )
 
 // The Boolean logic used to combine the terms of a query. `or` matches documents that contain any of the terms, and `and` matches only documents that contain all of them. The value is not case-sensitive.
-type CommonQueryDSLOperator = string
+type CommonQueryDSLOperator string
 
 const (
 	// CommonQueryDSLOperatorAnd. Every term must match (each term becomes a
@@ -1033,7 +1061,7 @@ const (
 )
 
 // The slice configuration used to parallelize a process.
-type Slices = string
+type Slices string
 
 const (
 	// SlicesAuto. Automatically determine the number of slices.
@@ -1043,11 +1071,11 @@ const (
 // SlicesCount returns the Slices value that selects n, formatted as
 // the decimal integer the server expects.
 func SlicesCount(n int) Slices {
-	return strconv.Itoa(n)
+	return Slices(strconv.Itoa(n))
 }
 
 // Specifies the level of detail of the returned statistics. `indices` adds a breakdown for each index, and `shards` also adds a breakdown for each shard of each index. For index statistics, `cluster` returns only the totals across all targeted indexes.
-type Level = string
+type Level string
 
 const (
 	// LevelCluster. For index statistics, returns only the `_all` totals
@@ -1065,7 +1093,7 @@ const (
 )
 
 // InsightsMetricType is a value of the `type` query parameter.
-type InsightsMetricType = string
+type InsightsMetricType string
 
 const (
 	// InsightsMetricTypeCPU. Ranks queries by the CPU time their search tasks
@@ -1084,7 +1112,7 @@ const (
 // Controls which suggestions the term suggester returns for each term in the suggest text. Defaults to `missing`. The value is not case-sensitive.
 //
 // `missing` suggests only for terms that are not in the index. `popular` suggests only terms that occur in more documents than the original term. `always` suggests any matching terms based on the tokens in the suggest text.
-type SuggestMode = string
+type SuggestMode string
 
 const (
 	// SuggestModeAlways. Suggests matching terms for every term in the suggest
@@ -1101,8 +1129,36 @@ const (
 	SuggestModePopular SuggestMode = "popular"
 )
 
+// Selects the response format returned by list operations. Equivalent
+// to the HTTP `Accept` header but expressed as a query parameter.
+//
+// The server default is "text".
+type ListRespFormat string
+
+const (
+	// ListRespFormatText. Returns a plain-text table with one row per line.
+	// Add `v=true` to include column headers.
+	ListRespFormatText ListRespFormat = "text"
+
+	// ListRespFormatJSON. Returns a JSON object holding the `next_token` for
+	// the following page and an array of row objects keyed by column name.
+	ListRespFormatJSON ListRespFormat = "json"
+
+	// ListRespFormatYaml. Returns the same paginated structure as `json`,
+	// encoded as YAML.
+	ListRespFormatYaml ListRespFormat = "yaml"
+
+	// ListRespFormatCbor. Returns the same paginated structure as `json`,
+	// encoded as CBOR.
+	ListRespFormatCbor ListRespFormat = "cbor"
+
+	// ListRespFormatSmile. Returns the same paginated structure as `json`,
+	// encoded as Smile.
+	ListRespFormatSmile ListRespFormat = "smile"
+)
+
 // The direction of the sort order.
-type SortOrder = string
+type SortOrder string
 
 const (
 	// SortOrderAsc. Ascending order, smallest value first.
@@ -1127,7 +1183,7 @@ const (
 )
 
 // Type of notification configuration.
-type NotificationsNotificationConfigType = string
+type NotificationsNotificationConfigType string
 
 const (
 	// NotificationsNotificationConfigTypeChime. An Amazon Chime channel that
@@ -1169,171 +1225,6 @@ const (
 	NotificationsNotificationConfigTypeWebhook NotificationsNotificationConfigType = "webhook"
 )
 
-// SecurityAnalyticsAlertsAlertState is a value of the `alertState` query parameter.
-type SecurityAnalyticsAlertsAlertState = string
-
-const (
-	// SecurityAnalyticsAlertsAlertStateAcknowledged. A user acknowledged the
-	// alert while it was active; only active alerts can be acknowledged.
-	SecurityAnalyticsAlertsAlertStateAcknowledged SecurityAnalyticsAlertsAlertState = "ACKNOWLEDGED"
-
-	// SecurityAnalyticsAlertsAlertStateActive. The trigger condition is met
-	// and the alert has not been acknowledged.
-	SecurityAnalyticsAlertsAlertStateActive SecurityAnalyticsAlertsAlertState = "ACTIVE"
-
-	// SecurityAnalyticsAlertsAlertStateCompleted. The trigger condition is no
-	// longer met, so the alert ended and was removed from the active alerts
-	// index.
-	SecurityAnalyticsAlertsAlertStateCompleted SecurityAnalyticsAlertsAlertState = "COMPLETED"
-
-	// SecurityAnalyticsAlertsAlertStateDeleted. The monitor or detector behind
-	// the alert was deleted or changed, and the alert was moved to history in
-	// this state.
-	SecurityAnalyticsAlertsAlertStateDeleted SecurityAnalyticsAlertsAlertState = "DELETED"
-
-	// SecurityAnalyticsAlertsAlertStateError. The monitor hit an error while
-	// running or evaluating the trigger; the alert carries the error message.
-	SecurityAnalyticsAlertsAlertStateError SecurityAnalyticsAlertsAlertState = "ERROR"
-)
-
-// Severity level with 1 the highest and 5 the lowest. `ALL` designates no particular severity.
-type SecurityAnalyticsAlertsAlertSeverityLevel = string
-
-const (
-	// SecurityAnalyticsAlertsAlertSeverityLevel1. Returns only alerts whose
-	// trigger severity is 1, the highest.
-	SecurityAnalyticsAlertsAlertSeverityLevel1 SecurityAnalyticsAlertsAlertSeverityLevel = "1"
-
-	// SecurityAnalyticsAlertsAlertSeverityLevel2. Returns only alerts whose
-	// trigger severity is 2.
-	SecurityAnalyticsAlertsAlertSeverityLevel2 SecurityAnalyticsAlertsAlertSeverityLevel = "2"
-
-	// SecurityAnalyticsAlertsAlertSeverityLevel3. Returns only alerts whose
-	// trigger severity is 3.
-	SecurityAnalyticsAlertsAlertSeverityLevel3 SecurityAnalyticsAlertsAlertSeverityLevel = "3"
-
-	// SecurityAnalyticsAlertsAlertSeverityLevel4. Returns only alerts whose
-	// trigger severity is 4.
-	SecurityAnalyticsAlertsAlertSeverityLevel4 SecurityAnalyticsAlertsAlertSeverityLevel = "4"
-
-	// SecurityAnalyticsAlertsAlertSeverityLevel5. Returns only alerts whose
-	// trigger severity is 5, the lowest.
-	SecurityAnalyticsAlertsAlertSeverityLevel5 SecurityAnalyticsAlertsAlertSeverityLevel = "5"
-
-	// SecurityAnalyticsAlertsAlertSeverityLevelAll. Applies no severity
-	// filter. This is the default when the parameter is omitted.
-	SecurityAnalyticsAlertsAlertSeverityLevelAll SecurityAnalyticsAlertsAlertSeverityLevel = "ALL"
-)
-
-// SecurityAnalyticsFindingsDetectionType is a value of the `detectionType` query parameter.
-type SecurityAnalyticsFindingsDetectionType = string
-
-const (
-	// SecurityAnalyticsFindingsDetectionTypeRule. Returns findings produced by
-	// detection rules, meaning every finding whose query ID does not start
-	// with `threat_intel_`.
-	SecurityAnalyticsFindingsDetectionTypeRule SecurityAnalyticsFindingsDetectionType = "rule"
-
-	// SecurityAnalyticsFindingsDetectionTypeThreat. Returns findings produced
-	// by threat intelligence matching, meaning findings whose query ID starts
-	// with `threat_intel_`.
-	SecurityAnalyticsFindingsDetectionTypeThreat SecurityAnalyticsFindingsDetectionType = "threat"
-)
-
-// SecurityAnalyticsFindingsRuleSeverity is a value of the `severity` query parameter.
-type SecurityAnalyticsFindingsRuleSeverity = string
-
-const (
-	// SecurityAnalyticsFindingsRuleSeverityCritical. Returns findings from
-	// rules with Sigma level `critical`, the most severe.
-	SecurityAnalyticsFindingsRuleSeverityCritical SecurityAnalyticsFindingsRuleSeverity = "critical"
-
-	// SecurityAnalyticsFindingsRuleSeverityHigh. Returns findings from rules
-	// with Sigma level `high`.
-	SecurityAnalyticsFindingsRuleSeverityHigh SecurityAnalyticsFindingsRuleSeverity = "high"
-
-	// SecurityAnalyticsFindingsRuleSeverityLow. Returns findings from rules
-	// with Sigma level `low`.
-	SecurityAnalyticsFindingsRuleSeverityLow SecurityAnalyticsFindingsRuleSeverity = "low"
-
-	// SecurityAnalyticsFindingsRuleSeverityMedium. Returns findings from rules
-	// with Sigma level `medium`.
-	SecurityAnalyticsFindingsRuleSeverityMedium SecurityAnalyticsFindingsRuleSeverity = "medium"
-)
-
-// TasksGroupBy is a value of the `group_by` query parameter.
-type TasksGroupBy = string
-
-const (
-	// TasksGroupByNodes. Groups tasks under a `nodes` object keyed by the ID
-	// of the node running them, with node details. This is the default.
-	TasksGroupByNodes TasksGroupBy = "nodes"
-
-	// TasksGroupByNone. Returns tasks as a flat `tasks` array with no
-	// grouping.
-	TasksGroupByNone TasksGroupBy = "none"
-
-	// TasksGroupByParents. Returns a `tasks` object keyed by task ID, with
-	// child tasks nested under their parent task.
-	TasksGroupByParents TasksGroupBy = "parents"
-)
-
-// Selects the response format returned by cat operations. Equivalent to
-// the HTTP `Accept` header but expressed as a query parameter.
-//
-// The server default is "text".
-type CatRespFormat = string
-
-const (
-	// CatRespFormatText. Returns a plain-text table with one row per line. Add
-	// `v=true` to include column headers.
-	CatRespFormatText CatRespFormat = "text"
-
-	// CatRespFormatJSON. Returns the rows as a JSON array of objects, one
-	// object per row keyed by column name.
-	CatRespFormatJSON CatRespFormat = "json"
-
-	// CatRespFormatYaml. Returns the rows as a YAML list of objects, one
-	// object per row keyed by column name.
-	CatRespFormatYaml CatRespFormat = "yaml"
-
-	// CatRespFormatCbor. Returns the rows encoded as CBOR, a binary form of
-	// the JSON structure.
-	CatRespFormatCbor CatRespFormat = "cbor"
-
-	// CatRespFormatSmile. Returns the rows encoded as Smile, a binary form of
-	// the JSON structure.
-	CatRespFormatSmile CatRespFormat = "smile"
-)
-
-// Selects the response format returned by list operations. Equivalent
-// to the HTTP `Accept` header but expressed as a query parameter.
-//
-// The server default is "text".
-type ListRespFormat = string
-
-const (
-	// ListRespFormatText. Returns a plain-text table with one row per line.
-	// Add `v=true` to include column headers.
-	ListRespFormatText ListRespFormat = "text"
-
-	// ListRespFormatJSON. Returns a JSON object holding the `next_token` for
-	// the following page and an array of row objects keyed by column name.
-	ListRespFormatJSON ListRespFormat = "json"
-
-	// ListRespFormatYaml. Returns the same paginated structure as `json`,
-	// encoded as YAML.
-	ListRespFormatYaml ListRespFormat = "yaml"
-
-	// ListRespFormatCbor. Returns the same paginated structure as `json`,
-	// encoded as CBOR.
-	ListRespFormatCbor ListRespFormat = "cbor"
-
-	// ListRespFormatSmile. Returns the same paginated structure as `json`,
-	// encoded as Smile.
-	ListRespFormatSmile ListRespFormat = "smile"
-)
-
 // Response format selector for PPL plugin operations. Query responses
 // use `jdbc` (default), `csv`, `raw` or `viz`; explain responses use
 // `json` (default) or `yaml`. `simple`, `standard`, `extended` and
@@ -1341,7 +1232,7 @@ const (
 // parameter.
 //
 // The server default is "jdbc".
-type PPLRespFormat = string
+type PPLRespFormat string
 
 const (
 	// PPLRespFormatJdbc. Query response as a JSON object with a `schema` array
@@ -1387,6 +1278,98 @@ const (
 	PPLRespFormatCost PPLRespFormat = "cost"
 )
 
+// SecurityAnalyticsAlertsAlertState is a value of the `alertState` query parameter.
+type SecurityAnalyticsAlertsAlertState string
+
+const (
+	// SecurityAnalyticsAlertsAlertStateAcknowledged. A user acknowledged the
+	// alert while it was active; only active alerts can be acknowledged.
+	SecurityAnalyticsAlertsAlertStateAcknowledged SecurityAnalyticsAlertsAlertState = "ACKNOWLEDGED"
+
+	// SecurityAnalyticsAlertsAlertStateActive. The trigger condition is met
+	// and the alert has not been acknowledged.
+	SecurityAnalyticsAlertsAlertStateActive SecurityAnalyticsAlertsAlertState = "ACTIVE"
+
+	// SecurityAnalyticsAlertsAlertStateCompleted. The trigger condition is no
+	// longer met, so the alert ended and was removed from the active alerts
+	// index.
+	SecurityAnalyticsAlertsAlertStateCompleted SecurityAnalyticsAlertsAlertState = "COMPLETED"
+
+	// SecurityAnalyticsAlertsAlertStateDeleted. The monitor or detector behind
+	// the alert was deleted or changed, and the alert was moved to history in
+	// this state.
+	SecurityAnalyticsAlertsAlertStateDeleted SecurityAnalyticsAlertsAlertState = "DELETED"
+
+	// SecurityAnalyticsAlertsAlertStateError. The monitor hit an error while
+	// running or evaluating the trigger; the alert carries the error message.
+	SecurityAnalyticsAlertsAlertStateError SecurityAnalyticsAlertsAlertState = "ERROR"
+)
+
+// Severity level with 1 the highest and 5 the lowest. `ALL` designates no particular severity.
+type SecurityAnalyticsAlertsAlertSeverityLevel string
+
+const (
+	// SecurityAnalyticsAlertsAlertSeverityLevel1. Returns only alerts whose
+	// trigger severity is 1, the highest.
+	SecurityAnalyticsAlertsAlertSeverityLevel1 SecurityAnalyticsAlertsAlertSeverityLevel = "1"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel2. Returns only alerts whose
+	// trigger severity is 2.
+	SecurityAnalyticsAlertsAlertSeverityLevel2 SecurityAnalyticsAlertsAlertSeverityLevel = "2"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel3. Returns only alerts whose
+	// trigger severity is 3.
+	SecurityAnalyticsAlertsAlertSeverityLevel3 SecurityAnalyticsAlertsAlertSeverityLevel = "3"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel4. Returns only alerts whose
+	// trigger severity is 4.
+	SecurityAnalyticsAlertsAlertSeverityLevel4 SecurityAnalyticsAlertsAlertSeverityLevel = "4"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel5. Returns only alerts whose
+	// trigger severity is 5, the lowest.
+	SecurityAnalyticsAlertsAlertSeverityLevel5 SecurityAnalyticsAlertsAlertSeverityLevel = "5"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevelAll. Applies no severity
+	// filter. This is the default when the parameter is omitted.
+	SecurityAnalyticsAlertsAlertSeverityLevelAll SecurityAnalyticsAlertsAlertSeverityLevel = "ALL"
+)
+
+// SecurityAnalyticsFindingsDetectionType is a value of the `detectionType` query parameter.
+type SecurityAnalyticsFindingsDetectionType string
+
+const (
+	// SecurityAnalyticsFindingsDetectionTypeRule. Returns findings produced by
+	// detection rules, meaning every finding whose query ID does not start
+	// with `threat_intel_`.
+	SecurityAnalyticsFindingsDetectionTypeRule SecurityAnalyticsFindingsDetectionType = "rule"
+
+	// SecurityAnalyticsFindingsDetectionTypeThreat. Returns findings produced
+	// by threat intelligence matching, meaning findings whose query ID starts
+	// with `threat_intel_`.
+	SecurityAnalyticsFindingsDetectionTypeThreat SecurityAnalyticsFindingsDetectionType = "threat"
+)
+
+// SecurityAnalyticsFindingsRuleSeverity is a value of the `severity` query parameter.
+type SecurityAnalyticsFindingsRuleSeverity string
+
+const (
+	// SecurityAnalyticsFindingsRuleSeverityCritical. Returns findings from
+	// rules with Sigma level `critical`, the most severe.
+	SecurityAnalyticsFindingsRuleSeverityCritical SecurityAnalyticsFindingsRuleSeverity = "critical"
+
+	// SecurityAnalyticsFindingsRuleSeverityHigh. Returns findings from rules
+	// with Sigma level `high`.
+	SecurityAnalyticsFindingsRuleSeverityHigh SecurityAnalyticsFindingsRuleSeverity = "high"
+
+	// SecurityAnalyticsFindingsRuleSeverityLow. Returns findings from rules
+	// with Sigma level `low`.
+	SecurityAnalyticsFindingsRuleSeverityLow SecurityAnalyticsFindingsRuleSeverity = "low"
+
+	// SecurityAnalyticsFindingsRuleSeverityMedium. Returns findings from rules
+	// with Sigma level `medium`.
+	SecurityAnalyticsFindingsRuleSeverityMedium SecurityAnalyticsFindingsRuleSeverity = "medium"
+)
+
 // Response format selector for SQL plugin operations. The SQL endpoints
 // check `format` on every request except a cursor continuation,
 // explain included, and accept only `jdbc` (default), `csv` and `raw`;
@@ -1396,7 +1379,7 @@ const (
 // parity with the PPL format.
 //
 // The server default is "jdbc".
-type SQLRespFormat = string
+type SQLRespFormat string
 
 const (
 	// SQLRespFormatJdbc. Query response as a JSON object with a `schema` array
@@ -1443,6 +1426,23 @@ const (
 	// estimates. The SQL endpoint's format check rejects it as a `format`
 	// value.
 	SQLRespFormatCost SQLRespFormat = "cost"
+)
+
+// TasksGroupBy is a value of the `group_by` query parameter.
+type TasksGroupBy string
+
+const (
+	// TasksGroupByNodes. Groups tasks under a `nodes` object keyed by the ID
+	// of the node running them, with node details. This is the default.
+	TasksGroupByNodes TasksGroupBy = "nodes"
+
+	// TasksGroupByNone. Returns tasks as a flat `tasks` array with no
+	// grouping.
+	TasksGroupByNone TasksGroupBy = "none"
+
+	// TasksGroupByParents. Returns a `tasks` object keyed by task ID, with
+	// child tasks nested under their parent task.
+	TasksGroupByParents TasksGroupBy = "parents"
 )
 
 // Identifies a point in time (PIT): an opaque base64 token that encodes

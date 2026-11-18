@@ -187,18 +187,6 @@ func TestWriteMeta(t *testing.T) {
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
 		},
 		{
-			name: "wait_for_active_shards is not written",
-			args: args{BulkIndexerItem{
-				Action:              "index",
-				DocumentID:          "42",
-				Index:               testIndex,
-				Version:             new(int64(25)),
-				VersionType:         new("external"),
-				WaitForActiveShards: 1,
-			}},
-			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
-		},
-		{
 			name: "with retry_on_conflict",
 			args: args{BulkIndexerItem{
 				Action:          "index",

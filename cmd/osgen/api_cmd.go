@@ -12,12 +12,10 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -672,8 +670,7 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 // nodes.info's `metric` -> Metric), and string-list parameters whose schema is
 // a oneOf of an enum and an array of it (via typeListParamEnum, giving
 // []Elem). Enums already registered by the response/body walks are reused
-// as-is; types first registered here for the wider shapes, or as list elements,
-// are string aliases, so callers passing a plain string or []string compile.
+// as-is.
 //
 // It runs after the response and request-body walks so the shared registry
 // already holds any enum that also appears in a body or response. For a
@@ -714,7 +711,7 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 				typeListParamEnum(w, qp, schemaRef.Value, op.Group)
 				continue
 			}
-			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group, false)
+			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group)
 			if !ok {
 				continue
 			}
@@ -723,51 +720,11 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 			registry.addParamName(qp.SchemaRef, qp.ParamName)
 		}
 	}
-
-	registerGlobalParamEnums(w)
-}
-
-// registerGlobalParamEnums registers the enum component schemas that global
-// query parameters (those on the shared params structs, such as `format`)
-// reference. extractQueryParams drops global parameters from each operation,
-// so the per-operation loop never sees them; their value types are still
-// emitted so callers can assign the constants to the shared string fields.
-// Paths and methods are walked in sorted order because registration order is
-// emission order.
-func registerGlobalParamEnums(w *walker) {
-	if w.spec.Paths == nil {
-		return
-	}
-	register := func(params openapi3.Parameters) {
-		for _, ref := range params {
-			p := ref.Value
-			if p == nil || p.In != "query" || !isGlobalParam(p.Name) || p.Schema == nil || p.Schema.Ref == "" {
-				continue
-			}
-			key := refToSchemaKey(p.Schema.Ref)
-			if schemaRef, ok := w.spec.Components.Schemas[key]; ok && schemaRef.Value != nil {
-				if _, ok := w.resolveStringEnumConst(key, schemaRef.Value, "", false); ok {
-					w.registry.addParamName(key, p.Name)
-				}
-			}
-		}
-	}
-	paths := w.spec.Paths.Map()
-	for _, urlPath := range slices.Sorted(maps.Keys(paths)) {
-		item := paths[urlPath]
-		register(item.Parameters)
-		ops := item.Operations()
-		for _, method := range slices.Sorted(maps.Keys(ops)) {
-			register(ops[method].Parameters)
-		}
-	}
 }
 
 // typeListParamEnum retypes a list param whose schema is a oneOf of an enum
 // $ref and an array of that same $ref (ExpandWildcards) to a slice of the enum
-// alias, e.g. []ExpandWildcard. An enum already registered as a named type by a
-// response or body walk is left as []string: a named element type would break
-// callers passing a plain []string.
+// type, e.g. []ExpandWildcard.
 func typeListParamEnum(w *walker, qp *apiQueryParam, schema *openapi3.Schema, group string) {
 	arr := oneOfBranchOfType(schema, openapi3.TypeArray)
 	if arr == nil || arr.Items == nil || arr.Items.Ref == "" {
@@ -779,10 +736,7 @@ func typeListParamEnum(w *walker, qp *apiQueryParam, schema *openapi3.Schema, gr
 	if !ok || elem.Value == nil {
 		return
 	}
-	if existing, found := w.registry.lookup(key); found && !existing.IsAlias {
-		return
-	}
-	name, ok := w.resolveStringEnumConst(key, elem.Value, group, true)
+	name, ok := w.resolveStringEnumConst(key, elem.Value, group)
 	if !ok {
 		return
 	}

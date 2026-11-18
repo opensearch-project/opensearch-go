@@ -35,7 +35,7 @@ func TestCatRecovery(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Recovery(t.Context(), &opensearchapi.CatRecoveryReq{Params: &opensearchapi.CatRecoveryParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Indices: []string{index}})
+		resp, err := client.Cat.Recovery(t.Context(), &opensearchapi.CatRecoveryReq{Params: &opensearchapi.CatRecoveryParams{Format: "json"}, Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

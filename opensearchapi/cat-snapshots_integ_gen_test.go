@@ -28,7 +28,7 @@ func TestCatSnapshots(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-cat-snapshots")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Snapshots(t.Context(), &opensearchapi.CatSnapshotsReq{Params: &opensearchapi.CatSnapshotsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}, Repository: []string{name}}})
+		resp, err := client.Cat.Snapshots(t.Context(), &opensearchapi.CatSnapshotsReq{Params: &opensearchapi.CatSnapshotsParams{Format: "json", Repository: []string{name}}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

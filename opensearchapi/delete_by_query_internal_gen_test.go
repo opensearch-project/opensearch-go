@@ -82,7 +82,7 @@ func TestDeleteByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: DeleteByQueryParams{ExpandWildcards: []string{"a", "b"}},
+			params: DeleteByQueryParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

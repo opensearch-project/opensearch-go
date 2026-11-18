@@ -36,7 +36,7 @@ func TestIndicesCloseParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesCloseParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesCloseParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

@@ -41,7 +41,7 @@ func TestShards(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Shards(t.Context(), &list.ShardsReq{Params: &list.ShardsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Indices: []string{index}})
+		resp, err := client.Shards(t.Context(), &list.ShardsReq{Params: &list.ShardsParams{Format: "json"}, Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

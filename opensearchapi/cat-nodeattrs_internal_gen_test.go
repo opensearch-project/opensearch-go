@@ -25,6 +25,26 @@ func TestCatNodeattrsParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatNodeattrsParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatNodeattrsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatNodeattrsParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatNodeattrsParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatNodeattrsParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatNodeattrsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -33,6 +53,21 @@ func TestCatNodeattrsParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatNodeattrsParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatNodeattrsParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatNodeattrsParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatNodeattrsParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

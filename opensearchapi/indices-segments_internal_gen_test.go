@@ -36,7 +36,7 @@ func TestIndicesSegmentsParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesSegmentsParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesSegmentsParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

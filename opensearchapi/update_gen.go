@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -164,11 +164,11 @@ func (r UpdateParams) get() map[string]string {
 	}
 
 	if len(r.SourceExcludes) > 0 {
-		set("_source_excludes", strings.Join(r.SourceExcludes, ","))
+		set("_source_excludes", apiutil.JoinStrings(r.SourceExcludes, ","))
 	}
 
 	if len(r.SourceIncludes) > 0 {
-		set("_source_includes", strings.Join(r.SourceIncludes, ","))
+		set("_source_includes", apiutil.JoinStrings(r.SourceIncludes, ","))
 	}
 
 	if r.IfPrimaryTerm != nil {
@@ -196,7 +196,7 @@ func (r UpdateParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.WaitForActiveShards != "" {

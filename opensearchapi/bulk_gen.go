@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -151,11 +151,11 @@ func (r BulkParams) get() map[string]string {
 	}
 
 	if len(r.SourceExcludes) > 0 {
-		set("_source_excludes", strings.Join(r.SourceExcludes, ","))
+		set("_source_excludes", apiutil.JoinStrings(r.SourceExcludes, ","))
 	}
 
 	if len(r.SourceIncludes) > 0 {
-		set("_source_includes", strings.Join(r.SourceIncludes, ","))
+		set("_source_includes", apiutil.JoinStrings(r.SourceIncludes, ","))
 	}
 
 	if r.Index != "" {

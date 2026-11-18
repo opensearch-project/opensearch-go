@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -75,6 +75,21 @@ func (r CatSnapshotsReq) GetRequest(method string) (*http.Request, error) {
 type CatSnapshotsParams struct {
 	TimeoutParams
 	DebugParams
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// Default: text.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
+
 	// When `true`, the response does not include information from unavailable
 	// snapshots.
 	//
@@ -86,12 +101,20 @@ type CatSnapshotsParams struct {
 	// If any repository fails during the request, OpenSearch returns an error.
 	Repository []string
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
 	//
 	// See [TimeUnit] for valid values.
 	Time TimeUnit
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatSnapshotsParams) get() map[string]string {
@@ -108,16 +131,36 @@ func (r CatSnapshotsParams) get() map[string]string {
 		set("format", "json")
 	}
 
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
+	}
+
 	if r.IgnoreUnavailable != nil {
 		set("ignore_unavailable", strconv.FormatBool(*r.IgnoreUnavailable))
 	}
 
 	if len(r.Repository) > 0 {
-		set("repository", strings.Join(r.Repository, ","))
+		set("repository", apiutil.JoinStrings(r.Repository, ","))
+	}
+
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
 	}
 
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

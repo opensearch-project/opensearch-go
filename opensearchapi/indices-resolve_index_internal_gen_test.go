@@ -26,7 +26,7 @@ func TestIndicesResolveIndexParams_get(t *testing.T) {
 		{name: "empty", params: IndicesResolveIndexParams{}, want: nil},
 		{
 			name:   "expand_wildcards",
-			params: IndicesResolveIndexParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesResolveIndexParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 	}

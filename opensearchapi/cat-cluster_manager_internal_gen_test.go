@@ -25,6 +25,26 @@ func TestCatClusterManagerParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatClusterManagerParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatClusterManagerParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatClusterManagerParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatClusterManagerParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatClusterManagerParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatClusterManagerParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -33,6 +53,21 @@ func TestCatClusterManagerParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatClusterManagerParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatClusterManagerParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatClusterManagerParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatClusterManagerParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

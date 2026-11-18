@@ -7,8 +7,6 @@
 package main
 
 import (
-	"fmt"
-	"slices"
 	"strings"
 	"testing"
 
@@ -335,10 +333,10 @@ func refreshEnumSpec() *openapi3.T {
 	}}}
 }
 
-// TestTypeQueryParamEnums_Aliases pins the alias path: enum shapes only
-// query params accept become `type X = string` aliases, and an
-// array-or-single enum param becomes a slice of the alias.
-func TestTypeQueryParamEnums_Aliases(t *testing.T) {
+// TestTypeQueryParamEnums_ParamShapesAreTyped pins that enum shapes only query
+// params accept get a registered enum type, and an array-or-single enum param
+// becomes a slice of that type.
+func TestTypeQueryParamEnums_ParamShapesAreTyped(t *testing.T) {
 	t.Parallel()
 
 	reg := newTypeRegistry(opensearchAPIPkgName)
@@ -373,7 +371,7 @@ func TestTypeQueryParamEnums_Aliases(t *testing.T) {
 	require.True(t, refresh.IsStringEnum)
 	registered, ok := reg.lookup("_common___Refresh")
 	require.True(t, ok)
-	require.True(t, registered.IsAlias)
+	require.True(t, registered.IsStringEnum)
 	require.Equal(t, []string{"true", "wait_for"}, constValueList(registered.EnumConsts))
 
 	expandParam := ops[0].QueryParams[1]
@@ -381,26 +379,35 @@ func TestTypeQueryParamEnums_Aliases(t *testing.T) {
 	require.True(t, expandParam.IsList)
 	elem, ok := reg.lookup("_common___ExpandWildcard")
 	require.True(t, ok)
-	require.True(t, elem.IsAlias)
+	require.True(t, elem.IsStringEnum)
 }
 
-// TestTypeQueryParamEnums_StrictScalarStaysNamed pins that a strict-shape enum
-// reached only through a scalar param keeps its named type: only new shapes and
-// list elements become aliases.
-func TestTypeQueryParamEnums_StrictScalarStaysNamed(t *testing.T) {
+// TestTypeQueryParamEnums_NamedListElement pins that a list param is typed even
+// when a response or body walk registered its element enum first.
+func TestTypeQueryParamEnums_NamedListElement(t *testing.T) {
 	t.Parallel()
 
-	named := newTypeRegistry(opensearchAPIPkgName)
-	namedSpec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
-		"_common___TimeUnit": &openapi3.SchemaRef{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("d", "", nil)}}},
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	expand := &openapi3.Schema{OneOf: openapi3.SchemaRefs{constBranch("open", "", nil), constBranch("closed", "", nil)}}
+	spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		"_common___ExpandWildcard": &openapi3.SchemaRef{Value: expand},
+		"_common___ExpandWildcards": &openapi3.SchemaRef{Value: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+			{Ref: "#/components/schemas/_common___ExpandWildcard", Value: expand},
+			{Value: &openapi3.Schema{
+				Type:  &openapi3.Types{openapi3.TypeArray},
+				Items: &openapi3.SchemaRef{Ref: "#/components/schemas/_common___ExpandWildcard"},
+			}},
+		}}},
 	}}}
-	namedOps := []apiOperation{{Group: "cat.nodes", QueryParams: []apiQueryParam{
-		{ParamName: "time", GoName: "Time", GoType: "string", SchemaRef: "_common___TimeUnit"},
-	}}}
-	typeQueryParamEnums(namedOps, namedSpec, named, VersionRange{})
-	timeUnit, ok := named.lookup("_common___TimeUnit")
+	body := &walker{registry: reg, spec: spec, inFlight: make(set[string])}
+	_, ok := body.resolveStringEnumConst("_common___ExpandWildcard", expand, "")
 	require.True(t, ok)
-	require.False(t, timeUnit.IsAlias)
+
+	ops := []apiOperation{{Group: "search", QueryParams: []apiQueryParam{
+		{ParamName: "expand_wildcards", GoName: "ExpandWildcards", GoType: "[]string", IsList: true, SchemaRef: "_common___ExpandWildcards"},
+	}}}
+	typeQueryParamEnums(ops, spec, reg, VersionRange{})
+	require.Equal(t, "[]ExpandWildcard", ops[0].QueryParams[0].GoType)
 }
 
 // TestResolveStringEnumConst_ResponseWalkUnchanged pins that a response/body
@@ -410,99 +417,8 @@ func TestResolveStringEnumConst_ResponseWalkUnchanged(t *testing.T) {
 
 	spec := refreshEnumSpec()
 	w := &walker{registry: newTypeRegistry(opensearchAPIPkgName), spec: spec, inFlight: make(map[string]struct{})}
-	_, isEnum := w.resolveStringEnumConst("_common___Refresh", spec.Components.Schemas["_common___Refresh"].Value, "indices", false)
+	_, isEnum := w.resolveStringEnumConst("_common___Refresh", spec.Components.Schemas["_common___Refresh"].Value, "indices")
 	require.False(t, isEnum)
-}
-
-// TestTypeQueryParamEnums_GlobalFormat pins that an enum referenced only by a
-// global query parameter (dropped from op.QueryParams because it lives on the
-// shared DebugParams struct) is still registered as a shared string alias, and
-// that no per-operation param is added or retyped.
-func TestTypeQueryParamEnums_GlobalFormat(t *testing.T) {
-	t.Parallel()
-
-	reg := newTypeRegistry(opensearchAPIPkgName)
-	formatEnum := &openapi3.Schema{
-		Type: &openapi3.Types{openapi3.TypeString},
-		Enum: []any{"text", "json"},
-	}
-	formatParam := &openapi3.ParameterRef{Value: &openapi3.Parameter{
-		Name: "format",
-		In:   "query",
-		Schema: &openapi3.SchemaRef{
-			Ref:   "#/components/schemas/_common___CatResponseFormat",
-			Value: formatEnum,
-		},
-	}}
-	// A non-global query param with a $ref schema must not be registered by the
-	// global pass.
-	otherParam := &openapi3.ParameterRef{Value: &openapi3.Parameter{
-		Name: "other",
-		In:   "query",
-		Schema: &openapi3.SchemaRef{
-			Ref:   "#/components/schemas/_common___Other",
-			Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeString}, Enum: []any{"a"}},
-		},
-	}}
-	paths := openapi3.NewPaths()
-	paths.Set("/_cat/example", &openapi3.PathItem{
-		Parameters: openapi3.Parameters{formatParam},
-		Get:        &openapi3.Operation{Parameters: openapi3.Parameters{otherParam}},
-	})
-	spec := &openapi3.T{
-		Paths: paths,
-		Components: &openapi3.Components{Schemas: openapi3.Schemas{
-			"_common___CatResponseFormat": &openapi3.SchemaRef{Value: formatEnum},
-			"_common___Other":             otherParam.Value.Schema,
-		}},
-	}
-	ops := []apiOperation{{Group: "cat.example"}}
-
-	typeQueryParamEnums(ops, spec, reg, VersionRange{})
-
-	require.Empty(t, ops[0].QueryParams)
-	registered, ok := reg.lookup("_common___CatResponseFormat")
-	require.True(t, ok)
-	require.Equal(t, "CatRespFormat", registered.Name)
-	require.True(t, registered.IsShared)
-	require.True(t, registered.IsAlias)
-	require.Equal(t, []string{"text", "json"}, constValueList(registered.EnumConsts))
-	_, ok = reg.lookup("_common___Other")
-	require.False(t, ok)
-}
-
-// TestTypeQueryParamEnums_GlobalFormatOrder pins that global-param enums are
-// registered in sorted path order, so emission order does not depend on Go's
-// randomized map iteration. Paths are set in reverse so insertion order cannot
-// pass the test by accident; the loop repeats to give a random order a chance
-// to show.
-func TestTypeQueryParamEnums_GlobalFormatOrder(t *testing.T) {
-	t.Parallel()
-
-	formatParam := func(key string) *openapi3.ParameterRef {
-		return &openapi3.ParameterRef{Value: &openapi3.Parameter{
-			Name:   "format",
-			In:     "query",
-			Schema: &openapi3.SchemaRef{Ref: "#/components/schemas/" + key},
-		}}
-	}
-	keys := []string{"_common___AFormat", "_common___BFormat", "_common___CFormat", "_common___DFormat"}
-	schemas := openapi3.Schemas{}
-	paths := openapi3.NewPaths()
-	for i, key := range slices.Backward(keys) {
-		schemas[key] = &openapi3.SchemaRef{Value: &openapi3.Schema{
-			Type: &openapi3.Types{openapi3.TypeString},
-			Enum: []any{"x"},
-		}}
-		paths.Set(fmt.Sprintf("/p%d", i), &openapi3.PathItem{Parameters: openapi3.Parameters{formatParam(key)}})
-	}
-	spec := &openapi3.T{Paths: paths, Components: &openapi3.Components{Schemas: schemas}}
-
-	for range 20 {
-		reg := newTypeRegistry(opensearchAPIPkgName)
-		typeQueryParamEnums(nil, spec, reg, VersionRange{})
-		require.Equal(t, keys, reg.order)
-	}
 }
 
 // integerBranch builds a {type: integer} oneOf branch.
@@ -627,14 +543,13 @@ func TestTypeQueryParamEnums_IntOrConst(t *testing.T) {
 	require.True(t, qp.IsStringEnum)
 	registered, ok := reg.lookup("_common___WaitForActiveShards")
 	require.True(t, ok)
-	require.True(t, registered.IsAlias)
 	require.True(t, registered.HasCount)
 	require.Equal(t, []string{"all"}, constValueList(registered.EnumConsts))
 
 	// A non-param walker does not type the schema.
 	other := newTypeRegistry(opensearchAPIPkgName)
 	w := &walker{registry: other, spec: spec, inFlight: make(set[string]), vrange: VersionRange{}}
-	_, typed := w.resolveStringEnumConst("_common___WaitForActiveShards", schema, "index", false)
+	_, typed := w.resolveStringEnumConst("_common___WaitForActiveShards", schema, "index")
 	require.False(t, typed)
 }
 
