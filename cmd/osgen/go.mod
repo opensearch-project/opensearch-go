@@ -8,7 +8,7 @@ require (
 	github.com/getkin/kin-openapi v0.153.0
 	github.com/google/renameio/v2 v2.0.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/mod v0.42.0
+	golang.org/x/mod v0.43.0
 )
 
 require (
