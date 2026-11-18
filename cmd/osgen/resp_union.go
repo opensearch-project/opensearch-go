@@ -148,7 +148,6 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 	}
 	if hasDisc {
 		t.Discriminator = disc
-		w.resolveDiscriminatorFields(classified, disc.PropertyName)
 	}
 
 	if registered, ok := w.registry.register(t); ok {
@@ -160,8 +159,9 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 	return name
 }
 
-// resolveDiscriminatorFields records, for each branch, the Go field that carries
-// the discriminator property, so the generated constructor can set it.
+// resolveDiscriminatorFields records, for each branch of every discriminated
+// union, the Go field that carries the discriminator property, so the generated
+// constructor can set it.
 //
 // A union built in Go rather than decoded would otherwise marshal without its
 // discriminator: NewCommonMappingPropertyFromKeywordProperty leaves the branch's
@@ -169,15 +169,25 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 // bytes back to UnmarshalJSON fails with an unknown-discriminator error. The
 // value is fixed per branch by the spec, so the constructor can supply it.
 //
+// It must run after every walk. A union that refers back to itself, such as
+// Property through PropertyBase.properties, is registered by a nested walk while
+// the outer walk is still building one of its branches. A lookup made during the
+// walk finds that branch unregistered and records no field for it.
+//
 // Only a plain (non-pointer) string field is eligible. The field may sit on an
 // allOf base rather than the branch struct itself, so the search follows embeds.
-func (w *walker) resolveDiscriminatorFields(branches []unionBranch, propertyName string) {
-	for i := range branches {
-		b := &branches[i]
-		if b.DiscriminatorValue == "" {
+func (r *typeRegistry) resolveDiscriminatorFields() {
+	for _, t := range r.all() {
+		if t.Discriminator == nil {
 			continue
 		}
-		b.DiscriminatorField = w.findStringFieldByJSONName(unwrapTypeName(b.GoType), propertyName, make(set[string]))
+		for i := range t.Branches {
+			b := &t.Branches[i]
+			if b.DiscriminatorValue == "" {
+				continue
+			}
+			b.DiscriminatorField = r.findStringFieldByJSONName(unwrapTypeName(b.GoType), t.Discriminator.PropertyName, make(set[string]))
+		}
 	}
 }
 
@@ -188,13 +198,13 @@ func (w *walker) resolveDiscriminatorFields(branches []unionBranch, propertyName
 //
 // visited guards against an embed cycle, which the registry does not itself rule
 // out.
-func (w *walker) findStringFieldByJSONName(typeName, jsonName string, visited set[string]) string {
+func (r *typeRegistry) findStringFieldByJSONName(typeName, jsonName string, visited set[string]) string {
 	if typeName == "" || visited.has(typeName) {
 		return ""
 	}
 	visited.add(typeName)
 
-	t, ok := w.registry.lookupByName(typeName)
+	t, ok := r.lookupByName(typeName)
 	if !ok {
 		return ""
 	}
@@ -212,7 +222,7 @@ func (w *walker) findStringFieldByJSONName(typeName, jsonName string, visited se
 		if !f.IsEmbed {
 			continue
 		}
-		if name := w.findStringFieldByJSONName(unwrapTypeName(f.GoType), jsonName, visited); name != "" {
+		if name := r.findStringFieldByJSONName(unwrapTypeName(f.GoType), jsonName, visited); name != "" {
 			return name
 		}
 	}

@@ -148,6 +148,7 @@ func generateAPI(
 	// type references are plain strings, so a mid-walk rename dangles the ones
 	// already emitted.
 	renameCollapsedAliases(spec, registry)
+	registry.resolveDiscriminatorFields()
 
 	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
