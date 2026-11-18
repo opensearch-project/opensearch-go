@@ -75,8 +75,6 @@ type SettingsParams struct {
 	opensearchapi.DebugParams
 	// Specifies the response format (JSON or YAML).
 	//
-	// Default: jdbc.
-	//
 	// See [opensearchapi.SQLRespFormat] for valid values.
 	Format opensearchapi.SQLRespFormat
 }

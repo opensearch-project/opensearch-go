@@ -82,8 +82,6 @@ type CatAllocationParams struct {
 
 	// A short version of the HTTP `Accept` header, such as `json` or `yaml`.
 	//
-	// Default: text.
-	//
 	// See [CatRespFormat] for valid values.
 	Format CatRespFormat
 

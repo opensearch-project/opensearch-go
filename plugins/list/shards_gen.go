@@ -81,8 +81,6 @@ type ShardsParams struct {
 
 	// A short version of the Accept header, such as `JSON`, `YAML`.
 	//
-	// Default: text.
-	//
 	// See [opensearchapi.ListRespFormat] for valid values.
 	Format opensearchapi.ListRespFormat
 

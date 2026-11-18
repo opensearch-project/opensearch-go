@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -35,6 +36,36 @@ func TestFormatOverride(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.expected, emit.FormatOverride(&tt.op))
+		})
+	}
+}
+
+// The server default the spec gives `format` is not what the client sends when
+// it overrides the param, so the field doc drops it there and keeps it elsewhere.
+func TestParamsFragment_FormatDefaultDoc(t *testing.T) {
+	t.Parallel()
+
+	format := ir.QueryParam{
+		GoName: "Format", WireName: "format", GoType: "string", Kind: ir.ParamString,
+		Description: "Response format.", Default: "text",
+	}
+	tests := []struct {
+		name        string
+		group       string
+		wantDefault bool
+	}{
+		{name: "client overrides format", group: "cat.indices", wantDefault: false},
+		{name: "no client override", group: "search", wantDefault: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			op := &ir.Operation{TypePrefix: "X", Group: tt.group, QueryParams: []ir.QueryParam{format}}
+			body, err := (&emit.ParamsFragment{Op: op}).Body()
+			require.NoError(t, err)
+			require.Equal(t, tt.wantDefault, strings.Contains(body, "// Default: text."))
+			require.Contains(t, body, "// Response format.\n")
+			require.NotContains(t, body, "//\n\tFormat string", "no dangling separator before the field")
 		})
 	}
 }

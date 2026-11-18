@@ -93,8 +93,6 @@ type QueryParams struct {
 	opensearchapi.DebugParams
 	// Specifies the response format (JSON OR YAML).
 	//
-	// Default: jdbc.
-	//
 	// See [opensearchapi.PPLRespFormat] for valid values.
 	Format opensearchapi.PPLRespFormat
 

@@ -77,8 +77,6 @@ type CatSnapshotsParams struct {
 	DebugParams
 	// A short version of the `Accept` header, such as `json` or `yaml`.
 	//
-	// Default: text.
-	//
 	// See [CatRespFormat] for valid values.
 	Format CatRespFormat
 

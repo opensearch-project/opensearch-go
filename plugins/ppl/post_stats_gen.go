@@ -71,8 +71,6 @@ type PostStatsParams struct {
 	opensearchapi.DebugParams
 	// Specifies the response format (JSON, YAML).
 	//
-	// Default: jdbc.
-	//
 	// See [opensearchapi.PPLRespFormat] for valid values.
 	Format opensearchapi.PPLRespFormat
 

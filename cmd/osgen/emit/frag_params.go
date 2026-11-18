@@ -141,6 +141,15 @@ func (f *ParamsFragment) Body() (string, error) {
 		"isFloatPtr":       func(p ir.QueryParam) bool { return p.Kind == ir.ParamFloat && p.GoType == "*float64" },
 		"isStringEnum":     func(p ir.QueryParam) bool { return p.IsStringEnum },
 		"formatOverride":   func() string { return FormatOverride(f.Op) },
+		// docDefault is the default a field's doc states. The spec's default for
+		// format is the server's, which the client never uses where it sends its
+		// own (see FormatOverride), so the doc leaves it out there.
+		"docDefault": func(p ir.QueryParam) string {
+			if p.WireName == FormatParam && FormatOverride(f.Op) != "" {
+				return ""
+			}
+			return p.Default
+		},
 	}).Parse(paramsTmplStr))
 
 	var sb strings.Builder
@@ -166,14 +175,14 @@ type {{.TypePrefix}}Params struct {
 {{- end}}
 	{{wrapField .}}
 {{- end}}
-{{- if $p.Default}}
+{{- with docDefault $p}}
 {{- if or $p.Description $p.Deprecated}}
 	//
 {{- end}}
-	// Default: {{$p.Default}}.
+	// Default: {{.}}.
 {{- end}}
 {{- if isStringEnum $p}}
-{{- if or $p.Description $p.Default (availabilityNote $p.VersionAdded $p.VersionDeprecated $p.DeprecationMsg)}}
+{{- if or $p.Description (docDefault $p) (availabilityNote $p.VersionAdded $p.VersionDeprecated $p.DeprecationMsg)}}
 	//
 {{- end}}
 	// See [{{enumRef $p.GoType}}] for valid values.

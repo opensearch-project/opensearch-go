@@ -109,8 +109,6 @@ type CatSegmentReplicationParams struct {
 
 	// A short version of the `Accept` header, such as `json` or `yaml`.
 	//
-	// Default: text.
-	//
 	// See [CatRespFormat] for valid values.
 	Format CatRespFormat
 
