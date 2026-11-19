@@ -71,6 +71,8 @@ type CatHealthParams struct {
 	TimeoutParams
 	DebugParams
 	// The unit used to display time values.
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 
 	// When `true`, returns `HH:MM:SS` and Unix epoch timestamps.

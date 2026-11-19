@@ -82,7 +82,9 @@ type IndicesStatsParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// A comma-separated list or wildcard expressions of fields to include in
 	// field data statistics.
@@ -115,7 +117,9 @@ type IndicesStatsParams struct {
 
 	// Indicates whether statistics are aggregated at the cluster, index, or
 	// shard level.
-	Level string
+	//
+	// See [Level] for valid values.
+	Level Level
 }
 
 func (r IndicesStatsParams) get() map[string]string {
@@ -162,7 +166,7 @@ func (r IndicesStatsParams) get() map[string]string {
 	}
 
 	if r.Level != "" {
-		set("level", r.Level)
+		set("level", string(r.Level))
 	}
 
 	return params

@@ -134,7 +134,7 @@ type apiQueryParam struct {
 	IsList            bool // true if the value is comma-joined ([]string)
 	IsInt             bool
 	IsFloat           bool // true if the value is an OpenAPI number (float64 / *float64)
-	IsStringEnum      bool // true when GoType is a named string-enum type (needs a string() cast on serialize)
+	IsStringEnum      bool // GoType is a string-enum type (defined or alias) or a slice of one; scalars serialize via string()
 	Required          bool
 	Deprecated        bool
 	VersionAdded      string // semver when this param was introduced

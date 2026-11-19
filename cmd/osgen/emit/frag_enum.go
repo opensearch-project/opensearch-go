@@ -139,13 +139,15 @@ func (e *Unknown{{$t.Name}}Error) Error() string {
 }
 {{end}}`))
 
-// StringEnumFragment renders string-backed enum types: a named string type plus
-// one exported const per known wire value. The type is PERMISSIVE -- because it
-// is backed by string, encoding/json round-trips any value (including ones not
-// in the const set, e.g. a role a newer server introduces), so no custom
-// (Un)MarshalJSON is generated. The consts provide discoverability, typo
-// protection, and drift detection: they are derived from the spec, so a value
-// removed upstream drops its const and any reference fails to compile.
+// StringEnumFragment renders string-backed enum types: a string type plus one
+// exported const per known wire value. The type is a defined string type, or an
+// alias of string when ir.Type.IsAlias is set. Either way it is PERMISSIVE --
+// because it is backed by string, encoding/json round-trips any value (including
+// ones not in the const set, e.g. a role a newer server introduces), so no custom
+// (Un)MarshalJSON is generated. The consts provide discoverability and drift
+// detection: they are derived from the spec, so a value removed upstream drops
+// its const and any reference fails to compile. A defined type also gives typo
+// protection; an alias accepts any string.
 //
 // This is distinct from EnumFragment's closed int-backed enum, which rejects
 // unknown wire values on decode.
@@ -153,9 +155,15 @@ type StringEnumFragment struct {
 	Types []*ir.Type
 }
 
-// Imports returns the imports the string-enum fragment needs: none. The type is
-// a plain string with const declarations and no methods.
+// Imports returns the imports the string-enum fragment needs: strconv when any
+// type emits a Count constructor, otherwise none (the type is a plain string
+// with const declarations).
 func (f *StringEnumFragment) Imports() []Import {
+	for _, t := range f.Types {
+		if t.HasCount {
+			return []Import{{Path: "strconv"}}
+		}
+	}
 	return nil
 }
 
@@ -174,17 +182,43 @@ func (f *StringEnumFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+// stringEnumFallbackDoc returns the type doc for a string enum whose spec
+// schema has no description: it names the query parameters that take the type,
+// or says the type is one of its listed values when no parameter uses it.
+func stringEnumFallbackDoc(t *ir.Type) string {
+	names := make([]string, 0, len(t.ParamNames))
+	for _, n := range t.ParamNames {
+		names = append(names, "`"+n+"`")
+	}
+	switch len(names) {
+	case 0:
+		return t.Name + " is one of the values below."
+	case 1:
+		return t.Name + " is a value of the " + names[0] + " query parameter."
+	default:
+		return t.Name + " is a value of the " + strings.Join(names[:len(names)-1], ", ") +
+			" and " + names[len(names)-1] + " query parameters."
+	}
+}
+
 //nolint:gochecknoglobals // const-ish read-only template
 var stringEnumFragTmpl = template.Must(template.New("stringEnum").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
 	"constComment":     ConstComment,
 	"availabilityNote": AvailabilityNote,
+	"fallbackDoc":      stringEnumFallbackDoc,
 }).Parse(`{{range $t := .}}
 {{- if $t.Comment}}
 {{comment $t.Comment}}
+{{- else}}
+{{comment (fallbackDoc $t)}}
 {{- end}}
-type {{$t.Name}} string
+{{- if $t.Default}}
+//
+// The server default is "{{$t.Default}}".
+{{- end}}
+type {{$t.Name}} {{if $t.IsAlias}}= {{end}}string
 
 const (
 {{- range $i, $m := $t.EnumMembers}}
@@ -202,4 +236,12 @@ const (
 	{{$m.ConstName}} {{$t.Name}} = "{{$m.Value}}"
 {{- end}}
 )
+{{- if $t.HasCount}}
+
+// {{$t.Name}}Count returns the {{$t.Name}} value that selects n, formatted as
+// the decimal integer the server expects.
+func {{$t.Name}}Count(n int) {{$t.Name}} {
+	return strconv.Itoa(n)
+}
+{{- end}}
 {{end}}`))

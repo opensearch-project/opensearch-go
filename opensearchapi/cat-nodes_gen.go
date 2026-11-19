@@ -71,7 +71,9 @@ type CatNodesParams struct {
 	TimeoutParams
 	DebugParams
 	// The units used to display byte values.
-	Bytes string
+	//
+	// See [ByteUnit] for valid values.
+	Bytes ByteUnit
 
 	// When `true`, returns the full node ID. When `false`, returns the
 	// shortened node ID.
@@ -91,6 +93,8 @@ type CatNodesParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
 }
 
@@ -109,7 +113,7 @@ func (r CatNodesParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if r.FullID != "" {

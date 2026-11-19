@@ -162,7 +162,9 @@ type SearchParams struct {
 
 	// The default operator for query string query: AND or OR. This parameter
 	// can only be used when the `q` query string parameter is specified.
-	DefaultOperator string
+	//
+	// See [CommonQueryDSLOperator] for valid values.
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string. This parameter can only be used when the q query string
@@ -177,7 +179,9 @@ type SearchParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, returns detailed information about score computation as part
 	// of a hit.
@@ -289,6 +293,8 @@ type SearchParams struct {
 	SearchPipeline string
 
 	// How distributed term frequencies are calculated for relevance scoring.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// If `true`, returns sequence number and primary term of the last
@@ -321,7 +327,9 @@ type SearchParams struct {
 	// Specifies the suggest mode. This parameter can only be used when the
 	// `suggest_field` and `suggest_text` query string parameters are
 	// specified.
-	SuggestMode string
+	//
+	// See [SuggestMode] for valid values.
+	SuggestMode SuggestMode
 
 	// Number of suggestions to return. This parameter can only be used when
 	// the `suggest_field` and `suggest_text` query string parameters are
@@ -424,7 +432,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -536,7 +544,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.SuggestMode != "" {
-		set("suggest_mode", r.SuggestMode)
+		set("suggest_mode", string(r.SuggestMode))
 	}
 
 	if r.SuggestSize != 0 {

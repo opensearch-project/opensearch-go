@@ -41,6 +41,13 @@ type walker struct {
 	excludedFields []ir.Exclusion
 	excSeen        map[string]bool // dedupe key: qualified field name
 
+	// paramPass is set by the query-param enum pass. It widens enum detection to
+	// every enumShape and registers a type of any shape other than
+	// enumShapeConst as a string alias, so a param typed with one stays
+	// assignable from and to plain string and []string. A strict-const param
+	// type stays a defined type (see resolveStringEnumConst).
+	paramPass bool
+
 	// warnOut receives generator diagnostics. Nil discards them, which keeps
 	// tests quiet unless they assert on the output.
 	warnOut io.Writer
@@ -79,7 +86,7 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 		return schemaTypeName(key, false)
 	}
 
-	if name, ok := w.resolveStringEnumConst(key, ref.Value, group); ok {
+	if name, ok := w.resolveStringEnumConst(key, ref.Value, group, false); ok {
 		return name
 	}
 
@@ -669,22 +676,32 @@ func (w *walker) resolveOpaqueString(schema *openapi3.Schema, group string) (str
 	return "", false
 }
 
-// resolveStringEnumConst handles a schema whose oneOf/anyOf branches are all
-// {type: string, const: X} entries (e.g. _common___NodeRole). It registers a
-// shared, string-backed enum type named after the schema key and returns its Go
-// name. Returns ("", false) when the schema is not a const-oneOf (or is denied /
+// resolveStringEnumConst registers a shared, string-backed enum type named after
+// the schema key and returns its Go name. Outside the query-param pass it
+// accepts only enumShapeConst and registers a defined string type. In the
+// query-param pass (walker.paramPass) it accepts every shape enumParser.paramEnum
+// does, and registers a string alias for any shape other than enumShapeConst, so
+// the param stays assignable from and to plain string; enumShapeIntOrConst also
+// gets a Count constructor (HasCount). forceAlias registers an alias even for
+// enumShapeConst, for list-param elements that must accept a plain []string.
+// Returns ("", false) when the schema is not an accepted enum (or is denied /
 // version-filtered to nothing), so the caller falls back to its normal handling.
 //
 // The generated type is PERMISSIVE: backed by string, it round-trips unknown
-// values (a newer server's role, a not-yet-listed value) rather than erroring,
-// while its consts give discoverability and compile-time typo/drift detection.
-// This differs from resolveStringEnum's closed int-backed enum, which rejects
-// unknown wire values. Detection is default-on via parseConstOneOf; see
-// string_enum.go.
-func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string) (string, bool) {
+// values (a newer server's role, a not-yet-listed value) rather than erroring.
+// Its consts give discoverability; only defined (non-alias) types also give
+// compile-time typo/drift detection, since an alias accepts any string. This
+// differs from resolveStringEnum's closed int-backed enum, which rejects
+// unknown wire values.
+func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string, forceAlias bool) (string, bool) {
 	name := schemaTypeName(key, false)
-	members, ok := parseConstOneOf(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
-	if !ok {
+	p := enumParser{vr: w.vrange, deny: stringEnumDenyList, warnW: os.Stderr}
+	parse := p.constOneOf
+	if w.paramPass {
+		parse = p.paramEnum
+	}
+	members, shape := parse(name, key, schema)
+	if shape == enumShapeNone {
 		return "", false
 	}
 
@@ -692,12 +709,16 @@ func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, gro
 		return existing.Name, true
 	}
 
+	defaultValue, _ := schema.Default.(string)
 	t := &goType{
 		Name:         name,
 		Pkg:          typePkg(true, group, w.registry),
 		SchemaRef:    key,
+		Default:      defaultValue,
 		IsShared:     true,
 		IsStringEnum: true,
+		IsAlias:      w.paramPass && (forceAlias || shape != enumShapeConst),
+		HasCount:     shape == enumShapeIntOrConst,
 		EnumConsts:   members,
 		Comment:      schema.Description,
 	}

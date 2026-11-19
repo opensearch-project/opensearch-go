@@ -81,7 +81,9 @@ type IndicesExistsAliasParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `false`, requests that include a missing data stream or index in the
 	// target indexes or data streams return an error.

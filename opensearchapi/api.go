@@ -260,6 +260,28 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
+// DurationUnbounded is a duration that sends -1 for a duration query parameter.
+// The server reads -1 as its "no timeout / unbounded / disabled" value for that
+// parameter. Any negative duration sends -1; this constant names the intent.
+//
+// A zero duration means "not set": the parameter is left off the request. The
+// typed parameters cannot send 0; to send it, wrap a generated request's
+// GetRequest, set the query parameter, and pass the wrapper to
+// opensearch.Execute:
+//
+//	type withTimeout struct{ opensearch.Request }
+//
+//	func (w withTimeout) GetRequest(method string) (*http.Request, error) {
+//		r, err := w.Request.GetRequest(method)
+//		if err == nil {
+//			q := r.URL.Query()
+//			q.Set("timeout", "0")
+//			r.URL.RawQuery = q.Encode()
+//		}
+//		return r, err
+//	}
+const DurationUnbounded time.Duration = -1
+
 // formatDuration converts duration to a string in the format accepted by
 // OpenSearch. Delegates to apiutil.FormatDuration so the encoding lives in a
 // single place; generated plugin packages reference apiutil directly.

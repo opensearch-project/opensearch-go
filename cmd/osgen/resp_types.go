@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 
 	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
@@ -77,12 +78,20 @@ type goType struct {
 	// so the payload must be inspected to pick one.
 	IsAmbiguousWire bool
 	IsEnum          bool             // true for int-backed iota enum types (x-enum-name marker)
-	IsStringEnum    bool             // true for string-backed enum types (oneOf-of-const; permissive)
+	IsStringEnum    bool             // true for string-backed enum types (see enumParser; permissive)
+	IsAlias         bool             // true when a string enum is emitted as `type X = string` (query-param-only enums)
+	HasCount        bool             // true when a string enum also emits a <Name>Count(int) constructor (int-or-keyword query params)
 	IsOpaqueString  bool             // true for opaque string tokens (x-type-name marker)
 	Branches        []unionBranch    // union branches (only populated when IsUnion)
 	EnumValues      []string         // allowed wire values (int-backed path; also the conflict-check key)
 	EnumConsts      []constEnumValue // per-member values + doc/version metadata (string-backed path)
 	Comment         string           // type doc comment
+
+	// ParamNames lists the query parameter wire names whose value type is this
+	// string enum, sorted and deduplicated.
+	ParamNames []string
+	// Default is the schema's default wire value for a string enum, or "".
+	Default string
 
 	// Discriminator carries the spec's OpenAPI `discriminator` when the union
 	// declares one and every branch resolved to a unique value. Nil otherwise,
@@ -172,6 +181,19 @@ func (r *typeRegistry) recordCollision(c nameCollision) {
 func (r *typeRegistry) lookup(ref string) (*goType, bool) {
 	t, ok := r.byRef[ref]
 	return t, ok
+}
+
+// addParamName records wire as a query parameter using the string enum
+// registered under ref, keeping ParamNames sorted and deduplicated.
+func (r *typeRegistry) addParamName(ref, wire string) {
+	t, ok := r.byRef[ref]
+	if !ok || !t.IsStringEnum {
+		return
+	}
+	i, found := slices.BinarySearch(t.ParamNames, wire)
+	if !found {
+		t.ParamNames = slices.Insert(t.ParamNames, i, wire)
+	}
 }
 
 // aliasRef points ref at an already-registered type instead of registering a new

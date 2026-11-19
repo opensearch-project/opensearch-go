@@ -118,6 +118,7 @@ func (f *ParamsFragment) Body() (string, error) {
 		"availabilityNote":  AvailabilityNote,
 		"qualify":           qualify,
 		"qualifyType":       qualifyGoType,
+		"enumRef":           func(goType string) string { return qualifyGoType(strings.TrimPrefix(goType, "[]")) },
 		"isDuration":        func(k ir.ParamKind) bool { return k == ir.ParamDuration },
 		"isBool":            func(k ir.ParamKind) bool { return k == ir.ParamBool },
 		"isList":            func(k ir.ParamKind) bool { return k == ir.ParamList },
@@ -157,6 +158,12 @@ type {{.TypePrefix}}Params struct {
 	//
 {{- end}}
 	// Default: {{$p.Default}}.
+{{- end}}
+{{- if isStringEnum $p}}
+{{- if or $p.Description $p.Default (availabilityNote $p.VersionAdded $p.VersionDeprecated $p.DeprecationMsg)}}
+	//
+{{- end}}
+	// See [{{enumRef $p.GoType}}] for valid values.
 {{- end}}
 	{{$p.GoName}} {{qualifyType $p.GoType}}
 {{- end}}

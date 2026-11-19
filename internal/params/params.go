@@ -16,12 +16,16 @@ import (
 // TimeoutParams holds timeout parameters shared across many operations.
 type TimeoutParams struct {
 	// Timeout is the operation timeout (e.g. how long to wait for a response).
+	// A negative value sends -1 (see opensearchapi.DurationUnbounded); zero
+	// leaves the parameter unset.
 	Timeout time.Duration
 
 	// ClusterManagerTimeout is how long to wait for a connection to the cluster manager.
+	// A negative value sends -1; zero leaves the parameter unset.
 	ClusterManagerTimeout time.Duration
 
 	// MasterTimeout is the deprecated alias for ClusterManagerTimeout (pre-2.0 clusters).
+	// A negative value sends -1; zero leaves the parameter unset.
 	MasterTimeout time.Duration
 }
 
@@ -42,7 +46,9 @@ type DebugParams struct {
 	// Source provides an alternative way to pass the request body as a query parameter.
 	Source string
 
-	// Format controls the output format (used by cat operations).
+	// Format controls the output format (used by cat, list, SQL and PPL
+	// operations). Values are defined by the CatRespFormat, ListRespFormat,
+	// SQLRespFormat and PPLRespFormat types in package opensearchapi.
 	Format string
 
 	// Help returns help information about the operation (used by cat operations).

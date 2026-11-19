@@ -183,6 +183,41 @@ func TestExtensionStringSlice(t *testing.T) {
 	}
 }
 
+func TestExtensionStringMap(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		ext  map[string]any
+		want map[string]string
+	}{
+		{name: "nil map", ext: nil, want: nil},
+		{name: "missing key", ext: map[string]any{}, want: nil},
+		// kin-openapi holds an extension as json.RawMessage when the spec is
+		// loaded from JSON, and as a decoded map when it comes from YAML.
+		{
+			name: "json.RawMessage object",
+			ext:  map[string]any{"x-map": json.RawMessage(`{"asc":"Smallest first.","desc":"Largest first."}`)},
+			want: map[string]string{"asc": "Smallest first.", "desc": "Largest first."},
+		},
+		{name: "json.RawMessage invalid", ext: map[string]any{"x-map": json.RawMessage(`not-json`)}, want: nil},
+		{name: "json.RawMessage non-string value", ext: map[string]any{"x-map": json.RawMessage(`{"a":1}`)}, want: nil},
+		{
+			name: "map[string]any skips non-string values",
+			ext:  map[string]any{"x-map": map[string]any{"a": "Alpha.", "b": 2}},
+			want: map[string]string{"a": "Alpha."},
+		},
+		{name: "wrong type", ext: map[string]any{"x-map": "not-a-map"}, want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, extensionStringMap(tt.ext, "x-map"))
+		})
+	}
+}
+
 func TestErrorResponseWrappers(t *testing.T) {
 	t.Parallel()
 

@@ -115,7 +115,9 @@ type SearchModelsParams struct {
 	CcsMinimizeRoundtrips *bool
 
 	// The default operator for query string query (AND or OR).
-	DefaultOperator string
+	//
+	// See [opensearchapi.CommonQueryDSLOperator] for valid values.
+	DefaultOperator opensearchapi.CommonQueryDSLOperator
 
 	// The field to use as default where no field prefix is given in the query
 	// string.
@@ -127,7 +129,9 @@ type SearchModelsParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	//
+	// See [opensearchapi.ExpandWildcard] for valid values.
+	ExpandWildcards []opensearchapi.ExpandWildcard
 
 	// Specify whether to return detailed information about score computation
 	// as part of a hit.
@@ -192,6 +196,8 @@ type SearchModelsParams struct {
 	Scroll time.Duration
 
 	// Search operation type.
+	//
+	// See [opensearchapi.SearchType] for valid values.
 	SearchType opensearchapi.SearchType
 
 	// Specify whether to return sequence number and primary term of the last
@@ -216,7 +222,9 @@ type SearchModelsParams struct {
 	SuggestField string
 
 	// Specify suggest mode.
-	SuggestMode string
+	//
+	// See [opensearchapi.SuggestMode] for valid values.
+	SuggestMode opensearchapi.SuggestMode
 
 	// How many suggestions to return in response.
 	SuggestSize int
@@ -292,7 +300,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -388,7 +396,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.SuggestMode != "" {
-		set("suggest_mode", r.SuggestMode)
+		set("suggest_mode", string(r.SuggestMode))
 	}
 
 	if r.SuggestSize != 0 {

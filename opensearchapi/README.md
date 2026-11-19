@@ -42,7 +42,7 @@ _, err = client.Doc.Index(ctx, opensearchapi.IndexReq{
     Index:  "products",
     ID:     "1",
     Body:   strings.NewReader(`{"name":"Widget","price":9.99}`),
-    Params: &opensearchapi.IndexParams{Refresh: "true"},
+    Params: &opensearchapi.IndexParams{Refresh: opensearchapi.RefreshWaitFor},
 })
 
 // Search
@@ -162,15 +162,15 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 })
 ```
 
-Duration parameters (timeouts, intervals) accept `time.Duration` and are formatted automatically. Boolean and enum parameters use their Go-native types.
+Duration parameters (timeouts, intervals) accept `time.Duration` and are formatted automatically. Boolean and enum parameters use their Go-native types. Enum-valued parameters have typed constants (aliases of `string`) documented on each type in the package godoc, for example [`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh). Set them by constant, such as `WaitForActiveShards: opensearchapi.WaitForActiveShardsAll`.
 
 ### Pointer parameters
 
 Some parameters are optional pointers. Set them inline with the native `new(value)` form:
 
 ```go
-params := opensearchapi.SomeParams{
-    WaitForActiveShards: new("all"),
+params := opensearchapi.SearchParams{
+    AllowNoIndices: new(false),
 }
 ```
 

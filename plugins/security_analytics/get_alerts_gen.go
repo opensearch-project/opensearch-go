@@ -65,7 +65,9 @@ type GetAlertsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Used to filter by alert state. Optional.
-	AlertState string
+	//
+	// See [opensearchapi.SecurityAnalyticsAlertsAlertState] for valid values.
+	AlertState opensearchapi.SecurityAnalyticsAlertsAlertState
 
 	// The type of detector used to fetch alerts. Optional when `detector_id`
 	// is specified. Otherwise required.
@@ -87,7 +89,9 @@ type GetAlertsParams struct {
 	SearchString string
 
 	// Used to filter by alert severity level. Optional.
-	SeverityLevel string
+	//
+	// See [opensearchapi.SecurityAnalyticsAlertsAlertSeverityLevel] for valid values.
+	SeverityLevel opensearchapi.SecurityAnalyticsAlertsAlertSeverityLevel
 
 	// The maximum number of results returned in the response. Optional.
 	//
@@ -98,7 +102,9 @@ type GetAlertsParams struct {
 	// or `desc`. Optional.
 	//
 	// Default: asc.
-	SortOrder string
+	//
+	// See [opensearchapi.SortOrder] for valid values.
+	SortOrder opensearchapi.SortOrder
 
 	// The string used by Security Analytics to sort the alerts. Optional.
 	//
@@ -127,7 +133,7 @@ func (r GetAlertsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if r.AlertState != "" {
-		set("alertState", r.AlertState)
+		set("alertState", string(r.AlertState))
 	}
 
 	if r.DetectorType != "" {
@@ -151,7 +157,7 @@ func (r GetAlertsParams) get() map[string]string {
 	}
 
 	if r.SeverityLevel != "" {
-		set("severityLevel", r.SeverityLevel)
+		set("severityLevel", string(r.SeverityLevel))
 	}
 
 	if r.Size != 0 {
@@ -159,7 +165,7 @@ func (r GetAlertsParams) get() map[string]string {
 	}
 
 	if r.SortOrder != "" {
-		set("sortOrder", r.SortOrder)
+		set("sortOrder", string(r.SortOrder))
 	}
 
 	if r.SortString != "" {

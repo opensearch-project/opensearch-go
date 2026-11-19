@@ -70,7 +70,9 @@ type GetFindingsParams struct {
 	// the detector’s rule. Optional.
 	//
 	// Default: rule.
-	DetectionType string
+	//
+	// See [opensearchapi.SecurityAnalyticsFindingsDetectionType] for valid values.
+	DetectionType opensearchapi.SecurityAnalyticsFindingsDetectionType
 
 	// The type of detector used to fetch alerts. Optional when the
 	// `detector_id` is specified. Otherwise required.
@@ -100,7 +102,9 @@ type GetFindingsParams struct {
 
 	// The rule severity for which retrieve findings. Severity can be
 	// `critical`, `high`, `medium`, or `low`. Optional.
-	Severity string
+	//
+	// See [opensearchapi.SecurityAnalyticsFindingsRuleSeverity] for valid values.
+	Severity opensearchapi.SecurityAnalyticsFindingsRuleSeverity
 
 	// The maximum number of results returned in the response. Optional.
 	//
@@ -111,7 +115,9 @@ type GetFindingsParams struct {
 	// or `desc`. Optional.
 	//
 	// Default: asc.
-	SortOrder string
+	//
+	// See [opensearchapi.SortOrder] for valid values.
+	SortOrder opensearchapi.SortOrder
 
 	// The string used by the Alerting plugin to sort the findings. Optional.
 	//
@@ -140,7 +146,7 @@ func (r GetFindingsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if r.DetectionType != "" {
-		set("detectionType", r.DetectionType)
+		set("detectionType", string(r.DetectionType))
 	}
 
 	if r.DetectorType != "" {
@@ -168,7 +174,7 @@ func (r GetFindingsParams) get() map[string]string {
 	}
 
 	if r.Severity != "" {
-		set("severity", r.Severity)
+		set("severity", string(r.Severity))
 	}
 
 	if r.Size != 0 {
@@ -176,7 +182,7 @@ func (r GetFindingsParams) get() map[string]string {
 	}
 
 	if r.SortOrder != "" {
-		set("sortOrder", r.SortOrder)
+		set("sortOrder", string(r.SortOrder))
 	}
 
 	if r.SortString != "" {

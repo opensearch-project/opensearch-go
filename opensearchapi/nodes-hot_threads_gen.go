@@ -89,6 +89,8 @@ type NodesHotThreadsParams struct {
 	Threads int
 
 	// The type to sample.
+	//
+	// See [NodesSampleType] for valid values.
 	Type NodesSampleType
 }
 

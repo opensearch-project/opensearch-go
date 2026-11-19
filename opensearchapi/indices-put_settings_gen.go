@@ -101,7 +101,9 @@ type IndicesPutSettingsParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, returns settings in flat format.
 	//

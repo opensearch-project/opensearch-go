@@ -80,7 +80,7 @@ func main() {
 		indexed, err := client.Doc.Index(ctx, opensearchapi.IndexReq{
 			Index:  "movies",
 			Body:   strings.NewReader(doc),
-			Params: &opensearchapi.IndexParams{Refresh: "true"},
+			Params: &opensearchapi.IndexParams{Refresh: opensearchapi.RefreshWaitFor},
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -117,6 +117,8 @@ func main() {
 	}
 }
 ```
+
+Enum-valued parameters such as `Refresh` take typed constants; see [`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) for what each value does.
 
 Next steps:
 

@@ -121,7 +121,9 @@ type UpdateParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// If `true`, the destination must be an index alias.
 	//
@@ -141,7 +143,9 @@ type UpdateParams struct {
 	// the operations. Set to 'all' or any positive integer up to the total
 	// number of shards in the index (number_of_replicas+1). Defaults to 1
 	// meaning the primary shard.
-	WaitForActiveShards string
+	//
+	// See [WaitForActiveShards] for valid values.
+	WaitForActiveShards WaitForActiveShards
 }
 
 func (r UpdateParams) get() map[string]string {
@@ -180,7 +184,7 @@ func (r UpdateParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequireAlias != nil {
@@ -196,7 +200,7 @@ func (r UpdateParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	return params
