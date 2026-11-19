@@ -98,7 +98,12 @@ func TestSeedFallbackAfterDiscoveryReplacesSeed(t *testing.T) {
 
 	// Discovery replaces the seed with an unroutable, never-verified node.
 	deadConn := newUnverifiedDiscoveredConn("http://"+deadHost, RoleData)
-	seedInPool := createTestConnection("http://" + seedHost) // matches by URL for removal
+
+	tp.mu.RLock()
+	seedInPool := tp.findConnectionByURL(tp.mu.connectionPool, seedURL.String())
+	tp.mu.RUnlock()
+	require.NotNil(t, seedInPool)
+
 	require.NoError(t, tp.router.DiscoveryUpdate(
 		[]*Connection{deadConn}, []*Connection{seedInPool}, nil,
 	))
@@ -155,7 +160,12 @@ func TestRoutingLeavesSeedOnceDiscoveredNodeVerified(t *testing.T) {
 	// Discovery adds a VERIFIED, reachable node (lcActive, no lcNeedsHardware)
 	// and drops the seed from the policy pool.
 	liveConn := createTestConnection("http://" + liveHost)
-	seedInPool := createTestConnection("http://" + seedHost)
+
+	tp.mu.RLock()
+	seedInPool := tp.findConnectionByURL(tp.mu.connectionPool, seedURL.String())
+	tp.mu.RUnlock()
+	require.NotNil(t, seedInPool)
+
 	require.NoError(t, tp.router.DiscoveryUpdate(
 		[]*Connection{liveConn}, []*Connection{seedInPool}, nil,
 	))
@@ -224,7 +234,12 @@ func TestSeedFallbackAfterDiscoveryReplacesSeedDefaultRouter(t *testing.T) {
 
 	// Discovery replaces the seed with an unroutable, never-verified data node.
 	deadConn := newUnverifiedDiscoveredConn("http://"+deadHost, RoleData)
-	seedInPool := createTestConnection("http://" + seedHost) // matches by URL for removal
+
+	tp.mu.RLock()
+	seedInPool := tp.findConnectionByURL(tp.mu.connectionPool, seedURL.String())
+	tp.mu.RUnlock()
+	require.NotNil(t, seedInPool)
+
 	require.NoError(t, tp.router.DiscoveryUpdate(
 		[]*Connection{deadConn}, []*Connection{seedInPool}, nil,
 	))
