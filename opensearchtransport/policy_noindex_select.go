@@ -230,7 +230,7 @@ func selectNoIndexRanked(
 	att *routeAttempt,
 ) *Connection {
 	scores := acquireFloats(len(conns))
-	best := connScoreSelect(conns, nil, nil, costs, poolName, poolInfoReady, scores.Slice(), scoreFunc, nil, att)
+	best := connScoreSelect(conns, nil, nil, costs, poolName, poolInfoReady, scores.Slice(), scoreFunc, nil, 0, att)
 	scores.Release()
 
 	return best

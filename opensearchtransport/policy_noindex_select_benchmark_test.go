@@ -38,7 +38,7 @@ func BenchmarkNoIndexSelect(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				scores := acquireFloats(len(conns))
-				_ = connScoreSelect(conns, nil, nil, &shardCostForWrites, poolWrite, true, scores.Slice(), nil, nil, nil)
+				_ = connScoreSelect(conns, nil, nil, &shardCostForWrites, poolWrite, true, scores.Slice(), nil, nil, 0, nil)
 				scores.Release()
 			}
 		})
