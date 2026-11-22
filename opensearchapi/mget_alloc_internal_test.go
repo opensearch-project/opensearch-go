@@ -107,13 +107,14 @@ var mgetAllocModes = []mgetAllocMode{
 // node's request as it does against a cluster. The router is off, so the client
 // starts no seed health check or discovery: AllocsPerRun counts mallocs
 // process-wide, and either would allocate mid-measurement.
-func newMGetAllocClient(tb testing.TB, mode mgetAllocMode) *Client {
+func newMGetAllocClient(tb testing.TB, mode mgetAllocMode) (*Client, *mgetReplayTransport) {
 	tb.Helper()
 
 	tb.Setenv("OPENSEARCH_GO_ROUTER", "false")
+	rt := newMGetReplayTransport()
 	c, err := NewClient(Config{Client: opensearch.Config{
 		Addresses: []string{"http://replay.invalid:9200"},
-		Transport: newMGetReplayTransport(),
+		Transport: rt,
 	}})
 	require.NoError(tb, err)
 	tb.Cleanup(func() { _ = c.Close() })
@@ -124,7 +125,37 @@ func newMGetAllocClient(tb testing.TB, mode mgetAllocMode) *Client {
 	d.saturated = func(*opensearchtransport.Connection) bool { return false }
 	c.ext.mget = d
 
-	return c
+	return c, rt
+}
+
+// answered reports how many distinct request bodies rt has built answers for.
+func (rt *mgetReplayTransport) answered() int {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
+	return len(rt.answers)
+}
+
+// warmMGetReplay calls run until rt has gone a long stretch of calls without
+// seeing a request body it has no answer for.
+func warmMGetReplay(tb testing.TB, rt *mgetReplayTransport, run func()) {
+	tb.Helper()
+
+	// The fake's shards have two copies each, so a split repeats with a
+	// probability of at least 1/8 per call; 64 calls in a row with nothing new
+	// leaves a split unseen with a probability below 1e-3.
+	const quiet = 64
+	const limit = 4096
+	for calls, since := 0, 0; since < quiet; calls++ {
+		require.Less(tb, calls, limit, "replay answers kept growing: %d", rt.answered())
+		before := rt.answered()
+		run()
+		if rt.answered() == before {
+			since++
+		} else {
+			since = 0
+		}
+	}
 }
 
 func mgetAllocRequest(keys int) MGetReq {
@@ -161,14 +192,19 @@ func TestMGetAllocations(t *testing.T) {
 	for _, mode := range mgetAllocModes {
 		for _, keys := range []int{1, 10, 100, 1000} {
 			t.Run(fmt.Sprintf("%s/keys=%d", mode.name, keys), func(t *testing.T) {
-				c := newMGetAllocClient(t, mode)
+				c, rt := newMGetAllocClient(t, mode)
 				req := mgetAllocRequest(keys)
 				run := func() {
 					resp, err := c.Doc.MGet(t.Context(), req)
 					require.NoError(t, err)
 					require.Len(t, resp.Docs, keys)
 				}
-				run()
+				// The direct driver breaks ties between equal shard copies at
+				// random, so one mget's split across nodes varies from call to
+				// call. Warm the replay transport until it has an answer for
+				// every split, so that what is measured is the client's work and
+				// not the transport building answers it has not seen.
+				warmMGetReplay(t, rt, run)
 
 				got := testing.AllocsPerRun(20, run)
 				t.Logf("%-20s keys=%-5d allocs/mget=%7.0f allocs/key=%6.2f", mode.name, keys, got, got/float64(keys))
@@ -188,11 +224,13 @@ func BenchmarkMGetAllocations(b *testing.B) {
 	for _, mode := range mgetAllocModes {
 		for _, keys := range []int{1, 10, 100, 1000} {
 			b.Run(fmt.Sprintf("%s/keys=%d", mode.name, keys), func(b *testing.B) {
-				c := newMGetAllocClient(b, mode)
+				c, rt := newMGetAllocClient(b, mode)
 				req := mgetAllocRequest(keys)
-				if _, err := c.Doc.MGet(b.Context(), req); err != nil {
-					b.Fatal(err)
-				}
+				warmMGetReplay(b, rt, func() {
+					if _, err := c.Doc.MGet(b.Context(), req); err != nil {
+						b.Fatal(err)
+					}
+				})
 
 				b.ReportAllocs()
 				var before, after runtime.MemStats
