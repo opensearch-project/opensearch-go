@@ -43,9 +43,10 @@ type poolRouter struct {
 	poolName          string        // Thread pool name for congestion tracking (e.g., "search", "write")
 	jitter            atomic.Int64
 	observer          atomic.Pointer[ConnectionObserver]
-	poolInfoReady     *atomic.Bool  // nil-safe; true once thread pool quorum is reached
-	clusterSearchCwnd *atomic.Int32 // nil-safe; cluster-wide search cwnd for MCSR
-	policyState       atomic.Int32  // Bitfield: env override bits only (dynamic state from inner)
+	poolInfoReady     *atomic.Bool      // nil-safe; true once thread pool quorum is reached
+	clusterSearchCwnd *atomic.Int32     // nil-safe; cluster-wide search cwnd for MCSR
+	clusterCoord      *clusterCoordLoad // nil-safe; cluster mean write-coordination rate
+	policyState       atomic.Int32      // Bitfield: env override bits only (dynamic state from inner)
 
 	// mu guards sortedConns -- a pre-sorted (by RTT) snapshot of active
 	// connections from the inner policy's pool. Rebuilt on DiscoveryUpdate;
@@ -105,8 +106,8 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	}
 
 	if keyA == "" {
-		// Cluster lookup: no index in path, no shard data.
-		// Score all active connections by RTT + congestion only.
+		// Cluster lookup: no index in path, no shard data. Spread across
+		// the nearest RTT tier with room; see selectNoIndex.
 		p.mu.RLock()
 		conns := p.mu.sortedConns
 		p.mu.RUnlock()
@@ -115,10 +116,8 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			return hop, nil
 		}
 
-		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
-		scores.Release()
+		best := selectNoIndex(conns, p.shardCosts, p.poolName, pir, p.scoreFunc, p.clusterCoord, routeAttemptFrom(ctx))
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 			return hop, nil
@@ -402,6 +401,7 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 	}
 	p.poolInfoReady = config.poolInfoReady
 	p.clusterSearchCwnd = config.clusterSearchCwnd
+	p.clusterCoord = config.clusterCoord
 
 	// Register the MCSR metric callback for the search pool so that
 	// ConnectionMetric snapshots include the current per-node value.

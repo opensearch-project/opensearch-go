@@ -126,8 +126,8 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 
 	indexName := extractIndexFromPath(req.URL.Path)
 	if indexName == "" {
-		// Cluster lookup: no index in path, no shard data.
-		// Score all active connections by RTT + congestion only.
+		// Cluster lookup: no index in path, no shard data. Spread across
+		// the nearest RTT tier with room; see selectNoIndex.
 		p.mu.RLock()
 		conns := p.mu.activeConns
 		p.mu.RUnlock()
@@ -136,10 +136,8 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 			return NextHop{}, nil
 		}
 
-		scores := acquireFloats(len(conns))
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, routeAttemptFrom(ctx))
-		scores.Release()
+		best := selectNoIndex(conns, p.shardCosts, p.poolName,
+			loadPoolInfoReady(p.config.poolInfoReady), p.scoreFunc, p.config.clusterCoord, routeAttemptFrom(ctx))
 		if best == nil {
 			return NextHop{}, nil
 		}
@@ -564,7 +562,9 @@ func connScoreSelect(
 }
 
 // sortConnectionsByRTT sorts connections by [rttBucket] ascending.
-// Ties are broken by URL string for deterministic ordering.
+// Ties are broken by URL string for deterministic ordering, which only
+// arranges the list: routing must not take the first of a tier as its
+// choice, or every client sends to the same node (see [selectNoIndex]).
 func sortConnectionsByRTT(conns []*Connection) {
 	// Use a simple insertion sort -- connection lists are typically small (3-50).
 	for i := 1; i < len(conns); i++ {
