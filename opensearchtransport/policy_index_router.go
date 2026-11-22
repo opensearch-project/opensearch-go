@@ -128,7 +128,7 @@ func (p *IndexRouter) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	indexName := extractIndexFromPath(req.URL.Path)
 	if indexName == "" {
 		// Cluster lookup: no index in path, no shard data. Spread across
-		// the nearest RTT tier with room; see selectNoIndex.
+		// the nearest RTT tier, crossing out of it by score; see selectNoIndex.
 		p.mu.RLock()
 		conns := p.mu.activeConns
 		p.mu.RUnlock()
@@ -581,22 +581,18 @@ func connScoreSelect(
 	return candidates[0] // Defensive; shouldn't reach here.
 }
 
-// tieWeight is a tied candidate's share of the draw in [pickTied]: the number
-// of target shards it hosts, totalShards - extraCost[i], when the candidates
-// come from a shard set, and 1 otherwise. A node hosting none of the target
-// shards still weighs 1, so it keeps a chance; calcMultiKeyCost lists only
-// nodes hosting at least one, so that case does not arise from it.
+// tieWeight is a tied candidate's share of the draw in [pickTied] when the
+// candidates come from a shard set: the number of target shards it hosts,
+// totalShards - extraCost[i]. calcMultiKeyCost lists only nodes hosting at
+// least one target shard, so the weight is at least 1.
 func tieWeight(extraCost []float64, totalShards, i int) int {
-	if extraCost == nil || totalShards <= 0 {
-		return 1
-	}
-	return max(totalShards-int(extraCost[i]), 1)
+	return totalShards - int(extraCost[i])
 }
 
 // pickTied returns the index of one of the ties candidates whose score is best,
-// each chosen with probability proportional to its [tieWeight]. It draws one
-// random number. Without a shard set every weight is 1, so it draws over ties
-// directly and scans once.
+// each chosen with probability proportional to its [tieWeight] when the
+// candidates come from a shard set, and with the same chance otherwise. It
+// draws one random number.
 func pickTied(scores []float64, best float64, ties int, extraCost []float64, totalShards int) int {
 	weighted := extraCost != nil && totalShards > 0
 

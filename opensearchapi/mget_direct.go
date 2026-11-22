@@ -724,10 +724,7 @@ func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 				n.uncovered == best.uncovered && n.load < best.load:
 				best, ties = n, 1
 			case n.uncovered == best.uncovered && n.load == best.load:
-				// Keep each of the equal candidates with the same chance.
-				ties++
-				//nolint:gosec // load spreading; cryptographic randomness not needed
-				if rand.IntN(ties) == 0 {
+				if takeTie(&ties) {
 					best = n
 				}
 			}
@@ -740,6 +737,14 @@ func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 			picks[i] = shardNode{node: c.shards[s].chosen, local: true}
 		}
 	}
+}
+
+// takeTie counts one more candidate equal to the best seen so far, best
+// included, in *ties, and reports whether to keep it instead, so that each of
+// the equal candidates is kept with the same chance.
+func takeTie(ties *int) bool {
+	*ties++
+	return rand.IntN(*ties) == 0 //nolint:gosec // load spreading; cryptographic randomness not needed
 }
 
 // findShardNode picks, among the nodes that hold a copy of a document's shard,
@@ -790,10 +795,7 @@ func (call *mgetCall) findShardNode(
 		case best == nil, load < bestLoad, load == bestLoad && best.Primary && !target.Primary:
 			best, bestLoad, ties = target, load, 1
 		case load == bestLoad && best.Primary == target.Primary:
-			// Keep each of the equal copies with the same chance.
-			ties++
-			//nolint:gosec // load spreading; cryptographic randomness not needed
-			if rand.IntN(ties) == 0 {
+			if takeTie(&ties) {
 				best = target
 			}
 		}

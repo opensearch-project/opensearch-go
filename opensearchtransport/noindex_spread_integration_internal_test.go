@@ -168,7 +168,7 @@ func TestNoIndexRequestsSpreadAcrossNodes_Integration(t *testing.T) {
 			continue
 		}
 		require.GreaterOrEqual(t, selected[name], floor,
-			"node %s of a %d-node nearest tier got %d of %d no-index requests: %v",
+			"node %q of a %d-node nearest tier got %d of %d no-index requests: %v",
 			name, tier, selected[name], requests, selected)
 	}
 }

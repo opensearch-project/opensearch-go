@@ -107,7 +107,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 
 	if keyA == "" {
 		// Cluster lookup: no index in path, no shard data. Spread across
-		// the nearest RTT tier with room; see selectNoIndex.
+		// the nearest RTT tier, crossing out of it by score; see selectNoIndex.
 		p.mu.RLock()
 		conns := p.mu.sortedConns
 		p.mu.RUnlock()

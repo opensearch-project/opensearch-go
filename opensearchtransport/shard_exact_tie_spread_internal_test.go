@@ -7,7 +7,6 @@
 package opensearchtransport
 
 import (
-	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -85,7 +84,7 @@ func TestShardExactReadsSpreadAcrossTiedCopies(t *testing.T) {
 			for range requests {
 				req, err := http.NewRequest(http.MethodGet, "/idx/_doc/doc-1", nil)
 				require.NoError(t, err)
-				hop, err := r.Eval(context.Background(), req)
+				hop, err := r.Eval(t.Context(), req)
 				require.NoError(t, err)
 				require.NotNil(t, hop.Conn)
 				counts[hop.Conn.Name]++

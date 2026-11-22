@@ -100,13 +100,14 @@ func TestCoordLoadFactor(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		rates   []float64 // measured nodes; the first is the node scored
-		cluster bool      // whether the cluster mean is computed
-		want    float64
+		name       string
+		rates      []float64 // measured nodes; the first is the node scored
+		nilCluster bool      // whether the scorer has no cluster load at all
+		cluster    bool      // whether the cluster mean is computed
+		want       float64
 	}{
 		{name: "no cluster mean", rates: []float64{5_000, 1_000}, want: 1},
-		{name: "nil cluster", rates: []float64{5_000}, want: 1},
+		{name: "nil cluster", rates: []float64{5_000}, nilCluster: true, want: 1},
 		{name: "idle node", rates: []float64{0, 2_000}, cluster: true, want: 1},
 		{name: "node at the mean", rates: []float64{1_000, 1_000}, cluster: true, want: 2},
 		{name: "node at three times the mean", rates: []float64{3_000, 0, 0}, cluster: true, want: 4},
@@ -122,7 +123,7 @@ func TestCoordLoadFactor(t *testing.T) {
 				conns[i] = measuredConn(t, fmt.Sprintf("n%d", i), r)
 			}
 			var cluster *clusterCoordLoad
-			if tt.name != "nil cluster" {
+			if !tt.nilCluster {
 				cluster = &clusterCoordLoad{}
 			}
 			if tt.cluster {

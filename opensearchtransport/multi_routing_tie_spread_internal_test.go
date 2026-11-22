@@ -7,7 +7,6 @@
 package opensearchtransport
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -97,7 +96,7 @@ func TestMultiRoutingSpreadsAcrossTiedNodes(t *testing.T) {
 			for range requests {
 				req, err := http.NewRequest(http.MethodGet, path, nil)
 				require.NoError(t, err)
-				hop, err := r.Eval(context.Background(), req)
+				hop, err := r.Eval(t.Context(), req)
 				require.NoError(t, err)
 				require.NotNil(t, hop.Conn)
 				counts[hop.Conn.Name]++

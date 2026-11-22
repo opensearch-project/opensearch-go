@@ -18,11 +18,12 @@ import (
 //
 // Two distinct nodes are drawn at random from the nearest tier, the power of
 // two choices, which spreads requests across it. One node is also drawn at
-// random from the farther tiers, as a challenger. The lowest of the scores
-// wins. An idle near node scores below any idle farther node, since its RTT
-// bucket is lower, so at idle every request stays near; as the near nodes get
-// busy their scores rise, and a farther node wins once it scores lower. This
-// is the crossover guides/transport-routing.md "AZ-Aware Crossover" describes.
+// random from the farther tiers, as a challenger, and wins when it scores
+// below the better near node. An idle near node scores below any idle farther
+// node, since its RTT bucket is lower, so at idle every request stays near; as
+// the near nodes get busy their scores rise, and a farther node wins once it
+// scores lower. This is the crossover guides/transport-routing.md "AZ-Aware
+// Crossover" describes.
 //
 // conns must be sorted by RTT bucket ascending, as [sortConnectionsByRTT]
 // leaves it.
@@ -32,12 +33,14 @@ import (
 // cluster state that every client reads alike: a deterministic choice sends a
 // fleet of idle clients to the same node at once.
 //
-// Each score is weighted by the node's write-coordination load against the
-// cluster mean ([coordLoadFactor]), so a node coordinating more than its share
-// of the cluster's writes loses more of its draws. The load is polled, so every
-// client sees the same value for up to a poll interval; it only weights the
-// drawn nodes, so no client sends everything to the node that looked idlest at
-// the last poll.
+// The two near nodes are compared with each score weighted by the node's
+// write-coordination load against the cluster mean ([coordLoadFactor]), so a
+// node coordinating more than its share of the cluster's writes loses more of
+// its draws. The challenger is compared without the weight. The load is
+// polled, so every client sees the same value for up to a poll interval. It
+// only picks between the two drawn near nodes, so no client sends everything to
+// the node that looked idlest at the last poll, and it never moves every idle
+// client into a farther tier at once.
 //
 // A request that is being retried skips the nodes it tried in this pass, and a
 // warming node that declines its turn gives way to the next best of the drawn
@@ -60,29 +63,45 @@ func selectNoIndex(
 	a, b := drawNoIndexPair(conns[:nearEnd], att)
 	challenger := drawUntried(conns[nearEnd:], att)
 
-	var drawn [3]*Connection
-	var scores [3]float64
-	n := 0
-	for _, c := range [3]*Connection{a, b, challenger} {
-		if c == nil {
-			continue
-		}
-		drawn[n] = c
-		scores[n] = noIndexScore(c, poolName, poolInfoReady, scoreFunc, att) * coordLoadFactor(c, cluster)
-		n++
-	}
-	if n == 0 {
+	score := func(c *Connection) float64 { return noIndexScore(c, poolName, poolInfoReady, scoreFunc, att) }
+	ranked := func() *Connection {
 		return selectNoIndexRanked(conns, costs, poolName, poolInfoReady, scoreFunc, att)
 	}
 
-	// Try the drawn nodes best first. A stable insertion sort keeps equal
-	// scores in the order they were drawn, which is random.
-	for i := 1; i < n; i++ {
-		for j := i; j > 0 && scores[j] < scores[j-1]; j-- {
-			scores[j], scores[j-1] = scores[j-1], scores[j]
-			drawn[j], drawn[j-1] = drawn[j-1], drawn[j]
+	// Order the drawn nodes best first. The near pair goes in weighted-score
+	// order, and in draw order, which is random, on a tie. The challenger goes
+	// ahead of every near node whose unweighted score is higher than its own.
+	var drawn [3]*Connection
+	var scores [3]float64 // unweighted
+	n := 0
+	if a != nil {
+		sa := score(a)
+		drawn[0], scores[0] = a, sa
+		n = 1
+		if b != nil {
+			sb := score(b)
+			drawn[1], scores[1] = b, sb
+			n = 2
+			if sb*coordLoadFactor(b, cluster) < sa*coordLoadFactor(a, cluster) {
+				drawn[0], drawn[1] = drawn[1], drawn[0]
+				scores[0], scores[1] = scores[1], scores[0]
+			}
 		}
 	}
+	if challenger != nil {
+		sc := score(challenger)
+		i := n
+		for i > 0 && sc < scores[i-1] {
+			drawn[i], scores[i] = drawn[i-1], scores[i-1]
+			i--
+		}
+		drawn[i], scores[i] = challenger, sc
+		n++
+	}
+	if n == 0 {
+		return ranked()
+	}
+
 	for _, c := range drawn[:n] {
 		if !c.loadConnState().isWarmingUp() {
 			return c
@@ -94,7 +113,7 @@ func selectNoIndex(
 		}
 	}
 
-	return selectNoIndexRanked(conns, costs, poolName, poolInfoReady, scoreFunc, att)
+	return ranked()
 }
 
 // nearestTierEnd returns the length of the prefix of conns, sorted by RTT
@@ -109,6 +128,25 @@ func nearestTierEnd(conns []*Connection) int {
 	return len(conns)
 }
 
+// untried reports whether the request has not tried c in this pass.
+func untried(att *routeAttempt, c *Connection) bool {
+	_, inPass := att.lookup(c)
+	return !inPass
+}
+
+// scanUntried returns the first node of conns, from a random start, that is
+// not skip and that the request has not tried in this pass, or nil when there
+// is none.
+func scanUntried(conns []*Connection, att *routeAttempt, skip *Connection) *Connection {
+	start := rand.IntN(len(conns)) //nolint:gosec // load spreading; cryptographic randomness not needed
+	for i := range conns {
+		if c := conns[(start+i)%len(conns)]; c != skip && untried(att, c) {
+			return c
+		}
+	}
+	return nil
+}
+
 // drawUntried returns a random node of conns that the request has not tried in
 // this pass, or nil when there is none. It draws a bounded number of times,
 // then scans, so a mostly-tried set still finds its untried node.
@@ -118,18 +156,11 @@ func drawUntried(conns []*Connection, att *routeAttempt) *Connection {
 	}
 	for range 2 {
 		c := conns[rand.IntN(len(conns))] //nolint:gosec // load spreading; cryptographic randomness not needed
-		if _, inPass := att.lookup(c); !inPass {
+		if untried(att, c) {
 			return c
 		}
 	}
-	start := rand.IntN(len(conns)) //nolint:gosec // load spreading; cryptographic randomness not needed
-	for i := range conns {
-		c := conns[(start+i)%len(conns)]
-		if _, inPass := att.lookup(c); !inPass {
-			return c
-		}
-	}
-	return nil
+	return scanUntried(conns, att, nil)
 }
 
 // drawNoIndexPair draws up to two distinct nodes of tier that the request has
@@ -142,16 +173,11 @@ func drawUntried(conns []*Connection, att *routeAttempt) *Connection {
 // times, since att may have tried some of the nodes, and then falls back to
 // [drawUntried] for a node it did not find.
 func drawNoIndexPair(tier []*Connection, att *routeAttempt) (*Connection, *Connection) {
-	untried := func(c *Connection) bool {
-		_, inPass := att.lookup(c)
-		return !inPass
-	}
-
 	switch len(tier) {
 	case 0:
 		return nil, nil
 	case 1:
-		if untried(tier[0]) {
+		if untried(att, tier[0]) {
 			return tier[0], nil
 		}
 		return nil, nil
@@ -161,11 +187,11 @@ func drawNoIndexPair(tier []*Connection, att *routeAttempt) (*Connection, *Conne
 			a, b = b, a
 		}
 		switch {
-		case untried(a) && untried(b):
+		case untried(att, a) && untried(att, b):
 			return a, b
-		case untried(a):
+		case untried(att, a):
 			return a, nil
-		case untried(b):
+		case untried(att, b):
 			return b, nil
 		}
 		return nil, nil
@@ -175,7 +201,7 @@ func drawNoIndexPair(tier []*Connection, att *routeAttempt) (*Connection, *Conne
 	for range 2 * len(tier) {
 		c := tier[rand.IntN(len(tier))] //nolint:gosec // load spreading; cryptographic randomness not needed
 		switch {
-		case !untried(c):
+		case !untried(att, c):
 		case a == nil:
 			a = c
 		case c != a:
@@ -186,13 +212,7 @@ func drawNoIndexPair(tier []*Connection, att *routeAttempt) (*Connection, *Conne
 		return drawUntried(tier, att), nil
 	}
 	// One untried node found; look for a second other than it.
-	start := rand.IntN(len(tier)) //nolint:gosec // load spreading; cryptographic randomness not needed
-	for i := range tier {
-		if c := tier[(start+i)%len(tier)]; c != a && untried(c) {
-			return a, c
-		}
-	}
-	return a, nil
+	return a, scanUntried(tier, att, a)
 }
 
 // noIndexScore is the score [connScoreSelect] gives conn with no shard data,

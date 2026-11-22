@@ -93,7 +93,7 @@ func TestNoIndexRequestsSpread(t *testing.T) {
 			for range requests {
 				req, err := http.NewRequest(http.MethodPost, "/_bulk", nil)
 				require.NoError(t, err)
-				hop, err := r.Eval(context.Background(), req)
+				hop, err := r.Eval(t.Context(), req)
 				require.NoError(t, err)
 				require.NotNil(t, hop.Conn)
 				counts[hop.Conn.ID]++
@@ -103,12 +103,12 @@ func TestNoIndexRequestsSpread(t *testing.T) {
 			// near node must take a fair share, and none may dominate.
 			for i := range near {
 				id := fmt.Sprintf("near-%02d", i)
-				require.Greater(t, counts[id], requests/near/2, "near node %s starved: %v", id, counts)
-				require.Less(t, counts[id], requests/near*2, "near node %s dominates: %v", id, counts)
+				require.Greater(t, counts[id], requests/near/2, "near node %q starved: %v", id, counts)
+				require.Less(t, counts[id], requests/near*2, "near node %q dominates: %v", id, counts)
 			}
 			for i := range far {
 				id := fmt.Sprintf("far-%02d", i)
-				require.Zero(t, counts[id], "far node %s used while near tier has room: %v", id, counts)
+				require.Zero(t, counts[id], "far node %q used while near tier has room: %v", id, counts)
 			}
 		})
 	}
@@ -135,6 +135,9 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 		// setup prepares conns (near-00..03 then far-00..03) and returns the
 		// request's route attempt, nil for a first try.
 		setup func(t *testing.T, conns []*Connection) *routeAttempt
+		// nearCoordRate, when set, is the coordinating rate of every near node,
+		// with every far node measured at 0 and the cluster mean computed.
+		nearCoordRate int64
 		// wantFar is the share of picks that may go to the far tier: [min, max].
 		wantFar [2]float64
 		// mustUse lists nodes that must be chosen at least once.
@@ -160,6 +163,17 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 			},
 			wantFar: [2]float64{1, 1},
 			mustUse: []string{"far-00", "far-01", "far-02", "far-03"},
+		},
+		{
+			// Other clients' writes make each near node coordinate at twice the
+			// cluster mean, a factor of 3. The factor only picks between the
+			// near pair, so an idle near node (1.0) still beats an idle far
+			// node (1.5).
+			name:          "coordinating load alone keeps idle picks near",
+			setup:         func(*testing.T, []*Connection) *routeAttempt { return nil },
+			nearCoordRate: 10_000,
+			wantFar:       [2]float64{0, 0},
+			mustUse:       []string{"near-00", "near-01", "near-02", "near-03"},
 		},
 		{
 			// Half the near tier is busy: a pair holding an idle near node
@@ -210,11 +224,25 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 			conns := spreadConns(t, near, far, cwnd)
 			sortConnectionsByRTT(conns)
 			att := tt.setup(t, conns)
+			var cluster *clusterCoordLoad
+			if tt.nearCoordRate > 0 {
+				t0 := time.Unix(1_000, 0)
+				for i, c := range conns {
+					var rate int64
+					if i < near {
+						rate = tt.nearCoordRate
+					}
+					c.coordLoad.update(0, t0, 1)
+					c.coordLoad.update(rate, t0.Add(time.Second), 1)
+				}
+				cluster = &clusterCoordLoad{}
+				cluster.update(conns)
+			}
 
 			used := make(map[string]int)
 			farPicks := 0
 			for range draws {
-				c := selectNoIndex(conns, &shardCostForWrites, poolWrite, true, nil, nil, att)
+				c := selectNoIndex(conns, &shardCostForWrites, poolWrite, true, nil, cluster, att)
 				require.NotNil(t, c)
 				used[c.ID]++
 				if c.ID[:3] == "far" {
