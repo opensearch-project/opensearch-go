@@ -308,6 +308,10 @@ func convertType(gt *goType) *ir.Type {
 	for _, f := range gt.Fields {
 		t.Fields = append(t.Fields, convertField(f))
 	}
+	if a := gt.Additional; a != nil {
+		t.Fields = append(t.Fields, ir.Field{GoName: a.GoName, JSONName: "-", GoType: "map[string]" + a.ValueType, Comment: a.Comment})
+		t.Additional = &ir.AdditionalProperties{GoName: a.GoName, ValueType: a.ValueType, DeclaredKeys: a.DeclaredKeys}
+	}
 
 	for _, b := range gt.Branches {
 		t.Branches = append(t.Branches, convertUnionBranch(b))

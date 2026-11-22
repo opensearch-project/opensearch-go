@@ -9,6 +9,8 @@
 package opensearchapi
 
 import (
+	"fmt"
+
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
@@ -2493,6 +2495,62 @@ type GeoDistanceSort struct {
 	Unit *DistanceUnit `json:"unit,omitempty"`
 
 	ValidationMethod *string `json:"validation_method,omitempty"`
+
+	// Location is the geo points to use for distance calculation.
+	Location map[string][]GeoLocation `json:"-"`
+}
+
+// MarshalJSON writes the Location entries as members of the object, after
+// the declared fields.
+func (t GeoDistanceSort) MarshalJSON() ([]byte, error) {
+	type declared GeoDistanceSort
+	b, err := json.Marshal(declared(t))
+	if err != nil || len(t.Location) == 0 {
+		return b, err
+	}
+	for k := range t.Location {
+		switch k {
+		case "distance_type", "ignore_unmapped", "mode", "nested", "order", "unit", "validation_method":
+			return nil, fmt.Errorf("GeoDistanceSort: Location key %q is a declared field", k)
+		}
+	}
+	extra, err := json.Marshal(t.Location)
+	if err != nil {
+		return nil, err
+	}
+	if len(b) == len("{}") {
+		return extra, nil
+	}
+	return append(append(b[:len(b)-1], ','), extra[1:]...), nil
+}
+
+// UnmarshalJSON decodes the declared fields, and every other member into
+// Location.
+func (t *GeoDistanceSort) UnmarshalJSON(data []byte) error {
+	type declared GeoDistanceSort
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(data, &members); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, (*declared)(t)); err != nil {
+		return err
+	}
+	t.Location = nil
+	for k, v := range members {
+		switch k {
+		case "distance_type", "ignore_unmapped", "mode", "nested", "order", "unit", "validation_method":
+			continue
+		}
+		var val []GeoLocation
+		if err := json.Unmarshal(v, &val); err != nil {
+			return fmt.Errorf("GeoDistanceSort: Location[%q]: %w", k, err)
+		}
+		if t.Location == nil {
+			t.Location = make(map[string][]GeoLocation, len(members))
+		}
+		t.Location[k] = val
+	}
+	return nil
 }
 
 type ScoreSort struct {
@@ -3442,6 +3500,22 @@ type CommonQueryDSLTermQueryValue struct {
 	Value *FieldValue `json:"value"`
 }
 
+type CommonQueryDSLTermsLookup struct {
+	// ID is the unique identifier for a resource.
+	ID string `json:"id"`
+
+	Index string `json:"index"`
+
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Path string `json:"path"`
+
+	// Routing is the routing value for the document.
+	Routing *string `json:"routing,omitempty"`
+
+	Store *bool `json:"store,omitempty"`
+}
+
 // Returns documents that contain one or more exact terms in a provided field.
 type CommonQueryDSLTermsQuery struct {
 	Name  *string  `json:"_name,omitempty"`
@@ -3450,6 +3524,62 @@ type CommonQueryDSLTermsQuery struct {
 	// ValueType. Specifies the types of values used for filtering. Valid
 	// values are `default` and `bitmap`. Default is `default`.
 	ValueType *string `json:"value_type,omitempty"`
+
+	// Terms holds the members not declared above, keyed by member name.
+	Terms map[string]CommonQueryDSLTermsQueryField `json:"-"`
+}
+
+// MarshalJSON writes the Terms entries as members of the object, after
+// the declared fields.
+func (t CommonQueryDSLTermsQuery) MarshalJSON() ([]byte, error) {
+	type declared CommonQueryDSLTermsQuery
+	b, err := json.Marshal(declared(t))
+	if err != nil || len(t.Terms) == 0 {
+		return b, err
+	}
+	for k := range t.Terms {
+		switch k {
+		case "_name", "boost", "value_type":
+			return nil, fmt.Errorf("CommonQueryDSLTermsQuery: Terms key %q is a declared field", k)
+		}
+	}
+	extra, err := json.Marshal(t.Terms)
+	if err != nil {
+		return nil, err
+	}
+	if len(b) == len("{}") {
+		return extra, nil
+	}
+	return append(append(b[:len(b)-1], ','), extra[1:]...), nil
+}
+
+// UnmarshalJSON decodes the declared fields, and every other member into
+// Terms.
+func (t *CommonQueryDSLTermsQuery) UnmarshalJSON(data []byte) error {
+	type declared CommonQueryDSLTermsQuery
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(data, &members); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, (*declared)(t)); err != nil {
+		return err
+	}
+	t.Terms = nil
+	for k, v := range members {
+		switch k {
+		case "_name", "boost", "value_type":
+			continue
+		}
+		var val CommonQueryDSLTermsQueryField
+		if err := json.Unmarshal(v, &val); err != nil {
+			return fmt.Errorf("CommonQueryDSLTermsQuery: Terms[%q]: %w", k, err)
+		}
+		if t.Terms == nil {
+			t.Terms = make(map[string]CommonQueryDSLTermsQueryField, len(members))
+		}
+		t.Terms[k] = val
+	}
+	return nil
 }
 
 type CommonQueryDSLTermsSetQuery struct {

@@ -28,6 +28,14 @@ type goField struct {
 	DeprecationMsg    string // explains what to use instead
 }
 
+// goAdditional is the map field that holds an object's additionalProperties.
+type goAdditional struct {
+	GoName       string   // Go field name (e.g. "Terms")
+	ValueType    string   // map value type (e.g. "CommonQueryDSLTermsQueryField")
+	Comment      string   // field doc comment
+	DeclaredKeys []string // JSON names of the declared properties, kept out of the map
+}
+
 // unionBranch represents one branch of a oneOf/anyOf union.
 type unionBranch struct {
 	Name string // Go accessor/const suffix (e.g. "TotalHits", "Int64")
@@ -83,6 +91,10 @@ type goType struct {
 	EnumValues      []string         // allowed wire values (int-backed path; also the conflict-check key)
 	EnumConsts      []constEnumValue // per-member values + doc/version metadata (string-backed path)
 	Comment         string           // type doc comment
+
+	// Additional carries the schema's additionalProperties next to its declared
+	// properties. Nil unless the schema is listed in additionalPropertiesSchemas.
+	Additional *goAdditional
 
 	// Discriminator carries the spec's OpenAPI `discriminator` when the union
 	// declares one and every branch resolved to a unique value. Nil otherwise,

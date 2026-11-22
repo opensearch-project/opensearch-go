@@ -22,6 +22,11 @@ type SharedTypesFragment struct {
 // Imports returns the imports the shared-types fragment needs.
 func (f *SharedTypesFragment) Imports() []Import {
 	for _, t := range f.Types {
+		if t.Additional != nil {
+			return []Import{{Path: "fmt"}, jsonImport}
+		}
+	}
+	for _, t := range f.Types {
 		for _, field := range t.Fields {
 			if strings.Contains(field.GoType, GoTypeRawMessage) {
 				return []Import{jsonImport}
@@ -38,20 +43,21 @@ func (f *SharedTypesFragment) Body() (string, error) {
 	}
 
 	var sb strings.Builder
-	if err := sharedTypesFmtTmpl.Execute(&sb, f.Types); err != nil {
+	if err := sharedTypesFmtTmpl.ExecuteTemplate(&sb, "sharedTypes", f.Types); err != nil {
 		return "", fmt.Errorf("rendering SharedTypesFragment: %w", err)
 	}
 	return sb.String(), nil
 }
 
 //nolint:gochecknoglobals // const-ish read-only template
-var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(template.FuncMap{
+var sharedTypesFmtTmpl = template.Must(template.Must(template.New("sharedTypes").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
 	"fieldComment":     FieldComment,
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
-}).Parse(`{{range .}}
+	"additionalData":   newAdditionalData,
+}).Parse(additionalTmplStr)).Parse(`{{range .}}
 {{- if .Comment}}
 {{comment .Comment}}
 {{- end}}
@@ -76,6 +82,9 @@ type {{.Name}} struct {
 {{- end}}
 {{- end}}
 }
+{{- if .Additional}}
+{{template "additional" (additionalData .Name .Additional)}}
+{{- end}}
 {{end}}`))
 
 // NewSharedTypesFile builds a Target for types_gen.go.

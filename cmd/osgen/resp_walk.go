@@ -212,6 +212,7 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 	if schema != nil {
 		t.Fields = w.collectFields(schema, key, group, name, isRespBody)
 		t.Comment = schema.Description
+		t.Additional = w.additionalProperties(schema, key, group, t.Fields)
 	}
 
 	if registered, ok := w.registry.register(t); ok {

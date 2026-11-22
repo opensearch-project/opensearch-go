@@ -239,6 +239,12 @@ type Type struct {
 	Package    string
 	ImportPath string
 
+	// Additional, when non-nil, names the map field (tagged `json:"-"`, last in
+	// Fields) that holds the members of a struct the spec leaves undeclared. The
+	// struct gets a MarshalJSON and an UnmarshalJSON that move them in and out
+	// of the object. See [AdditionalProperties].
+	Additional *AdditionalProperties
+
 	// Discriminator, when non-nil, carries the OpenAPI `discriminator` the
 	// spec declares on the union's oneOf/anyOf. It is the strongest of the
 	// decode strategies and takes precedence over every other: the payload
@@ -285,6 +291,14 @@ type Type struct {
 	// TypeStringEnum (string-backed enum): each pairs the Go const identifier
 	// with its wire value. Empty for all other kinds.
 	EnumMembers []EnumMember
+}
+
+// AdditionalProperties describes the map field that holds a struct's
+// additionalProperties.
+type AdditionalProperties struct {
+	GoName       string   // Go field name (e.g. "Terms")
+	ValueType    string   // map value type (e.g. "CommonQueryDSLTermsQueryField")
+	DeclaredKeys []string // JSON names of the declared properties, kept out of the map
 }
 
 // EnumMember is one member of an enum: a generated const bound to its wire
