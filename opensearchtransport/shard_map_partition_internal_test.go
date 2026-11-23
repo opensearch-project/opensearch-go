@@ -369,7 +369,7 @@ func TestCalcMultiKeyCostTargetShards(t *testing.T) {
 			slot := partitionedSlot(tt.primaries, tt.routingPartitionSize, placement)
 			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB")}
 
-			cBuf, ecBuf, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
+			cBuf, ecBuf, _, err := calcMultiKeyCost(routingFeatures(0), slot, tt.routing, conns)
 			defer cBuf.Release()
 			defer ecBuf.Release()
 
@@ -526,15 +526,18 @@ func TestRoutersCostShardSets(t *testing.T) {
 		doc       bool // route through DocRouter instead of the pool router
 		path      string
 		shardMap  *indexShardMap
-		wantNil   bool   // the router leaves the request to the inner policy
-		wantNode  string // "" accepts any node
+		wantNil   bool     // the router leaves the request to the inner policy
+		wantNodes []string // nil accepts any node
 		wantExact bool
 		wantErr   error
 		features  routingFeatures
 	}{
 		{
 			name: "doc router, routing list", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
-			shardMap: listMap, wantNode: "node1", wantExact: true,
+			// node0 is a bucket nearer and node1 hosts one shard more, so they
+			// score the same; either may coordinate. TestRoutingListTieFavorsCoverage
+			// checks that node1 wins in proportion to the shards it hosts.
+			shardMap: listMap, wantNodes: []string{"node0", "node1"}, wantExact: true,
 		},
 		{
 			name: "doc router, routing list on shards no node hosts", doc: true, path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
@@ -546,11 +549,14 @@ func TestRoutersCostShardSets(t *testing.T) {
 		},
 		{
 			name: "pool router, routing list", path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
-			shardMap: listMap, wantNode: "node1", wantExact: true,
+			// node0 is a bucket nearer and node1 hosts one shard more, so they
+			// score the same; either may coordinate. TestRoutingListTieFavorsCoverage
+			// checks that node1 wins in proportion to the shards it hosts.
+			shardMap: listMap, wantNodes: []string{"node0", "node1"}, wantExact: true,
 		},
 		{
 			name: "pool router, routing without an ID on a partitioned index", path: "/idx/_search?routing=" + keyA,
-			shardMap: partitionMap, wantNode: "node1", wantExact: true,
+			shardMap: partitionMap, wantNodes: []string{"node1"}, wantExact: true,
 		},
 		{
 			name: "pool router, routing list on shards no node hosts", path: "/idx/_doc/1?routing=" + keyA + "," + keyB,
@@ -614,8 +620,8 @@ func TestRoutersCostShardSets(t *testing.T) {
 				return
 			}
 			require.NotNil(t, hop.Conn)
-			if tt.wantNode != "" {
-				require.Equal(t, tt.wantNode, hop.Conn.Name)
+			if tt.wantNodes != nil {
+				require.Contains(t, tt.wantNodes, hop.Conn.Name)
 			}
 			events := rec.getRouteEvents()
 			require.Len(t, events, 1)

@@ -182,6 +182,10 @@ type Connection struct {
 	// Uses time-weighted EWMA: decay is tied to wall clock, not request rate.
 	estLoad timeWeightedCounter
 
+	// coordLoad is the node's write-coordination rate from its
+	// indexing_pressure statistics, polled for every client of the node.
+	coordLoad coordLoad
+
 	// pools tracks per-thread-pool congestion state for this connection.
 	// Each pool has its own AIMD congestion window, in-flight counter,
 	// and overloaded flag. Used by calcConnScore for the utilization
