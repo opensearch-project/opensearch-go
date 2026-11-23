@@ -66,7 +66,7 @@ OpenSearch Go Client builds using [Go](https://go.dev/doc/install) 1.26.8 at a m
 
 #### Docker
 
-[Docker](https://docs.docker.com/get-started/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
+[Docker](https://docs.docker.com/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
 
 #### Windows
 
@@ -278,14 +278,14 @@ The cluster supports any published OpenSearch Docker image version. Always clean
 
 ```
 make cluster.stop
-OPENSEARCH_VERSION=3.6.0 make cluster.clean cluster.build cluster.start
+OPENSEARCH_VERSION=3.10.0 make cluster.clean cluster.build cluster.start
 make test-integ
 ```
 
 Set `SECURE_INTEGRATION=false` to disable TLS and basic auth:
 
 ```
-SECURE_INTEGRATION=false OPENSEARCH_VERSION=3.6.0 make cluster.clean cluster.build cluster.start
+SECURE_INTEGRATION=false OPENSEARCH_VERSION=3.10.0 make cluster.clean cluster.build cluster.start
 ```
 
 ### Cluster Status and Troubleshooting
