@@ -320,21 +320,20 @@ Activated when the URL has no index component (e.g., `POST /_bulk`, `GET /_clust
                    ▼
     ┌──────────────────────────────────────────────────────┐
     │  3. SCORE                                            │
-    │     score = rttBucket × (inFlight+1)/cwnd            │
-    │     Near pair: keep the lower of                     │
-    │       score × (1 + coordRate / clusterMeanRate)      │
-    │     Challenger wins if its score is below the        │
-    │       kept near node's unweighted score              │
+    │     For each drawn node:                             │
+    │       score = rttBucket × (inFlight+1)/cwnd          │
+    │             × (1 + coordRate / clusterMeanRate)      │
+    │     Return the lowest-scoring node                   │
     └──────────────────────────────────────────────────────┘
 ```
 
 The draw is random because every input to the score except this client's own in-flight count is cluster state that every client reads alike. A deterministic choice, such as the lowest score with ties broken by URL, sends every idle client to the same node: a client that sends one bulk at a time has `inFlight = 0` on every node, so the node whose URL sorts first in its zone would take every request. Drawing two nodes and keeping the better one spreads requests evenly across the tier, and still steers away from a node that is busier.
 
-The challenger is how no-index traffic crosses zones. An idle near node scores below any idle farther node, because its RTT bucket is lower, so at idle every request stays near. As the near nodes get busy their scores rise, and the challenger wins once it scores lower, which is the same crossover as on the index path. The challenger is a random node of the farther tiers rather than the best of them, for the same reason as the pair: the best is the same node for every client.
+The challenger is how no-index traffic crosses zones. When the zones coordinate alike, an idle near node scores below any idle farther node, because its RTT bucket is lower, so at idle every request stays near. As the near nodes get busy or coordinate more writes their scores rise, and the challenger wins once it scores lower, which is the same crossover as on the index path. The challenger is a random node of the farther tiers rather than the best of them, for the same reason as the pair: the best is the same node for every client.
 
-`coordRate` is the node's write-coordination rate: bytes per second per allocated core, from `indexing_pressure.memory.total.coordinating_in_bytes` in the node stats poll. The node that receives a bulk request parses it, splits it by shard and gathers the replies on the thread that received it, outside its `write` thread pool, so that work is not visible to the write pool's congestion window. The factor is 1 for a node doing no coordination and 2 for one doing the cluster's mean. It is 1 for every node until two polls have run. Because the rate is polled, every client sees the same value for up to a poll interval, which is why it only picks between a random near pair rather than ranking every node: an argmin over polled load would send every client to whichever node looked idlest at the last poll. For the same reason it is not applied against the challenger: if it were, a near zone that coordinates more than the far one would send every idle client across zones at the same poll. Crossing zones is decided by this client's own in-flight count against each node's congestion window.
+`coordRate` is the node's write-coordination rate: bytes per second per allocated core, from `indexing_pressure.memory.total.coordinating_in_bytes` in the node stats poll. The node that receives a bulk request parses it, splits it by shard and gathers the replies on the thread that received it, outside its `write` thread pool, so that work is not visible to the write pool's congestion window. The factor is 1 for a node doing no coordination and 2 for one doing the cluster's mean. It is 1 for every node until two polls have run. Because the rate is polled, every client sees the same value for up to a poll interval, which is why it weights a random pair rather than ranking every node: an argmin over polled load would send every client to whichever node looked idlest at the last poll. It also weights the challenger, so a near zone that coordinates enough more than the far one sheds idle traffic across zones. Idle clients score alike, so they cross within a poll interval of each other, as each client's own poll updates the rate.
 
-For example, with near nodes at bucket 8, far nodes at bucket 12 and a write pool cwnd of 8, an idle near node scores 1.0 and an idle far node 1.5, so every request stays near, however much coordination the near nodes do. With one request in flight on each near node they score 2.0, and the far challenger wins. With two of four near nodes busy, only a drawn pair of two busy nodes loses to the challenger, which happens with probability (2/4)·(1/3), so about a sixth of the requests cross over.
+For example, with near nodes at bucket 8, far nodes at bucket 12 and a write pool cwnd of 8, an idle near node scores 1.0 and an idle far node 1.5, so every request stays near. With one request in flight on each near node they score 2.0, and the far challenger wins. With two of four near nodes busy, only a drawn pair of two busy nodes loses to the challenger, which happens with probability (2/4)·(1/3), so about a sixth of the requests cross over. If the near nodes coordinate more than half the cluster mean and the far nodes none, an idle near node scores above 1.5, and idle requests cross over too.
 
 #### Path Comparison
 

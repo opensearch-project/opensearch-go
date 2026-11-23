@@ -166,14 +166,13 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 		},
 		{
 			// Other clients' writes make each near node coordinate at twice the
-			// cluster mean, a factor of 3. The factor only picks between the
-			// near pair, so an idle near node (1.0) still beats an idle far
-			// node (1.5).
-			name:          "coordinating load alone keeps idle picks near",
+			// cluster mean, a factor of 3, so an idle near node scores 3.0
+			// against an idle far node's 1.5, and every pick crosses over.
+			name:          "coordinating load alone crosses idle picks over",
 			setup:         func(*testing.T, []*Connection) *routeAttempt { return nil },
 			nearCoordRate: 10_000,
-			wantFar:       [2]float64{0, 0},
-			mustUse:       []string{"near-00", "near-01", "near-02", "near-03"},
+			wantFar:       [2]float64{1, 1},
+			mustUse:       []string{"far-00", "far-01", "far-02", "far-03"},
 		},
 		{
 			// Half the near tier is busy: a pair holding an idle near node

@@ -119,10 +119,10 @@ func (c *clusterCoordLoad) load() float64 {
 }
 
 // coordLoadFactor is the multiplier a node's coordinating load adds to its
-// score when [selectNoIndex] compares the two near nodes it drew: 1 for a node
-// doing no coordination, 2 for one doing the cluster's mean, and so on in
-// proportion. It is 1 for every node until the cluster mean is known, which
-// takes two polls.
+// score for a request with no index ([selectNoIndex]): 1 for a node doing no
+// coordination, 2 for one doing the cluster's mean, and so on in proportion.
+// It is 1 for every node until the cluster mean is known, which takes two
+// polls.
 func coordLoadFactor(conn *Connection, cluster *clusterCoordLoad) float64 {
 	mean := cluster.load()
 	if mean <= 0 {

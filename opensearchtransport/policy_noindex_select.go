@@ -18,12 +18,10 @@ import (
 //
 // Two distinct nodes are drawn at random from the nearest tier, the power of
 // two choices, which spreads requests across it. One node is also drawn at
-// random from the farther tiers, as a challenger, and wins when it scores
-// below the better near node. An idle near node scores below any idle farther
-// node, since its RTT bucket is lower, so at idle every request stays near; as
-// the near nodes get busy their scores rise, and a farther node wins once it
-// scores lower. This is the crossover guides/transport-routing.md "AZ-Aware
-// Crossover" describes.
+// random from the farther tiers, as a challenger. The lowest of the scores
+// wins. As the near nodes get busy or coordinate more writes their scores
+// rise, and a farther node wins once it scores lower. This is the crossover
+// guides/transport-routing.md "AZ-Aware Crossover" describes.
 //
 // conns must be sorted by RTT bucket ascending, as [sortConnectionsByRTT]
 // leaves it.
@@ -33,14 +31,14 @@ import (
 // cluster state that every client reads alike: a deterministic choice sends a
 // fleet of idle clients to the same node at once.
 //
-// The two near nodes are compared with each score weighted by the node's
-// write-coordination load against the cluster mean ([coordLoadFactor]), so a
-// node coordinating more than its share of the cluster's writes loses more of
-// its draws. The challenger is compared without the weight. The load is
-// polled, so every client sees the same value for up to a poll interval. It
-// only picks between the two drawn near nodes, so no client sends everything to
-// the node that looked idlest at the last poll, and it never moves every idle
-// client into a farther tier at once.
+// Each score is weighted by the node's write-coordination load against the
+// cluster mean ([coordLoadFactor]), so a node coordinating more than its share
+// of the cluster's writes loses more of its draws. The load is polled, so every
+// client sees the same value for up to a poll interval; it only weights the
+// drawn nodes, so no client sends everything to the node that looked idlest at
+// the last poll. Idle clients score alike, so when the near nodes coordinate
+// enough that an idle far node scores lower, they cross into the farther tier
+// within a poll interval of each other.
 //
 // A request that is being retried skips the nodes it tried in this pass, and a
 // warming node that declines its turn gives way to the next best of the drawn
@@ -63,45 +61,33 @@ func selectNoIndex(
 	a, b := drawNoIndexPair(conns[:nearEnd], att)
 	challenger := drawUntried(conns[nearEnd:], att)
 
-	score := func(c *Connection) float64 { return noIndexScore(c, poolName, poolInfoReady, scoreFunc, att) }
 	ranked := func() *Connection {
 		return selectNoIndexRanked(conns, costs, poolName, poolInfoReady, scoreFunc, att)
 	}
 
-	// Order the drawn nodes best first. The near pair goes in weighted-score
-	// order, and in draw order, which is random, on a tie. The challenger goes
-	// ahead of every near node whose unweighted score is higher than its own.
 	var drawn [3]*Connection
-	var scores [3]float64 // unweighted
+	var scores [3]float64
 	n := 0
-	if a != nil {
-		sa := score(a)
-		drawn[0], scores[0] = a, sa
-		n = 1
-		if b != nil {
-			sb := score(b)
-			drawn[1], scores[1] = b, sb
-			n = 2
-			if sb*coordLoadFactor(b, cluster) < sa*coordLoadFactor(a, cluster) {
-				drawn[0], drawn[1] = drawn[1], drawn[0]
-				scores[0], scores[1] = scores[1], scores[0]
-			}
+	for _, c := range [3]*Connection{a, b, challenger} {
+		if c == nil {
+			continue
 		}
-	}
-	if challenger != nil {
-		sc := score(challenger)
-		i := n
-		for i > 0 && sc < scores[i-1] {
-			drawn[i], scores[i] = drawn[i-1], scores[i-1]
-			i--
-		}
-		drawn[i], scores[i] = challenger, sc
+		drawn[n] = c
+		scores[n] = noIndexScore(c, poolName, poolInfoReady, scoreFunc, att) * coordLoadFactor(c, cluster)
 		n++
 	}
 	if n == 0 {
 		return ranked()
 	}
 
+	// Try the drawn nodes best first. A stable insertion sort keeps equal
+	// scores in the order they were drawn, which is random.
+	for i := 1; i < n; i++ {
+		for j := i; j > 0 && scores[j] < scores[j-1]; j-- {
+			scores[j], scores[j-1] = scores[j-1], scores[j]
+			drawn[j], drawn[j-1] = drawn[j-1], drawn[j]
+		}
+	}
 	for _, c := range drawn[:n] {
 		if !c.loadConnState().isWarmingUp() {
 			return c
