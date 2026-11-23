@@ -608,22 +608,22 @@ func pickTied(scores []float64, best float64, ties int, extraCost []float64, tot
 
 	//nolint:gosec // load spreading; cryptographic randomness not needed
 	k := rand.IntN(total)
-	last := -1
+	pick := -1
 	for i, s := range scores {
 		if s != best {
 			continue
 		}
-		last = i
+		pick = i
 		if weighted {
 			k -= tieWeight(extraCost, totalShards, i)
 		} else {
 			k--
 		}
 		if k < 0 {
-			return i
+			break // k < total, so the last tied candidate always gets here
 		}
 	}
-	return last // unreachable: k < total
+	return pick
 }
 
 // sortConnectionsByRTT sorts connections by [rttBucket] ascending.
