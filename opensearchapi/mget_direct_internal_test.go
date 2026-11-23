@@ -27,6 +27,7 @@ import (
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	bufbody "github.com/opensearch-project/opensearch-go/v5/internal/body"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/scheduler"
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
@@ -220,12 +221,18 @@ func (f *mgetFake) send(ctx context.Context, _ *Client, node *opensearchtranspor
 		defer body.Close()
 	}
 
+	// A document is routed by its own routing, else by the request's, as a
+	// node routes it.
+	var callRouting string
+	if req.Params != nil {
+		callRouting = strings.Join(req.Params.Routing, ",")
+	}
 	ids := make([]string, len(req.Body.Docs))
 	for i, op := range req.Body.Docs {
 		ids[i] = op.ID
 		index := f.indexOf(req, op)
-		var routing string
-		if op.Routing != nil {
+		routing := callRouting
+		if op.Routing != nil && *op.Routing != "" {
 			routing = *op.Routing
 		}
 		if !slices.Contains(f.indexes[index].copies[f.docShard(index, routing, op.ID)], node.Name) {
@@ -402,17 +409,16 @@ func via(t *testing.T, item MGetRespItem) string {
 func TestMGetDirectSplitsByNodeAndKeepsOrder(t *testing.T) {
 	t.Parallel()
 
-	// Every node of the fake holds copies of two of its three shards.
+	// Every node of the fake holds copies of two of its three shards, so any
+	// two nodes cover every shard. The cover breaks ties at random, so which
+	// two it picks varies; how many does not.
 	tests := []struct {
 		name      string
 		fanOut    MGetFanOut
-		wantNodes []string
+		wantCount int
 	}{
-		{
-			name:   "fewest nodes covers the shards with two nodes, the first by name taking two shards",
-			fanOut: MGetFanOutFewestNodes, wantNodes: []string{"n0", "n1"},
-		},
-		{name: "least loaded fans out over every node", fanOut: MGetFanOutLeastLoaded, wantNodes: []string{"n0", "n1", "n2"}},
+		{name: "fewest nodes covers the shards with two nodes", fanOut: MGetFanOutFewestNodes, wantCount: 2},
+		{name: "least loaded fans out over every node", fanOut: MGetFanOutLeastLoaded, wantCount: 3},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -438,8 +444,8 @@ func TestMGetDirectSplitsByNodeAndKeepsOrder(t *testing.T) {
 				total += len(s.ids)
 			}
 			slices.Sort(nodes)
-			require.Equal(t, tt.wantNodes, nodes)
-			require.Len(t, sent, len(tt.wantNodes), "one request per node")
+			require.Len(t, nodes, tt.wantCount, "nodes the mget reached: %v", nodes)
+			require.Len(t, sent, tt.wantCount, "one request per node")
 			require.Equal(t, len(ops), total, "each document is asked for once")
 			require.Empty(t, f.coordinatorRequests(), "no coordinating node is needed")
 
@@ -493,44 +499,55 @@ func TestMGetDirectLooksUpTheShardByRoutingAndID(t *testing.T) {
 func TestMGetDirectFewestNodesCover(t *testing.T) {
 	t.Parallel()
 
+	// Every node of the fake holds copies of two of its three shards, and the
+	// cover breaks ties at random, so a case names how many nodes the mget may
+	// reach and which, not which of the equal ones it picked.
 	tests := []struct {
 		name string
 		// saturated names the nodes whose get thread pool is rejecting work.
 		saturated []string
 		ops       []MGetOperation
 		realtime  bool
-		wantNodes []string
+		wantCount int
+		// allowed are the nodes the mget may reach.
+		allowed []string
 	}{
 		{
+			// Shard 0 has copies on n0 and n1.
 			name:      "one shard is read from one node",
 			ops:       mgetDocs("idx", "d0", "d3", "d6", "d9"),
-			wantNodes: []string{"n0"},
+			wantCount: 1,
+			allowed:   []string{"n0", "n1"},
 		},
 		{
 			name:      "a saturated node is left out while its shards have other copies",
 			saturated: []string{"n0"},
 			ops:       mgetDocs("idx", "d0", "d1", "d2"),
-			wantNodes: []string{"n1", "n2"},
+			wantCount: 2,
+			allowed:   []string{"n1", "n2"},
 		},
 		{
 			name:      "a shard whose every copy is saturated is still read",
 			saturated: []string{"n0", "n1", "n2"},
 			ops:       mgetDocs("idx", "d0", "d1", "d2"),
-			wantNodes: []string{"n0", "n1"},
+			wantCount: 2,
+			allowed:   []string{"n0", "n1", "n2"},
 		},
 		{
 			name: "two indexes share the nodes they are read from",
 			ops: append(mgetDocs("idx", "d0", "d1", "d2"),
 				MGetOperation{ID: "e0", Index: new("seg")}, MGetOperation{ID: "e2", Index: new("seg")}),
-			wantNodes: []string{"n0", "n1"},
+			wantCount: 2,
+			allowed:   []string{"n0", "n1", "n2"},
 		},
 		{
-			// Shard 1 of idx has copies on n1 and n2, and the tie would go to n1, but
-			// the realtime read of seg's shard 2 already sends to its primary, n2.
+			// Shard 1 of idx has copies on n1 and n2, but the realtime read of
+			// seg's shard 2 already sends to its primary, n2, so n2 takes it.
 			name:      "a node a primary read reaches takes the shards it holds",
 			ops:       []MGetOperation{{ID: "d1", Index: new("idx")}, {ID: "e2", Index: new("seg")}},
 			realtime:  true,
-			wantNodes: []string{"n2"},
+			wantCount: 1,
+			allowed:   []string{"n2"},
 		},
 	}
 	for _, tt := range tests {
@@ -554,7 +571,10 @@ func TestMGetDirectFewestNodesCover(t *testing.T) {
 				}
 			}
 			slices.Sort(nodes)
-			require.Equal(t, tt.wantNodes, nodes)
+			require.Len(t, nodes, tt.wantCount, "nodes the mget reached: %v", nodes)
+			for _, n := range nodes {
+				require.Contains(t, tt.allowed, n, "nodes the mget reached: %v", nodes)
+			}
 		})
 	}
 }
@@ -742,9 +762,12 @@ func TestMGetDirectRetries(t *testing.T) {
 		wantRejected    bool
 	}{
 		{
+			// Every node answers its first request with a 429. Each shard has
+			// a copy on two nodes, so whichever copy the driver picks first,
+			// another copy is there to retry on.
 			name: "a 429 is retried on another copy",
-			fail: func(node string, attempt int, _ MGetReq) (int, []string) {
-				if node == "n1" && attempt == 1 {
+			fail: func(_ string, attempt int, _ MGetReq) (int, []string) {
+				if attempt == 1 {
 					return http.StatusTooManyRequests, nil
 				}
 
@@ -753,14 +776,9 @@ func TestMGetDirectRetries(t *testing.T) {
 			wantRejected: true,
 		},
 		{
+			// The first node the driver sends to cannot be reached.
 			name: "a node that cannot be reached is retried on another copy",
-			fail: func(node string, _ int, _ MGetReq) (int, []string) {
-				if node == "n1" {
-					return -1, nil
-				}
-
-				return 0, nil
-			},
+			fail: unreachableFirstNode(),
 		},
 		{
 			name: "a shard that stays unavailable is asked for through a coordinator",
@@ -827,9 +845,11 @@ func TestMGetDirectRetries(t *testing.T) {
 func TestMGetDirectShrinksARejectingNodesWindow(t *testing.T) {
 	t.Parallel()
 
+	// Every node answers its first request with a 429, so whichever nodes the
+	// driver picks, each one it sent to has rejected once.
 	f := newMGetFake(t)
-	f.node = func(node string, attempt int, _ MGetReq) (int, []string) {
-		if node == "n1" && attempt == 1 {
+	f.node = func(_ string, attempt int, _ MGetReq) (int, []string) {
+		if attempt == 1 {
 			return http.StatusTooManyRequests, nil
 		}
 
@@ -840,9 +860,35 @@ func TestMGetDirectShrinksARejectingNodesWindow(t *testing.T) {
 	_, err := c.Doc.MGet(t.Context(), MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", "d0", "d1", "d2")}})
 	require.NoError(t, err)
 
-	st, ok := c.ext.mget.windows.Stats("n1")
-	require.True(t, ok)
-	require.Less(t, st.Window, 8.0, "the node that answered 429 has its window shrunk below MaxInFlightDocsPerNode")
+	shrunk := 0
+	for _, name := range []string{"n0", "n1", "n2"} {
+		if st, ok := c.ext.mget.windows.Stats(scheduler.NodeName(name)); ok && st.Window < 8.0 {
+			shrunk++
+		}
+	}
+	require.Positive(t, shrunk, "a node that answered 429 has its window shrunk below MaxInFlightDocsPerNode")
+}
+
+// unreachableFirstNode returns a fake node answer that makes the first node
+// asked unreachable for the rest of the mget and lets every other node answer.
+func unreachableFirstNode() func(node string, attempt int, req MGetReq) (int, []string) {
+	var (
+		mu    sync.Mutex
+		first string
+	)
+
+	return func(node string, _ int, _ MGetReq) (int, []string) {
+		mu.Lock()
+		defer mu.Unlock()
+		if first == "" {
+			first = node
+		}
+		if node == first {
+			return -1, nil
+		}
+
+		return 0, nil
+	}
 }
 
 // TestMGetDirectMergeKeepsNodeBytes sends documents whose content would break a
@@ -1370,7 +1416,7 @@ func TestMGetChoiceString(t *testing.T) {
 //
 //nolint:paralleltest // newMGetAllocClient turns the router off with t.Setenv.
 func TestMGetCoordinatedDecodesIntoPrealloc(t *testing.T) {
-	c := newMGetAllocClient(t, mgetAllocModes[0])
+	c, _ := newMGetAllocClient(t, mgetAllocModes[0])
 	resp, err := c.Doc.MGet(t.Context(), mgetAllocRequest(5))
 	require.NoError(t, err)
 	require.Len(t, resp.Docs, 5)

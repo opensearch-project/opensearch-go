@@ -136,6 +136,9 @@ type Config struct {
 	// same stalled connection and never dial. A caller's own expiring context
 	// deadline does not mark anything: that reports the caller gave up, not that
 	// the connection is bad.
+	// The same timeout bounds node discovery, shard placement, and routing
+	// metadata requests, including reading and draining their response bodies.
+	// Earlier caller and catalog-refresh deadlines still take precedence.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
