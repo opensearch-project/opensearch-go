@@ -6,6 +6,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Dependencies
+
+## [5.2.1]
+
+### Added
+
 - Add typed constants for enum-valued query parameters that took magic strings: `Refresh`, `ExpandWildcards`, `Bytes`, `Level`, `WaitForStatus`, `Health`, `DefaultOperator`, `SortOrder` and `SuggestMode` on the core API, and enum-valued parameters of the Insights, Notifications, Security Analytics and Tasks APIs. The new types are aliases of `string` (and `[]string` for `ExpandWildcards`), so existing code that assigns a `string` or `[]string` to these fields, or reads them into one, keeps compiling. Response fields keep their current types. ([#1355](https://github.com/opensearch-project/opensearch-go/pull/1355))
 - Add value constants for the shared `format` parameter (`CatRespFormat`, `ListRespFormat`, `SQLRespFormat`, `PPLRespFormat`) and for the integer-or-keyword parameters `WaitForActiveShards` (`WaitForActiveShardsAll`, `WaitForActiveShardsCount(n)`) and `Slices` (`SlicesAuto`, `SlicesCount(n)`). `DebugParams.Format` stays a `string`, and the constants assign to it. ([#1355](https://github.com/opensearch-project/opensearch-go/pull/1355))
 - Document every enum type, including the existing ones such as `VersionType` and `OpType`: each type says what it controls and, where the server has one, its default, and each constant says what the server does with that value. Every enum-typed parameter field links to its type. ([#1355](https://github.com/opensearch-project/opensearch-go/pull/1355))
@@ -18,8 +34,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 
 - Deprecate `BulkIndexerItem.Refresh` and `BulkIndexerItem.WaitForActiveShards`. The server accepts neither in a bulk action line, and the bulk client no longer sends them. Use `BulkIndexerConfig.Refresh` and `BulkIndexerConfig.WaitForActiveShards`, which apply to every request the bulk client sends. ([#1355](https://github.com/opensearch-project/opensearch-go/pull/1355))
-
-### Removed
 
 ### Fixed
 
@@ -36,8 +50,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Split routing-metadata discovery into requests that fit OpenSearch's default 4096-byte `http.max_initial_line_length`. On clusters with many or long index names, a single request naming every index went over the limit, the node rejected it, and the client could not route requests to the exact shard. The size check counts escaped index names, the query string and the node base path ([#1307](https://github.com/opensearch-project/opensearch-go/pull/1307))
 - Fix node discovery, shard placement and routing metadata requests ignoring `RequestTimeout`. A node that sent response headers and then stalled held up a discovery cycle until the caller's deadline, however short `RequestTimeout` was. A positive `RequestTimeout` now bounds each of these requests, including reading and draining the response body, and each routing metadata batch gets its own timeout. An earlier caller or catalog-refresh deadline still applies first. Address resolution for discovered nodes runs under the caller's context, not `RequestTimeout` ([#1306](https://github.com/opensearch-project/opensearch-go/pull/1306))
 - Fix `NewCommonMappingPropertyFromBinaryProperty` and `NewCommonMappingPropertyFromMatchOnlyTextProperty` leaving `Type` empty, so a mapping built with them marshals `"type":""` and OpenSearch rejects it with a `mapper_parsing_exception`. `Property` refers back to itself through its sub-fields, so the generator registers the union while one of its branches is still being built. The generator looks up each branch's discriminator field after every type is registered, so the order in which it walks the spec does not matter ([#1337](https://github.com/opensearch-project/opensearch-go/pull/1337))
-
-### Security
 
 ### Dependencies
 
@@ -782,7 +794,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.2.1...HEAD
+[5.2.1]: https://github.com/opensearch-project/opensearch-go/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.3...v5.2.0
 [5.1.3]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.2...v5.1.3
 [5.1.2]: https://github.com/opensearch-project/opensearch-go/compare/v5.1.1...v5.1.2
