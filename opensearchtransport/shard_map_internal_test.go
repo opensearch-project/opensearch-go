@@ -376,6 +376,36 @@ func TestTransportWriteNodes(t *testing.T) {
 	}
 }
 
+// TestTransportWriteNodesShufflesTies checks that nodes ranking equal come back
+// in random order across calls, so callers taking the first node spread their
+// writes, while a node that ranks worse stays behind them.
+func TestTransportWriteNodesShufflesTies(t *testing.T) {
+	t.Parallel()
+
+	const calls = 400
+
+	tr, _ := shardMapTransport(
+		routableConn(t, "a", time.Millisecond),
+		routableConn(t, "b", time.Millisecond),
+		routableConn(t, "c", time.Millisecond),
+		routableConn(t, "far", 40*time.Millisecond),
+	)
+	tr.poolInfoReady.Store(true)
+
+	first := make(map[string]int)
+	for range calls {
+		conns := tr.WriteNodes()
+		require.Len(t, conns, 4)
+		require.Equal(t, "far", conns[3].Name, "a farther node ranked ahead of a nearer one")
+		first[conns[0].Name]++
+	}
+
+	// Uniform is calls/3 each; every tied node must lead some of the calls.
+	for _, name := range []string{"a", "b", "c"} {
+		require.Greater(t, first[name], calls/3/2, "node %q rarely listed first: %v", name, first)
+	}
+}
+
 func TestSingleServerPoolConnectionByName(t *testing.T) {
 	t.Parallel()
 

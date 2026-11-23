@@ -667,10 +667,14 @@ func (c *mgetCover) node(conn *opensearchtransport.Connection) *mgetCoverNode {
 
 // assign chooses a node for every shard and writes each placed position's node
 // into picks. The nodes the mget already reaches take the shards they hold
-// first, in name order. Then the node with the most shards still uncovered
+// first, in random order. Then the node with the most shards still uncovered
 // goes next, and on a tie the one with the fewest documents in flight in
-// windows, then the first by name. The greedy choice approximates the fewest
-// nodes; it does not promise them.
+// windows, then one of those at random. The greedy choice approximates the
+// fewest nodes; it does not promise them.
+//
+// Ties are broken at random rather than by name because every client sees the
+// same shard placement: a fixed order sends every client's mgets to the node
+// whose name sorts first among those holding the same shards.
 func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 	for name, n := range c.nodes {
 		n.uncovered = len(n.holds)
@@ -695,6 +699,11 @@ func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 
 	slices.Sort(c.reached)
 	c.reached = slices.Compact(c.reached)
+	// Fisher-Yates in place; rand.Shuffle's closure would allocate per mget.
+	for i := len(c.reached) - 1; i > 0; i-- {
+		j := rand.IntN(i + 1) //nolint:gosec // load spreading; cryptographic randomness not needed
+		c.reached[i], c.reached[j] = c.reached[j], c.reached[i]
+	}
 	for _, name := range c.reached {
 		if n, ok := c.nodes[name]; ok {
 			take(n)
@@ -703,21 +712,22 @@ func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 
 	for left > 0 {
 		var (
-			best     *mgetCoverNode
-			bestName string
+			best *mgetCoverNode
+			ties int // candidates equal to best seen so far, best included
 		)
-		for name, n := range c.nodes {
+		for _, n := range c.nodes {
 			if n.uncovered == 0 {
 				continue
 			}
 			switch {
-			case best == nil, n.uncovered > best.uncovered:
-			case n.uncovered == best.uncovered && n.load < best.load:
-			case n.uncovered == best.uncovered && n.load == best.load && name < bestName:
-			default:
-				continue
+			case best == nil, n.uncovered > best.uncovered,
+				n.uncovered == best.uncovered && n.load < best.load:
+				best, ties = n, 1
+			case n.uncovered == best.uncovered && n.load == best.load:
+				if takeTie(&ties) {
+					best = n
+				}
 			}
-			best, bestName = n, name
 		}
 		take(best)
 	}
@@ -729,6 +739,14 @@ func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 	}
 }
 
+// takeTie counts one more candidate equal to the best seen so far, best
+// included, in *ties, and reports whether to keep it instead, so that each of
+// the equal candidates is kept with the same chance.
+func takeTie(ties *int) bool {
+	*ties++
+	return rand.IntN(*ties) == 0 //nolint:gosec // load spreading; cryptographic randomness not needed
+}
+
 // findShardNode picks, among the nodes that hold a copy of a document's shard,
 // the node to read the document from.
 //
@@ -736,8 +754,9 @@ func (c *mgetCover) assign(windows *scheduler.NodeWindows, picks []shardNode) {
 // primary's node with no preference, so the node itself sends the read to the
 // primary, as a coordinator would. Any other read goes to the node with the
 // fewest documents in flight, counting the documents in planned, the ones
-// already routed in this pass, and a replica wins a tie. It returns
-// errNoUsableShardNode when no copy is on a usable node.
+// already routed in this pass; a replica wins a tie, and copies still equal are
+// chosen between at random, so that every client does not read from the same
+// copy. It returns errNoUsableShardNode when no copy is on a usable node.
 func (call *mgetCall) findShardNode(
 	targets []*opensearchtransport.ShardTarget, avoid string, planned map[string]int,
 ) (shardNode, error) {
@@ -757,6 +776,7 @@ func (call *mgetCall) findShardNode(
 	var (
 		best     *opensearchtransport.ShardTarget
 		bestLoad int64
+		ties     int // targets equal to best seen so far, best included
 	)
 	for _, target := range targets {
 		if target.Node == nil {
@@ -772,13 +792,13 @@ func (call *mgetCall) findShardNode(
 		}
 
 		switch {
-		case best == nil, load < bestLoad:
-		case load == bestLoad && best.Primary && !target.Primary:
-		case load == bestLoad && best.Primary == target.Primary && target.Node.Name < best.Node.Name:
-		default:
-			continue
+		case best == nil, load < bestLoad, load == bestLoad && best.Primary && !target.Primary:
+			best, bestLoad, ties = target, load, 1
+		case load == bestLoad && best.Primary == target.Primary:
+			if takeTie(&ties) {
+				best = target
+			}
 		}
-		best, bestLoad = target, load
 	}
 	if best == nil {
 		return shardNode{}, errNoUsableShardNode

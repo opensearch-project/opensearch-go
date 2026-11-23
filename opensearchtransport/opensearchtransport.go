@@ -620,6 +620,10 @@ type Transport struct {
 	// atomically by poolRouter.Eval.
 	clusterSearch clusterSearchAIMD
 
+	// Cluster mean write-coordination rate, updated by pollNodeStats after
+	// each full poll cycle and read by the no-index branch of the routers.
+	clusterCoord clusterCoordLoad
+
 	healthCheck HealthCheckFunc
 
 	// compressor is never nil: New builds it, resolving a nil Config.Compressor
@@ -1460,6 +1464,7 @@ func New(cfg Config) (*Transport, error) {
 			observer:                     client.observer.Load(),
 			poolInfoReady:                &client.poolInfoReady,
 			clusterSearchCwnd:            &client.clusterSearch.cwnd,
+			clusterCoord:                 &client.clusterCoord,
 			activeListCap:                client.activeListCapConfig,
 			standbyPromotionChecks:       client.standbyPromotionChecks,
 			metrics:                      client.metrics,

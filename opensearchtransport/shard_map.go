@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand/v2"
 	"slices"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/slicepool"
@@ -340,6 +341,8 @@ func (tr *Transport) readyConnections() []*Connection {
 // to, best first. It is the router's own ranking for write requests, by round
 // trip time and by how much of the node's write pool is in use: the nearest node
 // that has room first, and a node whose write pool is rejecting requests last.
+// Nodes that rank equal are listed in random order on each call, so callers
+// that take the first node do not all send to the one whose URL sorts first.
 //
 // When any node has the ingest role, only those nodes are listed, as the router
 // does for bulk requests; otherwise every ready node is.
@@ -368,12 +371,12 @@ func (tr *Transport) WriteNodes() []*Connection {
 		return rtt * utilization
 	}
 
+	// Shuffle, then sort stably by score alone, so equal scores keep the
+	// shuffled order.
+	//nolint:gosec // load spreading; cryptographic randomness not needed
+	rand.Shuffle(len(ready), func(i, j int) { ready[i], ready[j] = ready[j], ready[i] })
 	slices.SortStableFunc(ready, func(a, b *Connection) int {
-		if c := cmp.Compare(score(a), score(b)); c != 0 {
-			return c
-		}
-
-		return cmp.Compare(a.URLString, b.URLString)
+		return cmp.Compare(score(a), score(b))
 	})
 
 	return ready
