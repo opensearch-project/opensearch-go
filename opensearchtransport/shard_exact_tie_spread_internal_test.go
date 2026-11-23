@@ -92,7 +92,7 @@ func TestShardExactReadsSpreadAcrossTiedCopies(t *testing.T) {
 
 			share := requests / len(tt.want)
 			for _, name := range tt.want {
-				require.Greater(t, counts[name], share/2, "copy %s starved: %v", name, counts)
+				require.Greater(t, counts[name], share/2, "copy %q starved: %v", name, counts)
 			}
 			total := 0
 			for _, name := range tt.want {
