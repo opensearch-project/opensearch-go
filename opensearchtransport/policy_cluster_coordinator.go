@@ -172,9 +172,9 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 
 	// Remove old connections
 	if removed != nil { //nolint:nestif // filtering ready and dead lists requires nested iteration
-		removedConns := make(map[string]struct{}, len(removed))
+		removedConns := make(map[*Connection]struct{}, len(removed))
 		for _, node := range removed {
-			removedConns[node.URL.String()] = struct{}{}
+			removedConns[node] = struct{}{}
 		}
 
 		// Remove connections from ready list, tracking active count
@@ -184,7 +184,7 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 			filtered := p.pool.mu.ready[:0]
 			activeCount := 0
 			for i, conn := range p.pool.mu.ready {
-				if _, found := removedConns[conn.URL.String()]; !found {
+				if _, found := removedConns[conn]; !found {
 					filtered = append(filtered, conn)
 					if i < p.pool.mu.activeCount {
 						activeCount++
@@ -206,7 +206,7 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 		{
 			filtered := p.pool.mu.dead[:0]
 			for _, conn := range p.pool.mu.dead {
-				if _, found := removedConns[conn.URL.String()]; !found {
+				if _, found := removedConns[conn]; !found {
 					filtered = append(filtered, conn)
 				} else {
 					delete(p.pool.mu.members, conn)

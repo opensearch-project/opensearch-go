@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"math/rand/v2"
 	"net"
@@ -46,6 +47,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 // errDiscoveryEmpty is returned by getNodesInfo when the /_nodes response
@@ -628,6 +630,10 @@ func (tr *Transport) updateConnectionPool(
 	tr.mu.RUnlock()
 
 	var currentConnectionsByURL map[string]*Connection
+	// duplicates holds pool connections that share a URL with the one kept in
+	// currentConnectionsByURL, as when Config.URLs lists a URL twice. The final
+	// pool holds one connection per URL, so they are always removed.
+	var duplicates []*Connection
 
 	if currentPool != nil {
 		currentURLs := currentPool.URLs()
@@ -646,6 +652,18 @@ func (tr *Transport) updateConnectionPool(
 		}
 	} else {
 		currentConnectionsByURL = make(map[string]*Connection)
+	}
+
+	if pool, ok := currentPool.(*multiServerPool); ok {
+		poolConns := pool.connections()
+		// At most one kept connection per URL, so the rest are duplicates. The
+		// pool can change between the two reads, so never size below zero.
+		duplicates = make([]*Connection, 0, max(0, len(poolConns)-len(currentConnectionsByURL)))
+		for _, conn := range poolConns {
+			if currentConnectionsByURL[conn.URL.String()] != conn {
+				duplicates = append(duplicates, conn)
+			}
+		}
 	}
 
 	// Build map of new connections by URL
@@ -705,6 +723,7 @@ func (tr *Transport) updateConnectionPool(
 			Debug().Str("conn", url).Strs("roles", oldConn.Roles.toSlice()).Msg("Discovery: Connection removed from cluster")
 		}
 	}
+	removed = append(removed, duplicates...)
 
 	// Build final ready/dead lists from the connection objects chosen for use
 	// (mix of reused old objects and new objects).
@@ -1155,62 +1174,20 @@ func (tr *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadC
 	return allConnsPool
 }
 
+// withRequestTimeout bounds ctx by RequestTimeout when one is set. The
+// returned cancel is never nil, so callers can always defer it.
+func (tr *Transport) withRequestTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if tr.requestTimeout <= 0 {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, tr.requestTimeout)
+}
+
 func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	scheme := tr.urls[0].Scheme
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
+	env, conn, err := tr.fetchNodesInfo(ctx)
 	if err != nil {
-		return nil, err
-	}
-
-	conn, err := getConnectionFromPool(tr, req)
-	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
-		conn, err = tr.seedFallbackPool.Next()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
-		return nil, err
-	}
-
-	res, err := tr.transport.RoundTrip(req)
-	if err != nil {
-		// Report connection failure to the pool.
-		tr.mu.RLock()
-		pool := tr.mu.connectionPool
-		tr.mu.RUnlock()
-		if pool != nil {
-			if poolErr := pool.OnFailure(conn); poolErr != nil {
-				Debug().Err(poolErr).Msg("Failed to mark connection as failed")
-			}
-		}
-		return nil, err
-	}
-
-	if res.Body == nil {
-		return nil, fmt.Errorf("unexpected empty body")
-	}
-	// Drain on close: raw RoundTrip path, and the success path uses json.Decode
-	// below, which stops at the end of the JSON value without consuming trailing
-	// bytes; a plain Close would then defeat keep-alive.
-	defer func() {
-		//nolint:errcheck // best-effort drain before close on a cleanup path
-		io.Copy(io.Discard, res.Body)
-		res.Body.Close()
-	}()
-
-	if res.StatusCode > http.StatusOK {
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return nil, fmt.Errorf("server error: %s: %w", res.Status, err)
-		}
-		return nil, fmt.Errorf("server error: %s: %s", res.Status, body)
-	}
-
-	var env map[string]json.RawMessage
-	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
 		return nil, err
 	}
 
@@ -1309,6 +1286,78 @@ func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	}
 
 	return out, nil
+}
+
+// fetchNodesInfo sends the /_nodes/http request and decodes its envelope.
+// RequestTimeout bounds the request through reading and draining the body;
+// address resolution in getNodesInfo runs under the caller's context.
+func (tr *Transport) fetchNodesInfo(ctx context.Context) (map[string]json.RawMessage, *Connection, error) {
+	ctx, cancel := tr.withRequestTimeout(ctx)
+	defer cancel()
+
+	nodesPath, err := ospath.NodesInfoPath{Metric: []string{"http"}}.Build()
+	if err != nil {
+		return nil, nil, fmt.Errorf("building nodes info path: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodesPath, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	conn, err := getConnectionFromPool(tr, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
+		conn, err = tr.seedFallbackPool.Next()
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, nil, err
+	}
+
+	res, err := tr.transport.RoundTrip(req)
+	if err != nil {
+		// Report connection failure to the pool.
+		tr.mu.RLock()
+		pool := tr.mu.connectionPool
+		tr.mu.RUnlock()
+		if pool != nil {
+			if poolErr := pool.OnFailure(conn); poolErr != nil {
+				Debug().Err(poolErr).Msg("Failed to mark connection as failed")
+			}
+		}
+		return nil, nil, err
+	}
+
+	if res.Body == nil {
+		return nil, nil, fmt.Errorf("unexpected empty body")
+	}
+	// Drain on close: raw RoundTrip path, and the success path uses json.Decode
+	// below, which stops at the end of the JSON value without consuming trailing
+	// bytes; a plain Close would then defeat keep-alive. Deferred after cancel,
+	// so the drain runs while the request context is still live.
+	defer func() {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+	}()
+
+	if res.StatusCode > http.StatusOK {
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, nil, fmt.Errorf("server error: %s: %w", res.Status, err)
+		}
+		return nil, nil, fmt.Errorf("server error: %s: %s", res.Status, body)
+	}
+
+	var env map[string]json.RawMessage
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+		return nil, nil, err
+	}
+
+	return env, conn, nil
 }
 
 // discoveryPendingNode pairs a discovered nodeInfo with its default URL
@@ -1951,7 +2000,15 @@ func (p *indexShardPlacement) nodeNameSet() map[string]struct{} {
 // credentials lack this privilege, the call returns an error and callers
 // should fall back gracefully.
 func (tr *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_cat/shards", nil)
+	ctx, cancel := tr.withRequestTimeout(ctx)
+	defer cancel()
+
+	shardsPath, err := ospath.CatShardsPath{}.Build()
+	if err != nil {
+		return nil, fmt.Errorf("building shard placement path: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, shardsPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating shard placement request: %w", err)
 	}
@@ -2219,6 +2276,26 @@ func parseReplicationType(s string) ReplicationType {
 	return ReplicationDocument
 }
 
+const (
+	// routingMetadataPath is the cluster-state endpoint routing metadata is read from.
+	routingMetadataPath = "/_cluster/state/metadata"
+
+	// routingMetadataFilter limits the cluster-state response to the routing fields.
+	routingMetadataFilter = "filter_path=metadata.indices.*.routing_num_shards," +
+		"metadata.indices.*.settings.index.number_of_shards," +
+		"metadata.indices.*.settings.index.routing_partition_size," +
+		"metadata.indices.*.settings.index.replication.type"
+
+	// routingMetadataMaxLineLength matches OpenSearch's default http.max_initial_line_length.
+	routingMetadataMaxLineLength = 4096
+)
+
+// calcHTTPLineLen returns the length of req's HTTP/1.1 request line, the value
+// OpenSearch checks against http.max_initial_line_length.
+func calcHTTPLineLen(req *http.Request) int {
+	return len(req.Method + " " + req.URL.RequestURI() + " HTTP/1.1")
+}
+
 // getRoutingMeta fetches routing metadata (routing_num_shards, number_of_shards
 // and routing_partition_size) for the given indexes from _cluster/state/metadata.
 //
@@ -2228,16 +2305,16 @@ func parseReplicationType(s string) ReplicationType {
 // uses the configured number_of_shards (via routingFactor), so the client
 // must use the same value for correct murmur3 shard computation.
 func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
-	path := "/_cluster/state/metadata/" + strings.Join(indexes, ",")
+	result := make(map[string]indexRoutingMeta, len(indexes))
+	if len(indexes) == 0 {
+		return result, nil
+	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, routingMetadataPath+"/", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating routing metadata request: %w", err)
 	}
-	req.URL.RawQuery = "filter_path=metadata.indices.*.routing_num_shards," +
-		"metadata.indices.*.settings.index.number_of_shards," +
-		"metadata.indices.*.settings.index.routing_partition_size," +
-		"metadata.indices.*.settings.index.replication.type"
+	req.URL.RawQuery = routingMetadataFilter
 
 	conn, err := getConnectionFromPool(tr, req)
 	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
@@ -2247,8 +2324,77 @@ func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[
 		return nil, fmt.Errorf("getting connection for routing metadata: %w", err)
 	}
 
-	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
+	tr.setReqURL(conn.URL, req)
+	requestOverhead := calcHTTPLineLen(req)
+
+	for len(indexes) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		requestLength, batchSize := requestOverhead, 0
+		for batchSize < len(indexes) {
+			// ospath.ClusterStatePath escapes each index name with url.PathEscape.
+			indexLength := len(url.PathEscape(indexes[batchSize]))
+			if batchSize > 0 {
+				indexLength++ // Comma between index names.
+			}
+			if requestLength+indexLength > routingMetadataMaxLineLength {
+				break
+			}
+
+			requestLength += indexLength
+			batchSize++
+		}
+
+		if batchSize == 0 {
+			return nil, fmt.Errorf(
+				"routing metadata request for index %q exceeds the %d-byte request-line limit",
+				indexes[0], routingMetadataMaxLineLength,
+			)
+		}
+
+		batchPath, err := ospath.ClusterStatePath{Metric: []string{"metadata"}, Indices: indexes[:batchSize]}.Build()
+		if err != nil {
+			return nil, fmt.Errorf("building routing metadata path: %w", err)
+		}
+		decodedPath, err := url.PathUnescape(batchPath)
+		if err != nil {
+			return nil, fmt.Errorf("decoding routing metadata path: %w", err)
+		}
+
+		// RequestTimeout bounds each batch, like a transport attempt, rather
+		// than the whole call; ctx still bounds the loop.
+		batchCtx, cancelBatch := tr.withRequestTimeout(ctx)
+		batchReq := req.Clone(batchCtx)
+		// prepareInternalRequest adds the node's base path to each logical path.
+		batchReq.URL.RawPath = batchPath
+		batchReq.URL.Path = decodedPath
+
+		metadata, err := tr.getRoutingMetaBatch(batchReq, conn)
+		cancelBatch()
+		if err != nil {
+			return nil, err
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		maps.Copy(result, metadata)
+		indexes = indexes[batchSize:]
+	}
+
+	return result, nil
+}
+
+// getRoutingMetaBatch sends one sized request and closes its response before
+// the next batch starts.
+func (tr *Transport) getRoutingMetaBatch(req *http.Request, conn *Connection) (map[string]indexRoutingMeta, error) {
+	if err := tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
 		return nil, err
+	}
+	if calcHTTPLineLen(req) > routingMetadataMaxLineLength {
+		return nil, fmt.Errorf("prepared routing metadata request exceeds the %d-byte request-line limit", routingMetadataMaxLineLength)
 	}
 
 	res, err := tr.transport.RoundTrip(req)

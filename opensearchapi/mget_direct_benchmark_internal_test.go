@@ -67,9 +67,32 @@ func BenchmarkMGetDirect(b *testing.B) {
 			}
 			req := MGetReq{Body: &MGetBody{Docs: mgetDocs("idx", ids...)}}
 
-			// Warm the answer cache, so that the timed loop measures only the driver.
-			if _, err := c.Doc.MGet(b.Context(), req); err != nil {
-				b.Fatal(err)
+			// Warm the answer cache, so that the timed loop measures only the
+			// driver. Ties between shard copies are broken at random, so one
+			// mget's split varies; warm until a long run of mgets finds every
+			// split already answered.
+			cached := func() int {
+				mu.Lock()
+				defer mu.Unlock()
+				n := 0
+				for _, byBody := range answers {
+					n += len(byBody)
+				}
+				return n
+			}
+			for calls, quiet := 0, 0; quiet < 64; calls++ {
+				if calls >= 4096 {
+					b.Fatalf("answer cache kept growing: %d", cached())
+				}
+				before := cached()
+				if _, err := c.Doc.MGet(b.Context(), req); err != nil {
+					b.Fatal(err)
+				}
+				if cached() == before {
+					quiet++
+				} else {
+					quiet = 0
+				}
 			}
 
 			b.ReportAllocs()

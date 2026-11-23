@@ -203,6 +203,9 @@ type Config struct {
 	// same stalled connection and never dial. A caller's own expiring context
 	// deadline does not mark anything: that reports the caller gave up, not that
 	// the connection is bad. See [Connection.drainingConn].
+	// The same timeout bounds node discovery, shard placement, and routing
+	// metadata requests, including reading and draining their response bodies.
+	// Earlier caller and catalog-refresh deadlines still take precedence.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
@@ -511,6 +514,9 @@ type Config struct {
 	//nolint:containedctx // Config struct is short-lived, context extracted during New()
 	Context context.Context
 
+	// ConnectionPoolFunc, if set, builds the connection pool from the seed
+	// connections. It receives its own copy of the slice and may keep or
+	// modify it.
 	ConnectionPoolFunc func([]*Connection, Selector) ConnectionPool
 
 	// AddressResolver is called during node discovery for each node discovered
@@ -613,6 +619,10 @@ type Transport struct {
 	// The cwnd is updated by pollNodeStats after each full poll cycle and read
 	// atomically by poolRouter.Eval.
 	clusterSearch clusterSearchAIMD
+
+	// Cluster mean write-coordination rate, updated by pollNodeStats after
+	// each full poll cycle and read by the no-index branch of the routers.
+	clusterCoord clusterCoordLoad
 
 	healthCheck HealthCheckFunc
 
@@ -1351,7 +1361,7 @@ func New(cfg Config) (*Transport, error) {
 	}
 
 	if client.poolFunc != nil {
-		client.mu.connectionPool = client.poolFunc(conns, cfg.Selector)
+		client.mu.connectionPool = client.poolFunc(slices.Clone(conns), cfg.Selector)
 	} else {
 		// Use client-configured timeout settings for the main connection pool
 		if len(conns) == 1 {
@@ -1379,7 +1389,7 @@ func New(cfg Config) (*Transport, error) {
 				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 				conn.mu.Unlock()
 			}
-			pool.mu.ready = conns
+			pool.mu.ready = slices.Clone(conns) // See multiServerPool.mu.ready; New keeps reading conns.
 			pool.mu.activeCount = len(conns)
 			pool.mu.dead = []*Connection{}
 			pool.mu.members = make(map[*Connection]struct{}, max(len(conns), defaultMembersCapacity))
@@ -1454,6 +1464,7 @@ func New(cfg Config) (*Transport, error) {
 			observer:                     client.observer.Load(),
 			poolInfoReady:                &client.poolInfoReady,
 			clusterSearchCwnd:            &client.clusterSearch.cwnd,
+			clusterCoord:                 &client.clusterCoord,
 			activeListCap:                client.activeListCapConfig,
 			standbyPromotionChecks:       client.standbyPromotionChecks,
 			metrics:                      client.metrics,
