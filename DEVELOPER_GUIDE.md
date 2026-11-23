@@ -66,7 +66,7 @@ OpenSearch Go Client builds using [Go](https://go.dev/doc/install) 1.26.8 at a m
 
 #### Docker
 
-[Docker](https://docs.docker.com/get-started/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
+[Docker](https://docs.docker.com/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
 
 #### Windows
 
