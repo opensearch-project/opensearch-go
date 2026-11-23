@@ -135,9 +135,11 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 		// setup prepares conns (near-00..03 then far-00..03) and returns the
 		// request's route attempt, nil for a first try.
 		setup func(t *testing.T, conns []*Connection) *routeAttempt
-		// nearCoordRate, when set, is the coordinating rate of every near node,
-		// with every far node measured at 0 and the cluster mean computed.
+		// nearCoordRate and farCoordRate, when either is set, are the
+		// coordinating rates of every near and every far node, with the cluster
+		// mean computed from them.
 		nearCoordRate int64
+		farCoordRate  int64
 		// wantFar is the share of picks that may go to the far tier: [min, max].
 		wantFar [2]float64
 		// mustUse lists nodes that must be chosen at least once.
@@ -173,6 +175,38 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 			nearCoordRate: 10_000,
 			wantFar:       [2]float64{1, 1},
 			mustUse:       []string{"far-00", "far-01", "far-02", "far-03"},
+		},
+		{
+			// Both zones coordinate: near at 2,000 and far at 1,000 against a
+			// mean of 1,500. Near scores 1*(1+2000/1500) = 2.33 and far
+			// 1.5*(1+1000/1500) = 2.5, so idle picks stay near. Near crosses
+			// once it coordinates above about 2.33 times what far does.
+			name:          "coordinating more than far, under the crossover, stays near",
+			setup:         func(*testing.T, []*Connection) *routeAttempt { return nil },
+			nearCoordRate: 2_000,
+			farCoordRate:  1_000,
+			wantFar:       [2]float64{0, 0},
+			mustUse:       []string{"near-00", "near-01", "near-02", "near-03"},
+		},
+		{
+			// Near at 2,500 and far at 1,000, mean 1,750: near scores
+			// 1+2500/1750 = 2.43 and far 1.5*(1+1000/1750) = 2.36, so far wins.
+			name:          "coordinating past the crossover crosses over",
+			setup:         func(*testing.T, []*Connection) *routeAttempt { return nil },
+			nearCoordRate: 2_500,
+			farCoordRate:  1_000,
+			wantFar:       [2]float64{1, 1},
+			mustUse:       []string{"far-00", "far-01", "far-02", "far-03"},
+		},
+		{
+			// Far coordinates more than near: near's factor is below far's, so
+			// the far tier is further behind and idle picks stay near.
+			name:          "far coordinating more keeps idle picks near",
+			setup:         func(*testing.T, []*Connection) *routeAttempt { return nil },
+			nearCoordRate: 1_000,
+			farCoordRate:  5_000,
+			wantFar:       [2]float64{0, 0},
+			mustUse:       []string{"near-00", "near-01", "near-02", "near-03"},
 		},
 		{
 			// Half the near tier is busy: a pair holding an idle near node
@@ -224,10 +258,10 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 			sortConnectionsByRTT(conns)
 			att := tt.setup(t, conns)
 			var cluster *clusterCoordLoad
-			if tt.nearCoordRate > 0 {
+			if tt.nearCoordRate > 0 || tt.farCoordRate > 0 {
 				t0 := time.Unix(1_000, 0)
 				for i, c := range conns {
-					var rate int64
+					rate := tt.farCoordRate
 					if i < near {
 						rate = tt.nearCoordRate
 					}

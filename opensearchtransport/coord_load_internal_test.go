@@ -7,7 +7,12 @@
 package opensearchtransport
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -188,4 +193,185 @@ func TestSelectNoIndexAvoidsHotCoordinator(t *testing.T) {
 		id := fmt.Sprintf("cold-%d", i)
 		require.Greater(t, counts[id], draws/(peers+1), "cold node %s under-used: %v", id, counts)
 	}
+}
+
+// TestNodeStatsPollFeedsCoordLoad checks that the node stats poll records the
+// coordinating byte counter from indexing_pressure, so that two polls give the
+// node a measured rate, and that a response without the section leaves the
+// node unmeasured.
+func TestNodeStatsPollFeedsCoordLoad(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// pressure is the indexing_pressure the server reports on each poll;
+		// nil omits the section.
+		pressure     func(poll int64) *IndexingPressureStats
+		wantMeasured bool
+	}{
+		{
+			name: "indexing_pressure present",
+			pressure: func(poll int64) *IndexingPressureStats {
+				return &IndexingPressureStats{Memory: IndexingPressureMemory{
+					Total: IndexingPressureTotal{CoordinatingInBytes: poll * 1 << 20},
+				}}
+			},
+			wantMeasured: true,
+		},
+		{
+			name:     "indexing_pressure absent",
+			pressure: func(int64) *IndexingPressureStats { return nil },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Each poll's response, encoded before the server runs so the
+			// handler does not fail the test off the test goroutine.
+			var responses [2][]byte
+			for i := range responses {
+				b, err := json.Marshal(NodeStatsResponse{Nodes: map[string]NodeStats{
+					"testnode": {IndexingPressure: tt.pressure(int64(i + 1))},
+				}})
+				require.NoError(t, err)
+				responses[i] = b
+			}
+			var polls atomic.Int64
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				i := min(polls.Add(1), int64(len(responses))) - 1
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(responses[i])
+			}))
+			t.Cleanup(server.Close)
+
+			serverURL, err := url.Parse(server.URL)
+			require.NoError(t, err)
+			conn := &Connection{URL: serverURL}
+			conn.setLifecycleBit(lcActive)
+			pool := newStandbyPool([]*Connection{conn}, nil)
+			client := newTestClientWithPool(server.Client().Transport, pool)
+			t.Cleanup(client.cancelFunc)
+
+			// The first poll is the baseline; the second measures a rate once
+			// the clock has moved past it.
+			client.fetchAndEvaluateNodeStats(conn, pool)
+			require.False(t, conn.coordLoad.measured.Load(), "one poll measured a rate")
+			start := time.Now()
+			require.Eventually(t, func() bool { return time.Since(start) > 0 }, time.Second, time.Millisecond)
+			client.fetchAndEvaluateNodeStats(conn, pool)
+
+			require.Equal(t, tt.wantMeasured, conn.coordLoad.measured.Load())
+			if tt.wantMeasured {
+				require.Positive(t, conn.coordLoad.load())
+			}
+		})
+	}
+}
+
+// TestRoutersWeighNoIndexByCoordLoad checks that both routers hand the
+// transport's cluster coordinating load to the no-index selection, by way of
+// [policyConfigurable.configurePolicySettings]: a node coordinating far more
+// than its peers must lose every pair it is drawn in. Without the cluster
+// load every node is weighted alike and the hot node takes about a fifth of
+// the requests.
+func TestRoutersWeighNoIndexByCoordLoad(t *testing.T) {
+	t.Parallel()
+
+	const (
+		peers    = 4
+		requests = 2000
+	)
+
+	tests := []struct {
+		name  string
+		build func(t *testing.T, conns []*Connection) noIndexEvaluator
+	}{
+		{name: "poolRouter", build: newNoIndexPoolRouter},
+		{name: "IndexRouter", build: newNoIndexIndexRouter},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conns := make([]*Connection, 0, 1+peers)
+			conns = append(conns, measuredConn(t, "hot", 100_000))
+			for i := range peers {
+				conns = append(conns, measuredConn(t, fmt.Sprintf("cold-%d", i), 1_000))
+			}
+			for _, c := range conns {
+				c.pools.getOrCreate(poolWrite).cwnd.Store(8)
+			}
+
+			var cluster clusterCoordLoad
+			cluster.update(conns)
+			r := tt.build(t, conns)
+			configurable, ok := r.(policyConfigurable)
+			require.True(t, ok, "%T does not take policy settings", r)
+			require.NoError(t, configurable.configurePolicySettings(policyConfig{clusterCoord: &cluster}))
+
+			counts := make(map[string]int)
+			for range requests {
+				req, err := http.NewRequest(http.MethodPost, "/_bulk", nil)
+				require.NoError(t, err)
+				hop, err := r.Eval(t.Context(), req)
+				require.NoError(t, err)
+				require.NotNil(t, hop.Conn)
+				counts[hop.Conn.ID]++
+			}
+
+			require.Zero(t, counts["hot"], "hot coordinator not avoided: %v", counts)
+		})
+	}
+}
+
+// TestPollNodeStatsUpdatesClusterCoordLoad checks that a poll cycle over a
+// multi-node pool sets the cluster mean the no-index routers weigh nodes
+// against, once two polls have measured the nodes' rates.
+func TestPollNodeStatsUpdatesClusterCoordLoad(t *testing.T) {
+	t.Parallel()
+
+	var polls atomic.Int64
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Every node reports the same counter, growing by 1 MiB per poll
+		// cycle of two nodes.
+		cycle := (polls.Add(1) + 1) / 2
+		b, err := json.Marshal(NodeStatsResponse{Nodes: map[string]NodeStats{
+			"testnode": {IndexingPressure: &IndexingPressureStats{Memory: IndexingPressureMemory{
+				Total: IndexingPressureTotal{CoordinatingInBytes: cycle << 20},
+			}}},
+		}})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(b)
+	}))
+	t.Cleanup(server.Close)
+
+	serverURL, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	a := &Connection{URL: serverURL, Name: "a"}
+	a.setLifecycleBit(lcActive)
+	b := &Connection{URL: serverURL, Name: "b"}
+	b.setLifecycleBit(lcActive)
+	pool := &multiServerPool{}
+	pool.mu.ready = []*Connection{a, b}
+	pool.mu.activeCount = 2
+
+	client := newTestClientWithPool(server.Client().Transport, pool)
+	t.Cleanup(client.cancelFunc)
+
+	client.pollNodeStats()
+	require.Zero(t, client.clusterCoord.load(), "one cycle set a cluster mean")
+	start := time.Now()
+	require.Eventually(t, func() bool { return time.Since(start) > 0 }, time.Second, time.Millisecond)
+	client.pollNodeStats()
+
+	require.Positive(t, client.clusterCoord.load())
+	require.InDelta(t, (a.coordLoad.load()+b.coordLoad.load())/2, client.clusterCoord.load(), 1e-6,
+		"cluster mean is not the mean of the polled nodes' rates")
 }
