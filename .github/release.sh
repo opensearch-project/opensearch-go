@@ -21,12 +21,15 @@
 #   RELEASE_TAG      tag to release, e.g. v5.2.0
 #   SUBMODULES       nested module directories (set by the Makefile)
 #   UPSTREAM_REMOTE  remote for opensearch-project/opensearch-go (default: upstream)
+#   UPSTREAM_BRANCH  branch the release is cut from, e.g. v5 for a release of an
+#                    older major (default: main)
 #   RELEASE_REMOTE   remote the printed push commands use (default: public-fork)
 #   ALLOW_EMPTY      non-empty: do not block on an empty CHANGELOG section
 
 set -o errexit -o nounset -o pipefail
 
 UPSTREAM_REMOTE=${UPSTREAM_REMOTE:-upstream}
+UPSTREAM_BRANCH=${UPSTREAM_BRANCH:-main}
 RELEASE_REMOTE=${RELEASE_REMOTE:-public-fork}
 RELEASE_TAG=${RELEASE_TAG:-}
 SUBMODULES=${SUBMODULES:-}
@@ -39,7 +42,7 @@ ROOT=$(awk '$1 == "module" { print $2 }' go.mod)
 MAJOR=${ROOT##*/}
 SLUG=${ROOT#github.com/}
 SLUG=${SLUG%/"$MAJOR"}
-UPSTREAM=$UPSTREAM_REMOTE/main
+UPSTREAM=$UPSTREAM_REMOTE/$UPSTREAM_BRANCH
 
 die() { printf '\033[31m[!] %s\033[0m\n' "$*" >&2; exit 1; }
 step() { printf '\033[2m-> %s\033[0m\n' "$*"; }
@@ -67,8 +70,8 @@ next_tags() {
 
 fetch_upstream() {
     git remote get-url "$UPSTREAM_REMOTE" >/dev/null 2>&1 || die "no remote named $UPSTREAM_REMOTE (set UPSTREAM_REMOTE)"
-    step "git fetch --quiet --tags $UPSTREAM_REMOTE main"
-    git fetch --quiet --tags "$UPSTREAM_REMOTE" main
+    step "git fetch --quiet --tags $UPSTREAM_REMOTE $UPSTREAM_BRANCH"
+    git fetch --quiet --tags "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 }
 
 require_tag() {
@@ -114,7 +117,7 @@ notes_empty() {
     awk -v h="## [$1]" '$0 == h { in_section = 1; next } in_section && /^## \[/ { exit } in_section && NF && !/^### / { found = 1; exit } END { exit found }'
 }
 
-# prepare_commit prints the first-parent commit on upstream/main that set
+# prepare_commit prints the first-parent commit on $UPSTREAM that set
 # version.go to $1.
 prepare_commit() {
     local want="const Client = \"$1\"" c
@@ -126,7 +129,7 @@ prepare_commit() {
     done
 }
 
-# pin_commit prints the first first-parent commit after $1 on upstream/main at
+# pin_commit prints the first first-parent commit after $1 on $UPSTREAM at
 # which a nested module requires the root at a pseudo-version of $1.
 pin_commit() {
     local short=${1:0:12} c mod
@@ -162,7 +165,7 @@ apache_text() {
 
 pr_command() {
     local branch=$1 title=$2 body=$3
-    printf 'gh pr create --repo %s --base main --head %s:%s \\\n' "$SLUG" "$(owner)" "$branch"
+    printf 'gh pr create --repo %s --base %s --head %s:%s \\\n' "$SLUG" "$UPSTREAM_BRANCH" "$(owner)" "$branch"
     printf "  --title '%s' --body-file - <<'EOF'\n" "$title"
     printf '%s\n' "$body"
     printf 'EOF\n'
@@ -180,15 +183,15 @@ release_command() {
     printf 'EOF\n'
 }
 
-# check_main_pins warns when a nested module on upstream/main requires a root
+# check_upstream_pins warns when a nested module on $UPSTREAM requires a root
 # version the go command cannot resolve, as when a pinned commit was squashed away.
-check_main_pins() {
+check_upstream_pins() {
     local v err
     for v in $(for m in $(nested_requiring "$UPSTREAM"); do root_at "$UPSTREAM" "$m"; done | sort -u); do
         err=$(cd / && GOWORK=off go list -m "$ROOT@$v" 2>&1 >/dev/null) && continue
         warn "Warning: nested modules on $UPSTREAM require $ROOT@$v, which does not resolve:"
         warn "  ${err##*: }"
-        warn "  They cannot build until a pin PR points them at a commit on main. The next release's pin step does that."
+        warn "  They cannot build until a pin PR points them at a commit on $UPSTREAM_BRANCH. The next release's pin step does that."
         printf '\n'
     done
 }
@@ -206,7 +209,7 @@ plan() {
         current=6
         prev=$(git tag --list "$MAJOR.*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -A1 -xF "$tag" | sed -n 2p)
     fi
-    check_main_pins
+    check_upstream_pins
     prep=$(prepare_commit "$version")
     if [ "$current" = 6 ]; then
         pin=$(git rev-parse "$tag^{commit}")
@@ -436,8 +439,8 @@ verify() {
     printf '\033[2m--- What is the type of request?\033[0m\n'
     printf 'Repository Management\n\n'
     printf '\033[2m--- Details of the request\033[0m\n'
-    printf 'Please create a signed `%s` tag for `opensearch-go` from `%s` on the `main` branch.\n\n' "$tag" "$pin"
-    printf -- '- repository: https://github.com/%s\n- target branch: `main`\n- module path: `%s`\n\n' "$SLUG" "$ROOT"
+    printf 'Please create a signed `%s` tag for `opensearch-go` from `%s` on the `%s` branch.\n\n' "$tag" "$pin" "$UPSTREAM_BRANCH"
+    printf -- '- repository: https://github.com/%s\n- target branch: `%s`\n- module path: `%s`\n\n' "$SLUG" "$UPSTREAM_BRANCH" "$ROOT"
     printf '```\ngit tag -s %s %s -m "Tag %s"\n```\n\n' "$tag" "$pin" "$tag"
     printf '\033[2m--- Additional information to support your request\033[0m\n'
     printf -- '- version file: %s#diff-%s\n' "$changes" "$(diff_anchor internal/version/version.go)"

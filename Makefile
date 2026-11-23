@@ -470,7 +470,7 @@ endif
 	}
 
 RELEASE_ENV = RELEASE_TAG="$(release-tag)" SUBMODULES="$(SUBMODULES)" ALLOW_EMPTY="$(allow-empty)" \
-	UPSTREAM_REMOTE="$(UPSTREAM_REMOTE)" RELEASE_REMOTE="$(RELEASE_REMOTE)"
+	UPSTREAM_REMOTE="$(UPSTREAM_REMOTE)" UPSTREAM_BRANCH="$(UPSTREAM_BRANCH)" RELEASE_REMOTE="$(RELEASE_REMOTE)"
 
 release: ## Print the release runbook for release-tag=vX.Y.Z, marking the current step
 	@$(RELEASE_ENV) .github/release.sh plan
