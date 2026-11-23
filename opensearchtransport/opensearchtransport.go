@@ -454,6 +454,10 @@ type Client struct {
 	// atomically by poolRouter.Eval.
 	clusterSearch clusterSearchAIMD
 
+	// Cluster mean write-coordination rate, updated by pollNodeStats after
+	// each full poll cycle and read by the no-index branch of the routers.
+	clusterCoord clusterCoordLoad
+
 	healthCheck HealthCheckFunc
 
 	compressRequestBody  bool
@@ -1081,6 +1085,7 @@ func New(cfg Config) (*Client, error) {
 			observer:                        client.observer.Load(),
 			poolInfoReady:                   &client.poolInfoReady,
 			clusterSearchCwnd:               &client.clusterSearch.cwnd,
+			clusterCoord:                    &client.clusterCoord,
 			activeListCap:                   client.activeListCapConfig,
 			standbyPromotionChecks:          client.standbyPromotionChecks,
 			includeDedicatedClusterManagers: client.includeDedicatedClusterManagers,

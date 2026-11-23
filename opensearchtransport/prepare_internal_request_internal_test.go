@@ -477,7 +477,7 @@ func TestBackgroundPollersSignRequests(t *testing.T) {
 		"/_cat/shards":                       catShardsBody,
 		"/_cluster/state/metadata/idx":       routingMetaBody,
 		"/_nodes/_local/http,os,thread_pool": hardwareBody,
-		"/_nodes/_local/stats/jvm,breaker,thread_pool": nodeStatsBody,
+		nodeStatsPath:                        nodeStatsBody,
 	}
 
 	type poller struct {
@@ -530,7 +530,7 @@ func TestBackgroundPollersSignRequests(t *testing.T) {
 		},
 		{
 			name:     "node stats",
-			path:     "/_nodes/_local/stats/jvm,breaker,thread_pool",
+			path:     nodeStatsPath,
 			modifier: true,
 			swallows: true,
 			run: func(t *testing.T, tp *Client, _ *url.URL, conn *Connection) error {

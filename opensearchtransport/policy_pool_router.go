@@ -44,9 +44,10 @@ type poolRouter struct {
 	poolName          string        // Thread pool name for congestion tracking (e.g., "search", "write")
 	jitter            atomic.Int64
 	observer          atomic.Pointer[ConnectionObserver]
-	poolInfoReady     *atomic.Bool  // nil-safe; true once thread pool quorum is reached
-	clusterSearchCwnd *atomic.Int32 // nil-safe; cluster-wide search cwnd for MCSR
-	policyState       atomic.Int32  // Bitfield: env override bits only (dynamic state from inner)
+	poolInfoReady     *atomic.Bool      // nil-safe; true once thread pool quorum is reached
+	clusterSearchCwnd *atomic.Int32     // nil-safe; cluster-wide search cwnd for MCSR
+	clusterCoord      *clusterCoordLoad // nil-safe; cluster mean write-coordination rate
+	policyState       atomic.Int32      // Bitfield: env override bits only (dynamic state from inner)
 
 	// mu guards sortedConns -- a pre-sorted (by RTT) snapshot of active
 	// connections from the inner policy's pool. Rebuilt on DiscoveryUpdate;
@@ -106,8 +107,8 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	}
 
 	if keyA == "" {
-		// Cluster lookup: no index in path, no shard data.
-		// Score all active connections by RTT + congestion only.
+		// Cluster lookup: no index in path, no shard data. Spread across
+		// the nearest RTT tier, crossing out of it by score; see selectNoIndex.
 		p.mu.RLock()
 		conns := p.mu.sortedConns
 		p.mu.RUnlock()
@@ -116,10 +117,8 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			return hop, nil
 		}
 
-		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil)
-		scores.Release()
+		best := selectNoIndex(conns, p.shardCosts, p.poolName, pir, p.scoreFunc, p.clusterCoord)
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 			return hop, nil
@@ -167,18 +166,19 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
+	var totalKeys int
 
 	if !strings.Contains(routingValue, routingValueSeparator) {
 		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
 	} else {
-		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, totalKeys = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), totalKeys)
 		scores.Release()
 		extraCost.Release()
 
@@ -240,7 +240,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil, 0)
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -400,6 +400,7 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 	}
 	p.poolInfoReady = config.poolInfoReady
 	p.clusterSearchCwnd = config.clusterSearchCwnd
+	p.clusterCoord = config.clusterCoord
 
 	// Register the MCSR metric callback for the search pool so that
 	// ConnectionMetric snapshots include the current per-node value.

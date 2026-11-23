@@ -615,7 +615,7 @@ func TestCalcMultiKeyCost_PicksHighestHitNode(t *testing.T) {
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
@@ -641,7 +641,7 @@ func TestCalcMultiKeyCost_AllKeysOnSameShard(t *testing.T) {
 	routes := routingValuesForShard(t, sm, 1, "s1pair-9", 2)
 
 	routingValue := routes[0] + routingValueSeparator + routes[1]
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
@@ -676,7 +676,7 @@ func TestCalcMultiKeyCost_ExtraCostReflectsRemoteHops(t *testing.T) {
 	routeToShard2 := routingValueForShard(t, sm, 2, "rt2-5")
 
 	routingValue := routeToShard0 + routingValueSeparator + routeToShard2
-	cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+	cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 	candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 	defer cBuf.Release()
 	defer ecBuf.Release()
@@ -697,7 +697,7 @@ func TestCalcMultiKeyCost_DisabledByFeatureFlag(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost := calcMultiKeyCost(routingSkipShardExact, slot, "a,b", []*Connection{connA})
+	candidates, extraCost, _ := calcMultiKeyCost(routingSkipShardExact, slot, "a,b", []*Connection{connA})
 	require.Nil(t, candidates.Slice())
 	require.Nil(t, extraCost.Slice())
 }
@@ -708,7 +708,7 @@ func TestCalcMultiKeyCost_NilShardMap(t *testing.T) {
 	slot := &indexSlot{clock: realClock{}}
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, "a,b", []*Connection{connA})
+	candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "a,b", []*Connection{connA})
 	require.Nil(t, candidates.Slice())
 	require.Nil(t, extraCost.Slice())
 }
@@ -720,7 +720,7 @@ func TestCalcMultiKeyCost_EmptyRoutingValue(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
+	candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
 	require.Nil(t, candidates.Slice())
 	require.Nil(t, extraCost.Slice())
 }
@@ -864,14 +864,14 @@ func TestCalcMultiKeyCost_HighReplicaCount(t *testing.T) {
 			}
 
 			if len(parts) == 0 {
-				candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, "", conns)
+				candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, "", conns)
 				require.Nil(t, candidates.Slice())
 				require.Nil(t, extraCost.Slice())
 				return
 			}
 
 			routingValue := strings.Join(parts, routingValueSeparator)
-			cBuf, ecBuf := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+			cBuf, ecBuf, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 			candidates, extraCost := cBuf.Slice(), ecBuf.Slice()
 			defer cBuf.Release()
 			defer ecBuf.Release()

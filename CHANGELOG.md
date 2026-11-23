@@ -4,6 +4,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix the router always choosing the same node among candidates that score the same, such as two idle replicas of a shard for `GET /{index}/_doc/{id}`, or nodes that host the shards of the same number of the keys in a comma-separated `?routing=` list. Candidates arrive in RTT-then-URL order and the router took the first of the lowest score, so the node whose URL sorted first took every such request, for every client. The router now chooses among tied candidates at random: for a `?routing=` list, each tied node's chance is proportional to how many of the keys' shards it hosts, and otherwise each has the same chance. A candidate that scores better still wins ([#1366](https://github.com/opensearch-project/opensearch-go/pull/1366))
+- Fix the default router sending every request with no index in its path, such as `POST /_bulk`, to the same node. The router chose the lowest-scoring connection and broke ties by URL, and a client sending one bulk at a time has nothing in flight anywhere, so every request went to the node whose URL sorted first in the nearest RTT tier, and every idle client in a fleet picked the same node. The router now draws two random nodes from the nearest tier and one random node from the farther tiers, and takes the lowest score: as the nearest tier's nodes get busy, traffic crosses into a farther tier by score, as the index path does. Each score is weighted by the node's write-coordination rate from `indexing_pressure`, which the node stats poll now requests, against the cluster mean, because coordinating a bulk runs outside the node's `write` thread pool and does not show in its congestion window, so a nearest tier that coordinates enough more than a farther one also sheds idle traffic to it. `NodeStats` gains an `IndexingPressure` field ([#1366](https://github.com/opensearch-project/opensearch-go/pull/1366))
+
 ### Dependencies
 
 - Update the `toolchain` line from go1.26.9 to go1.26.11 in the root module and `cmd/osgen`, so builds in this repository use Go 1.26.11, which carries security fixes to cgo, the go command, the compiler, the linker and `net/http`. The go directive stays 1.26.0, so consumers are not affected ([#1361](https://github.com/opensearch-project/opensearch-go/pull/1361))

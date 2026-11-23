@@ -36,19 +36,21 @@ import (
 
 const clusterStatusRed = "red"
 
-// NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool.
+// NodeStatsResponse represents the response from GET
+// /_nodes/_local/stats/jvm,breaker,thread_pool,indexing_pressure.
 // Only the "nodes" map is used; the top-level "_nodes" and "cluster_name" fields are ignored.
 // All fields are present in OpenSearch 1.3.0+.
 type NodeStatsResponse struct {
 	Nodes map[string]NodeStats `json:"nodes"`
 }
 
-// NodeStats represents per-node statistics used for load shedding and
-// congestion window updates.
+// NodeStats represents per-node statistics used for load shedding,
+// congestion window updates and write-coordination load.
 type NodeStats struct {
-	JVM         JVMStats                   `json:"jvm"`
-	Breakers    map[string]BreakerStats    `json:"breakers"`
-	ThreadPools map[string]ThreadPoolStats `json:"thread_pool,omitempty"`
+	JVM              JVMStats                   `json:"jvm"`
+	Breakers         map[string]BreakerStats    `json:"breakers"`
+	ThreadPools      map[string]ThreadPoolStats `json:"thread_pool,omitempty"`
+	IndexingPressure *IndexingPressureStats     `json:"indexing_pressure,omitempty"`
 }
 
 // JVMStats contains JVM-level statistics.
@@ -160,6 +162,7 @@ func (c *Client) pollNodeStats() {
 		if len(samples) > 0 {
 			c.clusterSearch.update(samples)
 		}
+		c.clusterCoord.update(snapshot)
 
 	case *singleServerPool:
 		// Single-node pool: poll the connection for AIMD updates.
@@ -177,10 +180,11 @@ func (c *Client) pollNodeStats() {
 // congestion windows (AIMD), and evaluates node-level overload state.
 //
 // Two data sources are combined for the overload decision:
-//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker,thread_pool (fetched here)
+//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker,thread_pool,indexing_pressure (fetched here)
 //  2. Cluster health from conn.mu.clusterHealth (already populated by clusterHealthCheck)
 //
 // Thread pool stats drive per-pool AIMD congestion control via [updatePoolCongestion].
+// Indexing pressure stats update the node's write-coordination rate ([coordLoad]).
 // This avoids redundant HTTP calls since the cluster health check already collects
 // cluster health data during normal health check cycles.
 //
@@ -193,7 +197,7 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 	ctx, cancel := context.WithTimeout(c.ctx, c.healthCheckTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodeStatsPath, nil)
 	if err != nil {
 		return sample, false
 	}
@@ -263,6 +267,10 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 
 	// Update per-pool congestion windows (AIMD) from thread pool stats.
 	updatePoolCongestion(conn, nodeStats.ThreadPools)
+
+	if ip := nodeStats.IndexingPressure; ip != nil {
+		conn.coordLoad.update(ip.Memory.Total.CoordinatingInBytes, time.Now(), conn.allocatedProcessors.Load())
+	}
 
 	// Extract search pool stats for cluster-wide MCSR aggregation.
 	var ok bool

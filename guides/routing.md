@@ -293,43 +293,59 @@ If the request also contains a `?routing=` parameter, the index path first attem
 
 #### Cluster Path
 
-Activated when the URL has no index component (e.g., `GET /_cluster/health`, `GET /_cat/nodes`). This is the simplest path -- no shard awareness, no rendezvous hashing, no fan-out. The request goes to whichever node is nearest and has the most capacity.
+Activated when the URL has no index component (e.g., `POST /_bulk`, `GET /_cluster/health`, `GET /_cat/nodes`). There is no shard awareness, no rendezvous hashing and no fan-out: no node is a better home for the request than another, so the choice is by score alone. The router spreads these requests across the nearest RTT tier with the power of two choices, and lets a node from a farther tier compete, so traffic crosses over by score as [AZ-Aware Crossover](#az-aware-crossover) describes.
 
 ```
-    GET /_cluster/health
+    POST /_bulk
                 │
                 ▼
     ┌──────────────────────────────────────────────────────┐
     │  1. EXTRACT                                          │
-    │     extractIndexFromPath("/_cluster/health")         │
+    │     extractIndexFromPath("/_bulk")                   │
     │     → "" (no index)                                  │
     └──────────────┬───────────────────────────────────────┘
                    │
                    ▼
     ┌──────────────────────────────────────────────────────┐
-    │  2. SCORE ALL ACTIVE CONNECTIONS                     │
-    │     For each active connection:                      │
+    │  2. DRAW                                             │
+    │     Two distinct nodes at random from the nearest    │
+    │     RTT tier (the power of two choices), plus one    │
+    │     node at random from the farther tiers, as a      │
+    │     challenger.                                      │
+    └──────────────┬───────────────────────────────────────┘
+                   │
+                   ▼
+    ┌──────────────────────────────────────────────────────┐
+    │  3. SCORE                                            │
+    │     For each drawn node:                             │
     │       score = rttBucket × (inFlight+1)/cwnd          │
-    │             × costUnknown (32.0 -- constant,         │
-    │               cancels out across all nodes)          │
-    │     Return lowest-scoring node                       │
+    │             × (1 + coordRate / clusterMeanRate)      │
+    │     Return the lowest-scoring node                   │
     └──────────────────────────────────────────────────────┘
 ```
 
-Since `costUnknown` is applied uniformly to all nodes, it cancels out in comparison. Selection is driven purely by RTT (prefer same-AZ) and congestion (prefer idle nodes). There is no index slot, no fan-out, and no shard placement data. The candidate set is all active connections in the role pool.
+The draw is random because every input to the score except this client's own in-flight count is cluster state that every client reads alike. A deterministic choice, such as the lowest score with ties broken by URL, sends every idle client to the same node: a client that sends one bulk at a time has `inFlight = 0` on every node, so the node whose URL sorts first in its zone would take every request. Drawing two nodes and keeping the better one spreads requests evenly across the tier, and still steers away from a node that is busier.
+
+The challenger is how no-index traffic crosses zones. When the zones coordinate alike, an idle near node scores below any idle farther node, because its RTT bucket is lower, so at idle every request stays near. As the near nodes get busy or coordinate more writes their scores rise, and the challenger wins once it scores lower, which is the same crossover as on the index path. The challenger is a random node of the farther tiers rather than the best of them, for the same reason as the pair: the best is the same node for every client.
+
+`coordRate` is the node's write-coordination rate: bytes per second per allocated core, from `indexing_pressure.memory.total.coordinating_in_bytes` in the node stats poll. The node that receives a bulk request parses it, splits it by shard and gathers the replies on the thread that received it, outside its `write` thread pool, so that work is not visible to the write pool's congestion window. The factor is 1 for a node doing no coordination and 2 for one doing the cluster's mean. It is 1 for every node until two polls have run. Because the rate is polled, every client sees the same value for up to a poll interval, which is why it weights a random pair rather than ranking every node: an argmin over polled load would send every client to whichever node looked idlest at the last poll. It also weights the challenger, so a near zone that coordinates enough more than the far one sheds idle traffic across zones. Idle clients score alike, so they cross within a poll interval of each other, as each client's own poll updates the rate.
+
+For example, with near nodes at bucket 8, far nodes at bucket 12 and a write pool cwnd of 8, an idle near node scores 1.0 and an idle far node 1.5, so every request stays near. With one request in flight on each near node they score 2.0, and the far challenger wins. With two of four near nodes busy, only a drawn pair of two busy nodes loses to the challenger, which happens with probability (2/4)·(1/3), so about a sixth of the requests cross over. If the near nodes coordinate more than half the cluster mean and the far nodes none, an idle near node scores above 1.5, and idle requests cross over too.
 
 #### Path Comparison
 
-| Aspect             | Document Path           | Index Path             | Cluster Path           |
-| ------------------ | ----------------------- | ---------------------- | ---------------------- |
-| Trigger            | Index + document ID     | Index, no document ID  | No index in URL        |
-| Candidates         | 1-3 (exact shard hosts) | K (rendezvous fan-out) | All active connections |
-| Shard awareness    | Exact shard via murmur3 | Per-node shard counts  | None                   |
-| Fan-out            | None (exact set)        | Dynamic, per-index     | None (score all)       |
-| Rendezvous hashing | Fallback only           | Primary mechanism      | None                   |
-| Shard cost         | Primary vs replica      | Primary vs replica     | costUnknown (uniform)  |
-| Index slot         | Shared with index path  | Created per-index      | None                   |
-| Page cache benefit | Maximum (exact shard)   | High (shard-host bias) | None                   |
+| Aspect             | Document Path           | Index Path             | Cluster Path                        |
+| ------------------ | ----------------------- | ---------------------- | ----------------------------------- |
+| Trigger            | Index + document ID     | Index, no document ID  | No index in URL                     |
+| Candidates         | 1-3 (exact shard hosts) | K (rendezvous fan-out) | Two near + one farther, at random   |
+| Shard awareness    | Exact shard via murmur3 | Per-node shard counts  | None                                |
+| Fan-out            | None (exact set)        | Dynamic, per-index     | None                                |
+| Rendezvous hashing | Fallback only           | Primary mechanism      | None                                |
+| Selection          | Lowest score            | Lowest score           | Lowest of the three drawn           |
+| Shard cost         | Primary vs replica      | Primary vs replica     | costUnknown (uniform)               |
+| Load signal        | Client in-flight, cwnd  | Client in-flight, cwnd | Client in-flight, cwnd, coord. rate |
+| Index slot         | Shared with index path  | Created per-index      | None                                |
+| Page cache benefit | Maximum (exact shard)   | High (shard-host bias) | None                                |
 
 ### Shared Connections Across Policies
 
@@ -1208,7 +1224,7 @@ Transient errors (5xx, network timeout) keep the state at Pending and retry on t
 
 ### Load Shedding via Node Stats
 
-A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool` on each live node:
+A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool,indexing_pressure` on each live node. The `indexing_pressure` section feeds the write-coordination weight of the [Cluster Path](#cluster-path); the rest drives load shedding:
 
 | Condition                                     | Action                        |
 | --------------------------------------------- | ----------------------------- |

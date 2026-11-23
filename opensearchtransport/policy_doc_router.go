@@ -167,18 +167,19 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
+	var totalKeys int
 
 	if !strings.Contains(routingValue, routingValueSeparator) {
 		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
 	} else {
-		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, totalKeys = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), totalKeys)
 		scores.Release()
 		extraCost.Release()
 
@@ -234,7 +235,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, 0)
 	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {

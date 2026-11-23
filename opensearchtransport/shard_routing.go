@@ -90,25 +90,27 @@ func calcSingleKeyCost(
 // spread across the cluster, the ideal coordinator is the node hosting the
 // most target shards - it can serve those locally and only proxies the rest.
 //
-// Returns candidates sorted by hit-count descending and a parallel extraCost
-// slice where extraCost[i] = totalKeys - hitsForNode[i]. A node hosting all
-// target shards has extraCost=0; a node hosting one of five has extraCost=4.
+// Returns candidates sorted by hit-count descending, a parallel extraCost
+// slice where extraCost[i] = totalKeys - hitsForNode[i], and totalKeys, the
+// number of routing keys. A node hosting all target shards has extraCost=0; a
+// node hosting one of five has extraCost=4. [connScoreSelect] takes totalKeys
+// to weight tied candidates by the keys whose shard each hosts.
 //
-// Returns nil, nil when shard-exact routing is disabled, shard data is
-// unavailable, or no connections match.
+// Returns empty results and 0 when shard-exact routing is disabled, shard data
+// is unavailable, or no connections match.
 func calcMultiKeyCost(
 	features routingFeatures,
 	slot *indexSlot,
 	routingValue string,
 	conns []*Connection,
-) (pooledConns, pooledFloats) {
+) (pooledConns, pooledFloats, int) {
 	if !features.shardExactEnabled() || routingValue == "" {
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, 0
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, 0
 	}
 
 	rvBuf := acquireRoutingValues()
@@ -133,7 +135,7 @@ func calcMultiKeyCost(
 
 	if len(*hits) == 0 {
 		releaseNodeHits(hits)
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, 0
 	}
 
 	scored := acquireScoredConns()
@@ -149,7 +151,7 @@ func calcMultiKeyCost(
 
 	if len(*scored) == 0 {
 		releaseScoredConns(scored)
-		return pooledConns{}, pooledFloats{}
+		return pooledConns{}, pooledFloats{}, 0
 	}
 
 	slices.SortFunc(*scored, func(a, b scoredConn) int {
@@ -165,7 +167,7 @@ func calcMultiKeyCost(
 	}
 	releaseScoredConns(scored)
 
-	return result, extraCost
+	return result, extraCost, totalKeys
 }
 
 type scoredConn struct {

@@ -161,6 +161,10 @@ type Connection struct {
 	// Atomic: written by hardwareInfoHealthCheck, read by computeWeights/recalculateCapacityModel.
 	allocatedProcessors atomic.Int32
 
+	// coordLoad is the node's write-coordination rate from its
+	// indexing_pressure statistics, polled for every client of the node.
+	coordLoad coordLoad
+
 	// rttRing tracks health check RTT measurements for this connection.
 	// All slots initialize to rttBucketUnknown; the median naturally drops
 	// to a measured tier once enough health checks have run. Used by
