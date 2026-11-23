@@ -27,4 +27,4 @@
 package version
 
 // Client returns the client version as a string.
-const Client = "4.8.1"
+const Client = "4.8.2"
