@@ -138,10 +138,11 @@ func needsShardSetCost(slot *indexSlot, routingValue, docID string) bool {
 // index each key targets one shard per partition offset (see
 // [shardhash.ForRoutingOffset]).
 //
-// Returns candidates sorted by hit-count descending and a parallel extraCost
-// slice where extraCost[i] = totalShards - hitsForNode[i], with totalShards the
+// Returns candidates sorted by hit-count descending, a parallel extraCost
+// slice where extraCost[i] = totalShards - hitsForNode[i], and totalShards, the
 // number of distinct target shards. A node hosting all target shards has
-// extraCost=0; a node hosting one of five has extraCost=4.
+// extraCost=0; a node hosting one of five has extraCost=4. [connScoreSelect]
+// takes totalShards to weight tied candidates by the shards each hosts.
 //
 // The error is nil exactly when candidates are returned. Otherwise the result is
 // empty and the error is [ErrNoRoutingKey] when there is no routing value,
@@ -153,17 +154,17 @@ func calcMultiKeyCost(
 	slot *indexSlot,
 	routingValue string,
 	conns []*Connection,
-) (pooledConns, pooledFloats, error) {
+) (pooledConns, pooledFloats, int, error) {
 	if !features.shardExactEnabled() {
-		return pooledConns{}, pooledFloats{}, nil
+		return pooledConns{}, pooledFloats{}, 0, nil
 	}
 	if routingValue == "" {
-		return pooledConns{}, pooledFloats{}, ErrNoRoutingKey
+		return pooledConns{}, pooledFloats{}, 0, ErrNoRoutingKey
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return pooledConns{}, pooledFloats{}, ErrShardMapUnknown
+		return pooledConns{}, pooledFloats{}, 0, ErrShardMapUnknown
 	}
 
 	rvBuf := acquireRoutingValues()
@@ -198,7 +199,7 @@ func calcMultiKeyCost(
 
 	if len(*hits) == 0 {
 		releaseNodeHits(hits)
-		return pooledConns{}, pooledFloats{}, ErrShardNoNode
+		return pooledConns{}, pooledFloats{}, 0, ErrShardNoNode
 	}
 
 	scored := acquireScoredConns()
@@ -214,7 +215,7 @@ func calcMultiKeyCost(
 
 	if len(*scored) == 0 {
 		releaseScoredConns(scored)
-		return pooledConns{}, pooledFloats{}, ErrShardNoNode
+		return pooledConns{}, pooledFloats{}, 0, ErrShardNoNode
 	}
 
 	slices.SortFunc(*scored, func(a, b scoredConn) int {
@@ -230,7 +231,7 @@ func calcMultiKeyCost(
 	}
 	releaseScoredConns(scored)
 
-	return result, extraCost, nil
+	return result, extraCost, totalShards, nil
 }
 
 type scoredConn struct {
