@@ -58,10 +58,12 @@ Next, create a source index with some test data:
 		Index: sourceIndex,
 		Body:  strings.NewReader(`{"title": "Test Document", "year": 2024}`),
 		Params: &opensearchapi.IndexParams{
-			Refresh: "true",
+			Refresh: opensearchapi.RefreshWaitFor,
 		},
 	})
 ```
+
+[`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) describes each refresh value.
 
 ## Submitting Async Tasks
 

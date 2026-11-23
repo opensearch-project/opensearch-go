@@ -78,7 +78,9 @@ type TasksListParams struct {
 	// Groups tasks by parent/child relationships or nodes.
 	//
 	// Default: nodes.
-	GroupBy string
+	//
+	// See [TasksGroupBy] for valid values.
+	GroupBy TasksGroupBy
 
 	// A comma-separated list of node IDs or names used to limit the returned
 	// information. Use `_local` to return information from the node you're
@@ -117,7 +119,7 @@ func (r TasksListParams) get() map[string]string {
 	}
 
 	if r.GroupBy != "" {
-		set("group_by", r.GroupBy)
+		set("group_by", string(r.GroupBy))
 	}
 
 	if len(r.Nodes) > 0 {

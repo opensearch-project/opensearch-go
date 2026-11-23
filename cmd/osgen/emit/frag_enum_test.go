@@ -365,3 +365,125 @@ func TestNewEnumTypesFile_StringEnumOnly(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(src), "type NodeRole string")
 }
+
+// TestStringEnumFragment_HasCount asserts a type with HasCount renders a Count
+// constructor and requests strconv, and a type without it renders neither.
+func TestStringEnumFragment_HasCount(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		hasCount  bool
+		wantFunc  bool
+		wantPaths []string
+	}{
+		{name: "with count", hasCount: true, wantFunc: true, wantPaths: []string{"strconv"}},
+		{name: "without count"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			frag := &emit.StringEnumFragment{
+				Types: []*ir.Type{{
+					Name:        "WaitForActiveShards",
+					Kind:        ir.TypeStringEnum,
+					Scope:       ir.ScopeShared,
+					IsAlias:     true,
+					HasCount:    tt.hasCount,
+					EnumMembers: []ir.EnumMember{{ConstName: "WaitForActiveShardsAll", Value: "all"}},
+				}},
+			}
+
+			body, err := frag.Body()
+			require.NoError(t, err)
+			const sig = "func WaitForActiveShardsCount(n int) WaitForActiveShards {"
+			if tt.wantFunc {
+				require.Contains(t, body, sig)
+				require.Contains(t, body, "strconv.Itoa(n)")
+				require.Contains(t, body, "// WaitForActiveShardsCount ")
+			} else {
+				require.NotContains(t, body, "Count")
+			}
+
+			var paths []string
+			for _, imp := range frag.Imports() {
+				paths = append(paths, imp.Path)
+			}
+			require.Equal(t, tt.wantPaths, paths)
+		})
+	}
+}
+
+// TestStringEnumFragment_TypeDoc asserts the type declaration and its doc: spec
+// comments are kept, a missing comment falls back to naming the query
+// parameters (or the values below), a schema default adds the server-default
+// line to either, and an alias renders as `type X = string`.
+func TestStringEnumFragment_TypeDoc(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		typ        ir.Type
+		want       []string
+		wantAbsent []string
+	}{
+		{
+			name: "no comment, one param",
+			typ:  ir.Type{Name: "Refresh", ParamNames: []string{"refresh"}},
+			want: []string{"// Refresh is a value of the `refresh` query parameter.\ntype Refresh string"},
+		},
+		{
+			name: "no comment, several params",
+			typ:  ir.Type{Name: "Level", ParamNames: []string{"a", "b", "c"}},
+			want: []string{"// Level is a value of the `a`, `b` and `c` query parameters."},
+		},
+		{
+			name: "no comment, no params",
+			typ:  ir.Type{Name: "NodeRole"},
+			want: []string{"// NodeRole is one of the values below."},
+		},
+		{
+			name:       "comment kept",
+			typ:        ir.Type{Name: "Refresh", Comment: "Controls visibility.", ParamNames: []string{"refresh"}},
+			want:       []string{"// Controls visibility.\ntype Refresh string"},
+			wantAbsent: []string{"is a value of the"},
+		},
+		{
+			name: "default after fallback",
+			typ:  ir.Type{Name: "Refresh", ParamNames: []string{"refresh"}, Default: "false"},
+			want: []string{"query parameter.\n//\n// The server default is \"false\".\ntype Refresh string"},
+		},
+		{
+			name: "default after comment",
+			typ:  ir.Type{Name: "Refresh", Comment: "Controls visibility.", Default: "false"},
+			want: []string{"// Controls visibility.\n//\n// The server default is \"false\".\ntype Refresh string"},
+		},
+		{
+			// An alias keeps values interchangeable with plain strings, while its
+			// consts keep the alias type.
+			name: "alias",
+			typ: ir.Type{
+				Name: "Refresh", IsAlias: true,
+				EnumMembers: []ir.EnumMember{{ConstName: "RefreshWaitFor", Value: "wait_for"}},
+			},
+			want:       []string{"type Refresh = string", `RefreshWaitFor Refresh = "wait_for"`},
+			wantAbsent: []string{"type Refresh string"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			typ := tt.typ
+			typ.Kind = ir.TypeStringEnum
+			typ.Scope = ir.ScopeShared
+			body, err := (&emit.StringEnumFragment{Types: []*ir.Type{&typ}}).Body()
+			require.NoError(t, err)
+			for _, w := range tt.want {
+				require.Contains(t, body, w)
+			}
+			for _, w := range tt.wantAbsent {
+				require.NotContains(t, body, w)
+			}
+		})
+	}
+}

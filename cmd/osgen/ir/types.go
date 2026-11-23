@@ -171,7 +171,7 @@ type QueryParam struct {
 	Group             ParamGroup
 	Required          bool
 	Deprecated        bool
-	IsStringEnum      bool // GoType is a named string-enum type; serialize with a string() cast
+	IsStringEnum      bool // GoType is a string-enum type (defined or alias) or a slice of one; scalars serialize via string()
 	VersionAdded      string
 	VersionDeprecated string
 	DeprecationMsg    string
@@ -238,6 +238,23 @@ type Type struct {
 	OwnerGroup string
 	Package    string
 	ImportPath string
+
+	// IsAlias marks a TypeStringEnum emitted as `type X = string` rather than a
+	// defined type, so it stays interchangeable with plain string values.
+	IsAlias bool
+
+	// HasCount marks a TypeStringEnum for an integer-or-keyword query parameter:
+	// the emitted code also carries a <Name>Count(n int) constructor that formats
+	// the integer form of the value.
+	HasCount bool
+
+	// ParamNames lists the query parameter wire names whose value type is this
+	// TypeStringEnum, sorted and deduplicated. The enum doc names them when the
+	// spec supplies no description.
+	ParamNames []string
+
+	// Default is the schema's default wire value for a TypeStringEnum, or "".
+	Default string
 
 	// Discriminator, when non-nil, carries the OpenAPI `discriminator` the
 	// spec declares on the union's oneOf/anyOf. It is the strongest of the
@@ -411,7 +428,7 @@ const (
 	// key-presence merge, or request selection.
 	TypeAmbiguousWire
 	TypeEnum       // int-backed iota enum (named int type + const block)
-	TypeStringEnum // string-backed enum (named string type + const block; permissive, unknown values round-trip)
+	TypeStringEnum // string-backed enum (defined or alias string type + const block; permissive, unknown values round-trip)
 	// TypeOpaqueString is an opaque token (x-type-name): a struct around an
 	// unexported string, encoded on the wire as that string.
 	TypeOpaqueString

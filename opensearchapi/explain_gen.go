@@ -116,7 +116,9 @@ type ExplainParams struct {
 	Analyzer string
 
 	// The default operator for query string query: `AND` or `OR`.
-	DefaultOperator string
+	//
+	// See [CommonQueryDSLOperator] for valid values.
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string.
@@ -176,7 +178,7 @@ func (r ExplainParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {

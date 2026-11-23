@@ -75,7 +75,8 @@ func (r CatAliasesReq) GetRequest(method string) (*http.Request, error) {
 type CatAliasesParams struct {
 	TimeoutParams
 	DebugParams
-	ExpandWildcards []string
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// Whether to return information from the local node only instead of from
 	// the cluster manager node.

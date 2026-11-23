@@ -112,7 +112,9 @@ type BulkParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// If `true`, the request's actions must target an index alias.
 	//
@@ -128,7 +130,9 @@ type BulkParams struct {
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
 	// of shards in the index (`number_of_replicas+1`).
-	WaitForActiveShards string
+	//
+	// See [WaitForActiveShards] for valid values.
+	WaitForActiveShards WaitForActiveShards
 }
 
 func (r BulkParams) get() map[string]string {
@@ -163,7 +167,7 @@ func (r BulkParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequireAlias != nil {
@@ -179,7 +183,7 @@ func (r BulkParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	return params

@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"slices"
 	"strings"
@@ -236,14 +235,14 @@ func TestBulkIndexerErrorKinds(t *testing.T) {
 			wantOnErr: 1,
 		},
 		{
-			name:    "document cannot be serialized",
+			name:    "body cannot be read",
 			outcome: outcomeOK,
-			// NaN cannot be serialized into the action metadata line. The
-			// failure is reported when the item is written, so no request is
-			// made for it and the flush has nothing to fail.
-			item:      BulkIndexerItem{Action: "index", DocumentID: "doc", WaitForActiveShards: math.NaN()},
+			// The failure is reported when the item is written, so the flush has
+			// nothing to fail.
+			item:      BulkIndexerItem{Action: "index", DocumentID: "doc", Body: &failingBody{}},
 			want:      failureCallback{ID: "doc", HasErr: true},
-			wantErrIn: "json: unsupported value: NaN",
+			wantErrIn: errInjectedBody.Error(),
+			wantOnErr: 1,
 		},
 	}
 
@@ -440,9 +439,9 @@ func TestBulkIndexerCallbacksRunOnWorker(t *testing.T) {
 			item:    BulkIndexerItem{Action: "index", DocumentID: "doc", Body: strings.NewReader(`{"a":1}`)},
 		},
 		{
-			name:    "OnError for an unserializable document",
+			name:    "OnError for an unreadable body",
 			outcome: outcomeOK,
-			item:    BulkIndexerItem{Action: "index", DocumentID: "doc", WaitForActiveShards: math.NaN()},
+			item:    BulkIndexerItem{Action: "index", DocumentID: "doc", Body: &failingBody{}},
 		},
 	}
 

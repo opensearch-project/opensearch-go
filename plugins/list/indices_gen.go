@@ -75,14 +75,20 @@ type IndicesParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The unit used to display byte values.
-	Bytes string
+	//
+	// See [opensearchapi.ByteUnit] for valid values.
+	Bytes opensearchapi.ByteUnit
 
 	// The type of index that wildcard patterns can match.
-	ExpandWildcards []string
+	//
+	// See [opensearchapi.ExpandWildcard] for valid values.
+	ExpandWildcards []opensearchapi.ExpandWildcard
 
 	// The health status used to limit returned indexes. By default, the
 	// response includes indexes of any health status.
-	Health string
+	//
+	// See [opensearchapi.HealthStatus] for valid values.
+	Health opensearchapi.HealthStatus
 
 	// If `true`, the response includes information from segments that are not
 	// loaded into memory.
@@ -110,9 +116,13 @@ type IndicesParams struct {
 	// Defines order in which indexes will be displayed. Accepted values are
 	// `asc` and `desc`. If `desc`, most recently created indexes would be
 	// displayed first.
-	Sort string
+	//
+	// See [opensearchapi.SortOrder] for valid values.
+	Sort opensearchapi.SortOrder
 
 	// The unit used to display time values.
+	//
+	// See [opensearchapi.TimeUnit] for valid values.
 	Time opensearchapi.TimeUnit
 }
 
@@ -131,7 +141,7 @@ func (r IndicesParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
@@ -139,7 +149,7 @@ func (r IndicesParams) get() map[string]string {
 	}
 
 	if r.Health != "" {
-		set("health", r.Health)
+		set("health", string(r.Health))
 	}
 
 	if r.IncludeUnloadedSegments != nil {
@@ -163,7 +173,7 @@ func (r IndicesParams) get() map[string]string {
 	}
 
 	if r.Sort != "" {
-		set("sort", r.Sort)
+		set("sort", string(r.Sort))
 	}
 
 	if r.Time != "" {

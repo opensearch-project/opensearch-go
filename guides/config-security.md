@@ -252,7 +252,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
   pattern := slug + "-*"
   ```
 
-- Pair the request with the narrowest `ExpandWildcards` value that does what you need (`open`, `closed`, `hidden`, `none`). `none` disables wildcard expansion entirely for that request, which is a useful belt-and-braces option on read paths where you expect an exact name:
+- Pair the request with the narrowest [`ExpandWildcard`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#ExpandWildcard) value that does what you need (`open`, `closed`, `hidden`, `none`). `none` disables wildcard expansion entirely for that request, which is a useful belt-and-braces option on read paths where you expect an exact name:
 
   ```go
   // Restrict wildcard expansion to open indices only (exclude closed and hidden).
@@ -264,7 +264,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
           },
       },
       Params: &opensearchapi.SearchParams{
-          ExpandWildcards: []string{"open"},
+          ExpandWildcards: []opensearchapi.ExpandWildcard{opensearchapi.ExpandWildcardOpen},
       },
   })
   ```

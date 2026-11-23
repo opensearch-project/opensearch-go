@@ -39267,43 +39267,58 @@ components:
       format: int64
       description: The size in bytes.
     _common___ByteUnit:
+      description: |-
+        The unit used to display byte values in cat and list responses. Units are binary multiples (1 kb is 1024 bytes), and values are truncated to whole numbers. The value is case-sensitive.
+
+        When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5gb`.
       oneOf:
         - title: bytes
           type: string
           const: b
+          description: Shows byte values as a plain count of bytes. Pick it when exact sizes matter.
         - title: kilo_bytes
           type: string
           enum:
             - kb
             - k
+          description: Shows byte values in kibibytes (1024 bytes); `k` is the short form.
         - title: mega_bytes
           type: string
           enum:
             - mb
             - m
+          description: Shows byte values in mebibytes (1024 kibibytes); `m` is the short form.
         - title: giga_bytes
           type: string
           enum:
             - gb
             - g
+          description: Shows byte values in gibibytes (1024 mebibytes); `g` is the short form.
         - title: tera_bytes
           type: string
           enum:
             - tb
             - t
+          description: Shows byte values in tebibytes (1024 gibibytes); `t` is the short form.
         - title: peta_bytes
           type: string
           enum:
             - pb
             - p
+          description: Shows byte values in pebibytes (1024 tebibytes); `p` is the short form.
     _common___CatResponseFormat:
       type: string
       enum: [text, json, yaml, cbor, smile]
       default: text
       description: |
         Selects the response format returned by cat operations. Equivalent to
-        the HTTP `Accept` header but expressed as a query parameter. The
-        server's omit-the-param behavior is `text`.
+        the HTTP `Accept` header but expressed as a query parameter.
+      x-enum-descriptions:
+        text: Returns a plain-text table with one row per line. Add `v=true` to include column headers.
+        json: Returns the rows as a JSON array of objects, one object per row keyed by column name.
+        yaml: Returns the rows as a YAML list of objects, one object per row keyed by column name.
+        cbor: Returns the rows encoded as CBOR, a binary form of the JSON structure.
+        smile: Returns the rows encoded as Smile, a binary form of the JSON structure.
     _common___ClusterStatistics:
       type: object
       properties:
@@ -39337,13 +39352,17 @@ components:
       required:
         - size_in_bytes
     _common___Conflicts:
+      description: |-
+        Controls what a reindex, update by query, or delete by query operation does when a document fails with a version conflict. Defaults to `abort`.
       oneOf:
         - type: string
           const: abort
-          description: Abort the operation on version conflicts.
+          description: |-
+            Stops the operation and reports the conflicts in `failures`. This is the default.
         - type: string
           const: proceed
-          description: Proceed with the operation on version conflicts.
+          description: |-
+            Skips conflicting documents and continues. The number of skipped documents is reported in `version_conflicts`.
     _common___CoordsGeoBounds:
       type: object
       description: The geographical bounds specified using coordinate values.
@@ -39463,30 +39482,39 @@ components:
         - title: centimeters
           type: string
           const: cm
+          description: Centimeters, 0.01 meters.
         - title: feet
           type: string
           const: ft
+          description: International feet, 0.3048 meters.
         - title: inches
           type: string
           const: in
+          description: International inches, 0.0254 meters.
         - title: kilometers
           type: string
           const: km
+          description: Kilometers, 1000 meters.
         - title: meters
           type: string
           const: m
+          description: Meters, the base unit the server converts other distance units to.
         - title: miles
           type: string
           const: mi
+          description: International statute miles, 1609.344 meters.
         - title: millimeters
           type: string
           const: mm
+          description: Millimeters, 0.001 meters.
         - title: nautical miles
           type: string
           const: nmi
+          description: Nautical miles, 1852 meters. The server also accepts `NM` for this unit.
         - title: yards
           type: string
           const: yd
+          description: International yards, 0.9144 meters.
     _common___DocStats:
       type: object
       description: The document-level statistics.
@@ -39671,22 +39699,27 @@ components:
         - error
         - status
     _common___ExpandWildcard:
+      description: |-
+        The kind of index that a wildcard expression in an index name can expand to. Values are case-sensitive and can be combined; the server applies them in order, so `none` clears any value listed before it.
       oneOf:
         - type: string
           const: all
-          description: Match any index, including hidden ones.
+          description: Expands wildcards to open, closed, and hidden indexes. Equivalent to `open,closed,hidden`.
         - type: string
           const: closed
-          description: Match closed, non-hidden indexes.
+          description: Expands wildcards to closed, non-hidden indexes.
         - type: string
           const: hidden
-          description: Match hidden indexes. Must be combined with `open`, `closed`, or both.
+          description: |-
+            Also expands wildcards to hidden indexes. It has no effect on its own and must be combined with `open`, `closed`, or both.
+
+            A wildcard expression that starts with `.` matches hidden indexes whose names start with `.` even without this value.
         - type: string
           const: none
-          description: Wildcard expressions are not accepted.
+          description: Does not expand wildcards. Wildcard expressions are passed through unresolved instead of matching indexes.
         - type: string
           const: open
-          description: Match open, non-hidden indexes.
+          description: Expands wildcards to open, non-hidden indexes.
     _common___ExpandWildcards:
       description: Specifies the type of index that wildcard expressions can match. Supports comma-separated values.
       oneOf:
@@ -39996,6 +40029,8 @@ components:
         - time_in_millis
         - total
     _common___HealthStatus:
+      description: |-
+        The health of a shard, an index, or the cluster. An index reports the worst status of its shards, and the cluster reports the worst status of its indexes. Values are not case-sensitive.
       oneOf:
         - description: All shards are assigned.
           type: string
@@ -40237,20 +40272,30 @@ components:
         - lat
         - lon
     _common___Level:
-      description: Specifies the level of detail of the returned information.
+      description: |-
+        Specifies the level of detail of the returned statistics. `indices` adds a breakdown for each index, and `shards` also adds a breakdown for each shard of each index. For index statistics, `cluster` returns only the totals across all targeted indexes.
       type: string
       enum:
         - cluster
         - indices
         - shards
+      x-enum-descriptions:
+        cluster: For index statistics, returns only the `_all` totals across the targeted indexes. Node statistics reject this value and use `node` for the per-node totals instead.
+        indices: Adds an `indices` object with statistics for each index. This is the index statistics default.
+        shards: Adds statistics for each shard, grouped under each index. Produces the largest response.
     _common___ListResponseFormat:
       type: string
       enum: [text, json, yaml, cbor, smile]
       default: text
       description: |
         Selects the response format returned by list operations. Equivalent
-        to the HTTP `Accept` header but expressed as a query parameter. The
-        server's omit-the-param behavior is `text`.
+        to the HTTP `Accept` header but expressed as a query parameter.
+      x-enum-descriptions:
+        text: Returns a plain-text table with one row per line. Add `v=true` to include column headers.
+        json: Returns a JSON object holding the `next_token` for the following page and an array of row objects keyed by column name.
+        yaml: Returns the same paginated structure as `json`, encoded as YAML.
+        cbor: Returns the same paginated structure as `json`, encoded as CBOR.
+        smile: Returns the same paginated structure as `json`, encoded as Smile.
     _common___MergesStats:
       type: object
       description: The statistics about merge operations.
@@ -40574,13 +40619,16 @@ components:
         - minimum_wire_compatibility_version
         - number
     _common___OpType:
+      description: |-
+        The kind of write to perform for an index request. Defaults to `index`. The value is not case-sensitive.
       oneOf:
         - type: string
           const: create
-          description: Create a new document.
+          description: |-
+            Creates the document only if no document with the same ID exists. Otherwise the request fails with a version conflict and the existing document is left unchanged. Only `internal` versioning is supported.
         - type: string
           const: index
-          description: Create a new document or replace an existing one.
+          description: Creates the document, or replaces the existing document with the same ID. This is the default.
     _common___Password:
       type: string
       description: The password for authentication.
@@ -40675,9 +40723,22 @@ components:
       enum: [jdbc, csv, raw, viz, json, yaml, simple, standard, extended, cost]
       default: jdbc
       description: |
-        Response format selector for PPL plugin operations. The valid set is
-        the union of values accepted across `_plugins/_ppl/*` endpoints;
-        defaults and per-endpoint subsets mirror the SQL plugin.
+        Response format selector for PPL plugin operations. Query responses
+        use `jdbc` (default), `csv`, `raw` or `viz`; explain responses use
+        `json` (default) or `yaml`. `simple`, `standard`, `extended` and
+        `cost` are deprecated explain-mode spellings of the `mode`
+        parameter.
+      x-enum-descriptions:
+        jdbc: Query response as a JSON object with a `schema` array of column names and types and a `datarows` array of row values. The query endpoint uses it when `format` is omitted.
+        csv: Query response as comma-separated text with a header row. Values that could be read as spreadsheet formulas are escaped unless `sanitize=false`.
+        raw: Query response as plain text with values separated by `|`.
+        viz: Query response as a JSON object with each column's values in an array keyed by column name, for charting.
+        json: Explain response as JSON. The explain endpoint uses it when `format` is omitted.
+        yaml: Explain response as YAML.
+        simple: Deprecated explain-mode alias. Returns the JSON explain output with the logical plan only, without node attributes; use `mode=simple` instead.
+        standard: Deprecated explain-mode alias. Returns the JSON explain output with the logical and physical plans; use `mode=standard` instead.
+        extended: Deprecated explain-mode alias. Returns the JSON explain output with the logical and physical plans plus the generated code; use `mode=extended` instead.
+        cost: Deprecated explain-mode alias. Returns the JSON explain output with all plan attributes, including cost estimates; use `mode=cost` instead.
     _common___PitId:
       type: string
       description: |-
@@ -40756,19 +40817,27 @@ components:
         - current_as_target
         - throttle_time_in_millis
     _common___Refresh:
+      description: |-
+        Controls whether a write operation makes its changes visible to search before the response is returned. The values are `true`, `false` (the default), and `wait_for`; an empty value is treated as `true`.
       oneOf:
         - type: boolean
           description: Whether to refresh the affected shards immediately.
           x-protobuf-excluded: true
         - type: string
           const: 'false'
-          description: Do not refresh the affected shards.
+          description: Returns without refreshing or waiting for a refresh. This is the default.
         - type: string
           const: 'true'
-          description: Refresh the affected shards immediately.
+          description: |-
+            Refreshes the affected shards immediately after the operation, so the changes are visible to search when the response is returned.
+
+            Every request triggers its own refresh, which does not scale under heavy indexing or search load. Use it for low-traffic indexes or tests.
         - type: string
           const: wait_for
-          description: Wait for the changes to become visible before replying.
+          description: |-
+            Holds the response until a refresh makes the changes visible to search, without forcing a refresh. This suits high indexing throughput, at the cost of a slower response.
+
+            Each shard accepts up to `index.max_refresh_listeners` waiting requests (default 1000). When that limit is reached, the shard forces a refresh instead and the response reports `forced_refresh: true`.
     _common___RefreshStats:
       type: object
       description: The statistics about refresh operations.
@@ -41314,13 +41383,17 @@ components:
         - suggest_time_in_millis
         - suggest_total
     _common___SearchType:
+      description: |-
+        Selects how a search request computes relevance scores across shards. Defaults to `query_then_fetch`.
       oneOf:
         - type: string
           const: dfs_query_then_fetch
-          description: Documents are scored using global term and document frequencies across all shards. This is usually slower but more accurate.
+          description: |-
+            Adds an initial phase that collects term and document frequencies from all shards, then scores documents using these global frequencies. This is usually slower but more accurate.
         - type: string
           const: query_then_fetch
-          description: Documents are scored using local term and document frequencies for the shard. This is usually faster but less accurate.
+          description: |-
+            Scores documents using the term and document frequencies of each shard. This is usually faster but less accurate. This is the default.
     _common___SegmentReplicationStats:
       x-version-added: 2.10.0
       oneOf:
@@ -41629,6 +41702,9 @@ components:
       enum:
         - asc
         - desc
+      x-enum-descriptions:
+        asc: Ascending order, smallest value first.
+        desc: Descending order, largest value first.
     _common___SortResults:
       type: array
       items:
@@ -41638,11 +41714,24 @@ components:
       enum: [jdbc, csv, raw, viz, json, yaml, simple, standard, extended, cost]
       default: jdbc
       description: |
-        Response format selector for SQL plugin operations. The valid set
-        is the union of values accepted across `_plugins/_sql/*` endpoints:
-        query responses use `jdbc` (default), `csv`, `raw`, or `viz`; explain
-        responses use `json`, `yaml`, `simple`, `standard`, `extended`, or
-        `cost`. Not every endpoint accepts every value.
+        Response format selector for SQL plugin operations. The SQL endpoints
+        check `format` on every request except a cursor continuation,
+        explain included, and accept only `jdbc` (default), `csv` and `raw`;
+        any other value fails with an unknown response format error. The
+        server also accepts `table`, but returns an empty body for it, so
+        it has no constant here. The remaining values are listed for
+        parity with the PPL format.
+      x-enum-descriptions:
+        jdbc: Query response as a JSON object with a `schema` array of column names and types and a `datarows` array of row values. Used when `format` is omitted.
+        csv: Query response as comma-separated text with a header row. Values that could be read as spreadsheet formulas are escaped unless `sanitize=false`.
+        raw: Query response as plain text with values separated by `|`.
+        viz: Column-oriented JSON output for charting. The PPL endpoint supports it; the SQL endpoint's format check rejects it.
+        json: JSON explain output. The PPL explain endpoint supports it; the SQL endpoint's format check rejects it.
+        yaml: YAML explain output. The PPL explain endpoint supports it; the SQL endpoint's format check rejects it.
+        simple: Explain mode with the logical plan only, without node attributes. The SQL endpoint's format check rejects it as a `format` value.
+        standard: Explain mode with the logical and physical plans. The SQL endpoint's format check rejects it as a `format` value.
+        extended: Explain mode with the logical and physical plans plus the generated code. The SQL endpoint's format check rejects it as a `format` value.
+        cost: Explain mode with all plan attributes, including cost estimates. The SQL endpoint's format check rejects it as a `format` value.
     _common___StoredScript:
       type: object
       description: The definition of a stored script.
@@ -41757,11 +41846,19 @@ components:
           items:
             type: string
     _common___SuggestMode:
+      description: |-
+        Controls which suggestions the term suggester returns for each term in the suggest text. Defaults to `missing`. The value is not case-sensitive.
+
+        `missing` suggests only for terms that are not in the index. `popular` suggests only terms that occur in more documents than the original term. `always` suggests any matching terms based on the tokens in the suggest text.
       type: string
       enum:
         - always
         - missing
         - popular
+      x-enum-descriptions:
+        always: Suggests matching terms for every term in the suggest text, including terms already in the index. Pick it to find alternatives for correctly spelled terms.
+        missing: Suggests only for terms that are not in the index; terms already present get no suggestions.
+        popular: Suggests only terms that occur in more documents than the original term, even when the original term is in the index.
     _common___TaskFailure:
       type: object
       description: The details of a task failure.
@@ -41820,29 +41917,39 @@ components:
       description: Time of day, expressed as HH:MM:SS.
       type: string
     _common___TimeUnit:
-      description: Specifies the time units, for example, `5d` or `7h`. For more information, see [Supported units](https://opensearch.org/docs/latest/api-reference/units/).
+      description: |-
+        The unit used to display time values in cat and list responses. Each value is shown as a whole number of that unit, truncated. The value is case-sensitive.
+
+        When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5m`.
       oneOf:
         - title: nanoseconds
           type: string
           const: nanos
+          description: Shows time values as a whole number of nanoseconds.
         - title: microseconds
           type: string
           const: micros
+          description: Shows time values as a whole number of microseconds.
         - title: milliseconds
           type: string
           const: ms
+          description: Shows time values as a whole number of milliseconds.
         - title: seconds
           type: string
           const: s
+          description: Shows time values as a whole number of seconds, truncating any fraction.
         - title: minutes
           type: string
           const: m
+          description: Shows time values as a whole number of minutes, truncating any fraction.
         - title: hours
           type: string
           const: h
+          description: Shows time values as a whole number of hours, truncating any fraction.
         - title: days
           type: string
           const: d
+          description: Shows time values as a whole number of days, truncating any fraction.
     _common___TimeZone:
       type: string
       description: The time zone identifier.
@@ -41950,16 +42057,25 @@ components:
     _common___VersionString:
       type: string
     _common___VersionType:
+      description: |-
+        Selects how the `version` supplied with a request is checked against the document's current version, and how the stored version changes on a successful write. Defaults to `internal`.
       oneOf:
         - type: string
           const: external
-          description: The version number must be greater than the current version.
+          description: |-
+            Uses a version number maintained by an external system. A write succeeds only if the document does not exist or the supplied version is greater than the current version. The document then stores the supplied version.
+
+            Use this when another data store owns the version numbers.
         - type: string
           const: external_gte
-          description: The version number must be greater than or equal to the current version.
+          description: |-
+            Like `external`, but a write also succeeds when the supplied version equals the current version. The document then stores the supplied version.
         - type: string
           const: internal
-          description: The version number is managed internally by OpenSearch.
+          description: |-
+            OpenSearch manages the version and increments it by one on each successful write. This is the default.
+
+            Write requests can't supply a version with this type; use `if_seq_no` and `if_primary_term` for optimistic concurrency control instead. A read that supplies a version must match the current version exactly.
     _common___Void:
       description: |-
         The absence of any type. This is commonly used in APIs that don't return a body.
@@ -41973,11 +42089,16 @@ components:
       oneOf:
         - type: string
           const: all
-          description: Wait for all shards to be active.
+          description: |-
+            Waits until every copy of each shard, the primary and all of its replicas, is active.
         - type: 'null'
-          description: null represents the default value (which defaults to one shard copy).
+          description: |-
+            Uses the default. For write operations the index setting `index.write.wait_for_active_shards` applies, which defaults to one shard copy (the primary).
     _common___WaitForActiveShards:
-      description: Waits until the specified number of shards is active before returning a response. Use `all` for all shards.
+      description: |-
+        The number of active copies of each shard, counting the primary, that must be available before the operation proceeds. Use `all` for every copy, or a number from `0` (do not wait) up to the number of replicas plus one.
+
+        For write operations the check is made before writing to the primary. If not enough copies become active before the request times out, the operation fails without writing.
       oneOf:
         - title: count
           $ref: '#/components/schemas/_common___StringifiedInteger'
@@ -43751,9 +43872,11 @@ components:
         - title: additive
           type: string
           const: add
+          description: Models seasonality as an amount added to the level and trend. Pick it when the seasonal swing stays roughly constant in size.
         - title: multiplicative
           type: string
           const: mult
+          description: Models seasonality as a factor multiplied with the level and trend. Pick it when the seasonal swing grows with the data. By default the server adds a tiny padding to every value to avoid division by zero.
     _common.aggregations___IpRangeAggregate:
       allOf:
         - $ref: '#/components/schemas/_common.aggregations___MultiBucketAggregateBaseIpRangeBucket'
@@ -50054,12 +50177,19 @@ components:
         - origin
         - scale
     _common.query_dsl___Operator:
+      description: |-
+        The Boolean logic used to combine the terms of a query. `or` matches documents that contain any of the terms, and `and` matches only documents that contain all of them. The value is not case-sensitive.
       type: string
       enum:
         - and
         - AND
         - or
         - OR
+      x-enum-descriptions:
+        and: Every term must match (each term becomes a `must` clause).
+        AND: Uppercase spelling of `and`, with the same behavior.
+        or: At least one term must match (each term becomes a `should` clause). This is the `query_string` default.
+        OR: Uppercase spelling of `or`, with the same behavior.
     _common.query_dsl___ParentIdQuery:
       allOf:
         - $ref: '#/components/schemas/_common.query_dsl___QueryBase'
@@ -52222,11 +52352,14 @@ components:
       oneOf:
         - type: string
           const: plain
+          description: Re-analyzes the field text with the standard Lucene highlighter. Works on any field but can be slow on large text.
         - title: fast_vector
           type: string
           const: fvh
+          description: 'Uses stored term vectors to find highlights. Requires the field to store term vectors with offsets, for example `term_vector: with_positions_offsets`.'
         - type: string
           const: unified
+          description: Uses the Lucene unified highlighter, which reads offsets from postings or term vectors when indexed and re-analyzes the text otherwise. Used when no type is set.
     _core.search___Collector:
       type: object
       properties:
@@ -56284,13 +56417,21 @@ components:
         - status
         - unassigned_shards
     cluster.health___Level:
-      description: Controls the amount of detail included in the cluster health response.
+      description: |-
+        Controls the amount of detail included in the cluster health response. Defaults to `cluster`, which reports only the cluster-wide health. `indices` adds the health of each index, and `shards` also adds the health of each shard within each index.
+
+        `awareness_attributes` reports health for each value of an awareness attribute. It is required when `awareness_attribute` is set, and cannot be combined with an index target. An unrecognized value is treated as `cluster`.
       type: string
       enum:
         - awareness_attributes
         - cluster
         - indices
         - shards
+      x-enum-descriptions:
+        awareness_attributes: Reports health broken down by each value of the cluster's awareness attributes, without per-index detail. Must be used when `awareness_attribute` is set and cannot target specific indexes.
+        cluster: Reports only the cluster-wide health and shard counts, the smallest response.
+        indices: Adds an `indices` object with the health and shard counts of each index.
+        shards: Adds per-index health plus the health of each shard within each index, the largest response.
     cluster.health___ShardHealthStats:
       type: object
       properties:
@@ -61943,6 +62084,10 @@ components:
         - cpu
         - latency
         - memory
+      x-enum-descriptions:
+        cpu: Ranks queries by the CPU time their search tasks used, summed across tasks and measured in nanoseconds.
+        latency: Ranks queries by end-to-end search latency in milliseconds, from request start to completion.
+        memory: Ranks queries by the heap memory their search tasks used, summed across tasks and measured in bytes.
     insights._common___Source:
       type: object
       properties:
@@ -68142,6 +68287,16 @@ components:
         - smtp_account
         - sns
         - webhook
+      x-enum-descriptions:
+        chime: An Amazon Chime channel that receives messages through its webhook URL.
+        email: An email channel that sends through a configured SMTP or SES sender account to listed recipients and email groups.
+        email_group: A reusable list of email recipients that email channels can reference.
+        microsoft_teams: A Microsoft Teams channel that receives messages through its webhook URL.
+        ses_account: An Amazon SES sender account, defined by an AWS region, a from address, and an optional IAM role ARN.
+        slack: A Slack channel that receives messages through its webhook URL.
+        smtp_account: An SMTP sender account, defined by host, port, connection method, and a from address.
+        sns: An Amazon SNS topic, defined by a topic ARN and an optional IAM role ARN.
+        webhook: A custom webhook that receives messages at a URL, with optional headers and HTTP method.
     notifications._common___NotificationsConfig:
       type: object
       properties:
@@ -69879,6 +70034,13 @@ components:
         - '4'
         - '5'
         - ALL
+      x-enum-descriptions:
+        '1': Returns only alerts whose trigger severity is 1, the highest.
+        '2': Returns only alerts whose trigger severity is 2.
+        '3': Returns only alerts whose trigger severity is 3.
+        '4': Returns only alerts whose trigger severity is 4.
+        '5': Returns only alerts whose trigger severity is 5, the lowest.
+        ALL: Applies no severity filter. This is the default when the parameter is omitted.
     security_analytics.alerts___AlertState:
       type: string
       enum:
@@ -69887,6 +70049,12 @@ components:
         - COMPLETED
         - DELETED
         - ERROR
+      x-enum-descriptions:
+        ACKNOWLEDGED: A user acknowledged the alert while it was active; only active alerts can be acknowledged.
+        ACTIVE: The trigger condition is met and the alert has not been acknowledged.
+        COMPLETED: The trigger condition is no longer met, so the alert ended and was removed from the active alerts index.
+        DELETED: The monitor or detector behind the alert was deleted or changed, and the alert was moved to history in this state.
+        ERROR: The monitor hit an error while running or evaluating the trigger; the alert carries the error message.
     security_analytics.alerts___GetAlertsResponse:
       type: object
       properties:
@@ -69903,6 +70071,9 @@ components:
       enum:
         - rule
         - threat
+      x-enum-descriptions:
+        rule: Returns findings produced by detection rules, meaning every finding whose query ID does not start with `threat_intel_`.
+        threat: Returns findings produced by threat intelligence matching, meaning findings whose query ID starts with `threat_intel_`.
     security_analytics.findings___Document:
       type: object
       properties:
@@ -69995,6 +70166,11 @@ components:
         - high
         - low
         - medium
+      x-enum-descriptions:
+        critical: Returns findings from rules with Sigma level `critical`, the most severe.
+        high: Returns findings from rules with Sigma level `high`.
+        low: Returns findings from rules with Sigma level `low`.
+        medium: Returns findings from rules with Sigma level `medium`.
     security_analytics.findings___SearchFindingCorrelationsResponse:
       type: object
       properties:
@@ -71742,6 +71918,10 @@ components:
         - nodes
         - none
         - parents
+      x-enum-descriptions:
+        nodes: Groups tasks under a `nodes` object keyed by the ID of the node running them, with node details. This is the default.
+        none: Returns tasks as a flat `tasks` array with no grouping.
+        parents: Returns a `tasks` object keyed by task ID, with child tasks nested under their parent task.
     tasks._common___PersistentTaskStatus:
       type: object
       properties:

@@ -96,7 +96,9 @@ type GetSourceParams struct {
 
 	// If `true`, OpenSearch refreshes the affected shards to make this
 	// operation visible to search. If `false`, do nothing with refreshes.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// Target the specified primary shard.
 	Routing []string
@@ -108,6 +110,8 @@ type GetSourceParams struct {
 
 	// The specific version type. One of `internal`, `external`,
 	// `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 
@@ -143,7 +147,7 @@ func (r GetSourceParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {

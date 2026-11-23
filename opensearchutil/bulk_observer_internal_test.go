@@ -11,7 +11,6 @@ package opensearchutil
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -136,9 +135,9 @@ func TestBulkIndexerObserver(t *testing.T) {
 			},
 		},
 		{
-			name:     "an item that cannot be serialized is never sent",
+			name:     "an item whose body cannot be read is never sent",
 			outcomes: []bulkOutcome{outcomeOK},
-			items:    []BulkIndexerItem{{DocumentID: "a", WaitForActiveShards: math.NaN()}},
+			items:    []BulkIndexerItem{{DocumentID: "a", Body: &failingBody{}}},
 			want: []string{
 				"item-failure scope=item a=0 kind=permanent id=a status=0 retry=false delay=0s err=true",
 				"done id=a attempts=0 failed=true status=0 err=true meta=<nil>",

@@ -120,7 +120,9 @@ type MGetParams struct {
 
 	// If `true`, the request refreshes relevant shards before retrieving
 	// documents.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// A custom value used to route operations to a specific shard.
 	Routing []string
@@ -162,7 +164,7 @@ func (r MGetParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {
@@ -446,7 +448,11 @@ type MGetOperation struct {
 	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
-	Version     *int64       `json:"version,omitempty"`
+	Version *int64 `json:"version,omitempty"`
+
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"version_type,omitempty"`
 }
 

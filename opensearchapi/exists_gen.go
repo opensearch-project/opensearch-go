@@ -92,7 +92,9 @@ type ExistsParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// Target the specified primary shard.
 	Routing []string
@@ -108,6 +110,8 @@ type ExistsParams struct {
 	Version *int
 
 	// The specific version type: `external`, `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 
@@ -143,7 +147,7 @@ func (r ExistsParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {
