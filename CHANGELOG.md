@@ -2,7 +2,7 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [4.8.2]
 
 ### Fixed
 
@@ -738,6 +738,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
+[4.8.2]: https://github.com/opensearch-project/opensearch-go/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/opensearch-project/opensearch-go/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.3...v4.8.0
 [4.7.3]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.2...v4.7.3
