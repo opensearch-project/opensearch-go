@@ -725,6 +725,115 @@ func TestCalcMultiKeyCost_EmptyRoutingValue(t *testing.T) {
 	require.Nil(t, extraCost.Slice())
 }
 
+// TestCalcMultiKeyCostTotalKeys checks the routing key count calcMultiKeyCost
+// returns beside its candidates, which connScoreSelect weights ties by: the
+// number of keys in the routing value when there are candidates, and 0 with
+// no candidates on every early return. A node's tie weight, totalKeys minus
+// its extraCost, is the number of keys whose shard it hosts, counting a key
+// once per key even when several land on one shard.
+func TestCalcMultiKeyCostTotalKeys(t *testing.T) {
+	t.Parallel()
+
+	// keys returns two routing keys that land on shard 0 of shardMap3 and one
+	// that lands on shard 1, found by hashing rather than hard-coded.
+	keys := func(t *testing.T) (string, string, string) {
+		t.Helper()
+		var on0 []string
+		var on1 string
+		for i := 0; len(on0) < 2 || on1 == ""; i++ {
+			require.Less(t, i, 10_000, "no routing keys found for shards 0 and 1")
+			k := fmt.Sprintf("k%d", i)
+			switch shardForRouting(k, 3, 3) {
+			case 0:
+				if len(on0) < 2 {
+					on0 = append(on0, k)
+				}
+			case 1:
+				if on1 == "" {
+					on1 = k
+				}
+			}
+		}
+		return on0[0], on0[1], on1
+	}
+
+	tests := []struct {
+		name string
+		// shardMap is the index's shard map; nil leaves it unknown.
+		shardMap func() *indexShardMap
+		// staleNodes are marked as needing a /_cat/shards refresh.
+		staleNodes []string
+		// routing builds the routing value from two keys on shard 0 and one on
+		// shard 1.
+		routing func(a0, b0, c1 string) string
+		// wantKeys is the key count returned; 0 means no candidates.
+		wantKeys int
+		// wantWeight is each candidate's tie weight, totalKeys - extraCost.
+		wantWeight map[string]int
+	}{
+		{
+			name:       "two keys on one shard and one on another",
+			shardMap:   shardMap3,
+			routing:    func(a0, b0, c1 string) string { return a0 + "," + b0 + "," + c1 },
+			wantKeys:   3,
+			wantWeight: map[string]int{"nodeA": 2, "nodeB": 3, "nodeC": 1},
+		},
+		{
+			name: "no key lands on a known shard",
+			shardMap: func() *indexShardMap {
+				sm := shardMap3()
+				delete(sm.Shards, 0)
+				delete(sm.Shards, 1)
+				return sm
+			},
+			routing: func(a0, b0, c1 string) string { return a0 + "," + c1 },
+		},
+		{
+			name:       "every node hosting a key needs a shard refresh",
+			shardMap:   shardMap3,
+			staleNodes: []string{"nodeA", "nodeB", "nodeC"},
+			routing:    func(a0, b0, c1 string) string { return a0 + "," + c1 },
+		},
+		{
+			name:    "unknown shard map",
+			routing: func(a0, b0, c1 string) string { return a0 + "," + c1 },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			slot := &indexSlot{clock: realClock{}}
+			if tt.shardMap != nil {
+				slot.shardMap.Store(tt.shardMap())
+			}
+			conns := []*Connection{newTestConn(t, "nodeA"), newTestConn(t, "nodeB"), newTestConn(t, "nodeC")}
+			for _, c := range conns {
+				if slices.Contains(tt.staleNodes, c.Name) {
+					require.NoError(t, c.setNeedsCatUpdate())
+				}
+			}
+
+			candidates, extraCost, totalKeys := calcMultiKeyCost(routingFeatures(0), slot, tt.routing(keys(t)), conns)
+			t.Cleanup(candidates.Release)
+			t.Cleanup(extraCost.Release)
+
+			require.Equal(t, tt.wantKeys, totalKeys)
+			if tt.wantKeys == 0 {
+				require.Empty(t, candidates.Slice())
+				require.Empty(t, extraCost.Slice())
+				return
+			}
+			got := make(map[string]int, len(candidates.Slice()))
+			for i, c := range candidates.Slice() {
+				got[c.Name] = tieWeight(extraCost.Slice(), totalKeys, i)
+			}
+			require.Equal(t, tt.wantWeight, got)
+		})
+	}
+}
+
 func TestCalcMultiKeyCost_E2E_IndexRouter(t *testing.T) {
 	t.Parallel()
 	f := newShardRoutingE2EFixture(t)
