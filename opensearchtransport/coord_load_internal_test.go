@@ -191,7 +191,7 @@ func TestSelectNoIndexAvoidsHotCoordinator(t *testing.T) {
 	require.Zero(t, counts["hot"], "hot coordinator not avoided: %v", counts)
 	for i := range peers {
 		id := fmt.Sprintf("cold-%d", i)
-		require.Greater(t, counts[id], draws/(peers+1), "cold node %s under-used: %v", id, counts)
+		require.Greater(t, counts[id], draws/(peers+1), "cold node %q under-used: %v", id, counts)
 	}
 }
 

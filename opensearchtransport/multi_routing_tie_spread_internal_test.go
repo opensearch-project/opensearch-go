@@ -105,7 +105,7 @@ func TestMultiRoutingSpreadsAcrossTiedNodes(t *testing.T) {
 			share := requests / len(tt.want)
 			total := 0
 			for _, name := range tt.want {
-				require.Greater(t, counts[name], share/2, "node %s starved: %v", name, counts)
+				require.Greater(t, counts[name], share/2, "node %q starved: %v", name, counts)
 				total += counts[name]
 			}
 			require.Equal(t, requests, total, "searches reached a node that hosts fewer target shards: %v", counts)
@@ -119,16 +119,16 @@ func TestMultiRoutingSpreadsAcrossTiedNodes(t *testing.T) {
 func routingListReachingAllShards(t *testing.T, numShards int) string {
 	t.Helper()
 
-	seen := make(map[int]bool, numShards)
+	seen := make(map[int]struct{}, numShards)
 	var values []string
 	for i := 0; len(seen) < numShards; i++ {
 		require.Less(t, i, 10_000, "no routing values found for every shard")
 		v := fmt.Sprintf("k%d", i)
 		s := shardForRouting(v, numShards, numShards)
-		if seen[s] {
+		if _, ok := seen[s]; ok {
 			continue
 		}
-		seen[s] = true
+		seen[s] = struct{}{}
 		values = append(values, v)
 	}
 

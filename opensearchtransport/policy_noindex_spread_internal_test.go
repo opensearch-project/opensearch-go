@@ -286,7 +286,7 @@ func TestSelectNoIndexCrossover(t *testing.T) {
 			require.GreaterOrEqual(t, share, tt.wantFar[0], "far share %.3f: %v", share, used)
 			require.LessOrEqual(t, share, tt.wantFar[1], "far share %.3f: %v", share, used)
 			for _, id := range tt.mustUse {
-				require.Positive(t, used[id], "never chose %s: %v", id, used)
+				require.Positive(t, used[id], "never chose %q: %v", id, used)
 			}
 			for _, id := range tt.never {
 				require.Zero(t, used[id], "chose %s: %v", id, used)
