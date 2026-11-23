@@ -271,24 +271,24 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 
 // discoveryUpdateRemove handles removing connections from this policy's pool.
 func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
-	// Build map of removed connection URLs for O(1) lookup
-	removedConns := make(map[string]struct{}, len(removed))
+	// Match connection objects so removing an old node preserves its replacement at the same URL.
+	removedConns := make(map[*Connection]struct{}, len(removed))
 	for _, node := range removed {
-		removedConns[node.URL.String()] = struct{}{}
+		removedConns[node] = struct{}{}
 	}
 
 	// First check if we have any connections to remove (using RLock)
 	p.pool.RLock()
 	hasConnectionsToRemove := false
 	for _, conn := range p.pool.mu.ready {
-		if _, found := removedConns[conn.URL.String()]; found {
+		if _, found := removedConns[conn]; found {
 			hasConnectionsToRemove = true
 			break
 		}
 	}
 	if !hasConnectionsToRemove {
 		for _, conn := range p.pool.mu.dead {
-			if _, found := removedConns[conn.URL.String()]; found {
+			if _, found := removedConns[conn]; found {
 				hasConnectionsToRemove = true
 				break
 			}
@@ -312,7 +312,7 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 		filtered := p.pool.mu.ready[:0]
 		activeCount := 0
 		for i, conn := range p.pool.mu.ready {
-			if _, found := removedConns[conn.URL.String()]; !found {
+			if _, found := removedConns[conn]; !found {
 				filtered = append(filtered, conn)
 				if i < p.pool.mu.activeCount {
 					activeCount++
@@ -329,7 +329,7 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 	{
 		filtered := p.pool.mu.dead[:0]
 		for _, conn := range p.pool.mu.dead {
-			if _, found := removedConns[conn.URL.String()]; !found {
+			if _, found := removedConns[conn]; !found {
 				filtered = append(filtered, conn)
 			} else {
 				delete(p.pool.mu.members, conn)
