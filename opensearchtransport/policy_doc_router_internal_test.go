@@ -473,6 +473,67 @@ func TestDocRouterEval_ShardExactPath(t *testing.T) {
 		"connection should be from a shard-hosting node")
 }
 
+// TestDocRouterEval_RoutingListSpreadsTies sends document reads whose
+// ?routing= list holds one key on each of the index's three shards. Every node
+// hosts the shards of two of the keys, so all three tie, and each must take a
+// share of the reads rather than the node listed first taking all of them.
+func TestDocRouterEval_RoutingListSpreadsTies(t *testing.T) {
+	t.Parallel()
+
+	const requests = 3000
+
+	cache := newIndexSlotCache(indexSlotCacheConfig{minFanOut: 1, maxFanOut: 32})
+	p := newDocRouter(cache, defaultDecayFactor)
+
+	conns := make([]*Connection, 3)
+	for i := range conns {
+		name := fmt.Sprintf("node%d", i)
+		u, err := url.Parse("https://" + name + ":9200")
+		require.NoError(t, err)
+		conns[i] = &Connection{URL: u, URLString: u.String(), ID: name, Name: name, rttRing: newRTTRing(4)}
+		conns[i].rttRing.add(200 * time.Microsecond)
+		conns[i].weight.Store(1)
+		conns[i].setLifecycleBit(lcActive)
+	}
+	require.NoError(t, p.DiscoveryUpdate(conns, nil, nil))
+
+	cache.getOrCreate("my-index").shardMap.Store(&indexShardMap{
+		NumberOfPrimaryShards: 3,
+		RoutingNumShards:      3,
+		Shards: map[int]*shardNodes{
+			0: {Primary: "node0", Replicas: []string{"node1"}},
+			1: {Primary: "node1", Replicas: []string{"node2"}},
+			2: {Primary: "node2", Replicas: []string{"node0"}},
+		},
+	})
+
+	// One routing key per shard, found by hashing.
+	keys := make([]string, 3)
+	for i, found := 0, 0; found < 3; i++ {
+		require.Less(t, i, 10_000, "no routing keys found for every shard")
+		k := fmt.Sprintf("k%d", i)
+		if s := shardForRouting(k, 3, 3); keys[s] == "" {
+			keys[s] = k
+			found++
+		}
+	}
+	path := "/my-index/_doc/doc1?routing=" + keys[0] + "," + keys[1] + "," + keys[2]
+
+	counts := make(map[string]int, len(conns))
+	for range requests {
+		req, err := http.NewRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		hop, err := p.Eval(t.Context(), req)
+		require.NoError(t, err)
+		require.NotNil(t, hop.Conn)
+		counts[hop.Conn.Name]++
+	}
+
+	for _, c := range conns {
+		require.Greater(t, counts[c.Name], requests/len(conns)/2, "node %q starved: %v", c.Name, counts)
+	}
+}
+
 func TestDocRouterEval_LargeCandidateBuffer(t *testing.T) {
 	t.Parallel()
 

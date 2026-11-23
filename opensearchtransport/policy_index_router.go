@@ -9,6 +9,7 @@ package opensearchtransport
 import (
 	"context"
 	"math"
+	"math/rand/v2"
 	"net/http"
 	"strings"
 	"sync"
@@ -126,8 +127,8 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 
 	indexName := extractIndexFromPath(req.URL.Path)
 	if indexName == "" {
-		// Cluster lookup: no index in path, no shard data.
-		// Score all active connections by RTT + congestion only.
+		// Cluster lookup: no index in path, no shard data. Spread across
+		// the nearest RTT tier, crossing out of it by score; see selectNoIndex.
 		p.mu.RLock()
 		conns := p.mu.activeConns
 		p.mu.RUnlock()
@@ -136,10 +137,8 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 			return NextHop{}, nil
 		}
 
-		scores := acquireFloats(len(conns))
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
-		scores.Release()
+		best := selectNoIndex(conns, p.shardCosts, p.poolName,
+			loadPoolInfoReady(p.config.poolInfoReady), p.scoreFunc, p.config.clusterCoord)
 		if best == nil {
 			return NextHop{}, nil
 		}
@@ -164,11 +163,12 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
+	var totalKeys int
 
 	if !strings.Contains(routingValue, routingValueSeparator) {
 		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, conns)
 	} else {
-		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		candidatesBuf, extraCost, totalKeys = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
@@ -176,7 +176,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
-			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice(), totalKeys)
 		scores.Release()
 		extraCost.Release()
 
@@ -235,7 +235,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	// Select best candidate with warmup-aware skip/accept.
 	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil, 0)
 	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -447,6 +447,13 @@ func warmupPenalty(cs connState) float64 {
 // all candidates. This allows operation-specific scoring strategies (e.g.,
 // dynamic read cost that adjusts primary shard cost based on write-pool
 // utilization). When nil, the static formula is used via [calcConnDefaultScore].
+//
+// Candidates tied at the lowest score are chosen between at random. With
+// extraCost and totalKeys from [calcMultiKeyCost], each tied candidate's
+// chance is proportional to the routing keys whose shard it hosts, totalKeys -
+// extraCost[i]: a node that serves more of them locally is proportionally the
+// better coordinator. Otherwise each tied candidate has the same chance.
+// totalKeys is 0 when there is no routing key set.
 func connScoreSelect(
 	candidates []*Connection,
 	slot *indexSlot,
@@ -457,6 +464,7 @@ func connScoreSelect(
 	scores []float64,
 	scoreFunc connScoreFunc,
 	extraCost []float64,
+	totalKeys int,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -498,17 +506,27 @@ func connScoreSelect(
 	bestWarmingSkip := int(^uint(0) >> 1) // max int sentinel
 
 	for range n {
-		// Find untried candidate with lowest score.
+		// Find the untried candidate with the lowest score. Candidates tied at
+		// that score are chosen between at random: they arrive in RTT-then-URL
+		// order, and every client reads the same cluster state, so keeping the
+		// first would send every client to the same node. One random number is
+		// drawn, and only on a tie; see tieWeight for each candidate's chance.
 		bestIdx := -1
 		bestScore := math.MaxFloat64
+		ties := 0
 		for i := range n {
-			if scores[i] < bestScore {
-				bestScore = scores[i]
-				bestIdx = i
+			switch s := scores[i]; {
+			case s < bestScore:
+				bestScore, bestIdx, ties = s, i, 1
+			case s == bestScore && bestIdx >= 0:
+				ties++
 			}
 		}
 		if bestIdx < 0 {
 			break
+		}
+		if ties > 1 {
+			bestIdx = pickTied(scores[:n], bestScore, ties, extraCost, totalKeys)
 		}
 		scores[bestIdx] = math.Inf(1) // mark as tried
 		c := candidates[bestIdx]
@@ -537,8 +555,55 @@ func connScoreSelect(
 	return candidates[0] // Defensive; shouldn't reach here.
 }
 
+// tieWeight is a tied candidate's share of the draw in [pickTied] when the
+// candidates come from a routing key set: the number of keys whose shard it
+// hosts, totalKeys - extraCost[i]. calcMultiKeyCost lists only nodes hosting
+// the shard of at least one key, so the weight is at least 1.
+func tieWeight(extraCost []float64, totalKeys, i int) int {
+	return totalKeys - int(extraCost[i])
+}
+
+// pickTied returns the index of one of the ties candidates whose score is best,
+// each chosen with probability proportional to its [tieWeight] when the
+// candidates come from a routing key set, and with the same chance otherwise.
+// It draws one random number.
+func pickTied(scores []float64, best float64, ties int, extraCost []float64, totalKeys int) int {
+	weighted := extraCost != nil && totalKeys > 0
+
+	total := ties
+	if weighted {
+		total = 0
+		for i, s := range scores {
+			if s == best {
+				total += tieWeight(extraCost, totalKeys, i)
+			}
+		}
+	}
+
+	//nolint:gosec // load spreading; cryptographic randomness not needed
+	k := rand.IntN(total)
+	pick := -1
+	for i, s := range scores {
+		if s != best {
+			continue
+		}
+		pick = i
+		if weighted {
+			k -= tieWeight(extraCost, totalKeys, i)
+		} else {
+			k--
+		}
+		if k < 0 {
+			break // k < total, so the last tied candidate always gets here
+		}
+	}
+	return pick
+}
+
 // sortConnectionsByRTT sorts connections by [rttBucket] ascending.
-// Ties are broken by URL string for deterministic ordering.
+// Ties are broken by URL string for deterministic ordering, which only
+// arranges the list: routing must not take the first of a tier as its
+// choice, or every client sends to the same node (see [selectNoIndex]).
 func sortConnectionsByRTT(conns []*Connection) {
 	// Use a simple insertion sort -- connection lists are typically small (3-50).
 	for i := 1; i < len(conns); i++ {

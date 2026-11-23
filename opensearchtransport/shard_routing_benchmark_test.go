@@ -57,7 +57,7 @@ func BenchmarkCalcMultiKeyCost(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for range b.N {
-				candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
+				candidates, extraCost, _ := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 				candidates.Release()
 				extraCost.Release()
 			}
@@ -124,7 +124,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 		for range b.N {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, nil)
+				scores.Slice(), nil, nil, 0)
 			scores.Release()
 		}
 	})
@@ -143,7 +143,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 		for range b.N {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
-				scores.Slice(), nil, extraCost)
+				scores.Slice(), nil, extraCost, 4)
 			scores.Release()
 		}
 	})
