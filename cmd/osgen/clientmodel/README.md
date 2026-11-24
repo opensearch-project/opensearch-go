@@ -1,16 +1,12 @@
 # clientmodel
 
-Reads the resolved client model (`opensearch-client-model.json`, format 0.2.0) that opensearch-api-specification builds from a bundled spec (`npm run model`). The model states every type's merged fields, requiredness, bases, union kind, constraints and version metadata, so a generator doesn't have to interpret `allOf`/`oneOf`/`anyOf`.
+Reads the resolved client model (format 0.2.0) that opensearch-api-specification writes into the bundled spec (`npm run merge`) as `x-model` extensions: `components.x-model` is the format and version, the `x-model` of each component schema is that type, and the `x-model` of each response and request body component is that body. The JSON Schema is unchanged. The model states every type's merged fields, requiredness, bases, union kind, constraints and version metadata, so a generator doesn't have to interpret `allOf`/`oneOf`/`anyOf`.
 
-The model at the repository root is built from the vendored `opensearch-openapi.yaml`, so both describe the same types:
-
-```
-make gen-client-model SPEC_REPO=<checkout of opensearch-api-specification with the model tooling>
-```
+The vendored `opensearch-openapi.yaml` carries its `x-model`, so the model always describes the same types as the schemas next to it. The model is read from the YAML itself rather than through kin-openapi, so the order of fields and variants is the spec's. Default generation ignores `x-model`.
 
 ## Reading types from the model
 
-`osgen api -model opensearch-client-model.json` (or `make gen-api GEN_FROM_MODEL=1`) takes every type from the model. `Lower` replaces the component schemas and the JSON bodies of the response and request body components with schemas built from the model, in one canonical form:
+`osgen api -model` (or `make gen-api GEN_FROM_MODEL=1`) takes every type from the model in the `-spec` file. `Lower` replaces the component schemas and the JSON bodies of the response and request body components with schemas built from the model, in one canonical form:
 
 - an object is its own fields, plus one `allOf` `$ref` per base (osgen embeds it), plus one union member for a container or other union constraint;
 - a union is a plain `oneOf`/`anyOf` of its members, with titles, version metadata and discriminator;

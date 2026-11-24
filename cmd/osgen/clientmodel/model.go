@@ -4,11 +4,11 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-// Package clientmodel reads the resolved client model that
-// opensearch-api-specification builds from the bundled spec
-// (`npm run model`, format 0.2.0): every schema as a flat object, union or
-// alias entry with merged fields, requiredness, union kind and constraints, so
-// a generator reads types instead of interpreting allOf/oneOf/anyOf.
+// Package clientmodel reads the resolved client model (format 0.2.0) that
+// opensearch-api-specification writes into the bundled spec (`npm run merge`)
+// as `x-model` extensions: every schema as a flat object, union or alias entry
+// with merged fields, requiredness, union kind and constraints, so a generator
+// reads types instead of interpreting allOf/oneOf/anyOf.
 //
 // [Lower] turns the model back into composition-free OpenAPI schemas, which is
 // how osgen's walker takes its type input from it.
@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // Format and Version identify the model format this package reads.
@@ -27,14 +29,19 @@ const (
 	Version = "0.2.0"
 )
 
-// Model is a parsed client model file.
+// ModelKey is the extension that carries the model in the spec: on
+// `components` (format and version), on every component schema (its
+// [TypeEntry]) and on every response and request body component (its
+// [BodyEntry]).
+const ModelKey = "x-model"
+
+// Model is a parsed client model.
 type Model struct {
 	Format        string                `json:"format"`
 	Version       string                `json:"version"`
 	Types         map[string]*TypeEntry `json:"types"`
 	Responses     map[string]*BodyEntry `json:"responses"`
 	RequestBodies map[string]*BodyEntry `json:"request_bodies"`
-	Diagnostics   []Diagnostic          `json:"diagnostics"`
 }
 
 // Type kinds of a [TypeEntry].
@@ -148,22 +155,178 @@ type BodyEntry struct {
 	Description string   `json:"description,omitempty"`
 }
 
-// Diagnostic is something the model builder could not resolve.
-type Diagnostic struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
-}
-
-// Load reads and checks a client model file.
-func Load(path string) (*Model, error) {
+// LoadSpec reads and checks the client model of the OpenAPI file at path, from
+// its x-model extensions (see [FromSpec]).
+func LoadSpec(path string) (*Model, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	return Parse(data)
+	return FromSpec(data)
 }
 
-// Parse decodes a client model and checks its format and version.
+// FromSpec reads and checks the client model of an OpenAPI document (YAML or
+// JSON) from its x-model extensions: `components.x-model` is the format and
+// version, the x-model of each component schema is that type, and the x-model
+// of each response and request body component is that body. Components
+// without x-model are not in the model.
+//
+// The document is read as YAML nodes rather than through kin-openapi, whose
+// extension maps lose key order: the order of fields and variants is the
+// order of the generated code.
+func FromSpec(data []byte) (*Model, error) {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return nil, fmt.Errorf("client model: %w", err)
+	}
+	root := &doc
+	if root.Kind == yaml.DocumentNode && len(root.Content) == 1 {
+		root = root.Content[0]
+	}
+	components := mappingValue(root, "components")
+	header := mappingValue(components, ModelKey)
+	if header == nil {
+		return nil, fmt.Errorf("client model: the spec has no components.%s; "+
+			"use a spec merged by opensearch-api-specification (npm run merge)", ModelKey)
+	}
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	if header.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("client model: components.%s is not an object", ModelKey)
+	}
+	for i := 0; i+1 < len(header.Content); i += 2 {
+		if key := header.Content[i].Value; key == "format" || key == "version" {
+			if err := writeEntry(&buf, key, header.Content[i+1]); err != nil {
+				return nil, err
+			}
+			buf.WriteByte(',')
+		}
+	}
+	for i, section := range [][2]string{{"types", "schemas"}, {"responses", "responses"}, {"request_bodies", "requestBodies"}} {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		if err := writeSection(&buf, section[0], mappingValue(components, section[1])); err != nil {
+			return nil, err
+		}
+	}
+	buf.WriteByte('}')
+	return Parse(buf.Bytes())
+}
+
+// writeSection writes `"key": {name: x-model, …}` for the components of a
+// components section that have x-model, in document order.
+func writeSection(buf *bytes.Buffer, key string, section *yaml.Node) error {
+	if err := writeKey(buf, key); err != nil {
+		return err
+	}
+	buf.WriteByte('{')
+	if section != nil && section.Kind == yaml.MappingNode {
+		n := 0
+		for i := 0; i+1 < len(section.Content); i += 2 {
+			model := mappingValue(section.Content[i+1], ModelKey)
+			if model == nil {
+				continue
+			}
+			if n > 0 {
+				buf.WriteByte(',')
+			}
+			n++
+			if err := writeEntry(buf, section.Content[i].Value, model); err != nil {
+				return fmt.Errorf("client model: %s: %w", section.Content[i].Value, err)
+			}
+		}
+	}
+	buf.WriteByte('}')
+	return nil
+}
+
+// writeEntry writes `"key": value`.
+func writeEntry(buf *bytes.Buffer, key string, value *yaml.Node) error {
+	if err := writeKey(buf, key); err != nil {
+		return err
+	}
+	return writeJSON(buf, value)
+}
+
+// writeKey writes `"key":`.
+func writeKey(buf *bytes.Buffer, key string) error {
+	kb, err := json.Marshal(key)
+	if err != nil {
+		return err
+	}
+	buf.Write(kb)
+	buf.WriteByte(':')
+	return nil
+}
+
+// mappingValue is the value of key in a YAML mapping, nil if n is not a
+// mapping or has no such key.
+func mappingValue(n *yaml.Node, key string) *yaml.Node {
+	for n != nil && n.Kind == yaml.AliasNode {
+		n = n.Alias
+	}
+	if n == nil || n.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key {
+			return n.Content[i+1]
+		}
+	}
+	return nil
+}
+
+// writeJSON writes a YAML node as JSON, keeping the key order of mappings.
+func writeJSON(buf *bytes.Buffer, n *yaml.Node) error {
+	switch n.Kind {
+	case yaml.AliasNode:
+		return writeJSON(buf, n.Alias)
+	case yaml.MappingNode:
+		buf.WriteByte('{')
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			if err := writeEntry(buf, n.Content[i].Value, n.Content[i+1]); err != nil {
+				return err
+			}
+		}
+		buf.WriteByte('}')
+	case yaml.SequenceNode:
+		buf.WriteByte('[')
+		for i, item := range n.Content {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			if err := writeJSON(buf, item); err != nil {
+				return err
+			}
+		}
+		buf.WriteByte(']')
+	case yaml.ScalarNode:
+		var v any = n.Value // strings, and tags JSON has no type for (e.g. timestamps)
+		switch n.ShortTag() {
+		case "!!null", "!!bool", "!!int", "!!float":
+			if err := n.Decode(&v); err != nil {
+				return err
+			}
+		}
+		b, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Errorf("line %d: %w", n.Line, err)
+		}
+		buf.Write(b)
+	case yaml.DocumentNode:
+		return fmt.Errorf("line %d: unexpected YAML document", n.Line)
+	default:
+		return fmt.Errorf("line %d: unexpected YAML node kind %v", n.Line, n.Kind)
+	}
+	return nil
+}
+
+// Parse decodes a client model in its JSON form ({format, version, types,
+// responses, request_bodies}) and checks its format and version.
 func Parse(data []byte) (*Model, error) {
 	var m Model
 	if err := json.Unmarshal(data, &m); err != nil {

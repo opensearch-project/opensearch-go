@@ -25,7 +25,7 @@ func TestClientModelAgreesOnTaggedUnions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	model, err := clientmodel.Load("../../opensearch-client-model.json")
+	model, err := clientmodel.LoadSpec("../../opensearch-openapi.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -88,7 +88,7 @@ func Lower(spec *openapi3.T, m *Model) error {
 		entry := m.Types[name]
 		if bare[name] {
 			orig := original[name]
-			lowered[name] = &openapi3.SchemaRef{Ref: orig.Ref, Extensions: orig.Extensions, Value: l.out[name]}
+			lowered[name] = &openapi3.SchemaRef{Ref: orig.Ref, Extensions: withoutModel(orig.Extensions), Value: l.out[name]}
 			continue
 		}
 		schema := l.out[name]
@@ -441,6 +441,17 @@ func copySchema(s *openapi3.Schema) *openapi3.Schema {
 	c := *s
 	c.Extensions = copyMap(s.Extensions)
 	return &c
+}
+
+// withoutModel is ext without the x-model the schema was lowered from: the
+// lowered schema states it, and a copy would make equal schemas differ.
+func withoutModel(ext map[string]any) map[string]any {
+	if _, ok := ext[ModelKey]; !ok {
+		return ext
+	}
+	ext = copyMap(ext)
+	delete(ext, ModelKey)
+	return ext
 }
 
 func copyMap(m map[string]any) map[string]any {

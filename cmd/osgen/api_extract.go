@@ -143,10 +143,10 @@ type apiQueryParam struct {
 	DeprecationMsg    string // explains what to use instead
 }
 
-// clientModelPath is the resolved client model (opensearch-client-model.json)
-// the walker takes its types from (-model). Empty keeps reading types from the
-// OpenAPI file.
-var clientModelPath string //nolint:gochecknoglobals // set once from the -model flag
+// fromClientModel makes the walker take its types from the resolved client
+// model in the spec's x-model extensions (-model). False keeps reading types
+// from the OpenAPI schemas.
+var fromClientModel bool //nolint:gochecknoglobals // set once from the -model flag
 
 // extractOperations parses the OpenAPI spec and returns one apiOperation per
 // x-operation-group. An optional filter restricts output to named groups. It
@@ -166,8 +166,8 @@ func extractOperations(
 	if err := dropRedundantRefTypeConjuncts(spec); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("normalizing spec: %w", err)
 	}
-	if clientModelPath != "" {
-		model, err := clientmodel.Load(clientModelPath)
+	if fromClientModel {
+		model, err := clientmodel.LoadSpec(specPath)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}

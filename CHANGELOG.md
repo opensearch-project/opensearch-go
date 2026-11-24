@@ -6,7 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Add an opt-in way for osgen to read every type from the resolved client model of opensearch-api-specification (`osgen api -model`, `make gen-api GEN_FROM_MODEL=1`) instead of interpreting `allOf`/`oneOf`/`anyOf`, with the model vendored as `opensearch-client-model.json` (`make gen-client-model`); the default generation is unchanged ([#1341](https://github.com/opensearch-project/opensearch-go/pull/1341))
+- Add an opt-in way for osgen to read every type from the resolved client model of opensearch-api-specification (`osgen api -model`, `make gen-api GEN_FROM_MODEL=1`) instead of interpreting `allOf`/`oneOf`/`anyOf`, read from the `x-model` extensions of the spec; the default generation is unchanged ([#1341](https://github.com/opensearch-project/opensearch-go/pull/1341))
 
 ### Changed
 

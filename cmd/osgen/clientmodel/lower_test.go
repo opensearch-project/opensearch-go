@@ -54,8 +54,13 @@ func lowered(t *testing.T) *openapi3.T {
 	}
 	spec := &openapi3.T{Components: &openapi3.Components{
 		Schemas: openapi3.Schemas{
-			"UnitAlias": {Ref: schemaRefPrefix + "Unit"},
-			"Unit":      {Value: &openapi3.Schema{Extensions: map[string]any{"x-type-name": "Unit"}}},
+			"UnitAlias": {Ref: schemaRefPrefix + "Unit", Extensions: map[string]any{
+				"x-model": map[string]any{"type_kind": "alias"},
+			}},
+			"Unit": {Value: &openapi3.Schema{Extensions: map[string]any{
+				"x-type-name": "Unit",
+				"x-model":     map[string]any{"type_kind": "alias"},
+			}}},
 		},
 		Responses: openapi3.ResponseBodies{"get___200": {Value: &openapi3.Response{
 			Content: openapi3.Content{"application/json": {Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}}}},
@@ -103,6 +108,20 @@ func TestLowerBareRefAliasIsItsTarget(t *testing.T) {
 	alias := spec.Components.Schemas["UnitAlias"]
 	if alias.Ref != schemaRefPrefix+"Unit" || alias.Value != spec.Components.Schemas["Unit"].Value {
 		t.Errorf("UnitAlias = %+v, want a $ref sharing Unit's schema", alias)
+	}
+}
+
+func TestLowerDropsTheModelExtension(t *testing.T) {
+	spec := lowered(t)
+	if _, ok := spec.Components.Schemas["UnitAlias"].Extensions["x-model"]; ok {
+		t.Error("UnitAlias kept x-model next to its $ref")
+	}
+	unit := spec.Components.Schemas["Unit"].Value
+	if _, ok := unit.Extensions["x-model"]; ok {
+		t.Error("Unit kept x-model")
+	}
+	if unit.Extensions["x-type-name"] != "Unit" {
+		t.Error("Unit lost x-type-name")
 	}
 }
 
