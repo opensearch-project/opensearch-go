@@ -9,6 +9,8 @@
 package opensearchapi
 
 import (
+	"strings"
+
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
 
@@ -3477,6 +3479,22 @@ type CommonQueryDSLTermQueryValue struct {
 	Value *FieldValue `json:"value"`
 }
 
+type CommonQueryDSLTermsLookup struct {
+	// ID is the unique identifier for a resource.
+	ID string `json:"id"`
+
+	Index string `json:"index"`
+
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Path string `json:"path"`
+
+	// Routing is the routing value for the document.
+	Routing *string `json:"routing,omitempty"`
+
+	Store *bool `json:"store,omitempty"`
+}
+
 // Returns documents that contain one or more exact terms in a provided field.
 type CommonQueryDSLTermsQuery struct {
 	Name  *string  `json:"_name,omitempty"`
@@ -3485,6 +3503,82 @@ type CommonQueryDSLTermsQuery struct {
 	// ValueType. Specifies the types of values used for filtering. Valid
 	// values are `default` and `bitmap`. Default is `default`.
 	ValueType *string `json:"value_type,omitempty"`
+
+	// Fields maps each field name to its value, next to the fixed properties.
+	// A decoded value re-encodes as the bytes it was decoded from; to change one,
+	// replace the entry with a value built by a constructor.
+	Fields map[string]CommonQueryDSLTermsQueryField `json:"-"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonQueryDSLTermsQuery) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"_name", "boost", "value_type"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Fields map as one object.
+func (v CommonQueryDSLTermsQuery) MarshalJSON() ([]byte, error) {
+	type CommonQueryDSLTermsQueryFixed CommonQueryDSLTermsQuery
+	fixed, err := json.Marshal(CommonQueryDSLTermsQueryFixed(v))
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Fields) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Fields))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Fields {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Fields.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonQueryDSLTermsQuery) UnmarshalJSON(data []byte) error {
+	type CommonQueryDSLTermsQueryFixed CommonQueryDSLTermsQuery
+	if err := json.Unmarshal(data, (*CommonQueryDSLTermsQueryFixed)(v)); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Fields = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonQueryDSLTermsQueryField
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonQueryDSLTermsQueryField{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Fields == nil {
+			v.Fields = make(map[string]CommonQueryDSLTermsQueryField)
+		}
+		v.Fields[k] = val
+	}
+	return nil
 }
 
 type CommonQueryDSLTermsSetQuery struct {

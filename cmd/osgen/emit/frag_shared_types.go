@@ -21,6 +21,9 @@ type SharedTypesFragment struct {
 
 // Imports returns the imports the shared-types fragment needs.
 func (f *SharedTypesFragment) Imports() []Import {
+	if hasExtraKeys(f.Types) {
+		return []Import{jsonImport, {Path: "strings"}}
+	}
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
 			if strings.Contains(field.GoType, GoTypeRawMessage) {
@@ -51,6 +54,8 @@ var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(templat
 	"fieldComment":     FieldComment,
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
+	"extraField":       func(t *ir.Type) string { return extraKeysField(t, identity) },
+	"extraMethods":     func(t *ir.Type) string { return extraKeysMethods(t, identity) },
 }).Parse(`{{range .}}
 {{- if .Comment}}
 {{comment .Comment}}
@@ -75,8 +80,17 @@ type {{.Name}} struct {
 	{{$f.GoName}} {{$f.GoType}} ` + "`" + `json:"{{$f.JSONName}}{{if $f.OmitEmpty}},omitempty{{end}}"` + "`" + `
 {{- end}}
 {{- end}}
+{{- if .ExtraKeys}}
+
+	{{extraField .}}
+{{- end}}
 }
+{{- if .ExtraKeys}}
+{{extraMethods .}}
+{{- end}}
 {{end}}`))
+
+func identity(s string) string { return s }
 
 // NewSharedTypesFile builds a Target for types_gen.go.
 func NewSharedTypesFile(outDir, pkg string, types []*ir.Type) Target {

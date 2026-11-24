@@ -228,12 +228,16 @@ const (
 
 // Type represents a generated Go type (struct, union, or lazy union).
 type Type struct {
-	Name       string
-	SchemaRef  string
-	Comment    string
-	Kind       TypeKind
-	Scope      TypeScope
-	Fields     []Field
+	Name      string
+	SchemaRef string
+	Comment   string
+	Kind      TypeKind
+	Scope     TypeScope
+	Fields    []Field
+	// ExtraKeys, when non-nil, is the open-keyed map the struct carries beside
+	// its fixed fields. The emitter renders the map field and the Marshal and
+	// Unmarshal methods that flatten it next to them.
+	ExtraKeys  *ExtraKeys
 	Branches   []UnionBranch
 	OwnerGroup string
 	Package    string
@@ -452,6 +456,19 @@ type Field struct {
 	VersionAdded      string
 	VersionDeprecated string
 	DeprecationMsg    string
+}
+
+// ExtraKeys describes the map for keys the spec leaves open next to fixed
+// properties (propertyNames + additionalProperties).
+type ExtraKeys struct {
+	GoName    string   // map field name
+	ValueType string   // unqualified Go type of the map values
+	Known     []string // JSON keys of the fixed fields, including embedded types'
+	KeyTitle  string   // propertyNames title (e.g. "field")
+	// RawValue is true when the value type is a union, whose RawJSON and SetRaw keep
+	// a value the spec does not describe as raw JSON. It is carried here because the
+	// emitter has no access to the type registry to look the value type up.
+	RawValue bool
 }
 
 // UnionBranch represents one branch of a oneOf/anyOf union.

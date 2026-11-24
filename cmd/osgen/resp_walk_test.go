@@ -1498,3 +1498,117 @@ func TestResolveSchemaAliasNilSpec(t *testing.T) {
 	require.Equal(t, "x", resolveSchemaAlias("x", nil))
 	require.Equal(t, "x", resolveSchemaAlias("x", &openapi3.T{}))
 }
+
+func TestWalkerExtraKeys(t *testing.T) {
+	t.Parallel()
+
+	fixed := func() *openapi3.Schema {
+		s := openapi3.NewObjectSchema()
+		s.Properties = openapi3.Schemas{
+			"boost":  &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()},
+			"fields": &openapi3.SchemaRef{Value: openapi3.NewStringSchema()},
+		}
+		return s
+	}
+	withExtras := func(s *openapi3.Schema, named bool) *openapi3.Schema {
+		if named {
+			s.PropertyNames = &openapi3.SchemaRef{Value: openapi3.NewStringSchema()}
+		}
+		s.AdditionalProperties = openapi3.AdditionalProperties{
+			Schema: &openapi3.SchemaRef{Value: openapi3.NewStringSchema()},
+		}
+		return s
+	}
+
+	tests := []struct {
+		name       string
+		schemaKey  string // defaults to a schema key on the fieldKeyedSchemas allowlist
+		schema     func() *openapi3.Schema
+		wantKnown  []string
+		wantGoName string
+	}{
+		{
+			name:       "properties with propertyNames and additionalProperties",
+			schema:     func() *openapi3.Schema { return withExtras(fixed(), true) },
+			wantKnown:  []string{"boost", "fields"},
+			wantGoName: "ExtraFields",
+		},
+		{
+			name: "no fields property keeps the plain name",
+			schema: func() *openapi3.Schema {
+				s := openapi3.NewObjectSchema()
+				s.Properties = openapi3.Schemas{"boost": &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()}}
+				return withExtras(s, true)
+			},
+			wantKnown:  []string{"boost"},
+			wantGoName: "Fields",
+		},
+		{
+			name: "allOf member with propertyNames and additionalProperties",
+			schema: func() *openapi3.Schema {
+				s := &openapi3.Schema{}
+				s.AllOf = openapi3.SchemaRefs{
+					{Value: fixed()},
+					{Value: withExtras(openapi3.NewObjectSchema(), true)},
+				}
+				return s
+			},
+			wantKnown:  []string{"boost", "fields"},
+			wantGoName: "ExtraFields",
+		},
+		{
+			name: "allOf ref member's keys are known",
+			schema: func() *openapi3.Schema {
+				base := openapi3.NewObjectSchema()
+				base.Properties = openapi3.Schemas{
+					"_name": &openapi3.SchemaRef{Value: openapi3.NewStringSchema()},
+					"boost": &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()},
+				}
+				s := &openapi3.Schema{}
+				s.AllOf = openapi3.SchemaRefs{
+					{Ref: "#/components/schemas/_common___Base", Value: base},
+					{Value: withExtras(openapi3.NewObjectSchema(), true)},
+				}
+				return s
+			},
+			wantKnown:  []string{"_name", "boost"},
+			wantGoName: "Fields",
+		},
+		{
+			name:      "schema off the allowlist gets no extra keys",
+			schemaKey: "test___Obj",
+			schema:    func() *openapi3.Schema { return withExtras(fixed(), true) },
+		},
+		{
+			name:   "properties with additionalProperties but no propertyNames",
+			schema: func() *openapi3.Schema { return withExtras(fixed(), false) },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(set[string])}
+
+			schemaKey := tt.schemaKey
+			if schemaKey == "" {
+				schemaKey = "_common.query_dsl___TermsQuery"
+			}
+			name := w.walkSchema(&openapi3.SchemaRef{Value: tt.schema()}, schemaKey, "test", false)
+			registered, ok := reg.lookupByName(name)
+			require.True(t, ok)
+
+			if tt.wantGoName == "" {
+				require.Nil(t, registered.ExtraKeys)
+				return
+			}
+			require.NotNil(t, registered.ExtraKeys)
+			// A declared "fields" property forces the map field to be renamed.
+			require.Equal(t, tt.wantGoName, registered.ExtraKeys.GoName)
+			require.Equal(t, "string", registered.ExtraKeys.ValueType)
+			require.Equal(t, tt.wantKnown, registered.ExtraKeys.Known)
+		})
+	}
+}
