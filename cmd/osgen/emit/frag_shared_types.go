@@ -22,7 +22,7 @@ type SharedTypesFragment struct {
 // Imports returns the imports the shared-types fragment needs.
 func (f *SharedTypesFragment) Imports() []Import {
 	if hasExtraKeys(f.Types) {
-		return []Import{jsonImport, {Path: "strings"}}
+		return []Import{{Path: "fmt"}, jsonImport, {Path: "strings"}}
 	}
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
@@ -64,8 +64,9 @@ var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(templat
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
 	"extraField":       func(t *ir.Type) string { return extraKeysField(t, identity) },
-	"hasMethods":       func(*ir.Type) bool { return false },
-	"extraMethods":     func(*ir.Type) string { return "" },
+	// Stubs so the template parses; Body replaces them with plan-bound versions.
+	"hasMethods":   func(*ir.Type) bool { return false },
+	"extraMethods": func(*ir.Type) string { return "" },
 }).Parse(`{{range .}}
 {{- if .Comment}}
 {{comment .Comment}}

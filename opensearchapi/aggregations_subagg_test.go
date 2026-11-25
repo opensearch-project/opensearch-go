@@ -152,3 +152,44 @@ func TestAggregationSubAggregations(t *testing.T) {
 		})
 	}
 }
+
+// A bucket rejects a sub-aggregation key that names a fixed property instead of
+// dropping the entry.
+func TestAggregationSubAggregationKeyNamingFixedPropertyFailsMarshal(t *testing.T) {
+	t.Parallel()
+
+	var sub opensearchapi.CommonAggregationsAggregate
+	require.NoError(t, json.Unmarshal([]byte(`{"value":1}`), &sub))
+
+	tests := []struct {
+		name    string
+		key     string
+		wantErr string
+	}{
+		{name: "key", key: "key", wantErr: `key "key" in Aggregations names a fixed property`},
+		{name: "Key", key: "Key", wantErr: `key "Key" in Aggregations names a fixed property`},
+		{name: "doc_count", key: "doc_count", wantErr: `key "doc_count" in Aggregations names a fixed property`},
+		{name: "non-colliding key"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			key := tt.key
+			if key == "" {
+				key = "avg_price"
+			}
+			bucket := opensearchapi.CommonAggregationsStringTermsBucket{}
+			bucket.Aggregations = map[string]opensearchapi.CommonAggregationsAggregate{key: sub}
+			got, err := json.Marshal(bucket)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, "CommonAggregationsStringTermsBucket")
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Contains(t, string(got), `"avg_price":{"value":1}`)
+		})
+	}
+}

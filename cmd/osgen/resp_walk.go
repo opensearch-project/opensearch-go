@@ -400,11 +400,14 @@ var fieldKeyedSchemas = set[string]{
 	"_common.query_dsl___TermsQuery": {},
 }
 
-// extraKeysFor returns the open-keyed map a struct needs beside its fixed fields:
-// the schema key is in fieldKeyedSchemas and the schema (or one of its inline
-// allOf members) declares propertyNames and additionalProperties. Without
-// propertyNames, additionalProperties stays undeclared, as does a schema with no
-// fixed fields (that is a plain map type).
+// extraKeysFor returns the open-keyed map a struct needs beside its fixed fields.
+// Two schemas qualify. One is an allowlisted schema (fieldKeyedSchemas) that
+// declares propertyNames and additionalProperties, on the schema or one of its
+// inline allOf members; without propertyNames, additionalProperties stays
+// undeclared. The other is a schema whose additionalProperties or
+// unevaluatedProperties references aggregateSchemaRef (see aggregateExtraKeys),
+// which needs neither the allowlist nor propertyNames. A schema with no fixed
+// fields is a plain map type and gets neither.
 func (w *walker) extraKeysFor(schema *openapi3.Schema, fields []goField, key, group string) *extraKeys {
 	if len(fields) == 0 {
 		return nil

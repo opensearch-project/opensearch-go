@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -77,7 +78,10 @@ func TestSharedTypesFragment_ExtraKeys(t *testing.T) {
 	require.Contains(t, body, `[...]string{"boost"}`)
 	require.Contains(t, body, "strings.EqualFold(k, fixed)")
 	require.Equal(t, 2, strings.Count(body, "if v.isFixedKey(k) {"))
-	require.Equal(t, []emit.Import{{Path: emit.JSONImportPath, Alias: "json"}, {Path: "strings"}}, frag.Imports())
+	require.Equal(t, []emit.Import{{Path: "fmt"}, {Path: emit.JSONImportPath, Alias: "json"}, {Path: "strings"}}, frag.Imports())
+	// Marshal rejects a key that names a fixed property rather than dropping it.
+	require.Contains(t, body, `return nil, fmt.Errorf("TermsQuery: key %q in Fields names a fixed property", k)`)
+	require.Equal(t, 1, strings.Count(body, "if v.isFixedKey(k) {\n\t\t\treturn nil, fmt.Errorf"))
 }
 
 func TestSharedTypesFragment_ExtraKeysEmbedders(t *testing.T) {
@@ -120,17 +124,49 @@ func TestSharedTypesFragment_ExtraKeysEmbedders(t *testing.T) {
 func TestSharedTypesFragment_ExtraKeysEmbedCyclePanics(t *testing.T) {
 	t.Parallel()
 
-	a := &ir.Type{Name: "A", Kind: ir.TypeStruct, Scope: ir.ScopeShared, Fields: []ir.Field{{GoType: "B", IsEmbed: true}}}
-	b := &ir.Type{
-		Name: "B", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
-		Fields: []ir.Field{{GoType: "A", IsEmbed: true}, {GoType: "C", IsEmbed: true}},
+	root := &ir.Type{Name: "RootEmbedder", Kind: ir.TypeStruct, Scope: ir.ScopeShared, Fields: []ir.Field{{GoType: "LoopA", IsEmbed: true}}}
+	a := &ir.Type{Name: "LoopA", Kind: ir.TypeStruct, Scope: ir.ScopeShared, Fields: []ir.Field{{GoType: "LoopB", IsEmbed: true}}}
+	b := &ir.Type{Name: "LoopB", Kind: ir.TypeStruct, Scope: ir.ScopeShared, Fields: []ir.Field{{GoType: "LoopA", IsEmbed: true}}}
+
+	msg := panicMessage(t, func() {
+		_, _ = (&emit.SharedTypesFragment{Types: []*ir.Type{root, a, b}}).Body()
+	})
+	require.Contains(t, msg, "RootEmbedder")
+	require.Contains(t, msg, "LoopA")
+}
+
+func TestSharedTypesFragment_ExtraKeysUnresolvedEmbedPanics(t *testing.T) {
+	t.Parallel()
+
+	root := &ir.Type{Name: "RootEmbedder", Kind: ir.TypeStruct, Scope: ir.ScopeShared, Fields: []ir.Field{{GoType: "Mid", IsEmbed: true}}}
+	mid := &ir.Type{
+		Name: "Mid", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+		Fields: []ir.Field{{GoType: "Base", IsEmbed: true}, {GoType: "Missing", IsEmbed: true}},
 	}
-	c := &ir.Type{
-		Name: "C", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+	base := &ir.Type{
+		Name: "Base", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
 		ExtraKeys: &ir.ExtraKeys{GoName: "Aggregations", ValueType: "Agg"},
 	}
 
-	require.Panics(t, func() {
-		_, _ = (&emit.SharedTypesFragment{Types: []*ir.Type{a, b, c}}).Body()
+	msg := panicMessage(t, func() {
+		_, _ = (&emit.SharedTypesFragment{Types: []*ir.Type{root, mid, base}}).Body()
 	})
+	require.Contains(t, msg, "RootEmbedder")
+	require.Contains(t, msg, "Mid")
+	require.Contains(t, msg, "Missing")
+}
+
+func panicMessage(t *testing.T, fn func()) string {
+	t.Helper()
+
+	var msg string
+	func() {
+		defer func() {
+			r := recover()
+			require.NotNil(t, r, "expected a panic")
+			msg = fmt.Sprint(r)
+		}()
+		fn()
+	}()
+	return msg
 }

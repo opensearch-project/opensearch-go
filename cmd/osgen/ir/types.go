@@ -459,7 +459,8 @@ type Field struct {
 }
 
 // ExtraKeys describes the map for keys the spec leaves open next to fixed
-// properties (propertyNames + additionalProperties).
+// properties: propertyNames + additionalProperties, or an Aggregate-valued
+// additionalProperties/unevaluatedProperties.
 type ExtraKeys struct {
 	GoName    string   // map field name
 	ValueType string   // unqualified Go type of the map values

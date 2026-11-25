@@ -24,8 +24,10 @@ type SiblingTypesFragment struct {
 // Imports returns the imports the sibling-types fragment needs.
 func (f *SiblingTypesFragment) Imports() []Import {
 	var imps []Import
-	hasJSON := hasExtraKeys(f.Types)
-	hasStrings := hasExtraKeys(f.Types)
+	hasKeys := hasExtraKeys(f.Types)
+	hasJSON := hasKeys
+	hasFmt := hasKeys
+	hasStrings := hasKeys
 	hasCrossPkg := false
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
@@ -36,6 +38,9 @@ func (f *SiblingTypesFragment) Imports() []Import {
 				hasCrossPkg = true
 			}
 		}
+	}
+	if hasFmt {
+		imps = append(imps, Import{Path: "fmt"})
 	}
 	if hasJSON {
 		imps = append(imps, jsonImport)

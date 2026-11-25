@@ -69,7 +69,7 @@ func extraKeysMethods(t *ir.Type, x *ir.ExtraKeys, qualify func(string) string) 
 			val.SetRaw(append(json.RawMessage(nil), r...))
 		}`
 		rawDoc = "\n// A value the spec's types do not describe is kept as raw JSON rather than failing the" +
-			"\n// whole decode, so a query decodes and re-encodes unchanged."
+			"\n// whole decode, so the object decodes and re-encodes unchanged."
 	}
 
 	return fmt.Sprintf(`
@@ -104,7 +104,7 @@ func (v %[1]s) MarshalJSON() ([]byte, error) {
 	}
 	for k, val := range v.%[3]s {
 		if v.isFixedKey(k) {
-			continue
+			return nil, fmt.Errorf("%[1]s: key %%q in %[3]s names a fixed property", k)
 		}
 		%[5]s
 		out[k] = b
@@ -169,20 +169,20 @@ func extraKeysPlan(ts []*ir.Type) map[*ir.Type]*ir.ExtraKeys {
 		}
 		var base *ir.ExtraKeys
 		known := make(map[string]struct{})
-		unresolved := ""
-		var walk func(t *ir.Type, depth int)
-		walk = func(t *ir.Type, depth int) {
+		unresolved, unresolvedIn := "", ""
+		var walk func(cur *ir.Type, depth int)
+		walk = func(cur *ir.Type, depth int) {
 			if depth > maxEmbedDepth {
-				panic(fmt.Sprintf("extraKeysPlan: embed chain of %s exceeds %d levels (embed cycle?)", t.Name, maxEmbedDepth))
+				panic(fmt.Sprintf("extraKeysPlan: embed chain of %s exceeds %d levels at %s (embed cycle?)", t.Name, maxEmbedDepth, cur.Name))
 			}
-			for _, f := range t.Fields {
+			for _, f := range cur.Fields {
 				if !f.IsEmbed {
 					known[f.JSONName] = struct{}{}
 					continue
 				}
 				emb, ok := byName[embedFieldName(f.GoType)]
 				if !ok {
-					unresolved = f.GoType
+					unresolved, unresolvedIn = f.GoType, cur.Name
 					continue
 				}
 				if emb.ExtraKeys != nil && base == nil {
@@ -196,7 +196,7 @@ func extraKeysPlan(ts []*ir.Type) map[*ir.Type]*ir.ExtraKeys {
 			continue
 		}
 		if unresolved != "" {
-			panic(fmt.Sprintf("extraKeysPlan: %s embeds %s, which is not among the fragment's types", t.Name, unresolved))
+			panic(fmt.Sprintf("extraKeysPlan: %s embeds %s via %s, which is not among the fragment's types", t.Name, unresolved, unresolvedIn))
 		}
 		x := *base
 		x.Known = slices.Sorted(maps.Keys(known))

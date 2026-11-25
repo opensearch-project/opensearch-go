@@ -96,41 +96,6 @@ func TestQueryContainerFieldKeyRoundTrip(t *testing.T) {
 	}
 }
 
-// A map key that names a fixed property is dropped on marshal, as it is on
-// unmarshal, so the two directions agree even when the fixed field is unset.
-func TestQueryFieldKeyShadowingFixedProperty(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		terms opensearchapi.CommonQueryDSLTermsQuery
-		want  string
-	}{
-		{
-			name: "boost key with Boost unset",
-			terms: opensearchapi.CommonQueryDSLTermsQuery{Fields: map[string]opensearchapi.CommonQueryDSLTermsQueryField{
-				"boost": opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray([]opensearchapi.FieldValue{
-					opensearchapi.NewFieldValueFromString("a"),
-				}),
-				"user": opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray([]opensearchapi.FieldValue{
-					opensearchapi.NewFieldValueFromString("b"),
-				}),
-			}},
-			want: `{"user":["b"]}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, err := json.Marshal(tt.terms)
-			require.NoError(t, err)
-			require.JSONEq(t, tt.want, string(got))
-		})
-	}
-}
-
 // Documented terms shapes decode and re-encode to the same JSON.
 func TestQueryTermsShapesRoundTrip(t *testing.T) {
 	t.Parallel()
@@ -250,18 +215,45 @@ func TestQueryFieldKeyDecodeShadowing(t *testing.T) {
 	}
 }
 
-// Encoding drops a map key that names a fixed property, matched case-insensitively
-// as decoding matches it, even when the fixed field is unset.
-func TestQueryFieldKeyCaseInsensitiveFixedKeys(t *testing.T) {
+// Encoding rejects a map key that names a fixed property instead of dropping the
+// entry. Keys match case-insensitively, as decoding matches them, even when the
+// fixed field is unset.
+func TestQueryFieldKeyNamingFixedPropertyFailsMarshal(t *testing.T) {
 	t.Parallel()
 
-	terms := opensearchapi.CommonQueryDSLTermsQuery{Fields: map[string]opensearchapi.CommonQueryDSLTermsQueryField{
-		"BOOST": opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray([]opensearchapi.FieldValue{opensearchapi.NewFieldValueFromString("a")}),
-		"user":  opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray([]opensearchapi.FieldValue{opensearchapi.NewFieldValueFromString("b")}),
-	}}
-	got, err := json.Marshal(terms)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"user":["b"]}`, string(got))
+	arr := func(s string) opensearchapi.CommonQueryDSLTermsQueryField {
+		return opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray([]opensearchapi.FieldValue{opensearchapi.NewFieldValueFromString(s)})
+	}
+	tests := []struct {
+		name    string
+		key     string
+		wantErr string
+		want    string
+	}{
+		{name: "boost", key: "boost", wantErr: `key "boost" in Fields names a fixed property`},
+		{name: "Boost", key: "Boost", wantErr: `key "Boost" in Fields names a fixed property`},
+		{name: "BOOST", key: "BOOST", wantErr: `key "BOOST" in Fields names a fixed property`},
+		{name: "non-colliding key", key: "user", want: `{"user":["a"],"other":["b"]}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			terms := opensearchapi.CommonQueryDSLTermsQuery{Fields: map[string]opensearchapi.CommonQueryDSLTermsQueryField{
+				tt.key:  arr("a"),
+				"other": arr("b"),
+			}}
+			got, err := json.Marshal(terms)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, "CommonQueryDSLTermsQuery")
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
+		})
+	}
 }
 
 // Values the spec's types do not describe decode and re-encode with the same

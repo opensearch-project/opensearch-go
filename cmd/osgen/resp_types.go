@@ -103,7 +103,8 @@ type goType struct {
 	Default string
 
 	// ExtraKeys, when non-nil, adds a map field for the keys the spec leaves open
-	// next to the fixed properties (propertyNames + additionalProperties).
+	// next to the fixed properties (propertyNames + additionalProperties, or an
+	// Aggregate-valued additionalProperties/unevaluatedProperties).
 	ExtraKeys *extraKeys
 
 	// Discriminator carries the spec's OpenAPI `discriminator` when the union
