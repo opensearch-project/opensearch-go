@@ -406,7 +406,13 @@ var fieldKeyedSchemas = set[string]{
 // propertyNames, additionalProperties stays undeclared, as does a schema with no
 // fixed fields (that is a plain map type).
 func (w *walker) extraKeysFor(schema *openapi3.Schema, fields []goField, key, group string) *extraKeys {
-	if len(fields) == 0 || !fieldKeyedSchemas.has(key) {
+	if len(fields) == 0 {
+		return nil
+	}
+	if x := w.aggregateExtraKeys(schema, fields); x != nil {
+		return x
+	}
+	if !fieldKeyedSchemas.has(key) {
 		return nil
 	}
 	candidates := []*openapi3.Schema{schema}
@@ -440,6 +446,31 @@ func (w *walker) extraKeysFor(schema *openapi3.Schema, fields []goField, key, gr
 		}
 	}
 	return nil
+}
+
+// aggregateSchemaRef is the $ref of the aggregation result union a bucket nests
+// its sub-aggregations as.
+const aggregateSchemaRef = "#/components/schemas/_common.aggregations___Aggregate"
+
+// aggregateExtraKeys returns the Aggregations map for a schema whose free-form
+// properties (additionalProperties, or unevaluatedProperties beside an allOf) are
+// aggregation results: a bucket keys its sub-aggregations by their request name.
+// The Aggregate ref is not walked here: it is a union that reaches back into the
+// bucket types still being built, and walking it would stop their allOf wrappers
+// collapsing. Its Go name is derived instead; the union is a union of raw JSON, so
+// a value it cannot decode stays raw.
+func (w *walker) aggregateExtraKeys(schema *openapi3.Schema, fields []goField) *extraKeys {
+	isAgg := func(r *openapi3.SchemaRef) bool { return r != nil && r.Ref == aggregateSchemaRef }
+	if !isAgg(schema.AdditionalProperties.Schema) && !isAgg(schema.UnevaluatedProperties.Schema) {
+		return nil
+	}
+	return &extraKeys{
+		GoName:    "Aggregations",
+		ValueType: schemaTypeName(refToSchemaKey(aggregateSchemaRef), false),
+		Known:     w.knownKeys(fields),
+		KeyTitle:  "aggregation",
+		RawValue:  true,
+	}
 }
 
 // knownKeys returns the sorted JSON keys of fields, descending into embedded types.

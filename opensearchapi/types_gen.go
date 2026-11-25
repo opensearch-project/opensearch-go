@@ -157,11 +157,178 @@ type CommonAggregationsMultiBucketAggregateBase struct {
 
 type CommonAggregationsMultiBucketBase struct {
 	DocCount int64 `json:"doc_count"`
+
+	// Aggregations maps each aggregation name to its value, next to the fixed properties.
+	// A decoded value re-encodes as the bytes it was decoded from; to change one,
+	// replace the entry with a value built by a constructor.
+	Aggregations map[string]CommonAggregationsAggregate `json:"-"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsMultiBucketBase) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsMultiBucketBase) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsMultiBucketBaseFixed struct {
+		CommonAggregationsMultiBucketBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsMultiBucketBaseFixed{CommonAggregationsMultiBucketBase: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsMultiBucketBase) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsMultiBucketBaseFixed struct {
+		CommonAggregationsMultiBucketBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsMultiBucketBaseFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsMultiBucketBase
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsAdjacencyMatrixBucket struct {
 	CommonAggregationsMultiBucketBase
 	Key string `json:"key"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsAdjacencyMatrixBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsAdjacencyMatrixBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsAdjacencyMatrixBucketFixed struct {
+		CommonAggregationsAdjacencyMatrixBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsAdjacencyMatrixBucketFixed{CommonAggregationsAdjacencyMatrixBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsAdjacencyMatrixBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsAdjacencyMatrixBucketFixed struct {
+		CommonAggregationsAdjacencyMatrixBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsAdjacencyMatrixBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsAdjacencyMatrixBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsAdjacencyMatrixAggregate struct {
@@ -176,6 +343,87 @@ type CommonAggregationsDateHistogramBucket struct {
 	Key int64 `json:"key"`
 
 	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsDateHistogramBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsDateHistogramBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsDateHistogramBucketFixed struct {
+		CommonAggregationsDateHistogramBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsDateHistogramBucketFixed{CommonAggregationsDateHistogramBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsDateHistogramBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsDateHistogramBucketFixed struct {
+		CommonAggregationsDateHistogramBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsDateHistogramBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsDateHistogramBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsDateHistogramAggregate struct {
@@ -233,11 +481,178 @@ type CommonAggregationsCardinalityAggregate struct {
 type CommonAggregationsSingleBucketAggregateBase struct {
 	CommonAggregationsAggregateBase
 	DocCount int64 `json:"doc_count"`
+
+	// Aggregations maps each aggregation name to its value, next to the fixed properties.
+	// A decoded value re-encodes as the bytes it was decoded from; to change one,
+	// replace the entry with a value built by a constructor.
+	Aggregations map[string]CommonAggregationsAggregate `json:"-"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsSingleBucketAggregateBase) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "meta"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsSingleBucketAggregateBase) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsSingleBucketAggregateBaseFixed struct {
+		CommonAggregationsSingleBucketAggregateBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsSingleBucketAggregateBaseFixed{CommonAggregationsSingleBucketAggregateBase: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsSingleBucketAggregateBase) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsSingleBucketAggregateBaseFixed struct {
+		CommonAggregationsSingleBucketAggregateBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsSingleBucketAggregateBaseFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsSingleBucketAggregateBase
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsCompositeBucket struct {
 	CommonAggregationsMultiBucketBase
 	Key map[string]FieldValue `json:"key"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsCompositeBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsCompositeBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsCompositeBucketFixed struct {
+		CommonAggregationsCompositeBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsCompositeBucketFixed{CommonAggregationsCompositeBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsCompositeBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsCompositeBucketFixed struct {
+		CommonAggregationsCompositeBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsCompositeBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsCompositeBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
@@ -260,6 +675,87 @@ type CommonAggregationsRangeBucket struct {
 
 	To         *float64 `json:"to,omitempty"`
 	ToAsString *string  `json:"to_as_string,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsRangeBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "from", "from_as_string", "key", "to", "to_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsRangeBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsRangeBucketFixed struct {
+		CommonAggregationsRangeBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsRangeBucketFixed{CommonAggregationsRangeBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsRangeBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsRangeBucketFixed struct {
+		CommonAggregationsRangeBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsRangeBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsRangeBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsMultiBucketAggregateBaseRangeBucket struct {
@@ -287,10 +783,172 @@ type CommonAggregationsTermsBucketBase struct {
 	DocCountErrorUpperBound *int64 `json:"doc_count_error_upper_bound,omitempty"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsTermsBucketBase) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "doc_count_error_upper_bound"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsTermsBucketBase) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsTermsBucketBaseFixed struct {
+		CommonAggregationsTermsBucketBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsTermsBucketBaseFixed{CommonAggregationsTermsBucketBase: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsTermsBucketBase) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsTermsBucketBaseFixed struct {
+		CommonAggregationsTermsBucketBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsTermsBucketBaseFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsTermsBucketBase
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsDoubleTermsBucket struct {
 	CommonAggregationsTermsBucketBase
 	Key         float64 `json:"key"`
 	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsDoubleTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "doc_count_error_upper_bound", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsDoubleTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsDoubleTermsBucketFixed struct {
+		CommonAggregationsDoubleTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsDoubleTermsBucketFixed{CommonAggregationsDoubleTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsDoubleTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsDoubleTermsBucketFixed struct {
+		CommonAggregationsDoubleTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsDoubleTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsDoubleTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsDoubleTermsAggregate struct {
@@ -434,6 +1092,87 @@ type CommonAggregationsGeoHashGridBucket struct {
 	Key string `json:"key"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsGeoHashGridBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsGeoHashGridBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsGeoHashGridBucketFixed struct {
+		CommonAggregationsGeoHashGridBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsGeoHashGridBucketFixed{CommonAggregationsGeoHashGridBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsGeoHashGridBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsGeoHashGridBucketFixed struct {
+		CommonAggregationsGeoHashGridBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsGeoHashGridBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsGeoHashGridBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsGeoHashGridAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsGeoHashGridAggregateBuckets `json:"buckets"`
@@ -444,6 +1183,87 @@ type CommonAggregationsGeoTileGridBucket struct {
 
 	// Key is a map tile reference, represented as `{zoom}/{x}/{y}`.
 	Key string `json:"key"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsGeoTileGridBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsGeoTileGridBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsGeoTileGridBucketFixed struct {
+		CommonAggregationsGeoTileGridBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsGeoTileGridBucketFixed{CommonAggregationsGeoTileGridBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsGeoTileGridBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsGeoTileGridBucketFixed struct {
+		CommonAggregationsGeoTileGridBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsGeoTileGridBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsGeoTileGridBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsGeoTileGridAggregate struct {
@@ -468,6 +1288,87 @@ type CommonAggregationsHistogramBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsHistogramBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsHistogramBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsHistogramBucketFixed struct {
+		CommonAggregationsHistogramBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsHistogramBucketFixed{CommonAggregationsHistogramBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsHistogramBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsHistogramBucketFixed struct {
+		CommonAggregationsHistogramBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsHistogramBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsHistogramBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsHistogramAggregateBuckets `json:"buckets"`
@@ -478,6 +1379,87 @@ type CommonAggregationsIPRangeBucket struct {
 	From *string `json:"from,omitempty"`
 	Key  *string `json:"key,omitempty"`
 	To   *string `json:"to,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsIPRangeBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "from", "key", "to"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsIPRangeBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsIPRangeBucketFixed struct {
+		CommonAggregationsIPRangeBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsIPRangeBucketFixed{CommonAggregationsIPRangeBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsIPRangeBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsIPRangeBucketFixed struct {
+		CommonAggregationsIPRangeBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsIPRangeBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsIPRangeBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsIPRangeAggregate struct {
@@ -491,6 +1473,87 @@ type CommonAggregationsLongRareTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsLongRareTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsLongRareTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsLongRareTermsBucketFixed struct {
+		CommonAggregationsLongRareTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsLongRareTermsBucketFixed{CommonAggregationsLongRareTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsLongRareTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsLongRareTermsBucketFixed struct {
+		CommonAggregationsLongRareTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsLongRareTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsLongRareTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsLongRareTermsAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets *CommonAggregationsLongRareTermsAggregateBuckets `json:"buckets,omitempty"`
@@ -500,6 +1563,87 @@ type CommonAggregationsLongTermsBucket struct {
 	CommonAggregationsTermsBucketBase
 	Key         CommonAggregationsLongTermsBucketKey `json:"key"`
 	KeyAsString *string                              `json:"key_as_string,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsLongTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "doc_count_error_upper_bound", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsLongTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsLongTermsBucketFixed struct {
+		CommonAggregationsLongTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsLongTermsBucketFixed{CommonAggregationsLongTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsLongTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsLongTermsBucketFixed struct {
+		CommonAggregationsLongTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsLongTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsLongTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsLongTermsAggregate struct {
@@ -535,6 +1679,87 @@ type CommonAggregationsMultiTermsBucket struct {
 	KeyAsString             *string      `json:"key_as_string,omitempty"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsMultiTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "doc_count_error_upper_bound", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsMultiTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsMultiTermsBucketFixed struct {
+		CommonAggregationsMultiTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsMultiTermsBucketFixed{CommonAggregationsMultiTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsMultiTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsMultiTermsBucketFixed struct {
+		CommonAggregationsMultiTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsMultiTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsMultiTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsMultiTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets *CommonAggregationsMultiTermsAggregateBuckets `json:"buckets,omitempty"`
@@ -563,10 +1788,172 @@ type CommonAggregationsSignificantTermsBucketBase struct {
 	Score   float64 `json:"score"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsSignificantTermsBucketBase) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"bg_count", "doc_count", "score"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsSignificantTermsBucketBase) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsSignificantTermsBucketBaseFixed struct {
+		CommonAggregationsSignificantTermsBucketBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsSignificantTermsBucketBaseFixed{CommonAggregationsSignificantTermsBucketBase: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsSignificantTermsBucketBase) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsSignificantTermsBucketBaseFixed struct {
+		CommonAggregationsSignificantTermsBucketBase
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsSignificantTermsBucketBaseFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsSignificantTermsBucketBase
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsSignificantLongTermsBucket struct {
 	CommonAggregationsSignificantTermsBucketBase
 	Key         int64   `json:"key"`
 	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsSignificantLongTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"bg_count", "doc_count", "key", "key_as_string", "score"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsSignificantLongTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsSignificantLongTermsBucketFixed struct {
+		CommonAggregationsSignificantLongTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsSignificantLongTermsBucketFixed{CommonAggregationsSignificantLongTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsSignificantLongTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsSignificantLongTermsBucketFixed struct {
+		CommonAggregationsSignificantLongTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsSignificantLongTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsSignificantLongTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsSignificantLongTermsAggregate struct {
@@ -577,6 +1964,87 @@ type CommonAggregationsSignificantLongTermsAggregate struct {
 type CommonAggregationsSignificantStringTermsBucket struct {
 	CommonAggregationsSignificantTermsBucketBase
 	Key string `json:"key"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsSignificantStringTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"bg_count", "doc_count", "key", "score"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsSignificantStringTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsSignificantStringTermsBucketFixed struct {
+		CommonAggregationsSignificantStringTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsSignificantStringTermsBucketFixed{CommonAggregationsSignificantStringTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsSignificantStringTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsSignificantStringTermsBucketFixed struct {
+		CommonAggregationsSignificantStringTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsSignificantStringTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsSignificantStringTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsSignificantStringTermsAggregate struct {
@@ -595,6 +2063,87 @@ type CommonAggregationsStringRareTermsBucket struct {
 	Key string `json:"key"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsStringRareTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsStringRareTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsStringRareTermsBucketFixed struct {
+		CommonAggregationsStringRareTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsStringRareTermsBucketFixed{CommonAggregationsStringRareTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsStringRareTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsStringRareTermsBucketFixed struct {
+		CommonAggregationsStringRareTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsStringRareTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsStringRareTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsStringRareTermsAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets *CommonAggregationsStringRareTermsAggregateBuckets `json:"buckets,omitempty"`
@@ -603,6 +2152,87 @@ type CommonAggregationsStringRareTermsAggregate struct {
 type CommonAggregationsStringTermsBucket struct {
 	CommonAggregationsTermsBucketBase
 	Key string `json:"key"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsStringTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "doc_count_error_upper_bound", "key"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsStringTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsStringTermsBucketFixed struct {
+		CommonAggregationsStringTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsStringTermsBucketFixed{CommonAggregationsStringTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsStringTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsStringTermsBucketFixed struct {
+		CommonAggregationsStringTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsStringTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsStringTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsStringTermsAggregate struct {
@@ -713,6 +2343,87 @@ type CommonAggregationsUnsignedLongTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsUnsignedLongTermsBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "doc_count_error_upper_bound", "key", "key_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsUnsignedLongTermsBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsUnsignedLongTermsBucketFixed struct {
+		CommonAggregationsUnsignedLongTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsUnsignedLongTermsBucketFixed{CommonAggregationsUnsignedLongTermsBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsUnsignedLongTermsBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsUnsignedLongTermsBucketFixed struct {
+		CommonAggregationsUnsignedLongTermsBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsUnsignedLongTermsBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsUnsignedLongTermsBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
+}
+
 type CommonAggregationsUnsignedLongTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsUnsignedLongTermsBucket `json:"buckets"`
@@ -749,6 +2460,87 @@ type CommonAggregationsVariableWidthHistogramBucket struct {
 	MaxAsString *string `json:"max_as_string,omitempty"`
 	Min         float64 `json:"min"`
 	MinAsString *string `json:"min_as_string,omitempty"`
+}
+
+// isFixedKey reports whether k names a fixed property. The codec matches property
+// names case-insensitively, so a key it puts in a fixed field never goes in the map.
+func (CommonAggregationsVariableWidthHistogramBucket) isFixedKey(k string) bool {
+	for _, fixed := range [...]string{"doc_count", "key", "key_as_string", "max", "max_as_string", "min", "min_as_string"} {
+		if strings.EqualFold(k, fixed) {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalJSON writes the fixed properties and the Aggregations map as one object.
+func (v CommonAggregationsVariableWidthHistogramBucket) MarshalJSON() ([]byte, error) {
+	type CommonAggregationsVariableWidthHistogramBucketFixed struct {
+		CommonAggregationsVariableWidthHistogramBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonAggregationsVariableWidthHistogramBucketFixed{CommonAggregationsVariableWidthHistogramBucket: v})
+	if err != nil {
+		return nil, err
+	}
+	if len(v.Aggregations) == 0 {
+		return fixed, nil
+	}
+	out := make(map[string]json.RawMessage, len(v.Aggregations))
+	if err := json.Unmarshal(fixed, &out); err != nil {
+		return nil, err
+	}
+	for k, val := range v.Aggregations {
+		if v.isFixedKey(k) {
+			continue
+		}
+		b := []byte(val.RawJSON())
+		if len(b) == 0 {
+			var err error
+			if b, err = json.Marshal(val); err != nil {
+				return nil, err
+			}
+		}
+		out[k] = b
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalJSON reads the fixed properties, then puts every other key in Aggregations.
+// A value the spec's types do not describe is kept as raw JSON rather than failing the
+// whole decode, so a query decodes and re-encodes unchanged.
+func (v *CommonAggregationsVariableWidthHistogramBucket) UnmarshalJSON(data []byte) error {
+	type CommonAggregationsVariableWidthHistogramBucketFixed struct {
+		CommonAggregationsVariableWidthHistogramBucket
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonAggregationsVariableWidthHistogramBucketFixed
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*v = p.CommonAggregationsVariableWidthHistogramBucket
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	v.Aggregations = nil
+	for k, r := range raw {
+		if v.isFixedKey(k) {
+			continue
+		}
+		var val CommonAggregationsAggregate
+		if err := json.Unmarshal(r, &val); err != nil {
+			val = CommonAggregationsAggregate{}
+			val.SetRaw(append(json.RawMessage(nil), r...))
+		}
+		if v.Aggregations == nil {
+			v.Aggregations = make(map[string]CommonAggregationsAggregate)
+		}
+		v.Aggregations[k] = val
+	}
+	return nil
 }
 
 type CommonAggregationsVariableWidthHistogramAggregate struct {
@@ -3523,8 +5315,12 @@ func (CommonQueryDSLTermsQuery) isFixedKey(k string) bool {
 
 // MarshalJSON writes the fixed properties and the Fields map as one object.
 func (v CommonQueryDSLTermsQuery) MarshalJSON() ([]byte, error) {
-	type CommonQueryDSLTermsQueryFixed CommonQueryDSLTermsQuery
-	fixed, err := json.Marshal(CommonQueryDSLTermsQueryFixed(v))
+	type CommonQueryDSLTermsQueryFixed struct {
+		CommonQueryDSLTermsQuery
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	fixed, err := json.Marshal(CommonQueryDSLTermsQueryFixed{CommonQueryDSLTermsQuery: v})
 	if err != nil {
 		return nil, err
 	}
@@ -3555,10 +5351,16 @@ func (v CommonQueryDSLTermsQuery) MarshalJSON() ([]byte, error) {
 // A value the spec's types do not describe is kept as raw JSON rather than failing the
 // whole decode, so a query decodes and re-encodes unchanged.
 func (v *CommonQueryDSLTermsQuery) UnmarshalJSON(data []byte) error {
-	type CommonQueryDSLTermsQueryFixed CommonQueryDSLTermsQuery
-	if err := json.Unmarshal(data, (*CommonQueryDSLTermsQueryFixed)(v)); err != nil {
+	type CommonQueryDSLTermsQueryFixed struct {
+		CommonQueryDSLTermsQuery
+		MarshalJSON   struct{} `json:"-"`
+		UnmarshalJSON struct{} `json:"-"`
+	}
+	var p CommonQueryDSLTermsQueryFixed
+	if err := json.Unmarshal(data, &p); err != nil {
 		return err
 	}
+	*v = p.CommonQueryDSLTermsQuery
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err

@@ -64,6 +64,7 @@ func (f *SiblingTypesFragment) Body() (string, error) {
 		Types: f.Types,
 	}
 
+	plan := extraKeysPlan(f.Types)
 	tmpl := template.Must(template.New("siblings").Funcs(template.FuncMap{
 		"comment":          CommentWrap,
 		"wrapField":        WrapField,
@@ -72,7 +73,8 @@ func (f *SiblingTypesFragment) Body() (string, error) {
 		"needsSep":         needsSepIR,
 		"qualify":          qualify,
 		"extraField":       func(t *ir.Type) string { return extraKeysField(t, qualify) },
-		"extraMethods":     func(t *ir.Type) string { return extraKeysMethods(t, qualify) },
+		"hasMethods":       func(t *ir.Type) bool { return plan[t] != nil },
+		"extraMethods":     func(t *ir.Type) string { return extraKeysMethods(t, plan[t], qualify) },
 	}).Parse(siblingTypesTmplStr))
 
 	var sb strings.Builder
@@ -112,7 +114,7 @@ type {{.Name}} struct {
 	{{extraField .}}
 {{- end}}
 }
-{{- if .ExtraKeys}}
+{{- if hasMethods .}}
 {{extraMethods .}}
 {{- end}}
 {{end}}`

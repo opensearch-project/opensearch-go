@@ -43,7 +43,8 @@ func TestSharedTypesFragment_ExtraKeysRawFallback(t *testing.T) {
 			body, err := frag.Body()
 			require.NoError(t, err)
 
-			require.Contains(t, body, "type TermsQueryFixed TermsQuery")
+			require.Contains(t, body, "type TermsQueryFixed struct {")
+			require.Contains(t, body, "MarshalJSON   struct{}")
 			require.NotContains(t, body, "type plain ")
 			require.Equal(t, tt.rawValue, strings.Contains(body, "val.SetRaw("))
 			require.Equal(t, tt.rawValue, strings.Contains(body, "val.RawJSON()"))
@@ -77,4 +78,59 @@ func TestSharedTypesFragment_ExtraKeys(t *testing.T) {
 	require.Contains(t, body, "strings.EqualFold(k, fixed)")
 	require.Equal(t, 2, strings.Count(body, "if v.isFixedKey(k) {"))
 	require.Equal(t, []emit.Import{{Path: emit.JSONImportPath, Alias: "json"}, {Path: "strings"}}, frag.Imports())
+}
+
+func TestSharedTypesFragment_ExtraKeysEmbedders(t *testing.T) {
+	t.Parallel()
+
+	base := func() *ir.Type {
+		return &ir.Type{
+			Name: "Base", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+			Fields:    []ir.Field{{GoName: "DocCount", JSONName: "doc_count", GoType: "int64"}},
+			ExtraKeys: &ir.ExtraKeys{GoName: "Aggregations", ValueType: "Agg", Known: []string{"doc_count"}, RawValue: true},
+		}
+	}
+	mid := &ir.Type{
+		Name: "Mid", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+		Fields: []ir.Field{{GoType: "Base", IsEmbed: true}, {GoName: "Err", JSONName: "err", GoType: "int64"}},
+	}
+	leaf := &ir.Type{
+		Name: "Leaf", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+		Fields: []ir.Field{{GoType: "Mid", IsEmbed: true}, {GoName: "Key", JSONName: "key", GoType: "string"}},
+	}
+	other := &ir.Type{
+		Name: "Other", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+		Fields: []ir.Field{{GoName: "Name", JSONName: "name", GoType: "string"}},
+	}
+
+	body, err := (&emit.SharedTypesFragment{Types: []*ir.Type{base(), mid, leaf, other}}).Body()
+	require.NoError(t, err)
+
+	for _, name := range []string{"Base", "Mid", "Leaf"} {
+		require.Contains(t, body, "func (v "+name+") MarshalJSON() ([]byte, error)")
+		require.Contains(t, body, "func (v *"+name+") UnmarshalJSON(data []byte) error")
+	}
+	require.Contains(t, body, `[...]string{"doc_count"}`)
+	require.Contains(t, body, `[...]string{"doc_count", "err"}`)
+	require.Contains(t, body, `[...]string{"doc_count", "err", "key"}`)
+	require.NotContains(t, body, "func (v Other) MarshalJSON")
+	require.NotContains(t, body, "func (v *Other) UnmarshalJSON")
+}
+
+func TestSharedTypesFragment_ExtraKeysEmbedCyclePanics(t *testing.T) {
+	t.Parallel()
+
+	a := &ir.Type{Name: "A", Kind: ir.TypeStruct, Scope: ir.ScopeShared, Fields: []ir.Field{{GoType: "B", IsEmbed: true}}}
+	b := &ir.Type{
+		Name: "B", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+		Fields: []ir.Field{{GoType: "A", IsEmbed: true}, {GoType: "C", IsEmbed: true}},
+	}
+	c := &ir.Type{
+		Name: "C", Kind: ir.TypeStruct, Scope: ir.ScopeShared,
+		ExtraKeys: &ir.ExtraKeys{GoName: "Aggregations", ValueType: "Agg"},
+	}
+
+	require.Panics(t, func() {
+		_, _ = (&emit.SharedTypesFragment{Types: []*ir.Type{a, b, c}}).Body()
+	})
 }

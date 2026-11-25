@@ -8,6 +8,8 @@ package emit
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -30,12 +32,13 @@ func extraKeysField(t *ir.Type, qualify func(string) string) string {
 	return fmt.Sprintf("// %s %s\n\t%s map[string]%s `json:\"-\"`", x.GoName, doc, x.GoName, qualify(x.ValueType))
 }
 
-// extraKeysMethods renders MarshalJSON and UnmarshalJSON for a struct with an
-// extra-keys map. Fixed properties go through an alias type so the methods do
-// not recurse and embedded types keep their own handling; every other key
-// belongs to the map.
-func extraKeysMethods(t *ir.Type, qualify func(string) string) string {
-	x := t.ExtraKeys
+// extraKeysMethods renders MarshalJSON and UnmarshalJSON for a struct that
+// declares an extra-keys map or embeds a type that does; x is the resolved
+// description (see extraKeysPlan). Fixed properties go through a wrapper struct
+// whose MarshalJSON and UnmarshalJSON fields hide the methods an embedded type
+// promotes, so the methods neither recurse nor hand the whole object to an
+// embedded type's methods; every other key belongs to the map.
+func extraKeysMethods(t *ir.Type, x *ir.ExtraKeys, qualify func(string) string) string {
 	valType := qualify(x.ValueType)
 
 	quoted := make([]string, len(x.Known))
@@ -83,8 +86,12 @@ func (%[1]s) isFixedKey(k string) bool {
 
 // MarshalJSON writes the fixed properties and the %[3]s map as one object.
 func (v %[1]s) MarshalJSON() ([]byte, error) {
-	type %[1]sFixed %[1]s
-	fixed, err := json.Marshal(%[1]sFixed(v))
+	type %[1]sFixed struct {
+		%[1]s
+		MarshalJSON   struct{} `+"`json:\"-\"`"+`
+		UnmarshalJSON struct{} `+"`json:\"-\"`"+`
+	}
+	fixed, err := json.Marshal(%[1]sFixed{%[1]s: v})
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +114,16 @@ func (v %[1]s) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON reads the fixed properties, then puts every other key in %[3]s.%[7]s
 func (v *%[1]s) UnmarshalJSON(data []byte) error {
-	type %[1]sFixed %[1]s
-	if err := json.Unmarshal(data, (*%[1]sFixed)(v)); err != nil {
+	type %[1]sFixed struct {
+		%[1]s
+		MarshalJSON   struct{} `+"`json:\"-\"`"+`
+		UnmarshalJSON struct{} `+"`json:\"-\"`"+`
+	}
+	var p %[1]sFixed
+	if err := json.Unmarshal(data, &p); err != nil {
 		return err
 	}
+	*v = p.%[1]s
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -132,12 +145,67 @@ func (v *%[1]s) UnmarshalJSON(data []byte) error {
 `, t.Name, valType, x.GoName, strings.Join(quoted, ", "), encodeVal, decodeVal, rawDoc)
 }
 
-// hasExtraKeys reports whether any type in ts carries an extra-keys map.
-func hasExtraKeys(ts []*ir.Type) bool {
+// maxEmbedDepth bounds an embed chain. A chain this deep means the IR holds an
+// embed cycle.
+const maxEmbedDepth = 16
+
+// extraKeysPlan maps each type in ts that declares or embeds (transitively) a type
+// with an extra-keys map to the description its methods are rendered from. The map
+// itself lives on the declaring type; an embedder promotes it. An embedder's known
+// keys are the JSON names of its whole embed chain, because the promoted methods
+// would otherwise see only the embedded part. Embedded types resolve by name among
+// ts; once a chain reaches an extra-keys type, an embed that does not resolve
+// panics, as a truncated key list would collect a named field into the map.
+func extraKeysPlan(ts []*ir.Type) map[*ir.Type]*ir.ExtraKeys {
+	byName := make(map[string]*ir.Type, len(ts))
+	for _, t := range ts {
+		byName[t.Name] = t
+	}
+	plan := make(map[*ir.Type]*ir.ExtraKeys)
 	for _, t := range ts {
 		if t.ExtraKeys != nil {
-			return true
+			plan[t] = t.ExtraKeys
+			continue
 		}
+		var base *ir.ExtraKeys
+		known := make(map[string]struct{})
+		unresolved := ""
+		var walk func(t *ir.Type, depth int)
+		walk = func(t *ir.Type, depth int) {
+			if depth > maxEmbedDepth {
+				panic(fmt.Sprintf("extraKeysPlan: embed chain of %s exceeds %d levels (embed cycle?)", t.Name, maxEmbedDepth))
+			}
+			for _, f := range t.Fields {
+				if !f.IsEmbed {
+					known[f.JSONName] = struct{}{}
+					continue
+				}
+				emb, ok := byName[embedFieldName(f.GoType)]
+				if !ok {
+					unresolved = f.GoType
+					continue
+				}
+				if emb.ExtraKeys != nil && base == nil {
+					base = emb.ExtraKeys
+				}
+				walk(emb, depth+1)
+			}
+		}
+		walk(t, 0)
+		if base == nil {
+			continue
+		}
+		if unresolved != "" {
+			panic(fmt.Sprintf("extraKeysPlan: %s embeds %s, which is not among the fragment's types", t.Name, unresolved))
+		}
+		x := *base
+		x.Known = slices.Sorted(maps.Keys(known))
+		plan[t] = &x
 	}
-	return false
+	return plan
+}
+
+// hasExtraKeys reports whether any type in ts gets extra-keys methods.
+func hasExtraKeys(ts []*ir.Type) bool {
+	return len(extraKeysPlan(ts)) > 0
 }

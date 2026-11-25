@@ -1612,3 +1612,74 @@ func TestWalkerExtraKeys(t *testing.T) {
 		})
 	}
 }
+
+func TestWalkerExtraKeysAggregate(t *testing.T) {
+	t.Parallel()
+
+	aggRef := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Ref: aggregateSchemaRef, Value: openapi3.NewObjectSchema()}
+	}
+	bucket := func() *openapi3.Schema {
+		s := openapi3.NewObjectSchema()
+		s.Properties = openapi3.Schemas{"doc_count": &openapi3.SchemaRef{Value: openapi3.NewInt64Schema()}}
+		return s
+	}
+
+	tests := []struct {
+		name   string
+		schema func() *openapi3.Schema
+		want   bool
+	}{
+		{
+			name: "additionalProperties of Aggregate",
+			schema: func() *openapi3.Schema {
+				s := bucket()
+				s.AdditionalProperties = openapi3.AdditionalProperties{Schema: aggRef()}
+				return s
+			},
+			want: true,
+		},
+		{
+			name: "unevaluatedProperties of Aggregate on an allOf",
+			schema: func() *openapi3.Schema {
+				s := &openapi3.Schema{AllOf: openapi3.SchemaRefs{{Value: bucket()}}}
+				s.UnevaluatedProperties = openapi3.BoolSchema{Schema: aggRef()}
+				return s
+			},
+			want: true,
+		},
+		{
+			name: "additionalProperties of another schema without propertyNames",
+			schema: func() *openapi3.Schema {
+				s := bucket()
+				s.AdditionalProperties = openapi3.AdditionalProperties{
+					Schema: &openapi3.SchemaRef{Ref: "#/components/schemas/_common___Other", Value: openapi3.NewObjectSchema()},
+				}
+				return s
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(set[string])}
+
+			name := w.walkSchema(&openapi3.SchemaRef{Value: tt.schema()}, "test___Bucket", "test", false)
+			registered, ok := reg.lookupByName(name)
+			require.True(t, ok)
+
+			if !tt.want {
+				require.Nil(t, registered.ExtraKeys)
+				return
+			}
+			require.NotNil(t, registered.ExtraKeys)
+			require.Equal(t, "Aggregations", registered.ExtraKeys.GoName)
+			require.Equal(t, "CommonAggregationsAggregate", registered.ExtraKeys.ValueType)
+			require.True(t, registered.ExtraKeys.RawValue)
+			require.Equal(t, []string{"doc_count"}, registered.ExtraKeys.Known)
+		})
+	}
+}

@@ -40,8 +40,17 @@ func (f *SharedTypesFragment) Body() (string, error) {
 		return "", nil
 	}
 
+	plan := extraKeysPlan(f.Types)
+	tmpl, err := sharedTypesFmtTmpl.Clone()
+	if err != nil {
+		return "", fmt.Errorf("rendering SharedTypesFragment: %w", err)
+	}
+	tmpl.Funcs(template.FuncMap{
+		"hasMethods":   func(t *ir.Type) bool { return plan[t] != nil },
+		"extraMethods": func(t *ir.Type) string { return extraKeysMethods(t, plan[t], identity) },
+	})
 	var sb strings.Builder
-	if err := sharedTypesFmtTmpl.Execute(&sb, f.Types); err != nil {
+	if err := tmpl.Execute(&sb, f.Types); err != nil {
 		return "", fmt.Errorf("rendering SharedTypesFragment: %w", err)
 	}
 	return sb.String(), nil
@@ -55,7 +64,8 @@ var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(templat
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
 	"extraField":       func(t *ir.Type) string { return extraKeysField(t, identity) },
-	"extraMethods":     func(t *ir.Type) string { return extraKeysMethods(t, identity) },
+	"hasMethods":       func(*ir.Type) bool { return false },
+	"extraMethods":     func(*ir.Type) string { return "" },
 }).Parse(`{{range .}}
 {{- if .Comment}}
 {{comment .Comment}}
@@ -85,7 +95,7 @@ type {{.Name}} struct {
 	{{extraField .}}
 {{- end}}
 }
-{{- if .ExtraKeys}}
+{{- if hasMethods .}}
 {{extraMethods .}}
 {{- end}}
 {{end}}`))
