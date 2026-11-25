@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -80,6 +80,19 @@ type CatTasksParams struct {
 	// Default: false.
 	Detailed *bool
 
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
+
 	// A comma-separated list of node IDs or names used to limit the returned
 	// information. Use `_local` to return information from the node to which
 	// you're connecting, specify a specific node from which to get
@@ -90,10 +103,20 @@ type CatTasksParams struct {
 	// The parent task identifier, which is used to limit the response.
 	ParentTaskID string
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatTasksParams) get() map[string]string {
@@ -111,23 +134,43 @@ func (r CatTasksParams) get() map[string]string {
 	}
 
 	if len(r.Actions) > 0 {
-		set("actions", strings.Join(r.Actions, ","))
+		set("actions", apiutil.JoinStrings(r.Actions, ","))
 	}
 
 	if r.Detailed != nil {
 		set("detailed", strconv.FormatBool(*r.Detailed))
 	}
 
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
+	}
+
 	if len(r.Nodes) > 0 {
-		set("nodes", strings.Join(r.Nodes, ","))
+		set("nodes", apiutil.JoinStrings(r.Nodes, ","))
 	}
 
 	if r.ParentTaskID != "" {
 		set("parent_task_id", r.ParentTaskID)
 	}
 
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
+	}
+
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

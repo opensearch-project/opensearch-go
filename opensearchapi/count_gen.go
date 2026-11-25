@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -111,14 +111,17 @@ type CountParams struct {
 	// The default operator for query string query: `AND` or `OR`. This
 	// parameter can only be used when the `q` query string parameter is
 	// specified.
-	DefaultOperator string
+	//
+	// See [CommonQueryDSLOperator] for valid values.
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string. This parameter can only be used when the `q` query string
 	// parameter is specified.
 	Df string
 
-	ExpandWildcards []string
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, concrete, expanded or aliased indexes are ignored when
 	// frozen.
@@ -178,7 +181,7 @@ func (r CountParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -186,7 +189,7 @@ func (r CountParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.IgnoreThrottled != nil {
@@ -214,7 +217,7 @@ func (r CountParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.TerminateAfter != 0 {

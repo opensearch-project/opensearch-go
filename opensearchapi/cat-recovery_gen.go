@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -81,22 +81,47 @@ type CatRecoveryParams struct {
 	ActiveOnly *bool
 
 	// The units used to display byte values.
-	Bytes string
+	//
+	// See [ByteUnit] for valid values.
+	Bytes ByteUnit
 
 	// When `true`, includes detailed information about shard recoveries.
 	//
 	// Default: false.
 	Detailed *bool
 
+	// A short version of the `Accept` header, such as `json` or `yaml`.
+	//
+	// See [CatRespFormat] for valid values.
+	Format CatRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Returns help information.
+	//
+	// Default: false.
+	Help *bool
+
 	// A comma-separated list of data streams, indexes, and aliases used to
 	// limit the request. Supports wildcards (`*`). To target all data streams
 	// and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
+	//
+	// See [TimeUnit] for valid values.
 	Time TimeUnit
+
+	// Enables verbose mode, which displays column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r CatRecoveryParams) get() map[string]string {
@@ -118,19 +143,39 @@ func (r CatRecoveryParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if r.Detailed != nil {
 		set("detailed", strconv.FormatBool(*r.Detailed))
 	}
 
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
+	}
+
 	if len(r.Indices) > 0 {
-		set("index", strings.Join(r.Indices, ","))
+		set("index", apiutil.JoinStrings(r.Indices, ","))
+	}
+
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
 	}
 
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

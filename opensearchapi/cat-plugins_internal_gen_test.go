@@ -25,6 +25,26 @@ func TestCatPluginsParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatPluginsParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatPluginsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatPluginsParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatPluginsParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatPluginsParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatPluginsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -33,6 +53,21 @@ func TestCatPluginsParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatPluginsParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatPluginsParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatPluginsParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatPluginsParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

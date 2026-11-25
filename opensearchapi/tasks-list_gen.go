@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -78,7 +78,9 @@ type TasksListParams struct {
 	// Groups tasks by parent/child relationships or nodes.
 	//
 	// Default: nodes.
-	GroupBy string
+	//
+	// See [TasksGroupBy] for valid values.
+	GroupBy TasksGroupBy
 
 	// A comma-separated list of node IDs or names used to limit the returned
 	// information. Use `_local` to return information from the node you're
@@ -109,7 +111,7 @@ func (r TasksListParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.Actions) > 0 {
-		set("actions", strings.Join(r.Actions, ","))
+		set("actions", apiutil.JoinStrings(r.Actions, ","))
 	}
 
 	if r.Detailed != nil {
@@ -117,11 +119,11 @@ func (r TasksListParams) get() map[string]string {
 	}
 
 	if r.GroupBy != "" {
-		set("group_by", r.GroupBy)
+		set("group_by", string(r.GroupBy))
 	}
 
 	if len(r.Nodes) > 0 {
-		set("nodes", strings.Join(r.Nodes, ","))
+		set("nodes", apiutil.JoinStrings(r.Nodes, ","))
 	}
 
 	if r.ParentTaskID != "" {

@@ -36,7 +36,7 @@ func TestIndicesShardStoresParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesShardStoresParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesShardStoresParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

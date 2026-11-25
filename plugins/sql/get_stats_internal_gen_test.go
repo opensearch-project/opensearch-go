@@ -25,6 +25,11 @@ func TestGetStatsParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: GetStatsParams{}, want: map[string]string{"format": "jdbc"}},
 		{
+			name:   "format",
+			params: GetStatsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
 			name:   "sanitize=true",
 			params: GetStatsParams{Sanitize: new(true)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "true"},

@@ -36,7 +36,7 @@ func TestIndicesDeleteParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesDeleteParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesDeleteParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

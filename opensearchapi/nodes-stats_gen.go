@@ -15,9 +15,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -103,7 +103,9 @@ type NodesStatsParams struct {
 
 	// Indicates whether statistics are aggregated at the cluster, index, or
 	// shard level.
-	Level string
+	//
+	// See [Level] for valid values.
+	Level Level
 
 	// A comma-separated list of document types for the indexing index metric.
 	Types []string
@@ -121,19 +123,19 @@ func (r NodesStatsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.CompletionFields) > 0 {
-		set("completion_fields", strings.Join(r.CompletionFields, ","))
+		set("completion_fields", apiutil.JoinStrings(r.CompletionFields, ","))
 	}
 
 	if len(r.FielddataFields) > 0 {
-		set("fielddata_fields", strings.Join(r.FielddataFields, ","))
+		set("fielddata_fields", apiutil.JoinStrings(r.FielddataFields, ","))
 	}
 
 	if len(r.Fields) > 0 {
-		set("fields", strings.Join(r.Fields, ","))
+		set("fields", apiutil.JoinStrings(r.Fields, ","))
 	}
 
 	if len(r.Groups) > 0 {
-		set("groups", strings.Join(r.Groups, ","))
+		set("groups", apiutil.JoinStrings(r.Groups, ","))
 	}
 
 	if r.IncludeSegmentFileSizes != nil {
@@ -141,11 +143,11 @@ func (r NodesStatsParams) get() map[string]string {
 	}
 
 	if r.Level != "" {
-		set("level", r.Level)
+		set("level", string(r.Level))
 	}
 
 	if len(r.Types) > 0 {
-		set("types", strings.Join(r.Types, ","))
+		set("types", apiutil.JoinStrings(r.Types, ","))
 	}
 
 	return params

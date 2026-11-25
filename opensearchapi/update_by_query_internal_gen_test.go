@@ -82,7 +82,7 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: UpdateByQueryParams{ExpandWildcards: []string{"a", "b"}},
+			params: UpdateByQueryParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

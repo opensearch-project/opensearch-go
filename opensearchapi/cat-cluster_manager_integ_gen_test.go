@@ -27,7 +27,7 @@ func TestCatClusterManager(t *testing.T) {
 	testutil.SkipIfVersion(t, client, "<", "2.0", "CatClusterManager")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.ClusterManager(t.Context(), &opensearchapi.CatClusterManagerReq{Params: &opensearchapi.CatClusterManagerParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.ClusterManager(t.Context(), &opensearchapi.CatClusterManagerReq{Params: &opensearchapi.CatClusterManagerParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

@@ -50,14 +50,49 @@ func TestCatRecoveryParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "detailed": "false"},
 		},
 		{
+			name:   "format",
+			params: CatRecoveryParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatRecoveryParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatRecoveryParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatRecoveryParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "index",
 			params: CatRecoveryParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"format": "json", "index": "a,b"},
 		},
 		{
+			name:   "s",
+			params: CatRecoveryParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "time",
 			params: CatRecoveryParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: CatRecoveryParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatRecoveryParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

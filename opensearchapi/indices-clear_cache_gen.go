@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -82,7 +82,9 @@ type IndicesClearCacheParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, clears the fields cache. Use the `fields` parameter to clear
 	// the cache of specific fields only.
@@ -131,7 +133,7 @@ func (r IndicesClearCacheParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.Fielddata != nil {
@@ -139,7 +141,7 @@ func (r IndicesClearCacheParams) get() map[string]string {
 	}
 
 	if len(r.Fields) > 0 {
-		set("fields", strings.Join(r.Fields, ","))
+		set("fields", apiutil.JoinStrings(r.Fields, ","))
 	}
 
 	if r.File != nil {
@@ -151,7 +153,7 @@ func (r IndicesClearCacheParams) get() map[string]string {
 	}
 
 	if len(r.Indices) > 0 {
-		set("index", strings.Join(r.Indices, ","))
+		set("index", apiutil.JoinStrings(r.Indices, ","))
 	}
 
 	if r.Query != nil {

@@ -14,11 +14,11 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -113,7 +113,9 @@ type SearchTemplateParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, the response includes additional details about score
 	// computation as part of a hit.
@@ -158,6 +160,8 @@ type SearchTemplateParams struct {
 	SearchPipeline string
 
 	// The type of the search operation.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// If `true`, the response prefixes aggregation and suggester names with
@@ -185,7 +189,7 @@ func (r SearchTemplateParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.Explain != nil {
@@ -217,7 +221,7 @@ func (r SearchTemplateParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.Scroll != 0 {

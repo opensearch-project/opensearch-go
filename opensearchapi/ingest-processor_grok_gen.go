@@ -13,6 +13,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
@@ -63,6 +64,10 @@ func (r IngestProcessorGrokReq) GetRequest(method string) (*http.Request, error)
 type IngestProcessorGrokParams struct {
 	TimeoutParams
 	DebugParams
+	// Determines how to sort returned grok patterns by key name.
+	//
+	// Default: false.
+	S *bool
 }
 
 func (r IngestProcessorGrokParams) get() map[string]string {
@@ -75,6 +80,10 @@ func (r IngestProcessorGrokParams) get() map[string]string {
 	}
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
+
+	if r.S != nil {
+		set("s", strconv.FormatBool(*r.S))
+	}
 
 	return params
 }

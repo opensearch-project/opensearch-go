@@ -69,6 +69,11 @@ func (r GetStatsReq) GetRequest(method string) (*http.Request, error) {
 type GetStatsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
+	// Specifies the response format (JSON or YAML).
+	//
+	// See [opensearchapi.SQLRespFormat] for valid values.
+	Format opensearchapi.SQLRespFormat
+
 	// Whether to escape special characters in the results.
 	//
 	// Default: true.
@@ -87,6 +92,10 @@ func (r GetStatsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 	if r.Format == "" {
 		set("format", "jdbc")
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
 	}
 
 	if r.Sanitize != nil {

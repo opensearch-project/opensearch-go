@@ -30,6 +30,26 @@ func TestShardsParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "bytes": "test-value"},
 		},
 		{
+			name:   "format",
+			params: ShardsParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: ShardsParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: ShardsParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: ShardsParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: ShardsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -45,6 +65,11 @@ func TestShardsParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "next_token": "test-value"},
 		},
 		{
+			name:   "s",
+			params: ShardsParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "size",
 			params: ShardsParams{Size: 42},
 			want:   map[string]string{"format": "json", "size": "42"},
@@ -58,6 +83,16 @@ func TestShardsParams_get(t *testing.T) {
 			name:   "time",
 			params: ShardsParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: ShardsParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: ShardsParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

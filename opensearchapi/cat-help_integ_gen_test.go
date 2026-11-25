@@ -15,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v5/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 )
@@ -27,7 +26,7 @@ func TestCatHelp(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Help(t.Context(), &opensearchapi.CatHelpReq{Params: &opensearchapi.CatHelpParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.Help(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

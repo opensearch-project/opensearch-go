@@ -26,7 +26,7 @@ func TestCatAliases(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Aliases(t.Context(), &opensearchapi.CatAliasesReq{Params: &opensearchapi.CatAliasesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.Aliases(t.Context(), &opensearchapi.CatAliasesReq{Params: &opensearchapi.CatAliasesParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

@@ -15,11 +15,11 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -162,7 +162,9 @@ type SearchParams struct {
 
 	// The default operator for query string query: AND or OR. This parameter
 	// can only be used when the `q` query string parameter is specified.
-	DefaultOperator string
+	//
+	// See [CommonQueryDSLOperator] for valid values.
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string. This parameter can only be used when the q query string
@@ -177,7 +179,9 @@ type SearchParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, returns detailed information about score computation as part
 	// of a hit.
@@ -289,6 +293,8 @@ type SearchParams struct {
 	SearchPipeline string
 
 	// How distributed term frequencies are calculated for relevance scoring.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// If `true`, returns sequence number and primary term of the last
@@ -321,7 +327,9 @@ type SearchParams struct {
 	// Specifies the suggest mode. This parameter can only be used when the
 	// `suggest_field` and `suggest_text` query string parameters are
 	// specified.
-	SuggestMode string
+	//
+	// See [SuggestMode] for valid values.
+	SuggestMode SuggestMode
 
 	// Number of suggestions to return. This parameter can only be used when
 	// the `suggest_field` and `suggest_text` query string parameters are
@@ -388,11 +396,11 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if len(r.SourceExcludes) > 0 {
-		set("_source_excludes", strings.Join(r.SourceExcludes, ","))
+		set("_source_excludes", apiutil.JoinStrings(r.SourceExcludes, ","))
 	}
 
 	if len(r.SourceIncludes) > 0 {
-		set("_source_includes", strings.Join(r.SourceIncludes, ","))
+		set("_source_includes", apiutil.JoinStrings(r.SourceIncludes, ","))
 	}
 
 	if r.AllowNoIndices != nil {
@@ -424,7 +432,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -432,11 +440,11 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if len(r.DocvalueFields) > 0 {
-		set("docvalue_fields", strings.Join(r.DocvalueFields, ","))
+		set("docvalue_fields", apiutil.JoinStrings(r.DocvalueFields, ","))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.Explain != nil {
@@ -460,7 +468,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if len(r.Indices) > 0 {
-		set("index", strings.Join(r.Indices, ","))
+		set("index", apiutil.JoinStrings(r.Indices, ","))
 	}
 
 	if r.Lenient != nil {
@@ -496,7 +504,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.Scroll != 0 {
@@ -520,15 +528,15 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if len(r.Sort) > 0 {
-		set("sort", strings.Join(r.Sort, ","))
+		set("sort", apiutil.JoinStrings(r.Sort, ","))
 	}
 
 	if len(r.Stats) > 0 {
-		set("stats", strings.Join(r.Stats, ","))
+		set("stats", apiutil.JoinStrings(r.Stats, ","))
 	}
 
 	if len(r.StoredFields) > 0 {
-		set("stored_fields", strings.Join(r.StoredFields, ","))
+		set("stored_fields", apiutil.JoinStrings(r.StoredFields, ","))
 	}
 
 	if r.SuggestField != "" {
@@ -536,7 +544,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.SuggestMode != "" {
-		set("suggest_mode", r.SuggestMode)
+		set("suggest_mode", string(r.SuggestMode))
 	}
 
 	if r.SuggestSize != 0 {

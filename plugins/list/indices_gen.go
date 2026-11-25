@@ -13,9 +13,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -75,14 +75,33 @@ type IndicesParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The unit used to display byte values.
-	Bytes string
+	//
+	// See [opensearchapi.ByteUnit] for valid values.
+	Bytes opensearchapi.ByteUnit
 
 	// The type of index that wildcard patterns can match.
-	ExpandWildcards []string
+	//
+	// See [opensearchapi.ExpandWildcard] for valid values.
+	ExpandWildcards []opensearchapi.ExpandWildcard
+
+	// A short version of the Accept header, such as `JSON`, `YAML`.
+	//
+	// See [opensearchapi.ListRespFormat] for valid values.
+	Format opensearchapi.ListRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
 
 	// The health status used to limit returned indexes. By default, the
 	// response includes indexes of any health status.
-	Health string
+	//
+	// See [opensearchapi.HealthStatus] for valid values.
+	Health opensearchapi.HealthStatus
+
+	// Return help information.
+	//
+	// Default: false.
+	Help *bool
 
 	// If `true`, the response includes information from segments that are not
 	// loaded into memory.
@@ -104,16 +123,28 @@ type IndicesParams struct {
 	// Default: false.
 	Pri *bool
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// Maximum number of indexes to be displayed in a page.
 	Size int
 
 	// Defines order in which indexes will be displayed. Accepted values are
 	// `asc` and `desc`. If `desc`, most recently created indexes would be
 	// displayed first.
-	Sort string
+	//
+	// See [opensearchapi.SortOrder] for valid values.
+	Sort opensearchapi.SortOrder
 
 	// The unit used to display time values.
+	//
+	// See [opensearchapi.TimeUnit] for valid values.
 	Time opensearchapi.TimeUnit
+
+	// Verbose mode. Display column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r IndicesParams) get() map[string]string {
@@ -131,15 +162,27 @@ func (r IndicesParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
 	}
 
 	if r.Health != "" {
-		set("health", r.Health)
+		set("health", string(r.Health))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
 	}
 
 	if r.IncludeUnloadedSegments != nil {
@@ -158,16 +201,24 @@ func (r IndicesParams) get() map[string]string {
 		set("pri", strconv.FormatBool(*r.Pri))
 	}
 
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
+	}
+
 	if r.Size != 0 {
 		set("size", strconv.Itoa(r.Size))
 	}
 
 	if r.Sort != "" {
-		set("sort", r.Sort)
+		set("sort", string(r.Sort))
 	}
 
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

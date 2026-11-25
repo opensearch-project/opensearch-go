@@ -36,7 +36,7 @@ func TestIndicesFlushParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesFlushParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesFlushParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

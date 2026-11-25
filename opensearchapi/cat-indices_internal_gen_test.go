@@ -31,13 +31,33 @@ func TestCatIndicesParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: CatIndicesParams{ExpandWildcards: []string{"a", "b"}},
+			params: CatIndicesParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"format": "json", "expand_wildcards": "a,b"},
+		},
+		{
+			name:   "format",
+			params: CatIndicesParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatIndicesParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
 		},
 		{
 			name:   "health",
 			params: CatIndicesParams{Health: "test-value"},
 			want:   map[string]string{"format": "json", "health": "test-value"},
+		},
+		{
+			name:   "help=true",
+			params: CatIndicesParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatIndicesParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
 		},
 		{
 			name:   "include_unloaded_segments=true",
@@ -70,9 +90,24 @@ func TestCatIndicesParams_get(t *testing.T) {
 			want:   map[string]string{"format": "json", "pri": "false"},
 		},
 		{
+			name:   "s",
+			params: CatIndicesParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "time",
 			params: CatIndicesParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
+		},
+		{
+			name:   "v=true",
+			params: CatIndicesParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatIndicesParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

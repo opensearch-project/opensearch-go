@@ -13,9 +13,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -97,7 +97,9 @@ type GetConfigsParams struct {
 	ConfigIDList []string
 
 	// Type of notification configuration.
-	ConfigType string
+	//
+	// See [opensearchapi.NotificationsNotificationConfigType] for valid values.
+	ConfigType opensearchapi.NotificationsNotificationConfigType
 
 	CreatedTimeMs int
 
@@ -194,11 +196,11 @@ func (r GetConfigsParams) get() map[string]string {
 	}
 
 	if len(r.ConfigIDList) > 0 {
-		set("config_id_list", strings.Join(r.ConfigIDList, ","))
+		set("config_id_list", apiutil.JoinStrings(r.ConfigIDList, ","))
 	}
 
 	if r.ConfigType != "" {
-		set("config_type", r.ConfigType)
+		set("config_type", string(r.ConfigType))
 	}
 
 	if r.CreatedTimeMs != 0 {

@@ -912,7 +912,7 @@ These can never legitimately serve a fresh GET, and they score worse than any he
 **If you need read-your-writes on a segrep index:**
 
 1. Use `?preference=_primary` on the GET / `_mget` to pin the read to the primary shard. The primary always has the latest acked write regardless of replication model.
-2. Use `?refresh=true` (or `wait_for`) on the _write_ to force a refresh and segment copy before the write returns. Expensive on hot indices.
+2. Set `Refresh` on the _write_ to `opensearchapi.RefreshWaitFor`, or to `opensearchapi.RefreshTrue` on a low-traffic index. See [`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) for how they differ.
 3. Switch the index to document replication if read-your-writes correctness matters more than indexing throughput on that index.
 
 Option 1 is the lightest -- it only redirects the read; it doesn't force a refresh and doesn't change index settings. The router honors `preference=_primary` by treating it as the same shard-exact lookup but restricting the candidate set to the primary-hosting node before scoring.

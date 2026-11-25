@@ -26,7 +26,7 @@ func TestCatAllocation(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Allocation(t.Context(), &opensearchapi.CatAllocationReq{Params: &opensearchapi.CatAllocationParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.Allocation(t.Context(), &opensearchapi.CatAllocationReq{Params: &opensearchapi.CatAllocationParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

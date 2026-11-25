@@ -679,13 +679,6 @@ func TestMGetDirectLeavesRequestsItCannotSplitToTheCluster(t *testing.T) {
 				Params: &MGetParams{DebugParams: DebugParams{Source: `{"docs":[{"_index":"idx","_id":"d0"}]}`}},
 			},
 		},
-		{
-			name: "a format",
-			req: MGetReq{
-				Body:   &MGetBody{Docs: mgetDocs("idx", "d0", "d1")},
-				Params: &MGetParams{DebugParams: DebugParams{Format: "yaml"}},
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

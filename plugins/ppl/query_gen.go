@@ -91,6 +91,11 @@ func (r QueryReq) GetRequest(method string) (*http.Request, error) {
 type QueryParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
+	// Specifies the response format (JSON OR YAML).
+	//
+	// See [opensearchapi.PPLRespFormat] for valid values.
+	Format opensearchapi.PPLRespFormat
+
 	// Whether to sanitize special characters in the results.
 	//
 	// Default: true.
@@ -109,6 +114,10 @@ func (r QueryParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 	if r.Format == "" {
 		set("format", "jdbc")
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
 	}
 
 	if r.Sanitize != nil {

@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -92,7 +92,9 @@ type CreateParams struct {
 	// operation visible to search, if `wait_for` then wait for a refresh to
 	// make this operation visible to search, if `false` do nothing with
 	// refreshes. Valid values: `true`, `false`, `wait_for`.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// A custom value used to route operations to a specific shard.
 	Routing []string
@@ -103,12 +105,16 @@ type CreateParams struct {
 	Version *int
 
 	// The specific version type: `external`, `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
 	// number of shards in the index (`number_of_replicas+1`).
-	WaitForActiveShards string
+	//
+	// See [WaitForActiveShards] for valid values.
+	WaitForActiveShards WaitForActiveShards
 }
 
 func (r CreateParams) get() map[string]string {
@@ -127,11 +133,11 @@ func (r CreateParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.Version != nil {
@@ -143,7 +149,7 @@ func (r CreateParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	return params

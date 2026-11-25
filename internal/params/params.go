@@ -16,16 +16,22 @@ import (
 // TimeoutParams holds timeout parameters shared across many operations.
 type TimeoutParams struct {
 	// Timeout is the operation timeout (e.g. how long to wait for a response).
+	// A negative value sends -1 (see opensearchapi.DurationUnbounded); zero
+	// leaves the parameter unset.
 	Timeout time.Duration
 
 	// ClusterManagerTimeout is how long to wait for a connection to the cluster manager.
+	// A negative value sends -1; zero leaves the parameter unset.
 	ClusterManagerTimeout time.Duration
 
 	// MasterTimeout is the deprecated alias for ClusterManagerTimeout (pre-2.0 clusters).
+	// A negative value sends -1; zero leaves the parameter unset.
 	MasterTimeout time.Duration
 }
 
-// DebugParams holds diagnostic and display parameters.
+// DebugParams holds the diagnostic parameters every operation accepts (the
+// spec's global parameters). Display parameters such as format, h and v are
+// fields of the operations that take them.
 type DebugParams struct {
 	// Pretty enables indented JSON responses for debugging readability.
 	Pretty bool
@@ -41,21 +47,6 @@ type DebugParams struct {
 
 	// Source provides an alternative way to pass the request body as a query parameter.
 	Source string
-
-	// Format controls the output format (used by cat operations).
-	Format string
-
-	// Help returns help information about the operation (used by cat operations).
-	Help bool
-
-	// V enables verbose output (used by cat operations).
-	V bool
-
-	// S specifies the columns used for sorting output (used by cat operations).
-	S []string
-
-	// H specifies which columns to display in the output (used by cat operations).
-	H []string
 }
 
 // EncodeTimeout serializes non-zero timeout fields into query parameters.
@@ -87,20 +78,5 @@ func EncodeDebug(p DebugParams, set func(k, v string)) {
 	}
 	if p.Source != "" {
 		set("source", p.Source)
-	}
-	if p.Format != "" {
-		set("format", p.Format)
-	}
-	if p.Help {
-		set("help", "true")
-	}
-	if p.V {
-		set("v", "true")
-	}
-	if len(p.S) > 0 {
-		set("s", strings.Join(p.S, ","))
-	}
-	if len(p.H) > 0 {
-		set("h", strings.Join(p.H, ","))
 	}
 }

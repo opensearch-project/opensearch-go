@@ -26,7 +26,7 @@ func TestCatThreadPool(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.ThreadPool(t.Context(), &opensearchapi.CatThreadPoolReq{Params: &opensearchapi.CatThreadPoolParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.ThreadPool(t.Context(), &opensearchapi.CatThreadPoolReq{Params: &opensearchapi.CatThreadPoolParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -81,7 +81,9 @@ type IndicesShardStoresParams struct {
 	// expressions match hidden data streams.
 	//
 	// Default: open.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// If `true`, missing or closed indexes are not included in the response.
 	//
@@ -110,7 +112,7 @@ func (r IndicesShardStoresParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.IgnoreUnavailable != nil {
@@ -118,7 +120,7 @@ func (r IndicesShardStoresParams) get() map[string]string {
 	}
 
 	if len(r.Status) > 0 {
-		set("status", strings.Join(r.Status, ","))
+		set("status", apiutil.JoinStrings(r.Status, ","))
 	}
 
 	return params

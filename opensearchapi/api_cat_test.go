@@ -53,7 +53,7 @@ func TestManual_Cat(t *testing.T) {
 			name: "health",
 			call: func(ctx context.Context) (int, opensearchapi.Inspect, error) {
 				resp, err := client.Cat.Health(ctx, &opensearchapi.CatHealthReq{
-					Params: &opensearchapi.CatHealthParams{DebugParams: opensearchapi.DebugParams{Format: "json"}},
+					Params: &opensearchapi.CatHealthParams{Format: "json"},
 				})
 				if err != nil {
 					return 0, opensearchapi.Inspect{}, err
@@ -67,7 +67,7 @@ func TestManual_Cat(t *testing.T) {
 			call: func(ctx context.Context) (int, opensearchapi.Inspect, error) {
 				resp, err := client.Cat.Indices(ctx, &opensearchapi.CatIndicesReq{
 					Indices: []string{index},
-					Params:  &opensearchapi.CatIndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}},
+					Params:  &opensearchapi.CatIndicesParams{Format: "json"},
 				})
 				if err != nil {
 					return 0, opensearchapi.Inspect{}, err
@@ -81,7 +81,7 @@ func TestManual_Cat(t *testing.T) {
 			call: func(ctx context.Context) (int, opensearchapi.Inspect, error) {
 				resp, err := client.Cat.Aliases(ctx, &opensearchapi.CatAliasesReq{
 					Name:   []string{alias},
-					Params: &opensearchapi.CatAliasesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}},
+					Params: &opensearchapi.CatAliasesParams{Format: "json"},
 				})
 				if err != nil {
 					return 0, opensearchapi.Inspect{}, err
@@ -94,7 +94,7 @@ func TestManual_Cat(t *testing.T) {
 			name: "shards",
 			call: func(ctx context.Context) (int, opensearchapi.Inspect, error) {
 				resp, err := client.Cat.Shards(ctx, &opensearchapi.CatShardsReq{
-					Params: &opensearchapi.CatShardsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}},
+					Params: &opensearchapi.CatShardsParams{Format: "json"},
 				})
 				if err != nil {
 					return 0, opensearchapi.Inspect{}, err

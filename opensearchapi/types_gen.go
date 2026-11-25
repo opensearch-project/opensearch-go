@@ -1970,10 +1970,20 @@ type CommonQueryDSLCombinedFieldsQuery struct {
 
 type CommonQueryDSLCommonTermsQueryQuery struct {
 	CommonQueryDSLQueryBase
-	Analyzer         *string  `json:"analyzer,omitempty"`
-	CutoffFrequency  *float32 `json:"cutoff_frequency,omitempty"`
-	HighFreqOperator *string  `json:"high_freq_operator,omitempty"`
-	LowFreqOperator  *string  `json:"low_freq_operator,omitempty"`
+	Analyzer        *string  `json:"analyzer,omitempty"`
+	CutoffFrequency *float32 `json:"cutoff_frequency,omitempty"`
+
+	// HighFreqOperator is the Boolean logic used to combine the terms of a
+	// query. `or` matches documents that contain any of the terms, and `and`
+	// matches only documents that contain all of them. The value is not
+	// case-sensitive.
+	HighFreqOperator *string `json:"high_freq_operator,omitempty"`
+
+	// LowFreqOperator is the Boolean logic used to combine the terms of a
+	// query. `or` matches documents that contain any of the terms, and `and`
+	// matches only documents that contain all of them. The value is not
+	// case-sensitive.
+	LowFreqOperator *string `json:"low_freq_operator,omitempty"`
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
@@ -2817,6 +2827,9 @@ type CommonQueryDSLMatchQueryQuery struct {
 	// an integer, percentage, or range.
 	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
+	// Operator is the Boolean logic used to combine the terms of a query. `or`
+	// matches documents that contain any of the terms, and `and` matches only
+	// documents that contain all of them. The value is not case-sensitive.
 	Operator *string `json:"operator,omitempty"`
 
 	// PrefixLength. Number of beginning characters left unchanged for fuzzy
@@ -2854,6 +2867,9 @@ type CommonQueryDSLMatchBoolPrefixQueryQuery struct {
 	// an integer, percentage, or range.
 	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
+	// Operator is the Boolean logic used to combine the terms of a query. `or`
+	// matches documents that contain any of the terms, and `and` matches only
+	// documents that contain all of them. The value is not case-sensitive.
 	Operator *string `json:"operator,omitempty"`
 
 	// PrefixLength. Number of beginning characters left unchanged for fuzzy
@@ -2918,7 +2934,11 @@ type CommonQueryDSLLikeDocument struct {
 	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	Version     *int64       `json:"version,omitempty"`
+	Version *int64 `json:"version,omitempty"`
+
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
@@ -2995,7 +3015,11 @@ type CommonQueryDSLMoreLikeThisQuery struct {
 	// a set of terms.
 	Unlike *CommonQueryDSLMoreLikeThisQueryUnlike `json:"unlike,omitempty"`
 
-	Version     *int64       `json:"version,omitempty"`
+	Version *int64 `json:"version,omitempty"`
+
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
@@ -3038,6 +3062,9 @@ type CommonQueryDSLMultiMatchQuery struct {
 	// an integer, percentage, or range.
 	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
+	// Operator is the Boolean logic used to combine the terms of a query. `or`
+	// matches documents that contain any of the terms, and `and` matches only
+	// documents that contain all of them. The value is not case-sensitive.
 	Operator *string `json:"operator,omitempty"`
 
 	// PrefixLength. Number of beginning characters left unchanged for fuzzy
@@ -3171,6 +3198,10 @@ type CommonQueryDSLQueryStringQuery struct {
 	// fields.
 	DefaultField *string `json:"default_field,omitempty"`
 
+	// DefaultOperator is the Boolean logic used to combine the terms of a
+	// query. `or` matches documents that contain any of the terms, and `and`
+	// matches only documents that contain all of them. The value is not
+	// case-sensitive.
 	DefaultOperator *string `json:"default_operator,omitempty"`
 
 	// EnablePositionIncrements. If `true`, enable position increments in
@@ -3389,6 +3420,10 @@ type CommonQueryDSLSimpleQueryStringQuery struct {
 	// `match_phrase` query for each multi-position token.
 	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
 
+	// DefaultOperator is the Boolean logic used to combine the terms of a
+	// query. `or` matches documents that contain any of the terms, and `and`
+	// matches only documents that contain all of them. The value is not
+	// case-sensitive.
 	DefaultOperator *string `json:"default_operator,omitempty"`
 
 	// Fields. Array of fields you wish to search. Accepts wildcard
@@ -7337,6 +7372,9 @@ type IndicesDataStream struct {
 	// data stream or change its mappings.
 	Replicated *bool `json:"replicated,omitempty"`
 
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
 	Status string `json:"status"`
 
 	// System. When `true`, the data stream is created and managed by an

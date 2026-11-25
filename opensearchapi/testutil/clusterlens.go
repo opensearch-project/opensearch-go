@@ -81,7 +81,7 @@ func clusterLensFSMCheck(client *opensearchapi.Client, expected int) readiness.F
 				// readiness gating drives the retry cadence at the Go layer
 				// rather than truncating individual server-side polls.
 				TimeoutParams: opensearchapi.TimeoutParams{Timeout: 10 * time.Second},
-				DebugParams:   opensearchapi.DebugParams{Format: "json"},
+				Format:        opensearchapi.CatRespFormatJSON,
 				FullID:        "true",
 			},
 		}

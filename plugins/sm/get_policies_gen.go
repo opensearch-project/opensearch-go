@@ -79,7 +79,9 @@ type GetPoliciesParams struct {
 	// The order to sort the snapshot management policies.
 	//
 	// Default: asc.
-	SortOrder string
+	//
+	// See [opensearchapi.SortOrder] for valid values.
+	SortOrder opensearchapi.SortOrder
 }
 
 func (r GetPoliciesParams) get() map[string]string {
@@ -110,7 +112,7 @@ func (r GetPoliciesParams) get() map[string]string {
 	}
 
 	if r.SortOrder != "" {
-		set("sortOrder", r.SortOrder)
+		set("sortOrder", string(r.SortOrder))
 	}
 
 	return params

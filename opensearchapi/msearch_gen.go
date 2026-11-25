@@ -125,6 +125,8 @@ type MSearchParams struct {
 
 	// Indicates whether global term and document frequencies should be used
 	// when scoring returned documents.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// Specifies whether aggregation and suggester names should be prefixed by

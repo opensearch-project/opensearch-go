@@ -37,7 +37,7 @@ func TestCreatePITParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: CreatePITParams{ExpandWildcards: []string{"a", "b"}},
+			params: CreatePITParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

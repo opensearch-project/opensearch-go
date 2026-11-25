@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -119,10 +119,14 @@ type DeleteByQueryParams struct {
 
 	// What to do if delete by query hits version conflicts: `abort` or
 	// `proceed`.
+	//
+	// See [Conflicts] for valid values.
 	Conflicts Conflicts
 
 	// The default operator for query string query: `AND` or `OR`.
-	DefaultOperator string
+	//
+	// See [CommonQueryDSLOperator] for valid values.
+	DefaultOperator CommonQueryDSLOperator
 
 	// Field to use as default where no field prefix is given in the query
 	// string.
@@ -133,7 +137,9 @@ type DeleteByQueryParams struct {
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`. Valid values are: `all`, `open`, `closed`,
 	// `hidden`, `none`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// Starting offset.
 	//
@@ -162,7 +168,9 @@ type DeleteByQueryParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// If `true`, the request cache is used for this request. Defaults to the
 	// index-level setting.
@@ -189,13 +197,17 @@ type DeleteByQueryParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
+	//
+	// See [SearchType] for valid values.
 	SearchType SearchType
 
 	// Deprecated: use `max_docs` instead.
 	Size int
 
 	// The number of slices this task should be divided into.
-	Slices string
+	//
+	// See [Slices] for valid values.
+	Slices Slices
 
 	// A comma-separated list of <field>:<direction> pairs.
 	Sort []string
@@ -218,7 +230,9 @@ type DeleteByQueryParams struct {
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
 	// of shards in the index (`number_of_replicas+1`).
-	WaitForActiveShards string
+	//
+	// See [WaitForActiveShards] for valid values.
+	WaitForActiveShards WaitForActiveShards
 
 	// If `true`, the request blocks until the operation is complete.
 	//
@@ -242,11 +256,11 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if len(r.SourceExcludes) > 0 {
-		set("_source_excludes", strings.Join(r.SourceExcludes, ","))
+		set("_source_excludes", apiutil.JoinStrings(r.SourceExcludes, ","))
 	}
 
 	if len(r.SourceIncludes) > 0 {
-		set("_source_includes", strings.Join(r.SourceIncludes, ","))
+		set("_source_includes", apiutil.JoinStrings(r.SourceIncludes, ","))
 	}
 
 	if r.AllowNoIndices != nil {
@@ -266,7 +280,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -274,7 +288,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.From != 0 {
@@ -302,7 +316,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if r.RequestCache != nil {
@@ -314,7 +328,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.Scroll != 0 {
@@ -338,15 +352,15 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.Slices != "" {
-		set("slices", r.Slices)
+		set("slices", string(r.Slices))
 	}
 
 	if len(r.Sort) > 0 {
-		set("sort", strings.Join(r.Sort, ","))
+		set("sort", apiutil.JoinStrings(r.Sort, ","))
 	}
 
 	if len(r.Stats) > 0 {
-		set("stats", strings.Join(r.Stats, ","))
+		set("stats", apiutil.JoinStrings(r.Stats, ","))
 	}
 
 	if r.TerminateAfter != 0 {
@@ -358,7 +372,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	if r.WaitForCompletion != nil {

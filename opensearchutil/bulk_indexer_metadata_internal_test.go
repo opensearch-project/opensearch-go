@@ -10,7 +10,7 @@ package opensearchutil
 
 import (
 	"context"
-	"math"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -36,12 +36,12 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 	position := streamPosition{Topic: "metadata-marker-topic", Offset: 4102}
 
 	tests := []struct {
-		name           string
-		outcomes       []bulkOutcome
-		policy         *recordingPolicy
-		unserializable bool // add an item that cannot be serialized
-		wantOK         bool // OnSuccess is called, otherwise OnError
-		wantBodies     []string
+		name       string
+		outcomes   []bulkOutcome
+		policy     *recordingPolicy
+		unreadable bool // add an item whose body cannot be read
+		wantOK     bool // OnSuccess is called, otherwise OnError
+		wantBodies []string
 	}{
 		{name: "accepted", outcomes: []bulkOutcome{outcomeOK}, wantOK: true, wantBodies: []string{wantBody}},
 		{
@@ -55,9 +55,9 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 			wantBodies: []string{wantBody},
 		},
 		{
-			name:           "cannot be serialized",
-			outcomes:       []bulkOutcome{outcomeOK},
-			unserializable: true,
+			name:       "body cannot be read",
+			outcomes:   []bulkOutcome{outcomeOK},
+			unreadable: true,
 		},
 		{
 			name:       "accepted after a retry",
@@ -81,11 +81,16 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 			}
 			bi := newBulkIndexer(t, cfg)
 
+			var body io.ReadSeeker = strings.NewReader(`{"a":1}`)
+			if tt.unreadable {
+				body = &failingBody{}
+			}
+
 			var succeeded, failed []any
 			item := BulkIndexerItem{
 				Action:     "index",
 				DocumentID: "doc",
-				Body:       strings.NewReader(`{"a":1}`),
+				Body:       body,
 				Metadata:   position,
 				OnSuccess: func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
 					succeeded = append(succeeded, item.Metadata)
@@ -94,10 +99,6 @@ func TestBulkIndexerItemMetadata(t *testing.T) {
 					failed = append(failed, item.Metadata)
 				},
 			}
-			if tt.unserializable {
-				item.WaitForActiveShards = math.NaN()
-			}
-
 			require.NoError(t, bi.Add(t.Context(), item))
 			require.NoError(t, bi.Close(t.Context()))
 

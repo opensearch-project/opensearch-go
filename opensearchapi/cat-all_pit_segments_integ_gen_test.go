@@ -28,7 +28,7 @@ func TestCatAllPITSegments(t *testing.T) {
 	testutil.SkipIfVersion(t, client, "<", "2.4", "CatAllPITSegments")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.AllPITSegments(t.Context(), &opensearchapi.CatAllPITSegmentsReq{Params: &opensearchapi.CatAllPITSegmentsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.AllPITSegments(t.Context(), &opensearchapi.CatAllPITSegmentsReq{Params: &opensearchapi.CatAllPITSegmentsParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

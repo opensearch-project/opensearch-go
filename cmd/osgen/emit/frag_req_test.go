@@ -210,7 +210,7 @@ func TestParamsFragment_Imports(t *testing.T) {
 	require.True(t, paths[emit.LocalModule+"/internal/params"], "missing internal/params import")
 	require.True(t, paths["time"], "missing time import for Duration param")
 	require.True(t, paths["strconv"], "missing strconv import for Int param")
-	require.True(t, paths["strings"], "missing strings import for List param")
+	require.True(t, paths[emit.LocalModule+"/internal/apiutil"], "missing internal/apiutil import for List param")
 }
 
 func TestFileAssembly_ReqAndParams(t *testing.T) {
@@ -248,4 +248,69 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 
 	require.Contains(t, output, "type ClusterHealthReq struct")
 	require.Contains(t, output, "type ClusterHealthParams struct")
+}
+
+// TestParamsFragment_EnumLink asserts a string-enum param links its type for
+// valid values, with the bare element type for slices and the core-package
+// qualifier in plugin packages, and that other params get no link.
+func TestParamsFragment_EnumLink(t *testing.T) {
+	t.Parallel()
+
+	reg := ir.NewTypeRegistry(ir.DefaultCorePkgName, "example.com/core")
+	_, ok := reg.Register(&ir.Type{Name: "Refresh", SchemaRef: "r", Kind: ir.TypeStringEnum, Scope: ir.ScopeShared})
+	require.True(t, ok)
+
+	tests := []struct {
+		name    string
+		plugin  bool
+		param   ir.QueryParam
+		want    string
+		notWant string
+	}{
+		{
+			name: "scalar",
+			param: ir.QueryParam{
+				GoName: "Refresh", WireName: "refresh", GoType: "Refresh",
+				Kind: ir.ParamString, IsStringEnum: true, Description: "Visibility.",
+			},
+			want: "\t//\n\t// See [Refresh] for valid values.\n",
+		},
+		{
+			name: "slice",
+			param: ir.QueryParam{
+				GoName: "ExpandWildcards", WireName: "expand_wildcards", GoType: "[]ExpandWildcard",
+				Kind: ir.ParamList, IsStringEnum: true,
+			},
+			want: "\t// See [ExpandWildcard] for valid values.\n\tExpandWildcards []ExpandWildcard",
+		},
+		{
+			name:   "plugin qualified",
+			plugin: true,
+			param: ir.QueryParam{
+				GoName: "Refresh", WireName: "refresh", GoType: "Refresh",
+				Kind: ir.ParamString, IsStringEnum: true,
+			},
+			want: "// See [" + ir.DefaultCorePkgName + ".Refresh] for valid values.",
+		},
+		{
+			name: "non-enum has no link",
+			param: ir.QueryParam{
+				GoName: "Routing", WireName: "routing", GoType: "string", Kind: ir.ParamString, Description: "Routing.",
+			},
+			want:    "Routing string",
+			notWant: "for valid values",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			op := &ir.Operation{TypePrefix: "Index", IsPlugin: tt.plugin, QueryParams: []ir.QueryParam{tt.param}}
+			body, err := (&emit.ParamsFragment{Op: op, Registry: reg}).Body()
+			require.NoError(t, err)
+			require.Contains(t, body, tt.want)
+			if tt.notWant != "" {
+				require.NotContains(t, body, tt.notWant)
+			}
+		})
+	}
 }

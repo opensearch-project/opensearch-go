@@ -12,9 +12,9 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -92,7 +92,9 @@ type ExistsSourceParams struct {
 
 	// If `true`, OpenSearch refreshes all shards involved in the delete by
 	// query after the request completes.
-	Refresh string
+	//
+	// See [Refresh] for valid values.
+	Refresh Refresh
 
 	// Target the specified primary shard.
 	Routing []string
@@ -103,6 +105,8 @@ type ExistsSourceParams struct {
 	Version *int
 
 	// The specific version type: `external`, `external_gte`.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 
@@ -122,11 +126,11 @@ func (r ExistsSourceParams) get() map[string]string {
 	}
 
 	if len(r.SourceExcludes) > 0 {
-		set("_source_excludes", strings.Join(r.SourceExcludes, ","))
+		set("_source_excludes", apiutil.JoinStrings(r.SourceExcludes, ","))
 	}
 
 	if len(r.SourceIncludes) > 0 {
-		set("_source_includes", strings.Join(r.SourceIncludes, ","))
+		set("_source_includes", apiutil.JoinStrings(r.SourceIncludes, ","))
 	}
 
 	if r.Preference != "" {
@@ -138,11 +142,11 @@ func (r ExistsSourceParams) get() map[string]string {
 	}
 
 	if r.Refresh != "" {
-		set("refresh", r.Refresh)
+		set("refresh", string(r.Refresh))
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.Version != nil {

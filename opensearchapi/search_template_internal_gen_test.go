@@ -47,7 +47,7 @@ func TestSearchTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: SearchTemplateParams{ExpandWildcards: []string{"a", "b"}},
+			params: SearchTemplateParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

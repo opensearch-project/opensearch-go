@@ -26,8 +26,28 @@ func TestCatAliasesParams_get(t *testing.T) {
 		{name: "empty", params: CatAliasesParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "expand_wildcards",
-			params: CatAliasesParams{ExpandWildcards: []string{"a", "b"}},
+			params: CatAliasesParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"format": "json", "expand_wildcards": "a,b"},
+		},
+		{
+			name:   "format",
+			params: CatAliasesParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatAliasesParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatAliasesParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatAliasesParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
 		},
 		{
 			name:   "local=true",
@@ -38,6 +58,21 @@ func TestCatAliasesParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatAliasesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatAliasesParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatAliasesParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatAliasesParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

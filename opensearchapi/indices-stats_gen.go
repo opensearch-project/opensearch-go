@@ -14,10 +14,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -82,7 +82,9 @@ type IndicesStatsParams struct {
 	// target data streams, this argument determines whether wildcard
 	// expressions match hidden data streams. Supports comma-separated values,
 	// such as `open,hidden`.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// A comma-separated list or wildcard expressions of fields to include in
 	// field data statistics.
@@ -115,7 +117,9 @@ type IndicesStatsParams struct {
 
 	// Indicates whether statistics are aggregated at the cluster, index, or
 	// shard level.
-	Level string
+	//
+	// See [Level] for valid values.
+	Level Level
 }
 
 func (r IndicesStatsParams) get() map[string]string {
@@ -130,19 +134,19 @@ func (r IndicesStatsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.CompletionFields) > 0 {
-		set("completion_fields", strings.Join(r.CompletionFields, ","))
+		set("completion_fields", apiutil.JoinStrings(r.CompletionFields, ","))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if len(r.FielddataFields) > 0 {
-		set("fielddata_fields", strings.Join(r.FielddataFields, ","))
+		set("fielddata_fields", apiutil.JoinStrings(r.FielddataFields, ","))
 	}
 
 	if len(r.Fields) > 0 {
-		set("fields", strings.Join(r.Fields, ","))
+		set("fields", apiutil.JoinStrings(r.Fields, ","))
 	}
 
 	if r.ForbidClosedIndices != nil {
@@ -150,7 +154,7 @@ func (r IndicesStatsParams) get() map[string]string {
 	}
 
 	if len(r.Groups) > 0 {
-		set("groups", strings.Join(r.Groups, ","))
+		set("groups", apiutil.JoinStrings(r.Groups, ","))
 	}
 
 	if r.IncludeSegmentFileSizes != nil {
@@ -162,7 +166,7 @@ func (r IndicesStatsParams) get() map[string]string {
 	}
 
 	if r.Level != "" {
-		set("level", r.Level)
+		set("level", string(r.Level))
 	}
 
 	return params

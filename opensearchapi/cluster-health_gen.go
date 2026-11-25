@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -75,10 +75,14 @@ type ClusterHealthParams struct {
 	AwarenessAttribute string
 
 	// Default: open.
-	ExpandWildcards []string
+	//
+	// See [ExpandWildcard] for valid values.
+	ExpandWildcards []ExpandWildcard
 
 	// Default: cluster.
-	Level string
+	//
+	// See [ClusterHealthLevel] for valid values.
+	Level ClusterHealthLevel
 
 	// Whether to return information from the local node only instead of from
 	// the cluster manager node.
@@ -87,8 +91,11 @@ type ClusterHealthParams struct {
 	Local *bool
 
 	// Default: 0.
-	WaitForActiveShards string
+	//
+	// See [WaitForActiveShards] for valid values.
+	WaitForActiveShards WaitForActiveShards
 
+	// See [WaitForEvents] for valid values.
 	WaitForEvents WaitForEvents
 
 	// Whether to wait until there are no initializing shards in the cluster.
@@ -107,7 +114,9 @@ type ClusterHealthParams struct {
 	WaitForNodes string
 
 	// Waits until the cluster health reaches the specified status or better.
-	WaitForStatus string
+	//
+	// See [HealthStatus] for valid values.
+	WaitForStatus HealthStatus
 }
 
 func (r ClusterHealthParams) get() map[string]string {
@@ -126,11 +135,11 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.Level != "" {
-		set("level", r.Level)
+		set("level", string(r.Level))
 	}
 
 	if r.Local != nil {
@@ -138,7 +147,7 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if r.WaitForActiveShards != "" {
-		set("wait_for_active_shards", r.WaitForActiveShards)
+		set("wait_for_active_shards", string(r.WaitForActiveShards))
 	}
 
 	if r.WaitForEvents != "" {
@@ -158,7 +167,7 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if r.WaitForStatus != "" {
-		set("wait_for_status", r.WaitForStatus)
+		set("wait_for_status", string(r.WaitForStatus))
 	}
 
 	return params
@@ -230,6 +239,9 @@ type ClusterHealthResp struct {
 	// RelocatingShards is the number of shards that are under relocation.
 	RelocatingShards int `json:"relocating_shards"`
 
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
 	Status string `json:"status"`
 
 	// TaskMaxWaitingInQueue is a duration. Units can be `nanos`, `micros`,
@@ -284,18 +296,28 @@ type ClusterHealthIndexStats struct {
 	NumberOfShards      int                                `json:"number_of_shards"`
 	RelocatingShards    int                                `json:"relocating_shards"`
 	Shards              map[string]ClusterHealthShardStats `json:"shards,omitempty"`
-	Status              string                             `json:"status"`
-	UnassignedShards    int                                `json:"unassigned_shards"`
+
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
+	Status string `json:"status"`
+
+	UnassignedShards int `json:"unassigned_shards"`
 }
 
 // ClusterHealthShardStats is a typed component of the cluster.health operation.
 type ClusterHealthShardStats struct {
-	ActiveShards       int    `json:"active_shards"`
-	InitializingShards int    `json:"initializing_shards"`
-	PrimaryActive      bool   `json:"primary_active"`
-	RelocatingShards   int    `json:"relocating_shards"`
-	Status             string `json:"status"`
-	UnassignedShards   int    `json:"unassigned_shards"`
+	ActiveShards       int  `json:"active_shards"`
+	InitializingShards int  `json:"initializing_shards"`
+	PrimaryActive      bool `json:"primary_active"`
+	RelocatingShards   int  `json:"relocating_shards"`
+
+	// Status is the health of a shard, an index, or the cluster. An index
+	// reports the worst status of its shards, and the cluster reports the
+	// worst status of its indexes. Values are not case-sensitive.
+	Status string `json:"status"`
+
+	UnassignedShards int `json:"unassigned_shards"`
 }
 
 // Health returns basic information about the health of the cluster.

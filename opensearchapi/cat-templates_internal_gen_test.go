@@ -25,6 +25,26 @@ func TestCatTemplatesParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatTemplatesParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatTemplatesParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatTemplatesParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatTemplatesParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatTemplatesParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
 			name:   "local=true",
 			params: CatTemplatesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
@@ -33,6 +53,21 @@ func TestCatTemplatesParams_get(t *testing.T) {
 			name:   "local=false",
 			params: CatTemplatesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
+		},
+		{
+			name:   "s",
+			params: CatTemplatesParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
+			name:   "v=true",
+			params: CatTemplatesParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatTemplatesParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

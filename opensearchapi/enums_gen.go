@@ -11,6 +11,7 @@ package opensearchapi
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 )
@@ -223,6 +224,7 @@ func (e *UnknownRestStatusError) Error() string {
 	return fmt.Sprintf("unknown RestStatus %q", e.Value)
 }
 
+// SearchTotalHitsRelation is one of the values below.
 type SearchTotalHitsRelation string
 
 const (
@@ -234,6 +236,7 @@ const (
 	SearchTotalHitsRelationGte SearchTotalHitsRelation = "gte"
 )
 
+// GeoDistanceType is one of the values below.
 type GeoDistanceType string
 
 const (
@@ -250,32 +253,53 @@ const (
 type DistanceUnit string
 
 const (
+	// DistanceUnitCm. Centimeters, 0.01 meters.
 	DistanceUnitCm DistanceUnit = "cm"
 
+	// DistanceUnitFt. International feet, 0.3048 meters.
 	DistanceUnitFt DistanceUnit = "ft"
 
+	// DistanceUnitIn. International inches, 0.0254 meters.
 	DistanceUnitIn DistanceUnit = "in"
 
+	// DistanceUnitKm. Kilometers, 1000 meters.
 	DistanceUnitKm DistanceUnit = "km"
 
+	// DistanceUnitM. Meters, the base unit the server converts other distance
+	// units to.
 	DistanceUnitM DistanceUnit = "m"
 
+	// DistanceUnitMi. International statute miles, 1609.344 meters.
 	DistanceUnitMi DistanceUnit = "mi"
 
+	// DistanceUnitMm. Millimeters, 0.001 meters.
 	DistanceUnitMm DistanceUnit = "mm"
 
+	// DistanceUnitNmi. Nautical miles, 1852 meters. The server also accepts
+	// `NM` for this unit.
 	DistanceUnitNmi DistanceUnit = "nmi"
 
+	// DistanceUnitYd. International yards, 0.9144 meters.
 	DistanceUnitYd DistanceUnit = "yd"
 )
 
+// SearchBuiltinHighlighterType is one of the values below.
 type SearchBuiltinHighlighterType string
 
 const (
+	// SearchBuiltinHighlighterTypePlain. Re-analyzes the field text with the
+	// standard Lucene highlighter. Works on any field but can be slow on large
+	// text.
 	SearchBuiltinHighlighterTypePlain SearchBuiltinHighlighterType = "plain"
 
+	// SearchBuiltinHighlighterTypeFvh. Uses stored term vectors to find
+	// highlights. Requires the field to store term vectors with offsets, for
+	// example `term_vector: with_positions_offsets`.
 	SearchBuiltinHighlighterTypeFvh SearchBuiltinHighlighterType = "fvh"
 
+	// SearchBuiltinHighlighterTypeUnified. Uses the Lucene unified
+	// highlighter, which reads offsets from postings or term vectors when
+	// indexed and re-analyzes the text otherwise. Used when no type is set.
 	SearchBuiltinHighlighterTypeUnified SearchBuiltinHighlighterType = "unified"
 )
 
@@ -332,19 +356,27 @@ const (
 	ScriptSortTypeVersion ScriptSortType = "version"
 )
 
+// Selects how the `version` supplied with a request is checked against the document's current version, and how the stored version changes on a successful write. Defaults to `internal`.
 type VersionType string
 
 const (
-	// VersionTypeExternal. The version number must be greater than the current
-	// version.
+	// VersionTypeExternal. Uses a version number maintained by an external
+	// system. A write succeeds only if the document does not exist or the
+	// supplied version is greater than the current version. The document then
+	// stores the supplied version. Use this when another data store owns the
+	// version numbers.
 	VersionTypeExternal VersionType = "external"
 
-	// VersionTypeExternalGte. The version number must be greater than or equal
-	// to the current version.
+	// VersionTypeExternalGte. Like `external`, but a write also succeeds when
+	// the supplied version equals the current version. The document then
+	// stores the supplied version.
 	VersionTypeExternalGte VersionType = "external_gte"
 
-	// VersionTypeInternal. The version number is managed internally by
-	// OpenSearch.
+	// VersionTypeInternal. OpenSearch manages the version and increments it by
+	// one on each successful write. This is the default. Write requests can't
+	// supply a version with this type; use `if_seq_no` and `if_primary_term`
+	// for optimistic concurrency control instead. A read that supplies a
+	// version must match the current version exactly.
 	VersionTypeInternal VersionType = "internal"
 )
 
@@ -399,6 +431,7 @@ const (
 	IndicesIndexRoutingRebalanceOptionsReplicas IndicesIndexRoutingRebalanceOptions = "replicas"
 )
 
+// DFIIndependenceMeasure is one of the values below.
 type DFIIndependenceMeasure string
 
 const (
@@ -414,6 +447,7 @@ const (
 	DFIIndependenceMeasureStandardized DFIIndependenceMeasure = "standardized"
 )
 
+// DFRAfterEffect is one of the values below.
 type DFRAfterEffect string
 
 const (
@@ -427,6 +461,7 @@ const (
 	DFRAfterEffectNo DFRAfterEffect = "no"
 )
 
+// DFRBasicModel is one of the values below.
 type DFRBasicModel string
 
 const (
@@ -452,6 +487,7 @@ const (
 	DFRBasicModelP DFRBasicModel = "p"
 )
 
+// TermFrequencyNormalization is one of the values below.
 type TermFrequencyNormalization string
 
 const (
@@ -471,6 +507,7 @@ const (
 	TermFrequencyNormalizationZ TermFrequencyNormalization = "z"
 )
 
+// IBDistribution is one of the values below.
 type IBDistribution string
 
 const (
@@ -481,6 +518,7 @@ const (
 	IBDistributionSpl IBDistribution = "spl"
 )
 
+// IBLambda is one of the values below.
 type IBLambda string
 
 const (
@@ -561,6 +599,7 @@ const (
 	ClusterDecommissionAwarenessDecommissionStatusFailed ClusterDecommissionAwarenessDecommissionStatus = "FAILED"
 )
 
+// Result is one of the values below.
 type Result string
 
 const (
@@ -580,6 +619,7 @@ const (
 	ResultUpdated Result = "updated"
 )
 
+// NodeRole is one of the values below.
 type NodeRole string
 
 const (
@@ -661,6 +701,7 @@ const (
 	IndicesShardStoresShardStoreAllocationUnused IndicesShardStoresShardStoreAllocation = "unused"
 )
 
+// ActionStatusOptions is one of the values below.
 type ActionStatusOptions string
 
 const (
@@ -702,51 +743,268 @@ const (
 	SnapshotShardsStatsStageStarted SnapshotShardsStatsStage = "STARTED"
 )
 
+// CommonAggregationsHoltWintersType is one of the values below.
 type CommonAggregationsHoltWintersType string
 
 const (
+	// CommonAggregationsHoltWintersTypeAdd. Models seasonality as an amount
+	// added to the level and trend. Pick it when the seasonal swing stays
+	// roughly constant in size.
 	CommonAggregationsHoltWintersTypeAdd CommonAggregationsHoltWintersType = "add"
 
+	// CommonAggregationsHoltWintersTypeMult. Models seasonality as a factor
+	// multiplied with the level and trend. Pick it when the seasonal swing
+	// grows with the data. By default the server adds a tiny padding to every
+	// value to avoid division by zero.
 	CommonAggregationsHoltWintersTypeMult CommonAggregationsHoltWintersType = "mult"
 )
 
+// Controls what a reindex, update by query, or delete by query operation does when a document fails with a version conflict. Defaults to `abort`.
 type Conflicts string
 
 const (
-	// ConflictsAbort. Abort the operation on version conflicts.
+	// ConflictsAbort. Stops the operation and reports the conflicts in
+	// `failures`. This is the default.
 	ConflictsAbort Conflicts = "abort"
 
-	// ConflictsProceed. Proceed with the operation on version conflicts.
+	// ConflictsProceed. Skips conflicting documents and continues. The number
+	// of skipped documents is reported in `version_conflicts`.
 	ConflictsProceed Conflicts = "proceed"
 )
 
+// The kind of write to perform for an index request. Defaults to `index`. The value is not case-sensitive.
 type OpType string
 
 const (
-	// OpTypeCreate. Create a new document.
+	// OpTypeCreate. Creates the document only if no document with the same ID
+	// exists. Otherwise the request fails with a version conflict and the
+	// existing document is left unchanged. Only `internal` versioning is
+	// supported.
 	OpTypeCreate OpType = "create"
 
-	// OpTypeIndex. Create a new document or replace an existing one.
+	// OpTypeIndex. Creates the document, or replaces the existing document
+	// with the same ID. This is the default.
 	OpTypeIndex OpType = "index"
 )
 
-// Specifies the time units, for example, `5d` or `7h`. For more information, see [Supported units](https://opensearch.org/docs/latest/api-reference/units/).
+// Controls whether a write operation makes its changes visible to search before the response is returned. The values are `true`, `false` (the default), and `wait_for`; an empty value is treated as `true`.
+type Refresh string
+
+const (
+	// RefreshFalse. Returns without refreshing or waiting for a refresh. This
+	// is the default.
+	RefreshFalse Refresh = "false"
+
+	// RefreshTrue. Refreshes the affected shards immediately after the
+	// operation, so the changes are visible to search when the response is
+	// returned. Every request triggers its own refresh, which does not scale
+	// under heavy indexing or search load. Use it for low-traffic indexes or
+	// tests.
+	RefreshTrue Refresh = "true"
+
+	// RefreshWaitFor. Holds the response until a refresh makes the changes
+	// visible to search, without forcing a refresh. This suits high indexing
+	// throughput, at the cost of a slower response. Each shard accepts up to
+	// `index.max_refresh_listeners` waiting requests (default 1000). When that
+	// limit is reached, the shard forces a refresh instead and the response
+	// reports `forced_refresh: true`.
+	RefreshWaitFor Refresh = "wait_for"
+)
+
+// The number of active copies of each shard, counting the primary, that must be available before the operation proceeds. Use `all` for every copy, or a number from `0` (do not wait) up to the number of replicas plus one.
+//
+// For write operations the check is made before writing to the primary. If not enough copies become active before the request times out, the operation fails without writing.
+type WaitForActiveShards string
+
+const (
+	// WaitForActiveShardsAll. Waits until every copy of each shard, the
+	// primary and all of its replicas, is active.
+	WaitForActiveShardsAll WaitForActiveShards = "all"
+)
+
+// WaitForActiveShardsCount returns the WaitForActiveShards value that selects n, formatted as
+// the decimal integer the server expects.
+func WaitForActiveShardsCount(n int) WaitForActiveShards {
+	return WaitForActiveShards(strconv.Itoa(n))
+}
+
+// The kind of index that a wildcard expression in an index name can expand to. Values are case-sensitive and can be combined; the server applies them in order, so `none` clears any value listed before it.
+type ExpandWildcard string
+
+const (
+	// ExpandWildcardAll. Expands wildcards to open, closed, and hidden
+	// indexes. Equivalent to `open,closed,hidden`.
+	ExpandWildcardAll ExpandWildcard = "all"
+
+	// ExpandWildcardClosed. Expands wildcards to closed, non-hidden indexes.
+	ExpandWildcardClosed ExpandWildcard = "closed"
+
+	// ExpandWildcardHidden. Also expands wildcards to hidden indexes. It has
+	// no effect on its own and must be combined with `open`, `closed`, or
+	// both. A wildcard expression that starts with `.` matches hidden indexes
+	// whose names start with `.` even without this value.
+	ExpandWildcardHidden ExpandWildcard = "hidden"
+
+	// ExpandWildcardNone. Does not expand wildcards. Wildcard expressions are
+	// passed through unresolved instead of matching indexes.
+	ExpandWildcardNone ExpandWildcard = "none"
+
+	// ExpandWildcardOpen. Expands wildcards to open, non-hidden indexes.
+	ExpandWildcardOpen ExpandWildcard = "open"
+)
+
+// Selects the response format returned by cat operations. Equivalent to
+// the HTTP `Accept` header but expressed as a query parameter.
+//
+// The server default is "text".
+type CatRespFormat string
+
+const (
+	// CatRespFormatText. Returns a plain-text table with one row per line. Add
+	// `v=true` to include column headers.
+	CatRespFormatText CatRespFormat = "text"
+
+	// CatRespFormatJSON. Returns the rows as a JSON array of objects, one
+	// object per row keyed by column name.
+	CatRespFormatJSON CatRespFormat = "json"
+
+	// CatRespFormatYaml. Returns the rows as a YAML list of objects, one
+	// object per row keyed by column name.
+	CatRespFormatYaml CatRespFormat = "yaml"
+
+	// CatRespFormatCbor. Returns the rows encoded as CBOR, a binary form of
+	// the JSON structure.
+	CatRespFormatCbor CatRespFormat = "cbor"
+
+	// CatRespFormatSmile. Returns the rows encoded as Smile, a binary form of
+	// the JSON structure.
+	CatRespFormatSmile CatRespFormat = "smile"
+)
+
+// The unit used to display byte values in cat and list responses. Units are binary multiples (1 kb is 1024 bytes), and values are truncated to whole numbers. The value is case-sensitive.
+//
+// When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5gb`.
+type ByteUnit string
+
+const (
+	// ByteUnitB. Shows byte values as a plain count of bytes. Pick it when
+	// exact sizes matter.
+	ByteUnitB ByteUnit = "b"
+
+	// ByteUnitKb. Shows byte values in kibibytes (1024 bytes); `k` is the
+	// short form.
+	ByteUnitKb ByteUnit = "kb"
+
+	// ByteUnitK. Shows byte values in kibibytes (1024 bytes); `k` is the short
+	// form.
+	ByteUnitK ByteUnit = "k"
+
+	// ByteUnitMb. Shows byte values in mebibytes (1024 kibibytes); `m` is the
+	// short form.
+	ByteUnitMb ByteUnit = "mb"
+
+	// ByteUnitM. Shows byte values in mebibytes (1024 kibibytes); `m` is the
+	// short form.
+	ByteUnitM ByteUnit = "m"
+
+	// ByteUnitGb. Shows byte values in gibibytes (1024 mebibytes); `g` is the
+	// short form.
+	ByteUnitGb ByteUnit = "gb"
+
+	// ByteUnitG. Shows byte values in gibibytes (1024 mebibytes); `g` is the
+	// short form.
+	ByteUnitG ByteUnit = "g"
+
+	// ByteUnitTb. Shows byte values in tebibytes (1024 gibibytes); `t` is the
+	// short form.
+	ByteUnitTb ByteUnit = "tb"
+
+	// ByteUnitT. Shows byte values in tebibytes (1024 gibibytes); `t` is the
+	// short form.
+	ByteUnitT ByteUnit = "t"
+
+	// ByteUnitPb. Shows byte values in pebibytes (1024 tebibytes); `p` is the
+	// short form.
+	ByteUnitPb ByteUnit = "pb"
+
+	// ByteUnitP. Shows byte values in pebibytes (1024 tebibytes); `p` is the
+	// short form.
+	ByteUnitP ByteUnit = "p"
+)
+
+// The unit used to display time values in cat and list responses. Each value is shown as a whole number of that unit, truncated. The value is case-sensitive.
+//
+// When omitted, each value is shown in a human-readable form with its own unit suffix, such as `1.5m`.
 type TimeUnit string
 
 const (
+	// TimeUnitNanos. Shows time values as a whole number of nanoseconds.
 	TimeUnitNanos TimeUnit = "nanos"
 
+	// TimeUnitMicros. Shows time values as a whole number of microseconds.
 	TimeUnitMicros TimeUnit = "micros"
 
+	// TimeUnitMs. Shows time values as a whole number of milliseconds.
 	TimeUnitMs TimeUnit = "ms"
 
+	// TimeUnitS. Shows time values as a whole number of seconds, truncating
+	// any fraction.
 	TimeUnitS TimeUnit = "s"
 
+	// TimeUnitM. Shows time values as a whole number of minutes, truncating
+	// any fraction.
 	TimeUnitM TimeUnit = "m"
 
+	// TimeUnitH. Shows time values as a whole number of hours, truncating any
+	// fraction.
 	TimeUnitH TimeUnit = "h"
 
+	// TimeUnitD. Shows time values as a whole number of days, truncating any
+	// fraction.
 	TimeUnitD TimeUnit = "d"
+)
+
+// The health of a shard, an index, or the cluster. An index reports the worst status of its shards, and the cluster reports the worst status of its indexes. Values are not case-sensitive.
+type HealthStatus string
+
+const (
+	// HealthStatusGreen. All shards are assigned.
+	HealthStatusGreen HealthStatus = "green"
+
+	// HealthStatusYellow. All primary shards are assigned, but one or more
+	// replica shards are unassigned. If a node in the cluster fails, some data
+	// could be unavailable until that node is repaired.
+	HealthStatusYellow HealthStatus = "yellow"
+
+	// HealthStatusRed. One or more primary shards are unassigned, so some data
+	// is unavailable. This can occur briefly during cluster startup as primary
+	// shards are assigned.
+	HealthStatusRed HealthStatus = "red"
+)
+
+// Controls the amount of detail included in the cluster health response. Defaults to `cluster`, which reports only the cluster-wide health. `indices` adds the health of each index, and `shards` also adds the health of each shard within each index.
+//
+// `awareness_attributes` reports health for each value of an awareness attribute. It is required when `awareness_attribute` is set, and cannot be combined with an index target. An unrecognized value is treated as `cluster`.
+type ClusterHealthLevel string
+
+const (
+	// ClusterHealthLevelAwarenessAttributes. Reports health broken down by
+	// each value of the cluster's awareness attributes, without per-index
+	// detail. Must be used when `awareness_attribute` is set and cannot target
+	// specific indexes.
+	ClusterHealthLevelAwarenessAttributes ClusterHealthLevel = "awareness_attributes"
+
+	// ClusterHealthLevelCluster. Reports only the cluster-wide health and
+	// shard counts, the smallest response.
+	ClusterHealthLevelCluster ClusterHealthLevel = "cluster"
+
+	// ClusterHealthLevelIndices. Adds an `indices` object with the health and
+	// shard counts of each index.
+	ClusterHealthLevelIndices ClusterHealthLevel = "indices"
+
+	// ClusterHealthLevelShards. Adds per-index health plus the health of each
+	// shard within each index, the largest response.
+	ClusterHealthLevelShards ClusterHealthLevel = "shards"
 )
 
 // Waits until all currently queued events with the given priority are processed.
@@ -774,18 +1032,140 @@ const (
 	WaitForEventsLanguid WaitForEvents = "languid"
 )
 
+// The Boolean logic used to combine the terms of a query. `or` matches documents that contain any of the terms, and `and` matches only documents that contain all of them. The value is not case-sensitive.
+type CommonQueryDSLOperator string
+
+const (
+	// CommonQueryDSLOperatorAnd. Every term must match (each term becomes a
+	// `must` clause).
+	CommonQueryDSLOperatorAnd CommonQueryDSLOperator = "and"
+
+	// CommonQueryDSLOperatorOr. At least one term must match (each term
+	// becomes a `should` clause). This is the `query_string` default.
+	CommonQueryDSLOperatorOr CommonQueryDSLOperator = "or"
+)
+
+// Selects how a search request computes relevance scores across shards. Defaults to `query_then_fetch`.
 type SearchType string
 
 const (
-	// SearchTypeDFSQueryThenFetch. Documents are scored using global term and
-	// document frequencies across all shards. This is usually slower but more
-	// accurate.
+	// SearchTypeDFSQueryThenFetch. Adds an initial phase that collects term
+	// and document frequencies from all shards, then scores documents using
+	// these global frequencies. This is usually slower but more accurate.
 	SearchTypeDFSQueryThenFetch SearchType = "dfs_query_then_fetch"
 
-	// SearchTypeQueryThenFetch. Documents are scored using local term and
-	// document frequencies for the shard. This is usually faster but less
-	// accurate.
+	// SearchTypeQueryThenFetch. Scores documents using the term and document
+	// frequencies of each shard. This is usually faster but less accurate.
+	// This is the default.
 	SearchTypeQueryThenFetch SearchType = "query_then_fetch"
+)
+
+// The slice configuration used to parallelize a process.
+type Slices string
+
+const (
+	// SlicesAuto. Automatically determine the number of slices.
+	SlicesAuto Slices = "auto"
+)
+
+// SlicesCount returns the Slices value that selects n, formatted as
+// the decimal integer the server expects.
+func SlicesCount(n int) Slices {
+	return Slices(strconv.Itoa(n))
+}
+
+// Specifies the level of detail of the returned statistics. `indices` adds a breakdown for each index, and `shards` also adds a breakdown for each shard of each index. For index statistics, `cluster` returns only the totals across all targeted indexes.
+type Level string
+
+const (
+	// LevelCluster. For index statistics, returns only the `_all` totals
+	// across the targeted indexes. Node statistics reject this value and use
+	// `node` for the per-node totals instead.
+	LevelCluster Level = "cluster"
+
+	// LevelIndices. Adds an `indices` object with statistics for each index.
+	// This is the index statistics default.
+	LevelIndices Level = "indices"
+
+	// LevelShards. Adds statistics for each shard, grouped under each index.
+	// Produces the largest response.
+	LevelShards Level = "shards"
+)
+
+// InsightsMetricType is a value of the `type` query parameter.
+type InsightsMetricType string
+
+const (
+	// InsightsMetricTypeCPU. Ranks queries by the CPU time their search tasks
+	// used, summed across tasks and measured in nanoseconds.
+	InsightsMetricTypeCPU InsightsMetricType = "cpu"
+
+	// InsightsMetricTypeLatency. Ranks queries by end-to-end search latency in
+	// milliseconds, from request start to completion.
+	InsightsMetricTypeLatency InsightsMetricType = "latency"
+
+	// InsightsMetricTypeMemory. Ranks queries by the heap memory their search
+	// tasks used, summed across tasks and measured in bytes.
+	InsightsMetricTypeMemory InsightsMetricType = "memory"
+)
+
+// Controls which suggestions the term suggester returns for each term in the suggest text. Defaults to `missing`. The value is not case-sensitive.
+//
+// `missing` suggests only for terms that are not in the index. `popular` suggests only terms that occur in more documents than the original term. `always` suggests any matching terms based on the tokens in the suggest text.
+type SuggestMode string
+
+const (
+	// SuggestModeAlways. Suggests matching terms for every term in the suggest
+	// text, including terms already in the index. Pick it to find alternatives
+	// for correctly spelled terms.
+	SuggestModeAlways SuggestMode = "always"
+
+	// SuggestModeMissing. Suggests only for terms that are not in the index;
+	// terms already present get no suggestions.
+	SuggestModeMissing SuggestMode = "missing"
+
+	// SuggestModePopular. Suggests only terms that occur in more documents
+	// than the original term, even when the original term is in the index.
+	SuggestModePopular SuggestMode = "popular"
+)
+
+// Selects the response format returned by list operations. Equivalent
+// to the HTTP `Accept` header but expressed as a query parameter.
+//
+// The server default is "text".
+type ListRespFormat string
+
+const (
+	// ListRespFormatText. Returns a plain-text table with one row per line.
+	// Add `v=true` to include column headers.
+	ListRespFormatText ListRespFormat = "text"
+
+	// ListRespFormatJSON. Returns a JSON object holding the `next_token` for
+	// the following page and an array of row objects keyed by column name.
+	ListRespFormatJSON ListRespFormat = "json"
+
+	// ListRespFormatYaml. Returns the same paginated structure as `json`,
+	// encoded as YAML.
+	ListRespFormatYaml ListRespFormat = "yaml"
+
+	// ListRespFormatCbor. Returns the same paginated structure as `json`,
+	// encoded as CBOR.
+	ListRespFormatCbor ListRespFormat = "cbor"
+
+	// ListRespFormatSmile. Returns the same paginated structure as `json`,
+	// encoded as Smile.
+	ListRespFormatSmile ListRespFormat = "smile"
+)
+
+// The direction of the sort order.
+type SortOrder string
+
+const (
+	// SortOrderAsc. Ascending order, smallest value first.
+	SortOrderAsc SortOrder = "asc"
+
+	// SortOrderDesc. Descending order, largest value first.
+	SortOrderDesc SortOrder = "desc"
 )
 
 // The type of resource to sample.
@@ -800,6 +1180,269 @@ const (
 
 	// NodesSampleTypeWait. Samples process wait times.
 	NodesSampleTypeWait NodesSampleType = "wait"
+)
+
+// Type of notification configuration.
+type NotificationsNotificationConfigType string
+
+const (
+	// NotificationsNotificationConfigTypeChime. An Amazon Chime channel that
+	// receives messages through its webhook URL.
+	NotificationsNotificationConfigTypeChime NotificationsNotificationConfigType = "chime"
+
+	// NotificationsNotificationConfigTypeEmail. An email channel that sends
+	// through a configured SMTP or SES sender account to listed recipients and
+	// email groups.
+	NotificationsNotificationConfigTypeEmail NotificationsNotificationConfigType = "email"
+
+	// NotificationsNotificationConfigTypeEmailGroup. A reusable list of email
+	// recipients that email channels can reference.
+	NotificationsNotificationConfigTypeEmailGroup NotificationsNotificationConfigType = "email_group"
+
+	// NotificationsNotificationConfigTypeMicrosoftTeams. A Microsoft Teams
+	// channel that receives messages through its webhook URL.
+	NotificationsNotificationConfigTypeMicrosoftTeams NotificationsNotificationConfigType = "microsoft_teams"
+
+	// NotificationsNotificationConfigTypeSESAccount. An Amazon SES sender
+	// account, defined by an AWS region, a from address, and an optional IAM
+	// role ARN.
+	NotificationsNotificationConfigTypeSESAccount NotificationsNotificationConfigType = "ses_account"
+
+	// NotificationsNotificationConfigTypeSlack. A Slack channel that receives
+	// messages through its webhook URL.
+	NotificationsNotificationConfigTypeSlack NotificationsNotificationConfigType = "slack"
+
+	// NotificationsNotificationConfigTypeSMTPAccount. An SMTP sender account,
+	// defined by host, port, connection method, and a from address.
+	NotificationsNotificationConfigTypeSMTPAccount NotificationsNotificationConfigType = "smtp_account"
+
+	// NotificationsNotificationConfigTypeSNS. An Amazon SNS topic, defined by
+	// a topic ARN and an optional IAM role ARN.
+	NotificationsNotificationConfigTypeSNS NotificationsNotificationConfigType = "sns"
+
+	// NotificationsNotificationConfigTypeWebhook. A custom webhook that
+	// receives messages at a URL, with optional headers and HTTP method.
+	NotificationsNotificationConfigTypeWebhook NotificationsNotificationConfigType = "webhook"
+)
+
+// Response format selector for PPL plugin operations. Query responses
+// use `jdbc` (default), `csv`, `raw` or `viz`; explain responses use
+// `json` (default) or `yaml`. `simple`, `standard`, `extended` and
+// `cost` are deprecated explain-mode spellings of the `mode`
+// parameter.
+//
+// The server default is "jdbc".
+type PPLRespFormat string
+
+const (
+	// PPLRespFormatJdbc. Query response as a JSON object with a `schema` array
+	// of column names and types and a `datarows` array of row values. The
+	// query endpoint uses it when `format` is omitted.
+	PPLRespFormatJdbc PPLRespFormat = "jdbc"
+
+	// PPLRespFormatCSV. Query response as comma-separated text with a header
+	// row. Values that could be read as spreadsheet formulas are escaped
+	// unless `sanitize=false`.
+	PPLRespFormatCSV PPLRespFormat = "csv"
+
+	// PPLRespFormatRaw. Query response as plain text with values separated by
+	// `|`.
+	PPLRespFormatRaw PPLRespFormat = "raw"
+
+	// PPLRespFormatViz. Query response as a JSON object with each column's
+	// values in an array keyed by column name, for charting.
+	PPLRespFormatViz PPLRespFormat = "viz"
+
+	// PPLRespFormatJSON. Explain response as JSON. The explain endpoint uses
+	// it when `format` is omitted.
+	PPLRespFormatJSON PPLRespFormat = "json"
+
+	// PPLRespFormatYaml. Explain response as YAML.
+	PPLRespFormatYaml PPLRespFormat = "yaml"
+
+	// Deprecated explain-mode alias. Returns the JSON explain output with the
+	// logical plan only, without node attributes; use `mode=simple` instead.
+	PPLRespFormatSimple PPLRespFormat = "simple"
+
+	// Deprecated explain-mode alias. Returns the JSON explain output with the
+	// logical and physical plans; use `mode=standard` instead.
+	PPLRespFormatStandard PPLRespFormat = "standard"
+
+	// Deprecated explain-mode alias. Returns the JSON explain output with the
+	// logical and physical plans plus the generated code; use `mode=extended`
+	// instead.
+	PPLRespFormatExtended PPLRespFormat = "extended"
+
+	// Deprecated explain-mode alias. Returns the JSON explain output with all
+	// plan attributes, including cost estimates; use `mode=cost` instead.
+	PPLRespFormatCost PPLRespFormat = "cost"
+)
+
+// SecurityAnalyticsAlertsAlertState is a value of the `alertState` query parameter.
+type SecurityAnalyticsAlertsAlertState string
+
+const (
+	// SecurityAnalyticsAlertsAlertStateAcknowledged. A user acknowledged the
+	// alert while it was active; only active alerts can be acknowledged.
+	SecurityAnalyticsAlertsAlertStateAcknowledged SecurityAnalyticsAlertsAlertState = "ACKNOWLEDGED"
+
+	// SecurityAnalyticsAlertsAlertStateActive. The trigger condition is met
+	// and the alert has not been acknowledged.
+	SecurityAnalyticsAlertsAlertStateActive SecurityAnalyticsAlertsAlertState = "ACTIVE"
+
+	// SecurityAnalyticsAlertsAlertStateCompleted. The trigger condition is no
+	// longer met, so the alert ended and was removed from the active alerts
+	// index.
+	SecurityAnalyticsAlertsAlertStateCompleted SecurityAnalyticsAlertsAlertState = "COMPLETED"
+
+	// SecurityAnalyticsAlertsAlertStateDeleted. The monitor or detector behind
+	// the alert was deleted or changed, and the alert was moved to history in
+	// this state.
+	SecurityAnalyticsAlertsAlertStateDeleted SecurityAnalyticsAlertsAlertState = "DELETED"
+
+	// SecurityAnalyticsAlertsAlertStateError. The monitor hit an error while
+	// running or evaluating the trigger; the alert carries the error message.
+	SecurityAnalyticsAlertsAlertStateError SecurityAnalyticsAlertsAlertState = "ERROR"
+)
+
+// Severity level with 1 the highest and 5 the lowest. `ALL` designates no particular severity.
+type SecurityAnalyticsAlertsAlertSeverityLevel string
+
+const (
+	// SecurityAnalyticsAlertsAlertSeverityLevel1. Returns only alerts whose
+	// trigger severity is 1, the highest.
+	SecurityAnalyticsAlertsAlertSeverityLevel1 SecurityAnalyticsAlertsAlertSeverityLevel = "1"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel2. Returns only alerts whose
+	// trigger severity is 2.
+	SecurityAnalyticsAlertsAlertSeverityLevel2 SecurityAnalyticsAlertsAlertSeverityLevel = "2"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel3. Returns only alerts whose
+	// trigger severity is 3.
+	SecurityAnalyticsAlertsAlertSeverityLevel3 SecurityAnalyticsAlertsAlertSeverityLevel = "3"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel4. Returns only alerts whose
+	// trigger severity is 4.
+	SecurityAnalyticsAlertsAlertSeverityLevel4 SecurityAnalyticsAlertsAlertSeverityLevel = "4"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevel5. Returns only alerts whose
+	// trigger severity is 5, the lowest.
+	SecurityAnalyticsAlertsAlertSeverityLevel5 SecurityAnalyticsAlertsAlertSeverityLevel = "5"
+
+	// SecurityAnalyticsAlertsAlertSeverityLevelAll. Applies no severity
+	// filter. This is the default when the parameter is omitted.
+	SecurityAnalyticsAlertsAlertSeverityLevelAll SecurityAnalyticsAlertsAlertSeverityLevel = "ALL"
+)
+
+// SecurityAnalyticsFindingsDetectionType is a value of the `detectionType` query parameter.
+type SecurityAnalyticsFindingsDetectionType string
+
+const (
+	// SecurityAnalyticsFindingsDetectionTypeRule. Returns findings produced by
+	// detection rules, meaning every finding whose query ID does not start
+	// with `threat_intel_`.
+	SecurityAnalyticsFindingsDetectionTypeRule SecurityAnalyticsFindingsDetectionType = "rule"
+
+	// SecurityAnalyticsFindingsDetectionTypeThreat. Returns findings produced
+	// by threat intelligence matching, meaning findings whose query ID starts
+	// with `threat_intel_`.
+	SecurityAnalyticsFindingsDetectionTypeThreat SecurityAnalyticsFindingsDetectionType = "threat"
+)
+
+// SecurityAnalyticsFindingsRuleSeverity is a value of the `severity` query parameter.
+type SecurityAnalyticsFindingsRuleSeverity string
+
+const (
+	// SecurityAnalyticsFindingsRuleSeverityCritical. Returns findings from
+	// rules with Sigma level `critical`, the most severe.
+	SecurityAnalyticsFindingsRuleSeverityCritical SecurityAnalyticsFindingsRuleSeverity = "critical"
+
+	// SecurityAnalyticsFindingsRuleSeverityHigh. Returns findings from rules
+	// with Sigma level `high`.
+	SecurityAnalyticsFindingsRuleSeverityHigh SecurityAnalyticsFindingsRuleSeverity = "high"
+
+	// SecurityAnalyticsFindingsRuleSeverityLow. Returns findings from rules
+	// with Sigma level `low`.
+	SecurityAnalyticsFindingsRuleSeverityLow SecurityAnalyticsFindingsRuleSeverity = "low"
+
+	// SecurityAnalyticsFindingsRuleSeverityMedium. Returns findings from rules
+	// with Sigma level `medium`.
+	SecurityAnalyticsFindingsRuleSeverityMedium SecurityAnalyticsFindingsRuleSeverity = "medium"
+)
+
+// Response format selector for SQL plugin operations. The SQL endpoints
+// check `format` on every request except a cursor continuation,
+// explain included, and accept only `jdbc` (default), `csv` and `raw`;
+// any other value fails with an unknown response format error. The
+// server also accepts `table`, but returns an empty body for it, so
+// it has no constant here. The remaining values are listed for
+// parity with the PPL format.
+//
+// The server default is "jdbc".
+type SQLRespFormat string
+
+const (
+	// SQLRespFormatJdbc. Query response as a JSON object with a `schema` array
+	// of column names and types and a `datarows` array of row values. Used
+	// when `format` is omitted.
+	SQLRespFormatJdbc SQLRespFormat = "jdbc"
+
+	// SQLRespFormatCSV. Query response as comma-separated text with a header
+	// row. Values that could be read as spreadsheet formulas are escaped
+	// unless `sanitize=false`.
+	SQLRespFormatCSV SQLRespFormat = "csv"
+
+	// SQLRespFormatRaw. Query response as plain text with values separated by
+	// `|`.
+	SQLRespFormatRaw SQLRespFormat = "raw"
+
+	// SQLRespFormatViz. Column-oriented JSON output for charting. The PPL
+	// endpoint supports it; the SQL endpoint's format check rejects it.
+	SQLRespFormatViz SQLRespFormat = "viz"
+
+	// SQLRespFormatJSON. JSON explain output. The PPL explain endpoint
+	// supports it; the SQL endpoint's format check rejects it.
+	SQLRespFormatJSON SQLRespFormat = "json"
+
+	// SQLRespFormatYaml. YAML explain output. The PPL explain endpoint
+	// supports it; the SQL endpoint's format check rejects it.
+	SQLRespFormatYaml SQLRespFormat = "yaml"
+
+	// SQLRespFormatSimple. Explain mode with the logical plan only, without
+	// node attributes. The SQL endpoint's format check rejects it as a
+	// `format` value.
+	SQLRespFormatSimple SQLRespFormat = "simple"
+
+	// SQLRespFormatStandard. Explain mode with the logical and physical plans.
+	// The SQL endpoint's format check rejects it as a `format` value.
+	SQLRespFormatStandard SQLRespFormat = "standard"
+
+	// SQLRespFormatExtended. Explain mode with the logical and physical plans
+	// plus the generated code. The SQL endpoint's format check rejects it as a
+	// `format` value.
+	SQLRespFormatExtended SQLRespFormat = "extended"
+
+	// SQLRespFormatCost. Explain mode with all plan attributes, including cost
+	// estimates. The SQL endpoint's format check rejects it as a `format`
+	// value.
+	SQLRespFormatCost SQLRespFormat = "cost"
+)
+
+// TasksGroupBy is a value of the `group_by` query parameter.
+type TasksGroupBy string
+
+const (
+	// TasksGroupByNodes. Groups tasks under a `nodes` object keyed by the ID
+	// of the node running them, with node details. This is the default.
+	TasksGroupByNodes TasksGroupBy = "nodes"
+
+	// TasksGroupByNone. Returns tasks as a flat `tasks` array with no
+	// grouping.
+	TasksGroupByNone TasksGroupBy = "none"
+
+	// TasksGroupByParents. Returns a `tasks` object keyed by task ID, with
+	// child tasks nested under their parent task.
+	TasksGroupByParents TasksGroupBy = "parents"
 )
 
 // Identifies a point in time (PIT): an opaque base64 token that encodes

@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -74,7 +75,22 @@ type ShardsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The unit used to display byte values.
-	Bytes string
+	//
+	// See [opensearchapi.ByteUnit] for valid values.
+	Bytes opensearchapi.ByteUnit
+
+	// A short version of the Accept header, such as `JSON`, `YAML`.
+	//
+	// See [opensearchapi.ListRespFormat] for valid values.
+	Format opensearchapi.ListRespFormat
+
+	// A comma-separated list of column names to display.
+	H []string
+
+	// Return help information.
+	//
+	// Default: false.
+	Help *bool
 
 	// Return local information, do not retrieve the state from cluster-manager
 	// node.
@@ -85,16 +101,28 @@ type ShardsParams struct {
 	// Token to retrieve next page of shards.
 	NextToken string
 
+	// A comma-separated list of column names or column aliases to sort by.
+	S []string
+
 	// Maximum number of shards to be displayed in a page.
 	Size int
 
 	// Defines order in which shards will be displayed. Accepted values are
 	// `asc` and `desc`. If `desc`, most recently created shards would be
 	// displayed first.
-	Sort string
+	//
+	// See [opensearchapi.SortOrder] for valid values.
+	Sort opensearchapi.SortOrder
 
 	// The unit in which to display time values.
+	//
+	// See [opensearchapi.TimeUnit] for valid values.
 	Time opensearchapi.TimeUnit
+
+	// Verbose mode. Display column headers.
+	//
+	// Default: false.
+	V *bool
 }
 
 func (r ShardsParams) get() map[string]string {
@@ -112,7 +140,19 @@ func (r ShardsParams) get() map[string]string {
 	}
 
 	if r.Bytes != "" {
-		set("bytes", r.Bytes)
+		set("bytes", string(r.Bytes))
+	}
+
+	if r.Format != "" {
+		set("format", string(r.Format))
+	}
+
+	if len(r.H) > 0 {
+		set("h", apiutil.JoinStrings(r.H, ","))
+	}
+
+	if r.Help != nil {
+		set("help", strconv.FormatBool(*r.Help))
 	}
 
 	if r.Local != nil {
@@ -123,16 +163,24 @@ func (r ShardsParams) get() map[string]string {
 		set("next_token", r.NextToken)
 	}
 
+	if len(r.S) > 0 {
+		set("s", apiutil.JoinStrings(r.S, ","))
+	}
+
 	if r.Size != 0 {
 		set("size", strconv.Itoa(r.Size))
 	}
 
 	if r.Sort != "" {
-		set("sort", r.Sort)
+		set("sort", string(r.Sort))
 	}
 
 	if r.Time != "" {
 		set("time", string(r.Time))
+	}
+
+	if r.V != nil {
+		set("v", strconv.FormatBool(*r.V))
 	}
 
 	return params

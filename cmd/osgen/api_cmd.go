@@ -665,8 +665,12 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 	return w.excludedFields
 }
 
-// typeQueryParamEnums types query parameters whose schema is an allowlisted
-// const-oneOf (e.g. cat's `time` -> TimeUnit, nodes.info's `metric` -> Metric).
+// typeQueryParamEnums types string query parameters whose component schema is
+// an enum in any shape enumParser.paramEnum accepts (e.g. cat's `time` -> TimeUnit,
+// nodes.info's `metric` -> Metric), and string-list parameters whose schema is
+// a oneOf of an enum and an array of it (via typeListParamEnum, giving
+// []Elem). Enums already registered by the response/body walks are reused
+// as-is.
 //
 // It runs after the response and request-body walks so the shared registry
 // already holds any enum that also appears in a body or response. For a
@@ -686,19 +690,25 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 		inFlight: make(set[string]),
 		vrange:   vrange,
 		warnOut:  os.Stderr,
+
+		paramPass: true,
 	}
 
 	for i := range ops {
 		op := &ops[i]
 		for j := range op.QueryParams {
 			qp := &op.QueryParams[j]
-			// Only plain-string params backed by a component $ref are candidates;
-			// duration/bool/int/list params keep their existing handling.
-			if qp.SchemaRef == "" || qp.IsDuration || qp.IsBool || qp.IsInt || qp.IsList {
+			// Only string and string-list params backed by a component $ref are
+			// candidates; duration/bool/int params keep their existing handling.
+			if qp.SchemaRef == "" || qp.IsDuration || qp.IsBool || qp.IsInt {
 				continue
 			}
 			schemaRef, ok := spec.Components.Schemas[qp.SchemaRef]
 			if !ok || schemaRef.Value == nil {
+				continue
+			}
+			if qp.IsList {
+				typeListParamEnum(w, qp, schemaRef.Value, op.Group)
 				continue
 			}
 			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group)
@@ -707,8 +717,32 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 			}
 			qp.GoType = name
 			qp.IsStringEnum = true
+			registry.addParamName(qp.SchemaRef, qp.ParamName)
 		}
 	}
+}
+
+// typeListParamEnum retypes a list param whose schema is a oneOf of an enum
+// $ref and an array of that same $ref (ExpandWildcards) to a slice of the enum
+// type, e.g. []ExpandWildcard.
+func typeListParamEnum(w *walker, qp *apiQueryParam, schema *openapi3.Schema, group string) {
+	arr := oneOfBranchOfType(schema, openapi3.TypeArray)
+	if arr == nil || arr.Items == nil || arr.Items.Ref == "" {
+		return
+	}
+	elemRef := arr.Items
+	key := refToSchemaKey(elemRef.Ref)
+	elem, ok := w.spec.Components.Schemas[key]
+	if !ok || elem.Value == nil {
+		return
+	}
+	name, ok := w.resolveStringEnumConst(key, elem.Value, group)
+	if !ok {
+		return
+	}
+	qp.GoType = "[]" + name
+	qp.IsStringEnum = true
+	w.registry.addParamName(key, qp.ParamName)
 }
 
 // classifyRespShape determines the response body shape for operations whose

@@ -36,7 +36,7 @@ func TestIndicesExistsParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesExistsParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesExistsParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

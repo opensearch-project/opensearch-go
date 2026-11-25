@@ -112,7 +112,7 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: SearchParams{ExpandWildcards: []string{"a", "b"}},
+			params: SearchParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

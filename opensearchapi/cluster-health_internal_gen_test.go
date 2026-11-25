@@ -31,7 +31,7 @@ func TestClusterHealthParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: ClusterHealthParams{ExpandWildcards: []string{"a", "b"}},
+			params: ClusterHealthParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

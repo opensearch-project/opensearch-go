@@ -85,7 +85,7 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 		targets = append(targets, buildOperationFile(dir, filePkg, basename, op, spec.Registry))
 
 		// Params test file.
-		if paramsFrag := buildParamsTestFrag(op); paramsFrag != nil {
+		if paramsFrag := buildParamsTestFrag(op, spec.Registry); paramsFrag != nil {
 			targets = append(targets, NewParamsTestFile(dir, filePkg, basename, paramsFrag))
 		}
 
@@ -262,24 +262,33 @@ func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.Typ
 	}
 }
 
-func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
+func buildParamsTestFrag(op *ir.Operation, reg *ir.TypeRegistry) *ParamsTestFragment {
 	if len(op.QueryParams) == 0 {
 		return nil
 	}
 
+	qualify := qualifierFunc(op.IsPlugin, reg)
 	hasDuration := false
+	coreImport := ""
 	var cases []ParamTestCase
 	for _, p := range op.QueryParams {
 		if p.Kind == ir.ParamDuration {
 			hasDuration = true
+		}
+		if p.Kind == ir.ParamList && p.IsStringEnum {
+			p.GoType = qualify(p.GoType)
+			if op.IsPlugin && reg != nil {
+				coreImport = reg.CoreImport
+			}
 		}
 		cases = append(cases, paramTestCases(p)...)
 	}
 
 	return &ParamsTestFragment{
 		TypePrefix:     op.TypePrefix,
-		FormatOverride: HasFormatOverride(op.Group),
+		FormatOverride: FormatOverride(op),
 		HasDuration:    hasDuration,
+		CoreImport:     coreImport,
 		Cases:          cases,
 	}
 }
@@ -336,7 +345,7 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 			},
 		}
 	}
-	tc := ParamTestCase{Name: p.WireName}
+	tc := ParamTestCase{Name: p.WireName, SetsFormat: p.WireName == FormatParam}
 	tc.FieldAssign, tc.WantAssign = paramTestValues(p)
 	return []ParamTestCase{tc}
 }
@@ -355,7 +364,9 @@ func paramTestValues(p ir.QueryParam) (string, string) {
 		fieldAssign = fmt.Sprintf("%s: new(true)", p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "true")
 	case ir.ParamList:
-		fieldAssign = fmt.Sprintf(`%s: []string{"a", "b"}`, p.GoName)
+		// A list enum param's GoType is its typed slice (qualified in plugin
+		// packages), so the literal matches the field; other lists are []string.
+		fieldAssign = fmt.Sprintf(`%s: %s{"a", "b"}`, p.GoName, p.GoType)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "a,b")
 	case ir.ParamInt:
 		if p.GoType == "*int" {
@@ -1311,9 +1322,8 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 	var fields []string
 
 	// Cat and list APIs need format=json to get JSON instead of plain text.
-	// Format lives in the embedded DebugParams, accessible via field promotion.
-	if (strings.HasPrefix(op.Group, "cat.") || strings.HasPrefix(op.Group, "list.")) && !op.IsNoBody {
-		fields = append(fields, `DebugParams: `+corePkg+`.DebugParams{Format: "json"}`)
+	if (strings.HasPrefix(op.Group, "cat.") || strings.HasPrefix(op.Group, "list.")) && !op.IsNoBody && hasQueryParam(op, FormatParam) {
+		fields = append(fields, `Format: "json"`)
 	}
 
 	// field_caps requires the fields param even though spec marks it optional.
@@ -1344,12 +1354,18 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 				fields = append(fields, p.GoName+": 1")
 			}
 		case ir.ParamList:
-			fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
+			// A list enum param is a slice of the shared enum type, corePkg-
+			// qualified in the external _test package; other lists are []string.
+			if p.IsStringEnum {
+				elem := corePkg + "." + strings.TrimPrefix(p.GoType, "[]")
+				fields = append(fields, fmt.Sprintf("%s: []%s{%s(name)}", p.GoName, elem, elem))
+			} else {
+				fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
+			}
 		case ir.ParamString:
-			// A string-enum param is a named string type (kind ParamString but a
-			// non-"string" GoType), so the plain string var `name` must be
-			// converted; the type is shared, hence corePkg-qualified in the
-			// external _test package.
+			// A string-enum param has kind ParamString but a non-"string" GoType.
+			// The conversion is required for a defined type; the type is shared,
+			// hence corePkg-qualified in the external _test package.
 			if p.IsStringEnum {
 				fields = append(fields, fmt.Sprintf("%s: %s.%s(name)", p.GoName, corePkg, p.GoType))
 			} else {

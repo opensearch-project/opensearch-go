@@ -25,6 +25,31 @@ func TestCatHealthParams_get(t *testing.T) {
 	}{
 		{name: "empty", params: CatHealthParams{}, want: map[string]string{"format": "json"}},
 		{
+			name:   "format",
+			params: CatHealthParams{Format: "test-value"},
+			want:   map[string]string{"format": "test-value"},
+		},
+		{
+			name:   "h",
+			params: CatHealthParams{H: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "h": "a,b"},
+		},
+		{
+			name:   "help=true",
+			params: CatHealthParams{Help: new(true)},
+			want:   map[string]string{"format": "json", "help": "true"},
+		},
+		{
+			name:   "help=false",
+			params: CatHealthParams{Help: new(false)},
+			want:   map[string]string{"format": "json", "help": "false"},
+		},
+		{
+			name:   "s",
+			params: CatHealthParams{S: []string{"a", "b"}},
+			want:   map[string]string{"format": "json", "s": "a,b"},
+		},
+		{
 			name:   "time",
 			params: CatHealthParams{Time: "test-value"},
 			want:   map[string]string{"format": "json", "time": "test-value"},
@@ -38,6 +63,16 @@ func TestCatHealthParams_get(t *testing.T) {
 			name:   "ts=false",
 			params: CatHealthParams{Ts: new(false)},
 			want:   map[string]string{"format": "json", "ts": "false"},
+		},
+		{
+			name:   "v=true",
+			params: CatHealthParams{V: new(true)},
+			want:   map[string]string{"format": "json", "v": "true"},
+		},
+		{
+			name:   "v=false",
+			params: CatHealthParams{V: new(false)},
+			want:   map[string]string{"format": "json", "v": "false"},
 		},
 	}
 	for _, tt := range tests {

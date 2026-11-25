@@ -36,7 +36,7 @@ func TestIndicesForceMergeParams_get(t *testing.T) {
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesForceMergeParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesForceMergeParams{ExpandWildcards: []ExpandWildcard{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{

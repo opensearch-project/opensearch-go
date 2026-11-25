@@ -14,9 +14,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	json "github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
@@ -146,6 +146,8 @@ type MTermVectorsParams struct {
 	Version *int
 
 	// The specific version type.
+	//
+	// See [VersionType] for valid values.
 	VersionType VersionType
 }
 
@@ -165,11 +167,11 @@ func (r MTermVectorsParams) get() map[string]string {
 	}
 
 	if len(r.Fields) > 0 {
-		set("fields", strings.Join(r.Fields, ","))
+		set("fields", apiutil.JoinStrings(r.Fields, ","))
 	}
 
 	if len(r.IDs) > 0 {
-		set("ids", strings.Join(r.IDs, ","))
+		set("ids", apiutil.JoinStrings(r.IDs, ","))
 	}
 
 	if r.Offsets != nil {
@@ -193,7 +195,7 @@ func (r MTermVectorsParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.TermStatistics != nil {
@@ -337,7 +339,11 @@ type MTermVectorsOperation struct {
 	// and the document frequency.
 	TermStatistics *bool `json:"term_statistics,omitempty"`
 
-	Version     *int64       `json:"version,omitempty"`
+	Version *int64 `json:"version,omitempty"`
+
+	// VersionType. Selects how the `version` supplied with a request is
+	// checked against the document's current version, and how the stored
+	// version changes on a successful write. Defaults to `internal`.
 	VersionType *VersionType `json:"version_type,omitempty"`
 }
 

@@ -133,7 +133,7 @@ func example() error {
 			ID:    docId,
 			Body:  opensearchutil.NewJSONReader(&document),
 			Params: &opensearchapi.IndexParams{
-				Refresh: "true",
+				Refresh: opensearchapi.RefreshWaitFor,
 			},
 		},
 	)
@@ -231,6 +231,8 @@ func example() error {
 }
 
 ```
+
+[`Refresh`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#Refresh) describes each refresh value used above.
 
 ## Amazon OpenSearch Service
 

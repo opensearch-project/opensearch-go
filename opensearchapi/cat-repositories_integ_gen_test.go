@@ -26,7 +26,7 @@ func TestCatRepositories(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Repositories(t.Context(), &opensearchapi.CatRepositoriesReq{Params: &opensearchapi.CatRepositoriesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.Repositories(t.Context(), &opensearchapi.CatRepositoriesReq{Params: &opensearchapi.CatRepositoriesParams{Format: "json"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

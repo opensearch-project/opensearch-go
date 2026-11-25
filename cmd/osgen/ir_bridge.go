@@ -279,6 +279,10 @@ func convertType(gt *goType) *ir.Type {
 		SchemaRef: gt.SchemaRef,
 		Comment:   gt.Comment,
 		Package:   gt.Pkg,
+		HasCount:  gt.HasCount,
+
+		ParamNames: gt.ParamNames,
+		Default:    gt.Default,
 	}
 
 	switch {
@@ -354,7 +358,7 @@ func convertType(gt *goType) *ir.Type {
 // would otherwise emit uncompilable Go — failing loudly at generation time
 // matches osgen's handling of other invalid-identifier cases (see naming.go).
 // The string-enum path pre-validates and deduplicates its values in
-// parseConstOneOf, so the identifier and dedup guards below never fire for it.
+// enumParser, so the identifier and dedup guards below never fire for it.
 func convertEnumMembers(typeName string, consts []constEnumValue, reserved set[string]) []ir.EnumMember {
 	if len(consts) == 0 {
 		return nil

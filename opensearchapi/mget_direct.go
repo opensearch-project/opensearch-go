@@ -227,10 +227,10 @@ func (d *mgetDriver) write(c *Client, req MGetReq, fanOut MGetFanOut) (*mgetCall
 
 // mgetReshapesResponse reports whether p changes the response's shape or the
 // request's body, so that a node's answer can no longer be matched to the
-// documents asked for: filter_path can drop each document's _id, format changes
-// the encoding, and source replaces the body.
+// documents asked for: filter_path can drop each document's _id, and source
+// replaces the body.
 func mgetReshapesResponse(p DebugParams) bool {
-	return len(p.FilterPath) > 0 || p.Format != "" || p.Source != ""
+	return len(p.FilterPath) > 0 || p.Source != ""
 }
 
 // split routes the documents at positions to nodes for the given attempt, and

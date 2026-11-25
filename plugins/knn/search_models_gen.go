@@ -13,10 +13,10 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -115,7 +115,9 @@ type SearchModelsParams struct {
 	CcsMinimizeRoundtrips *bool
 
 	// The default operator for query string query (AND or OR).
-	DefaultOperator string
+	//
+	// See [opensearchapi.CommonQueryDSLOperator] for valid values.
+	DefaultOperator opensearchapi.CommonQueryDSLOperator
 
 	// The field to use as default where no field prefix is given in the query
 	// string.
@@ -127,7 +129,9 @@ type SearchModelsParams struct {
 
 	// Whether to expand wildcard expression to concrete indexes that are open,
 	// closed or both.
-	ExpandWildcards []string
+	//
+	// See [opensearchapi.ExpandWildcard] for valid values.
+	ExpandWildcards []opensearchapi.ExpandWildcard
 
 	// Specify whether to return detailed information about score computation
 	// as part of a hit.
@@ -192,6 +196,8 @@ type SearchModelsParams struct {
 	Scroll time.Duration
 
 	// Search operation type.
+	//
+	// See [opensearchapi.SearchType] for valid values.
 	SearchType opensearchapi.SearchType
 
 	// Specify whether to return sequence number and primary term of the last
@@ -216,7 +222,9 @@ type SearchModelsParams struct {
 	SuggestField string
 
 	// Specify suggest mode.
-	SuggestMode string
+	//
+	// See [opensearchapi.SuggestMode] for valid values.
+	SuggestMode opensearchapi.SuggestMode
 
 	// How many suggestions to return in response.
 	SuggestSize int
@@ -256,15 +264,15 @@ func (r SearchModelsParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if len(r.Source) > 0 {
-		set("_source", strings.Join(r.Source, ","))
+		set("_source", apiutil.JoinStrings(r.Source, ","))
 	}
 
 	if len(r.SourceExcludes) > 0 {
-		set("_source_excludes", strings.Join(r.SourceExcludes, ","))
+		set("_source_excludes", apiutil.JoinStrings(r.SourceExcludes, ","))
 	}
 
 	if len(r.SourceIncludes) > 0 {
-		set("_source_includes", strings.Join(r.SourceIncludes, ","))
+		set("_source_includes", apiutil.JoinStrings(r.SourceIncludes, ","))
 	}
 
 	if r.AllowNoIndices != nil {
@@ -292,7 +300,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.DefaultOperator != "" {
-		set("default_operator", r.DefaultOperator)
+		set("default_operator", string(r.DefaultOperator))
 	}
 
 	if r.Df != "" {
@@ -300,11 +308,11 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if len(r.DocvalueFields) > 0 {
-		set("docvalue_fields", strings.Join(r.DocvalueFields, ","))
+		set("docvalue_fields", apiutil.JoinStrings(r.DocvalueFields, ","))
 	}
 
 	if len(r.ExpandWildcards) > 0 {
-		set("expand_wildcards", strings.Join(r.ExpandWildcards, ","))
+		set("expand_wildcards", apiutil.JoinStrings(r.ExpandWildcards, ","))
 	}
 
 	if r.Explain != nil {
@@ -352,7 +360,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if len(r.Routing) > 0 {
-		set("routing", strings.Join(r.Routing, ","))
+		set("routing", apiutil.JoinStrings(r.Routing, ","))
 	}
 
 	if r.Scroll != 0 {
@@ -372,15 +380,15 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if len(r.Sort) > 0 {
-		set("sort", strings.Join(r.Sort, ","))
+		set("sort", apiutil.JoinStrings(r.Sort, ","))
 	}
 
 	if len(r.Stats) > 0 {
-		set("stats", strings.Join(r.Stats, ","))
+		set("stats", apiutil.JoinStrings(r.Stats, ","))
 	}
 
 	if len(r.StoredFields) > 0 {
-		set("stored_fields", strings.Join(r.StoredFields, ","))
+		set("stored_fields", apiutil.JoinStrings(r.StoredFields, ","))
 	}
 
 	if r.SuggestField != "" {
@@ -388,7 +396,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.SuggestMode != "" {
-		set("suggest_mode", r.SuggestMode)
+		set("suggest_mode", string(r.SuggestMode))
 	}
 
 	if r.SuggestSize != 0 {
