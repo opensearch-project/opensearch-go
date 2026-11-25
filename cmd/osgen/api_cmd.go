@@ -34,6 +34,8 @@ import (
 func runAPI() error {
 	fs := flag.NewFlagSet("api", flag.ExitOnError)
 	specPath := fs.String("spec", "", "path to OpenAPI spec YAML (single combined file)")
+	fs.BoolVar(&fromClientModel, "model", false,
+		"read types from the resolved client model in the spec's x-model extensions instead of interpreting allOf/oneOf/anyOf")
 	groups := fs.String("groups", "", "comma-separated x-operation-group names (empty = all)")
 	outDir := fs.String("out", "", "output directory for core API files (opensearchapi/)")
 	pluginsDir := fs.String("plugins-out", "", "output directory for plugin files (plugins/)")

@@ -17,6 +17,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/clientmodel"
 	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
@@ -142,6 +143,11 @@ type apiQueryParam struct {
 	DeprecationMsg    string // explains what to use instead
 }
 
+// fromClientModel makes the walker take its types from the resolved client
+// model in the spec's x-model extensions (-model). False keeps reading types
+// from the OpenAPI schemas.
+var fromClientModel bool //nolint:gochecknoglobals // set once from the -model flag
+
 // extractOperations parses the OpenAPI spec and returns one apiOperation per
 // x-operation-group. An optional filter restricts output to named groups. It
 // also returns the loaded spec for use by the response schema walker, and the
@@ -159,6 +165,15 @@ func extractOperations(
 	}
 	if err := dropRedundantRefTypeConjuncts(spec); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("normalizing spec: %w", err)
+	}
+	if fromClientModel {
+		model, err := clientmodel.LoadSpec(specPath)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		if err := clientmodel.Lower(spec, model); err != nil {
+			return nil, nil, nil, nil, err
+		}
 	}
 
 	type groupData struct {
