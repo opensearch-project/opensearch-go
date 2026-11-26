@@ -8,10 +8,12 @@ package opensearchapi_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/internal/jsonx"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
@@ -348,4 +350,164 @@ func TestQueryTermsReplaceAfterDecode(t *testing.T) {
 	got, err := json.Marshal(terms)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"user":["b"]}`, string(got))
+}
+
+// The terms-query value union, called directly rather than through its parent.
+func TestQueryTermsQueryFieldUnion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("type names", func(t *testing.T) {
+		t.Parallel()
+
+		require.Equal(t, "Array", opensearchapi.CommonQueryDSLTermsQueryFieldArrayType.String())
+		require.Equal(t, "Lookup", opensearchapi.CommonQueryDSLTermsQueryFieldLookupType.String())
+		require.Equal(t, "unknown", opensearchapi.CommonQueryDSLTermsQueryFieldUnknownType.String())
+		require.Equal(t, "unknown", opensearchapi.CommonQueryDSLTermsQueryFieldType(99).String())
+	})
+
+	t.Run("accessors on the wrong branch", func(t *testing.T) {
+		t.Parallel()
+
+		arr := opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray(
+			[]opensearchapi.FieldValue{opensearchapi.NewFieldValueFromString("a")})
+		lookup := opensearchapi.NewCommonQueryDSLTermsQueryFieldFromLookup(
+			opensearchapi.CommonQueryDSLTermsLookup{Index: "i", ID: "1", Path: "p"})
+		var zero opensearchapi.CommonQueryDSLTermsQueryField
+
+		_, err := arr.Lookup()
+		var be *opensearchapi.UnionBranchError
+		require.ErrorAs(t, err, &be)
+		require.Equal(t, "Lookup", be.Want)
+		require.Equal(t, "Array", be.Got)
+
+		vals, err := lookup.Array()
+		require.ErrorAs(t, err, &be)
+		require.Equal(t, "Array", be.Want)
+		require.Equal(t, "Lookup", be.Got)
+		require.Nil(t, vals)
+
+		vals, err = zero.Array()
+		require.ErrorAs(t, err, &be)
+		require.Equal(t, "unknown", be.Got)
+		require.Nil(t, vals)
+
+		l, err := zero.Lookup()
+		require.ErrorAs(t, err, &be)
+		require.Equal(t, "unknown", be.Got)
+		require.Equal(t, opensearchapi.CommonQueryDSLTermsLookup{}, l)
+	})
+
+	t.Run("UnmarshalJSON", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name    string
+			data    string
+			want    opensearchapi.CommonQueryDSLTermsQueryFieldType
+			wantErr string
+		}{
+			{name: "array", data: `["a",1]`, want: opensearchapi.CommonQueryDSLTermsQueryFieldArrayType},
+			{name: "lookup", data: `{"index":"i","id":"1","path":"p"}`, want: opensearchapi.CommonQueryDSLTermsQueryFieldLookupType},
+			{name: "null", data: `null`, want: opensearchapi.CommonQueryDSLTermsQueryFieldUnknownType},
+			{name: "empty", data: ``, want: opensearchapi.CommonQueryDSLTermsQueryFieldUnknownType},
+			{name: "number", data: `5`, wantErr: "unexpected JSON token: 5"},
+			{name: "string", data: `"x"`, wantErr: "unexpected JSON token: \""},
+			{name: "bad array element", data: `[{}]`, wantErr: "FieldValue"},
+			{name: "bad lookup field", data: `{"id":5}`, wantErr: "id"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				var u opensearchapi.CommonQueryDSLTermsQueryField
+				err := u.UnmarshalJSON([]byte(tt.data))
+				if tt.wantErr != "" {
+					require.ErrorContains(t, err, tt.wantErr)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, tt.want, u.Type())
+			})
+		}
+	})
+
+	t.Run("UnmarshalJSONFrom", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name    string
+			data    string
+			want    opensearchapi.CommonQueryDSLTermsQueryFieldType
+			wantErr bool
+		}{
+			{name: "array", data: `["a"]`, want: opensearchapi.CommonQueryDSLTermsQueryFieldArrayType},
+			{name: "lookup", data: `{"index":"i","id":"1","path":"p"}`, want: opensearchapi.CommonQueryDSLTermsQueryFieldLookupType},
+			{name: "null", data: `null`, want: opensearchapi.CommonQueryDSLTermsQueryFieldUnknownType},
+			{name: "number", data: `5`, wantErr: true},
+			{name: "bad array element", data: `[{}]`, wantErr: true},
+			{name: "bad lookup field", data: `{"id":5}`, wantErr: true},
+			{name: "truncated literal", data: `tru`, wantErr: true},
+			{name: "truncated null", data: `nul`, wantErr: true},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				var u opensearchapi.CommonQueryDSLTermsQueryField
+				// jsonx.Unmarshal decodes from bytes and so reaches UnmarshalJSONFrom.
+				err := jsonx.Unmarshal([]byte(tt.data), &u)
+				if tt.wantErr {
+					require.Error(t, err)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, tt.want, u.Type())
+				require.JSONEq(t, tt.data, string(u.RawJSON()))
+			})
+		}
+	})
+
+	t.Run("UnmarshalJSONFrom on a truncated value", func(t *testing.T) {
+		t.Parallel()
+
+		for _, data := range []string{`tru`, `nul`, `[`, `{"id"`} {
+			var u opensearchapi.CommonQueryDSLTermsQueryField
+			require.Error(t, u.UnmarshalJSONFrom(jsonx.NewTextDecoder(strings.NewReader(data))), data)
+		}
+	})
+
+	t.Run("marshal", func(t *testing.T) {
+		t.Parallel()
+
+		var raw opensearchapi.CommonQueryDSLTermsQueryField
+		raw.SetRaw(json.RawMessage(`["raw"]`))
+		tests := []struct {
+			name  string
+			value opensearchapi.CommonQueryDSLTermsQueryField
+			want  string
+		}{
+			{
+				name: "constructed",
+				value: opensearchapi.NewCommonQueryDSLTermsQueryFieldFromArray(
+					[]opensearchapi.FieldValue{opensearchapi.NewFieldValueFromString("a")}),
+				want: `["a"]`,
+			},
+			{name: "raw only", value: raw, want: `["raw"]`},
+			{name: "zero", want: `null`},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				got, err := tt.value.MarshalJSON()
+				require.NoError(t, err)
+				require.JSONEq(t, tt.want, string(got))
+
+				// jsonx.Marshal reaches MarshalJSONTo.
+				got, err = jsonx.Marshal(tt.value)
+				require.NoError(t, err)
+				require.JSONEq(t, tt.want, string(got))
+			})
+		}
+	})
 }

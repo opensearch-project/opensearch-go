@@ -124,6 +124,49 @@ func TestExtraKeysAggTypes(t *testing.T) {
 				require.JSONEq(t, inner, string(got["inner_agg"]))
 			})
 
+			t.Run("marshal without sub-aggregations", func(t *testing.T) {
+				t.Parallel()
+
+				v := tt.newValue()
+				dc := reflect.ValueOf(v).Elem().FieldByName("DocCount")
+				require.True(t, dc.IsValid(), "%T has no DocCount field", v)
+				if dc.Kind() == reflect.Pointer {
+					dc.Set(reflect.New(dc.Type().Elem()))
+					dc = dc.Elem()
+				}
+				dc.SetInt(7)
+				out, err := json.Marshal(v)
+				require.NoError(t, err)
+				var got map[string]json.RawMessage
+				require.NoError(t, json.Unmarshal(out, &got))
+				require.JSONEq(t, `7`, string(got["doc_count"]))
+				require.NotContains(t, got, "inner_agg")
+			})
+
+			t.Run("marshal constructed sub-aggregation", func(t *testing.T) {
+				t.Parallel()
+
+				value := 1.5
+				v := tt.newValue()
+				reflect.ValueOf(v).Elem().FieldByName("Aggregations").Set(reflect.ValueOf(
+					map[string]opensearchapi.CommonAggregationsAggregate{
+						"inner_agg": opensearchapi.NewCommonAggregationsAggregateFromAvg(
+							opensearchapi.CommonAggregationsSingleMetricAggregateBase{Value: &value}),
+					}))
+				out, err := json.Marshal(v)
+				require.NoError(t, err)
+				var got map[string]json.RawMessage
+				require.NoError(t, json.Unmarshal(out, &got))
+				require.Contains(t, got, "inner_agg")
+
+				var agg opensearchapi.CommonAggregationsAggregate
+				require.NoError(t, json.Unmarshal(got["inner_agg"], &agg))
+				avg, err := agg.AsAvg()
+				require.NoError(t, err)
+				require.NotNil(t, avg.Value)
+				require.InDelta(t, value, *avg.Value, 0)
+			})
+
 			t.Run("colliding key", func(t *testing.T) {
 				t.Parallel()
 
