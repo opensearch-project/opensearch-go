@@ -317,6 +317,16 @@ func convertType(gt *goType) *ir.Type {
 		t.Branches = append(t.Branches, convertUnionBranch(b))
 	}
 
+	if gt.ExtraKeys != nil {
+		t.ExtraKeys = &ir.ExtraKeys{
+			GoName:    gt.ExtraKeys.GoName,
+			ValueType: gt.ExtraKeys.ValueType,
+			Known:     gt.ExtraKeys.Known,
+			KeyTitle:  gt.ExtraKeys.KeyTitle,
+			RawValue:  gt.ExtraKeys.RawValue,
+		}
+	}
+
 	t.Discriminator = convertDiscriminator(gt)
 
 	// The int-backed EnumFragment also emits a <Type>Unknown sentinel const in

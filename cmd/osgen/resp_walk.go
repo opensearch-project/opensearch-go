@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/token"
 	"io"
+	"maps"
 	"os"
 	"slices"
 	"sort"
@@ -216,6 +217,7 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 	if schema != nil {
 		t.Fields = w.collectFields(schema, key, group, name, isRespBody)
 		t.Comment = schema.Description
+		t.ExtraKeys = w.extraKeysFor(schema, t.Fields, key, group)
 	}
 
 	if registered, ok := w.registry.register(t); ok {
@@ -314,6 +316,7 @@ func (w *walker) resolveObjectSchema(schema *openapi3.Schema, schemaKey, group s
 			Fields:    w.walkProperties(schema, schemaKey, group, name, isRespBody),
 			Comment:   schema.Description,
 		}
+		t.ExtraKeys = w.extraKeysFor(schema, t.Fields, schemaKey, group)
 		if registered, ok := w.registry.register(t); ok {
 			return registered.Name
 		}
@@ -378,10 +381,118 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 		}
 	}
 
+	t.ExtraKeys = w.extraKeysFor(schema, t.Fields, schemaKey, group)
+
 	if registered, ok := w.registry.register(t); ok {
 		return registered.Name
 	}
 	return name
+}
+
+// fieldKeyedSchemas lists the spec schemas that get a Fields map for their
+// open keys. A listed schema decodes its field-keyed values, so a schema is
+// listed only once its value types match what the server accepts: a non-union
+// value that does not match fails the whole decode, and a union value that does
+// not match is kept as raw JSON.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var fieldKeyedSchemas = set[string]{
+	"_common.query_dsl___TermsQuery": {},
+}
+
+// extraKeysFor returns the open-keyed map a struct needs beside its fixed fields.
+// Two schemas qualify. One is an allowlisted schema (fieldKeyedSchemas) that
+// declares propertyNames and additionalProperties, on the schema or one of its
+// inline allOf members; without propertyNames, additionalProperties stays
+// undeclared. The other is a schema whose additionalProperties or
+// unevaluatedProperties references aggregateSchemaRef (see aggregateExtraKeys),
+// which needs neither the allowlist nor propertyNames. A schema with no fixed
+// fields is a plain map type and gets neither.
+func (w *walker) extraKeysFor(schema *openapi3.Schema, fields []goField, key, group string) *extraKeys {
+	if len(fields) == 0 {
+		return nil
+	}
+	if x := w.aggregateExtraKeys(schema, fields); x != nil {
+		return x
+	}
+	if !fieldKeyedSchemas.has(key) {
+		return nil
+	}
+	candidates := []*openapi3.Schema{schema}
+	for _, sub := range schema.AllOf {
+		if sub.Ref == "" && sub.Value != nil {
+			candidates = append(candidates, sub.Value)
+		}
+	}
+	for _, c := range candidates {
+		if c.PropertyNames == nil || c.PropertyNames.Value == nil || c.AdditionalProperties.Schema == nil {
+			continue
+		}
+		taken := make(set[string])
+		for _, f := range fields {
+			if !f.IsEmbed {
+				taken.add(f.GoName)
+			}
+		}
+		goName := "Fields"
+		if taken.has(goName) {
+			goName = "ExtraFields"
+		}
+		valueType := w.walkSchema(c.AdditionalProperties.Schema, key+"Value", group, false)
+		vt, _ := w.registry.lookupByName(valueType)
+		return &extraKeys{
+			GoName:    goName,
+			ValueType: valueType,
+			Known:     w.knownKeys(fields),
+			KeyTitle:  c.PropertyNames.Value.Title,
+			RawValue:  vt != nil && vt.IsUnion,
+		}
+	}
+	return nil
+}
+
+// aggregateSchemaRef is the $ref of the aggregation result union a bucket nests
+// its sub-aggregations as.
+const aggregateSchemaRef = "#/components/schemas/_common.aggregations___Aggregate"
+
+// aggregateExtraKeys returns the Aggregations map for a schema whose free-form
+// properties (additionalProperties, or unevaluatedProperties beside an allOf) are
+// aggregation results: a bucket keys its sub-aggregations by their request name.
+// The Aggregate ref is not walked here: it is a union that reaches back into the
+// bucket types still being built, and walking it would stop their allOf wrappers
+// collapsing. Its Go name is derived instead; the union is a union of raw JSON, so
+// a value it cannot decode stays raw.
+func (w *walker) aggregateExtraKeys(schema *openapi3.Schema, fields []goField) *extraKeys {
+	isAgg := func(r *openapi3.SchemaRef) bool { return r != nil && r.Ref == aggregateSchemaRef }
+	if !isAgg(schema.AdditionalProperties.Schema) && !isAgg(schema.UnevaluatedProperties.Schema) {
+		return nil
+	}
+	return &extraKeys{
+		GoName:    "Aggregations",
+		ValueType: schemaTypeName(refToSchemaKey(aggregateSchemaRef), false),
+		Known:     w.knownKeys(fields),
+		KeyTitle:  "aggregation",
+		RawValue:  true,
+	}
+}
+
+// knownKeys returns the sorted JSON keys of fields, descending into embedded types.
+func (w *walker) knownKeys(fields []goField) []string {
+	keys := make(set[string])
+	var collect func(fs []goField)
+	collect = func(fs []goField) {
+		for _, f := range fs {
+			if !f.IsEmbed {
+				keys.add(f.JSONName)
+				continue
+			}
+			if emb, ok := w.registry.lookupByName(f.GoType); ok {
+				collect(emb.Fields)
+			}
+		}
+	}
+	collect(fields)
+	return slices.Sorted(maps.Keys(keys))
 }
 
 // walkProperties iterates the properties of a schema and returns the

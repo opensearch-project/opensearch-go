@@ -21,6 +21,9 @@ type SharedTypesFragment struct {
 
 // Imports returns the imports the shared-types fragment needs.
 func (f *SharedTypesFragment) Imports() []Import {
+	if hasExtraKeys(f.Types) {
+		return []Import{{Path: "fmt"}, jsonImport, {Path: "strings"}}
+	}
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
 			if strings.Contains(field.GoType, GoTypeRawMessage) {
@@ -37,8 +40,17 @@ func (f *SharedTypesFragment) Body() (string, error) {
 		return "", nil
 	}
 
+	plan := extraKeysPlan(f.Types)
+	tmpl, err := sharedTypesFmtTmpl.Clone()
+	if err != nil {
+		return "", fmt.Errorf("rendering SharedTypesFragment: %w", err)
+	}
+	tmpl.Funcs(template.FuncMap{
+		"hasMethods":   func(t *ir.Type) bool { return plan[t] != nil },
+		"extraMethods": func(t *ir.Type) string { return extraKeysMethods(t, plan[t], identity) },
+	})
 	var sb strings.Builder
-	if err := sharedTypesFmtTmpl.Execute(&sb, f.Types); err != nil {
+	if err := tmpl.Execute(&sb, f.Types); err != nil {
 		return "", fmt.Errorf("rendering SharedTypesFragment: %w", err)
 	}
 	return sb.String(), nil
@@ -51,6 +63,10 @@ var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(templat
 	"fieldComment":     FieldComment,
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
+	"extraField":       func(t *ir.Type) string { return extraKeysField(t, identity) },
+	// Stubs so the template parses; Body replaces them with plan-bound versions.
+	"hasMethods":   func(*ir.Type) bool { return false },
+	"extraMethods": func(*ir.Type) string { return "" },
 }).Parse(`{{range .}}
 {{- if .Comment}}
 {{comment .Comment}}
@@ -75,8 +91,17 @@ type {{.Name}} struct {
 	{{$f.GoName}} {{$f.GoType}} ` + "`" + `json:"{{$f.JSONName}}{{if $f.OmitEmpty}},omitempty{{end}}"` + "`" + `
 {{- end}}
 {{- end}}
+{{- if .ExtraKeys}}
+
+	{{extraField .}}
+{{- end}}
 }
+{{- if hasMethods .}}
+{{extraMethods .}}
+{{- end}}
 {{end}}`))
+
+func identity(s string) string { return s }
 
 // NewSharedTypesFile builds a Target for types_gen.go.
 func NewSharedTypesFile(outDir, pkg string, types []*ir.Type) Target {

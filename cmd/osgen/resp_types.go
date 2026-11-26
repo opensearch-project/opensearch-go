@@ -65,6 +65,16 @@ type unionBranch struct {
 	DiscriminatorField string
 }
 
+// extraKeys describes the open-keyed map a struct carries beside its fixed
+// fields, e.g. the field name of a terms query mapped to its values.
+type extraKeys struct {
+	GoName    string   // map field name
+	ValueType string   // Go type of the map values
+	Known     []string // JSON keys of the fixed fields, including embedded types'
+	KeyTitle  string   // propertyNames title (e.g. "field")
+	RawValue  bool     // the value type is a union (has RawJSON and SetRaw)
+}
+
 // goType represents a generated Go struct type or oneOf/anyOf union.
 type goType struct {
 	Name      string    // Go type name (e.g. "ClusterHealthResp", "ShardStatistics")
@@ -91,6 +101,11 @@ type goType struct {
 	ParamNames []string
 	// Default is the schema's default wire value for a string enum, or "".
 	Default string
+
+	// ExtraKeys, when non-nil, adds a map field for the keys the spec leaves open
+	// next to the fixed properties (propertyNames + additionalProperties, or an
+	// Aggregate-valued additionalProperties/unevaluatedProperties).
+	ExtraKeys *extraKeys
 
 	// Discriminator carries the spec's OpenAPI `discriminator` when the union
 	// declares one and every branch resolved to a unique value. Nil otherwise,

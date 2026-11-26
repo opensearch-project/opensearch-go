@@ -87,6 +87,29 @@ func TestManual_Aggregation(t *testing.T) {
 			},
 		},
 		{
+			name: "terms bucket exposes its avg sub-aggregation",
+			key:  "by_category",
+			query: `{"size":0,"aggs":{"by_category":{"terms":{"field":"category"},` +
+				`"aggs":{"avg_price":{"avg":{"field":"price"}}}}}}`,
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
+				t.Helper()
+				v, err := agg.AsSTerms()
+				require.NoError(t, err)
+				require.Len(t, v.Buckets, 3)
+				got := map[string]float64{}
+				for _, b := range v.Buckets {
+					subAgg := b.Aggregations["avg_price"]
+					avg, err := subAgg.AsAvg()
+					require.NoError(t, err)
+					require.NotNil(t, avg.Value)
+					got[b.Key] = *avg.Value
+				}
+				require.InDelta(t, 150, got["electronics"], 1e-9)
+				require.InDelta(t, 20, got["books"], 1e-9)
+				require.InDelta(t, 50, got["clothing"], 1e-9)
+			},
+		},
+		{
 			name: "date_histogram decodes via AsDateHistogram",
 			key:  "by_month",
 			query: `{"size":0,"aggs":{"by_month":{"date_histogram":` +

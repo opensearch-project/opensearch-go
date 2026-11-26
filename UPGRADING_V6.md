@@ -19,6 +19,38 @@ Every enum-valued query parameter is a defined type, such as `type Refresh strin
 
 What the client sends does not change, with one exception: cat help no longer sends `format=json`, because the cat help operation has no `format` parameter.
 
+## Terms queries and aggregation buckets carry a map of open keys
+
+`CommonQueryDSLTermsQuery` has a `Fields` map, keyed by field name, for the field a `terms` query matches. The bucket and single-bucket aggregate types, such as `CommonAggregationsStringTermsBucket`, `CommonAggregationsDateHistogramBucket` and `CommonAggregationsMultiBucketBase`, have an `Aggregations` map for the sub-aggregations a response nests in each bucket. Each of these types has its own `MarshalJSON` and `UnmarshalJSON`, which write the map next to the fixed properties and fill it on decode.
+
+A struct holding a map is not comparable, so code that compares two of these values with `==`, or uses one as a map key, no longer compiles. Compare the fields you need instead:
+
+```go
+// Before
+same := a == b
+
+// After
+same := a.Key == b.Key && a.DocCount == b.DocCount
+```
+
+A struct of your own that embeds one of these types inherits its `MarshalJSON` and `UnmarshalJSON`, so the struct's other fields are no longer encoded or decoded. Hold the value in a named field, or give the struct its own methods:
+
+```go
+// Before: Note is encoded and decoded next to the bucket's fields.
+type myBucket struct {
+	opensearchapi.CommonAggregationsStringTermsBucket
+	Note string `json:"note"`
+}
+
+// After
+type myBucket struct {
+	Bucket opensearchapi.CommonAggregationsStringTermsBucket `json:"bucket"`
+	Note   string                                            `json:"note"`
+}
+```
+
+Marshaling a `Fields` or `Aggregations` entry whose key names a fixed property, such as `boost` on a terms query or `key` and `doc_count` on a bucket, returns an error. The comparison ignores case. Set the fixed property through its field.
+
 ## Analyzer, experiment and judgment request types are discriminated by `type`
 
 `type` is required on the `cjk` and `smartcn` analyzers and on the `search_relevance` experiment and judgment request types, so their `Type` field is `string` instead of `*string`:

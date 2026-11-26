@@ -16126,6 +16126,194 @@ func (u CommonQueryDSLTermQuery) MarshalJSONTo(enc *json.TextEncoder) error {
 	return enc.WriteValue(json.TextValue(build.NullJSON))
 }
 
+// CommonQueryDSLTermsQueryField is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLTermsQueryField struct {
+	typ   CommonQueryDSLTermsQueryFieldType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLTermsQueryFieldType names which branch of CommonQueryDSLTermsQueryField is set.
+type CommonQueryDSLTermsQueryFieldType int
+
+const (
+	CommonQueryDSLTermsQueryFieldUnknownType CommonQueryDSLTermsQueryFieldType = iota
+	CommonQueryDSLTermsQueryFieldArrayType
+	CommonQueryDSLTermsQueryFieldLookupType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLTermsQueryFieldType) String() string {
+	switch t {
+	case CommonQueryDSLTermsQueryFieldArrayType:
+		return "Array"
+	case CommonQueryDSLTermsQueryFieldLookupType:
+		return "Lookup"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLTermsQueryFieldUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLTermsQueryField) Type() CommonQueryDSLTermsQueryFieldType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLTermsQueryField) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLTermsQueryFieldFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLTermsQueryField) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLTermsQueryFieldUnknownType
+}
+
+// Array returns the []FieldValue branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []FieldValue in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLTermsQueryField) Array() ([]FieldValue, error) {
+	if v, ok := u.value.(*[]FieldValue); ok {
+		return *v, nil
+	}
+	var zero []FieldValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLTermsQueryField", Want: "Array", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLTermsQueryFieldFromArray returns a CommonQueryDSLTermsQueryField populated with v
+// on the Array branch.
+func NewCommonQueryDSLTermsQueryFieldFromArray(v []FieldValue) CommonQueryDSLTermsQueryField {
+	return CommonQueryDSLTermsQueryField{
+		typ:   CommonQueryDSLTermsQueryFieldArrayType,
+		value: &v,
+	}
+}
+
+// Lookup returns the CommonQueryDSLTermsLookup branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLTermsLookup in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLTermsQueryField) Lookup() (CommonQueryDSLTermsLookup, error) {
+	if v, ok := u.value.(*CommonQueryDSLTermsLookup); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLTermsLookup
+	return zero, &UnionBranchError{Union: "CommonQueryDSLTermsQueryField", Want: "Lookup", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLTermsQueryFieldFromLookup returns a CommonQueryDSLTermsQueryField populated with v
+// on the Lookup branch.
+func NewCommonQueryDSLTermsQueryFieldFromLookup(v CommonQueryDSLTermsLookup) CommonQueryDSLTermsQueryField {
+	return CommonQueryDSLTermsQueryField{
+		typ:   CommonQueryDSLTermsQueryFieldLookupType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLTermsQueryField) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLTermsQueryFieldUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '[':
+		var v []FieldValue
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLTermsQueryFieldArrayType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLTermsLookup
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLTermsQueryFieldLookupType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLTermsQueryField: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+// UnmarshalJSONFrom decodes the union as UnmarshalJSON does, in one pass over
+// dec rather than a parse of bytes dec has already scanned. The JSON codec the
+// client decodes with calls it in place of UnmarshalJSON.
+func (u *CommonQueryDSLTermsQueryField) UnmarshalJSONFrom(dec *json.TextDecoder) error {
+	u.raw = nil
+	u.value = nil
+	u.typ = CommonQueryDSLTermsQueryFieldUnknownType
+	mark := json.MarkOf(dec)
+	switch json.PeekKind(dec) {
+	case 'n':
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		u.raw = mark.Consumed(dec)
+		return nil
+	case '[':
+		var v []FieldValue
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLTermsQueryFieldArrayType
+		u.value = &v
+	case '{':
+		var v CommonQueryDSLTermsLookup
+		if err := json.UnmarshalDecode(dec, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLTermsQueryFieldLookupType
+		u.value = &v
+	default:
+		// Read the value, so that an invalid one reports its syntax error and a
+		// valid one of no branch's kind its first byte.
+		if _, err := dec.ReadValue(); err != nil {
+			return err
+		}
+		return fmt.Errorf("CommonQueryDSLTermsQueryField: unexpected JSON token: %s", mark.Consumed(dec)[:1])
+	}
+	u.raw = mark.Consumed(dec)
+	return nil
+}
+
+func (u CommonQueryDSLTermsQueryField) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// MarshalJSONTo writes the union to enc as MarshalJSON encodes it, without
+// encoding the branch into bytes of its own first. The JSON codec the client
+// encodes with calls it in place of MarshalJSON.
+func (u CommonQueryDSLTermsQueryField) MarshalJSONTo(enc *json.TextEncoder) error {
+	if u.value != nil {
+		return json.MarshalEncode(enc, u.value)
+	}
+	if len(u.raw) > 0 {
+		return enc.WriteValue(json.TextValue(u.raw))
+	}
+	return enc.WriteValue(json.TextValue(build.NullJSON))
+}
+
 // CommonQueryDSLWildcardQuery is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte

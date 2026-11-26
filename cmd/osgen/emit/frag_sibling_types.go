@@ -24,7 +24,10 @@ type SiblingTypesFragment struct {
 // Imports returns the imports the sibling-types fragment needs.
 func (f *SiblingTypesFragment) Imports() []Import {
 	var imps []Import
-	hasJSON := false
+	hasKeys := hasExtraKeys(f.Types)
+	hasJSON := hasKeys
+	hasFmt := hasKeys
+	hasStrings := hasKeys
 	hasCrossPkg := false
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
@@ -36,8 +39,14 @@ func (f *SiblingTypesFragment) Imports() []Import {
 			}
 		}
 	}
+	if hasFmt {
+		imps = append(imps, Import{Path: "fmt"})
+	}
 	if hasJSON {
 		imps = append(imps, jsonImport)
+	}
+	if hasStrings {
+		imps = append(imps, Import{Path: "strings"})
 	}
 	if hasCrossPkg {
 		imps = append(imps, Import{Path: f.Registry.CoreImport})
@@ -60,6 +69,7 @@ func (f *SiblingTypesFragment) Body() (string, error) {
 		Types: f.Types,
 	}
 
+	plan := extraKeysPlan(f.Types)
 	tmpl := template.Must(template.New("siblings").Funcs(template.FuncMap{
 		"comment":          CommentWrap,
 		"wrapField":        WrapField,
@@ -67,6 +77,9 @@ func (f *SiblingTypesFragment) Body() (string, error) {
 		"availabilityNote": AvailabilityNote,
 		"needsSep":         needsSepIR,
 		"qualify":          qualify,
+		"extraField":       func(t *ir.Type) string { return extraKeysField(t, qualify) },
+		"hasMethods":       func(t *ir.Type) bool { return plan[t] != nil },
+		"extraMethods":     func(t *ir.Type) string { return extraKeysMethods(t, plan[t], qualify) },
 	}).Parse(siblingTypesTmplStr))
 
 	var sb strings.Builder
@@ -101,5 +114,12 @@ type {{.Name}} struct {
 	{{$f.GoName}} {{qualify $f.GoType}} ` + "`" + `json:"{{$f.JSONName}}{{if $f.OmitEmpty}},omitempty{{end}}"` + "`" + `
 {{- end}}
 {{- end}}
+{{- if .ExtraKeys}}
+
+	{{extraField .}}
+{{- end}}
 }
+{{- if hasMethods .}}
+{{extraMethods .}}
+{{- end}}
 {{end}}`
