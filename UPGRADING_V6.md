@@ -1,5 +1,24 @@
 # Upgrading to >= 6.0.0
 
+## Query-parameter enums are defined types, and `format` is declared per operation
+
+Every enum-valued query parameter is a defined type, such as `type Refresh string`, like the enums the client already had (`VersionType`, `OpType`). In 5.x the enum types added for these parameters were aliases of `string`, so a `string` or `[]string` variable assigned to them directly. In 6.0 it needs a conversion. String literals and the generated constants still assign without one, for example `Refresh: "wait_for"` and `Refresh: opensearchapi.RefreshWaitFor`.
+
+`DebugParams`, which every operation's `Params` embeds, now holds only the parameters every operation accepts: `Pretty`, `Human`, `ErrorTrace`, `FilterPath` and `Source`. `Format`, `Help`, `H`, `V` and `S` are fields of the operations that declare them, and `Format` is typed per operation family: `CatRespFormat` on the cat operations, `ListRespFormat` on list, `SQLRespFormat` on sql and `PPLRespFormat` on ppl. `Help` and `V` are `*bool`.
+
+`BulkIndexerConfig.Refresh` and `BulkIndexerConfig.WaitForActiveShards` take the typed values they pass to `BulkParams`. `BulkIndexerItem.Refresh` and `BulkIndexerItem.WaitForActiveShards` are removed. The server rejects both in a bulk action line, so set them on `BulkIndexerConfig`, where they apply to every request the bulk client sends.
+
+| Before (5.x)                                                               | After (6.0)                                                                                |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `IndexParams{Refresh: s}` with `s string`                                  | `IndexParams{Refresh: opensearchapi.Refresh(s)}`                                           |
+| `SearchParams{ExpandWildcards: []string{...}}`                             | `SearchParams{ExpandWildcards: []opensearchapi.ExpandWildcard{...}}`                       |
+| `CatIndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}` | `CatIndicesParams{Format: "json"}`                                                         |
+| `DebugParams{Help: true}`, and likewise `V`, `S` and `H`                   | `Help: new(true)` on the operation's `Params`                                              |
+| `BulkIndexerConfig{Refresh: s}` with `s string`                            | `BulkIndexerConfig{Refresh: opensearchapi.Refresh(s)}`, and likewise `WaitForActiveShards` |
+| `BulkIndexerItem{Refresh: ..., WaitForActiveShards: ...}`                  | set them on `BulkIndexerConfig`                                                            |
+
+What the client sends does not change, with one exception: cat help no longer sends `format=json`, because the cat help operation has no `format` parameter.
+
 ## Analyzer, experiment and judgment request types are discriminated by `type`
 
 `type` is required on the `cjk` and `smartcn` analyzers and on the `search_relevance` experiment and judgment request types, so their `Type` field is `string` instead of `*string`:
